@@ -29,6 +29,7 @@ impl<T> Interp<T> {
     /// Evaluates a script one command at a time.
     // TODO: I'll ultimately want a more complex Ok result.
     pub fn eval(&mut self, _context: &mut T, _script: &str) -> InterpResult {
+
         Ok("".into())
     }
 }
@@ -51,6 +52,8 @@ fn cmd_ident<T>(_interp: &mut Interp<T>, _context: &mut T, argv: &[&str]) -> Int
 /// Returns an error if not.  The arglist must have at least min entries, and can have up
 /// to max.  If max is 0, there is no maximum.  argv[0] is always the command name, and
 /// is included in the count; thus, min should always be >= 1.
+///
+/// *Note:* Defined as a function because it doesn't need anything from the Interp.
 pub fn gcl_arg_check(argv: &[&str], min: usize, max: usize, argsig: &str) -> InterpResult {
     assert!(min >= 1);
     assert!(!argv.is_empty());

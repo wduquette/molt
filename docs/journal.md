@@ -1,5 +1,41 @@
 # GCL Development Journal
 
+## 2018-01-07 (Monday)
+
+*   Insight: Command Storage
+    *   The commands map is a map from String to Rc<CommandEnum>
+    *   A command can be a built-in command function, or a proc.
+        CommandEnum can handle both cases.
+    *   Commands are *always* looked up by name at run time.
+        *   Because the name can be changed, and procs can be
+            redefined.
+    *   Basic Principle: Tcl is evaluated *as though* the scripts and
+        proc bodies were saved as Strings, not byte-compiled.
+    *   When evaluating a proc body, the interpreter clones the
+        Rc<CommandEnum>.  The reference count will be decremented at
+        the end of the call.
+    *   If the proc renames itself, the lookup table is changed, but
+        the definition is not, and since it's an Rc that's OK.
+    *   If the proc redefines itself, the Rc in the hashmap is replaced
+        by a new one; and when the proc stops executing, the old version
+        is cleaned up.
+    *   Woohoo!
+*   Insight: Command Context
+    *   A command can be passed a context struct using RefCell.  It can
+        borrow it and update it as needed, so long as it itself is
+        executing.
+    *   Still to be answered: how to allow different commands to be
+        passed different context cells?
+        *   Probably need to use trait objects.
+        *   A proc is already a struct.
+        *   A built-in command could also be implemented as a struct.
+*   Simplest approach for now:
+    *   Parse and evaluate in one go.
+        *   Simplifies the parser.
+        *   Pretty much guarantees I get the right semantics.
+    *   Write detailed tests.
+    *   Then elaborate as needed.
+
 ## 2018-01-06 (Sunday)
 
 *   Still pondering how to add context to client-defined commands.

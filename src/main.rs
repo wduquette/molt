@@ -2,8 +2,6 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 fn main() {
-    // TODO: Move this to Interp::shell()
-    // `()` can be used when no completer is required
     let mut rl = Editor::<()>::new();
 
     loop {

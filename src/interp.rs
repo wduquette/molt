@@ -1,52 +1,89 @@
 //! The Interpreter
+use std::rc::Rc;
 use std::collections::HashMap;
 
 
 /// The interpreter's result.
 pub type InterpResult = Result<String,String>;
-pub type Command<T> = fn(&mut Interp<T>, &mut T, &[&str]) -> InterpResult;
+pub type CommandFunc = fn(&mut Interp, &[&str]) -> InterpResult;
 
 #[derive(Default)]
-pub struct Interp<T> {
-    commands: HashMap<String,Command<T>>,
+pub struct Interp {
+    commands: HashMap<String,Rc<dyn Command>>,
 }
 
-impl<T> Interp<T> {
+impl Interp {
     pub fn new() -> Self {
         let mut interp = Self {
             commands: HashMap::new()
         };
 
-        interp.define("ident", cmd_ident);
-        interp.define("puts", cmd_puts);
+        interp.add_command("ident", cmd_ident);
+        interp.add_command("puts", cmd_puts);
+        interp.add_command("exit", cmd_exit);
         interp
     }
 
-    pub fn define(&mut self, name: &str, command: Command<T>) {
+    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
+        let command = Rc::new(CommandFuncWrapper::new(func));
+        self.add_command_object(name, command);
+    }
+
+    pub fn add_command_object(&mut self, name: &str, command: Rc<dyn Command>) {
         self.commands.insert(name.into(), command);
     }
 
     /// Evaluates a script one command at a time.
     // TODO: I'll ultimately want a more complex Ok result.
-    pub fn eval(&mut self, _context: &mut T, _script: &str) -> InterpResult {
+    pub fn eval(&mut self, _script: &str) -> InterpResult {
 
         Ok("".into())
     }
 }
 
-fn cmd_puts<T>(_interp: &mut Interp<T>, _context: &mut T, argv: &[&str]) -> InterpResult {
-    gcl_arg_check(argv, 2, 2, "text")?;
+pub trait Command {
+    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult;
+}
+
+struct CommandFuncWrapper {
+    func: CommandFunc,
+}
+
+impl CommandFuncWrapper {
+    fn new(func: CommandFunc) -> Self {
+        Self {
+            func
+        }
+    }
+}
+
+impl Command for CommandFuncWrapper {
+    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
+        (self.func)(interp, argv)
+    }
+}
+
+fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(argv, 1, 1, "")?;
+
+    // TODO: Allow an optional argument, and parse it to i32.
+    std::process::exit(0);
+}
+
+fn cmd_ident(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(argv, 2, 2, "value")?;
+
+    Ok(argv[1].into())
+}
+
+fn cmd_puts(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(argv, 2, 2, "text")?;
 
     println!("{}", argv[1]);
 
     Ok("".into())
 }
 
-fn cmd_ident<T>(_interp: &mut Interp<T>, _context: &mut T, argv: &[&str]) -> InterpResult {
-    gcl_arg_check(argv, 2, 2, "value")?;
-
-    Ok(argv[1].into())
-}
 
 /// Checks to see whether a command's argument list is of a reasonable size.
 /// Returns an error if not.  The arglist must have at least min entries, and can have up
@@ -54,12 +91,12 @@ fn cmd_ident<T>(_interp: &mut Interp<T>, _context: &mut T, argv: &[&str]) -> Int
 /// is included in the count; thus, min should always be >= 1.
 ///
 /// *Note:* Defined as a function because it doesn't need anything from the Interp.
-pub fn gcl_arg_check(argv: &[&str], min: usize, max: usize, argsig: &str) -> InterpResult {
+pub fn check_args(argv: &[&str], min: usize, max: usize, argsig: &str) -> InterpResult {
     assert!(min >= 1);
     assert!(!argv.is_empty());
 
     if argv.len() < min || (max > 0 && argv.len() > max) {
-        Err(format!("Wrong # args, should be: \"{} {}\"", argv[0], argsig))
+        Err(format!("wrong # args: should be \"{} {}\"", argv[0], argsig))
     } else {
         Ok("".into())
     }
@@ -69,54 +106,17 @@ pub fn gcl_arg_check(argv: &[&str], min: usize, max: usize, argsig: &str) -> Int
 mod tests {
     use super::*;
 
-    struct Context {
-        info: String,
-    }
-
-    struct MyInterp {
-        context: Context,
-        interp: Interp<Context>,
-    }
-
-    impl Context {
-        fn new() -> Self {
-            Self {
-                info: String::new(),
-            }
-        }
-    }
-
-    impl MyInterp {
-        fn new() -> Self {
-            Self {
-                context: Context::new(),
-                interp: Interp::new(),
-            }
-        }
-
-        fn eval(&mut self, script: &str) -> InterpResult {
-            self.interp.eval(&mut self.context, script)
-        }
-    }
-
     #[test]
-    fn test_gcl_arg_check1() {
-        assert_ok(&gcl_arg_check(vec!["mycmd"].as_slice(), 1, 1, ""));
-        assert_ok(&gcl_arg_check(vec!["mycmd"].as_slice(), 1, 2, "arg1"));
-        assert_ok(&gcl_arg_check(vec!["mycmd","data"].as_slice(), 1, 2, "arg1"));
-        assert_ok(&gcl_arg_check(vec!["mycmd","data","data2"].as_slice(), 1, 0, "arg1"));
+    fn test_check_args() {
+        assert_ok(&check_args(vec!["mycmd"].as_slice(), 1, 1, ""));
+        assert_ok(&check_args(vec!["mycmd"].as_slice(), 1, 2, "arg1"));
+        assert_ok(&check_args(vec!["mycmd","data"].as_slice(), 1, 2, "arg1"));
+        assert_ok(&check_args(vec!["mycmd","data","data2"].as_slice(), 1, 0, "arg1"));
 
-        assert_err(&gcl_arg_check(vec!["mycmd"].as_slice(), 2, 2, "arg1"),
+        assert_err(&check_args(vec!["mycmd"].as_slice(), 2, 2, "arg1"),
             "Wrong # args, should be: \"mycmd arg1\"");
-        assert_err(&gcl_arg_check(vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
+        assert_err(&check_args(vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
             "Wrong # args, should be: \"mycmd arg1\"");
-    }
-
-    #[test]
-    fn test_interp_new() {
-        let mut my_interp =  MyInterp::new();
-
-        assert_ok(&my_interp.eval("foo"));
     }
 
     // Helpers

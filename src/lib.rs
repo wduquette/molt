@@ -47,47 +47,9 @@ pub fn parse_command(input: &mut Chars) -> Option<Vec<String>> {
     }
 }
 
-pub fn parse_word(input: &mut Chars) -> Option<String> {
-    let mut word = String::new();
-    let mut in_word = false;
-
-    while let Some(c) = input.next() {
-        if in_word {
-            if c.is_whitespace() {
-                break;  // Word is complete
-            } else {
-                word.push(c);
-            }
-        } else { // LookingForWord
-            if c.is_whitespace() {
-                continue;
-            } else {
-                in_word = true;
-                word.push(c);
-            }
-        }
-    }
-
-    if in_word {
-        Some(word)
-    } else {
-        None
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_parse_word() {
-        let input = String::from("some words");
-        let chars = &mut input.chars();
-
-        assert_eq!(parse_word(chars), Some("some".into()));
-        assert_eq!(parse_word(chars), Some("words".into()));
-        assert_eq!(parse_word(chars), None);
-    }
 
     #[test]
     fn test_parse_command() {
@@ -105,16 +67,4 @@ mod tests {
         let remainder: String = chars.collect();
         assert_eq!(&remainder, "another");
     }
-
-    #[test]
-    fn test_parse_command2() {
-        let input = String::from("  some words  \nanother");
-        let chars = &mut input.chars();
-
-        while let Some(cmd) = parse_command(chars) {
-            println!("Got: {:?}", cmd);
-        }
-        assert!(true);
-    }
-
 }

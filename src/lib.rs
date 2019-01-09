@@ -2,8 +2,8 @@
 
 use std::str::Chars;
 
-#[allow(clippy::new_without_default_derive)]
 pub mod interp;
+pub mod types;
 
 pub fn parse_command(input: &mut Chars) -> Option<Vec<String>> {
     let mut cmd = Vec::new();

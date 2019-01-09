@@ -1,11 +1,11 @@
 //! The Interpreter
+use crate::types::Command;
+use crate::types::InterpResult;
+use crate::types::CommandFunc;
 use std::rc::Rc;
 use std::collections::HashMap;
 
 
-/// The interpreter's result.
-pub type InterpResult = Result<String,String>;
-pub type CommandFunc = fn(&mut Interp, &[&str]) -> InterpResult;
 
 #[derive(Default)]
 pub struct Interp {
@@ -39,10 +39,6 @@ impl Interp {
 
         Ok("".into())
     }
-}
-
-pub trait Command {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult;
 }
 
 struct CommandFuncWrapper {

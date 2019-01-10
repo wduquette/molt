@@ -1,5 +1,24 @@
 # GCL Development Journal
 
+## 2018-01-09 (Wednesday)
+*   Extended the Interp::eval() method to actually parse a script, execute
+    each command, and return the result of the last command.
+    *   It throws the proper error if a command isn't remembered.
+*   The shell now calls Interp::eval() when it ought to.
+*   Next steps:
+    *   Add set and unset methods, and variable storage.
+    *   Reorganize the code.
+    *   Add string quoting and interpolation to the parser.
+    *   Add list processing.
+*   Basic principle for now: naive is fine.  Make it naive, and write
+    a test suite.  Then I can make it smarter.
+    
+## 2018-01-08 (Tuesday)
+*   Revised to use command storage and traits as described in yesterday's
+    journal entry.
+*   Added a rustyline-based shell, but it doesn't actually call the interpreter
+    yet.
+
 ## 2018-01-07 (Monday)
 
 *   Insight: Command Storage

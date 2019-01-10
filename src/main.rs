@@ -1,16 +1,26 @@
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use gcl::interp::Interp;
 
 fn main() {
     let mut rl = Editor::<()>::new();
+    let mut interp = Interp::new();
 
     loop {
-        let readline = rl.readline("> ");
+        let readline = rl.readline("% ");
         match readline {
             Ok(line) => {
-                rl.add_history_entry(line.as_ref());
-                if !line.trim().is_empty() {
-                    println!("Line: {}", line.trim());
+                let line = line.trim();
+                if !line.is_empty() {
+                    match interp.eval(line) {
+                        Ok(result) => {
+                            rl.add_history_entry(line);
+                            println!("{}", result);
+                        }
+                        Err(msg) => {
+                            println!("{}", msg);
+                        }
+                    }
                 }
             },
             Err(ReadlineError::Interrupted) => {

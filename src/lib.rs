@@ -10,8 +10,8 @@ pub fn parse_command(input: &mut Chars) -> Option<Vec<String>> {
     let mut word = String::new();
     let mut in_word = false;
 
-    while let Some(c) = input.next() {
-        if c == '\n' {
+    for c in input {
+        if c == '\n' || c == ';' {
             break;  // Found newline; TODO: Handle escaped newline
         }
 

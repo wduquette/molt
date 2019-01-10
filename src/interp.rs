@@ -1,4 +1,5 @@
 //! The Interpreter
+use crate::parse_command;
 use crate::types::Command;
 use crate::types::InterpResult;
 use crate::types::CommandFunc;
@@ -26,18 +27,34 @@ impl Interp {
 
     pub fn add_command(&mut self, name: &str, func: CommandFunc) {
         let command = Rc::new(CommandFuncWrapper::new(func));
-        self.add_command_object(name, command);
+        self.add_command_obj(name, command);
     }
 
-    pub fn add_command_object(&mut self, name: &str, command: Rc<dyn Command>) {
+    pub fn add_command_obj(&mut self, name: &str, command: Rc<dyn Command>) {
         self.commands.insert(name.into(), command);
     }
 
-    /// Evaluates a script one command at a time.
+    /// Evaluates a script one command at a time, and returns either an error or
+    /// the result of the last command in the script.
     // TODO: I'll ultimately want a more complex Ok result.
-    pub fn eval(&mut self, _script: &str) -> InterpResult {
+    pub fn eval(&mut self, script: &str) -> InterpResult {
+        let chars = &mut script.chars();
 
-        Ok("".into())
+        let mut result: String = String::new();
+
+        while let Some(vec) = parse_command(chars) {
+            // FIRST, convert to Vec<&str>
+            let words: Vec<&str> = vec.iter().map(|s| &**s).collect();
+
+            if let Some(cmd) = self.commands.get(words[0]) {
+                let cmd = Rc::clone(cmd);
+                result = cmd.execute(self, words.as_slice())?;
+            } else {
+                return Err(format!("invalid command name \"{}\"", words[0]));
+            }
+        }
+
+        Ok(result)
     }
 }
 

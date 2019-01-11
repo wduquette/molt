@@ -3,11 +3,14 @@
 use std::str::Chars;
 
 mod interp;
-pub mod types;
 mod shell;
+mod types;
+mod utils;
 
 pub use crate::interp::Interp;
 pub use crate::shell::shell;
+pub use crate::types::*;
+pub use crate::utils::*;
 
 pub fn parse_command(input: &mut Chars) -> Option<Vec<String>> {
     let mut cmd = Vec::new();

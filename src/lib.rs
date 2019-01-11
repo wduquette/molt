@@ -2,6 +2,7 @@
 
 use std::str::Chars;
 
+mod commands;
 mod interp;
 mod shell;
 mod types;

@@ -1,26 +1,28 @@
 //! The Interpreter
 use crate::parse_command;
-use crate::types::Command;
-use crate::types::InterpResult;
-use crate::types::CommandFunc;
-use crate::utils;
+use crate::Command;
+use crate::InterpResult;
+use crate::CommandFunc;
+use crate::commands;
 use std::rc::Rc;
 use std::collections::HashMap;
 
+/// The GCL Interpreter.
 #[derive(Default)]
 pub struct Interp {
     commands: HashMap<String,Rc<dyn Command>>,
 }
 
 impl Interp {
+    /// Create a new interpreter, pre-populated with the standard commands.
+    /// TODO: Probably want to created it empty and provide command sets.
     pub fn new() -> Self {
         let mut interp = Self {
             commands: HashMap::new()
         };
 
-        interp.add_command("ident", cmd_ident);
-        interp.add_command("puts", cmd_puts);
-        interp.add_command("exit", cmd_exit);
+        interp.add_command("exit", commands::cmd_exit);
+        interp.add_command("puts", commands::cmd_puts);
         interp
     }
 
@@ -57,6 +59,7 @@ impl Interp {
     }
 }
 
+/// A struct that wraps a command function and implements the Command trait.
 struct CommandFuncWrapper {
     func: CommandFunc,
 }
@@ -73,25 +76,4 @@ impl Command for CommandFuncWrapper {
     fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
         (self.func)(interp, argv)
     }
-}
-
-fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    utils::check_args(argv, 1, 1, "")?;
-
-    // TODO: Allow an optional argument, and parse it to i32.
-    std::process::exit(0);
-}
-
-fn cmd_ident(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    utils::check_args(argv, 2, 2, "value")?;
-
-    Ok(argv[1].into())
-}
-
-fn cmd_puts(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    utils::check_args(argv, 2, 2, "text")?;
-
-    println!("{}", argv[1]);
-
-    Ok("".into())
 }

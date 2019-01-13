@@ -1,5 +1,19 @@
 # GCL Development Journal
 
+### 2018-01-13 (Sunday)
+*   Beginning to try to replicate the Tcl 7.6 Tcl_Eval in Rust.
+    *   Was able to follow Tcl_Eval for the most part.
+        *   Although it uses some gotos.
+    *   But Tcl_Eval calls TclParseWords, which implements a finite
+        state machine using gotos in a way that simply isn't easily
+        translatable into Rust.  Humph.
+    *   And, of course, there's lots of low-level memory management
+        foofaraw that doesn't apply to what I'm doing.
+    *   And Ousterhout et al were a little casual about their
+        indentation.
+    *   I might actually be better off trying to implement the
+        Octalogue directly (https://wiki.tcl-lang.org/page/Dodekalogue).
+
 ## 2018-01-09 (Wednesday)
 *   Extended the Interp::eval() method to actually parse a script, execute
     each command, and return the result of the last command.
@@ -12,7 +26,7 @@
     *   Add list processing.
 *   Basic principle for now: naive is fine.  Make it naive, and write
     a test suite.  Then I can make it smarter.
-    
+
 ## 2018-01-08 (Tuesday)
 *   Revised to use command storage and traits as described in yesterday's
     journal entry.

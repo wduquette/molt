@@ -3,7 +3,6 @@
 use std::str::Chars;
 
 mod commands;
-mod eval;
 mod interp;
 mod shell;
 mod types;

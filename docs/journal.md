@@ -34,6 +34,11 @@
         *   Begin as you mean to go on: the "result" object probably should
             wrap a string rather than be a string, so I can implement
             something like Tcl_Obj in the long run.
+*   Tried this; don't like it.
+    *   Using `Result<>` is handy for check_args, etc., but otherwise
+        a nuisance.
+        *   Better to use a custom return enum, and write a macro
+            like try!().
 
 ## 2018-01-09 (Wednesday)
 *   Extended the Interp::eval() method to actually parse a script, execute

@@ -1,17 +1,16 @@
 //! The Interpreter
-use crate::types::ResultCode::*;
+use crate::types::*;
 use std::collections::HashSet;
 use crate::parse_command;
 use crate::types::Command;
-use crate::types::InterpResult;
 use crate::types::CommandFunc;
 use crate::commands;
 use std::rc::Rc;
 use std::collections::HashMap;
-use crate::value::Value;
 
 /// A set of flags used during parsing.
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
+#[allow(dead_code)] // TEMP
 pub enum InterpFlags {
     /// TCL_BRACKET_TERM
     BracketTerm,
@@ -22,6 +21,7 @@ pub enum InterpFlags {
 
 /// The GCL Interpreter.
 #[derive(Default)]
+#[allow(dead_code)] // TEMP
 pub struct Interp {
     // How many nested calls to Interp::eval() do we allow?
     max_nesting_depth: usize,
@@ -34,9 +34,6 @@ pub struct Interp {
 
     // Current number of eval levels.
     num_levels: usize,
-
-    // The current evaluation result.
-    result: Value,
 }
 
 impl Interp {
@@ -48,24 +45,11 @@ impl Interp {
             commands: HashMap::new(),
             flags: HashSet::new(),
             num_levels: 0,
-            result: Value::new(),
         };
 
         interp.add_command("exit", commands::cmd_exit);
         interp.add_command("puts", commands::cmd_puts);
         interp
-    }
-
-    pub fn set_result(&mut self, value: Value) {
-        self.result = value;
-    }
-
-    pub fn set_result_from(&mut self, str: &str) {
-        self.result = Value::from(str);
-    }
-
-    pub fn get_result(&self) -> Value {
-        self.result.clone()
     }
 
     pub fn add_command(&mut self, name: &str, func: CommandFunc) {
@@ -80,44 +64,42 @@ impl Interp {
     /// Evaluates a script one command at a time, and returns either an error or
     /// the result of the last command in the script.
     // TODO: I'll ultimately want a more complex Ok result.
-    pub fn eval(&mut self, script: &str) -> InterpResult {
+    pub fn eval(&mut self, script: &str) -> Status {
         let chars = &mut script.chars();
+        let mut result_value = Value::empty();
 
         while let Some(vec) = parse_command(chars) {
-            // FIRST, clear the current result (since we'll be looping over multiple commands)
-            self.result.clear();
-
-            // NEXT, convert to Vec<&str>
+            // FIRST, convert to Vec<&str>
             let words: Vec<&str> = vec.iter().map(|s| &**s).collect();
 
             if let Some(cmd) = self.commands.get(words[0]) {
                 let cmd = Rc::clone(cmd);
-                match cmd.execute(self, words.as_slice()) {
-                    Ok(Normal) => (),
-                    Ok(Return) => {
-                        self.set_result(Value::from("return not yet implemented"));
-                        return Err(());
+                let result = cmd.execute(self, words.as_slice());
+                match result {
+                    Status::Okay(v) => {
+                        result_value = v;
                     }
-                    Ok(Break) => {
-                        self.set_result(Value::from("break not yet implemented"));
-                        return Err(());
+                    Status::Return(_) => {
+                        return Status::Error(Value::from("return not yet implemented"));
                     }
-                    Ok(Continue) => {
-                        self.set_result(Value::from("continue not yet implemented"));
-                        return Err(());
+                    Status::Break => {
+                        return Status::Error(Value::from("break not yet implemented"));
                     }
-                    Err(_) => {
-                        return Err(());
+                    Status::Continue => {
+                        return Status::Error(Value::from("break not yet implemented"));
+                    }
+                    Status::Error(v) => {
+                        return Status::Error(v);
                     }
                 }
             } else {
-                self.set_result(Value::from(&format!("invalid command name \"{}\"", words[0])));
-                return Err(());
+                return Status::Error(Value::new(format!("invalid command name \"{}\"", words[0])));
             }
         }
 
-        Ok(Normal)
+        Status::Okay(result_value)
     }
+
 }
 
 /// A struct that wraps a command function and implements the Command trait.
@@ -134,7 +116,7 @@ impl CommandFuncWrapper {
 }
 
 impl Command for CommandFuncWrapper {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> Status {
         (self.func)(interp, argv)
     }
 }
@@ -157,7 +139,7 @@ impl Command for CommandFuncWrapper {
 // /// * `SKIP tclBasic:1234 - feature...` - There's code here to support a feature we aren't
 // ///   including for now, but might want later.
 // impl Interp {
-//     pub fn evalx(&mut self, script: &str) -> InterpResult {
+//     pub fn evalx(&mut self, script: &str) -> Status {
 //         // FIRST, initialize parsing state.
 //         // tclBasic.c:1153
 //         let src = &mut script.chars().peekable();
@@ -289,7 +271,7 @@ impl Command for CommandFuncWrapper {
 //     /// tclParse.c:607
 //     fn parse_words(&mut self, src: &mut std::iter::Peekable<std::str::Chars<'_>>,
 //         argv: &mut Vec<String>)
-//     -> InterpResult
+//     -> Status
 //     {
 //         // TODO
 //         Ok("".into())

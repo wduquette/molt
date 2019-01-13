@@ -6,7 +6,6 @@ mod commands;
 pub mod interp;
 pub mod shell;
 pub mod types;
-pub mod value;
 pub mod utils;
 
 pub fn parse_command(input: &mut Chars) -> Option<Vec<String>> {

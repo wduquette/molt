@@ -1,5 +1,3 @@
-use crate::types::ResultCode::Normal;
-use crate::interp::Interp;
 use crate::types::*;
 
 /// Checks to see whether a command's argument list is of a reasonable size.
@@ -8,46 +6,45 @@ use crate::types::*;
 /// is included in the count; thus, min should always be >= 1.
 ///
 /// *Note:* Defined as a function because it doesn't need anything from the Interp.
-pub fn check_args(interp: &mut Interp, argv: &[&str], min: usize, max: usize, argsig: &str) -> InterpResult {
+pub fn check_args(argv: &[&str], min: usize, max: usize, argsig: &str) -> Status {
     assert!(min >= 1);
     assert!(!argv.is_empty());
 
     if argv.len() < min || (max > 0 && argv.len() > max) {
-        interp.set_result_from(&format!("wrong # args: should be \"{} {}\"", argv[0], argsig));
-        Err(())
+        Status::error(&format!("wrong # args: should be \"{} {}\"", argv[0], argsig))
     } else {
-        Ok(Normal)
+        Status::okay()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
 
     #[test]
     fn test_check_args() {
-        // assert_ok(&check_args(vec!["mycmd"].as_slice(), 1, 1, ""));
-        // assert_ok(&check_args(vec!["mycmd"].as_slice(), 1, 2, "arg1"));
-        // assert_ok(&check_args(vec!["mycmd","data"].as_slice(), 1, 2, "arg1"));
-        // assert_ok(&check_args(vec!["mycmd","data","data2"].as_slice(), 1, 0, "arg1"));
-        //
-        // assert_err(&check_args(vec!["mycmd"].as_slice(), 2, 2, "arg1"),
-        //     "Wrong # args, should be: \"mycmd arg1\"");
-        // assert_err(&check_args(vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
-        //     "Wrong # args, should be: \"mycmd arg1\"");
+        assert_ok(&check_args(vec!["mycmd"].as_slice(), 1, 1, ""));
+        assert_ok(&check_args(vec!["mycmd"].as_slice(), 1, 2, "arg1"));
+        assert_ok(&check_args(vec!["mycmd","data"].as_slice(), 1, 2, "arg1"));
+        assert_ok(&check_args(vec!["mycmd","data","data2"].as_slice(), 1, 0, "arg1"));
+
+        assert_err(&check_args(vec!["mycmd"].as_slice(), 2, 2, "arg1"),
+            "Wrong # args, should be: \"mycmd arg1\"");
+        assert_err(&check_args(vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
+            "Wrong # args, should be: \"mycmd arg1\"");
     }
 
     // Helpers
 
-    // fn assert_err(result: &InterpResult, msg: &str) {
-    //     assert_eq!(Err(msg.into()), *result);
-    // }
-    //
-    // fn assert_ok(result: &InterpResult) {
-    //     assert!(result.is_ok(), "Result is not Ok");
-    // }
+    fn assert_err(result: &Status, msg: &str) {
+        assert_eq!(Status::error(msg), *result);
+    }
 
-    // fn assert_value(result: InterpResult, value: &str) {
+    fn assert_ok(result: &Status) {
+        assert!(result.is_okay(), "Result is not Ok");
+    }
+
+    // fn assert_value(result: Status, value: &str) {
     //     assert_eq!(Ok(value.into()), result);
     // }
 }

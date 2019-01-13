@@ -1,7 +1,5 @@
 use gcl::interp::Interp;
-use gcl::types::InterpResult;
-use gcl::value::Value;
-use gcl::types::ResultCode;
+use gcl::types::Status;
 
 fn main() {
     let mut interp = Interp::new();
@@ -10,10 +8,12 @@ fn main() {
     gcl::shell::shell(&mut interp, "% ");
 }
 
-fn cmd_ident(interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    gcl::utils::check_args(interp, argv, 2, 2, "value")?;
+fn cmd_ident(_interp: &mut Interp, argv: &[&str]) -> Status {
+    let result = gcl::utils::check_args(argv, 2, 2, "value");
 
-    interp.set_result(Value::from(argv[1]));
+    if !result.is_okay() {
+        return result;
+    }
 
-    Ok(ResultCode::Normal)
+    Status::result(argv[1])
 }

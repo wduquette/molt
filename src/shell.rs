@@ -1,6 +1,7 @@
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use crate::interp::Interp;
+use crate::types::Status::*;
 
 pub fn shell(interp: &mut Interp, prompt: &str) {
     let mut rl = Editor::<()>::new();
@@ -12,12 +13,15 @@ pub fn shell(interp: &mut Interp, prompt: &str) {
                 let line = line.trim();
                 if !line.is_empty() {
                     match interp.eval(line) {
-                        Err(()) => {
-                            println!("{}", interp.get_result().as_string());
+                        Okay(value) => {
+                            rl.add_history_entry(line);
+                            println!("{}", value.as_str());
+                        }
+                        Error(value) => {
+                            println!("{}", value.as_str());
                         }
                         _ => {
-                            rl.add_history_entry(line);
-                            println!("{}", interp.get_result().as_string());
+                            println!("Unexpected eval return.");
                         }
                     }
                 }

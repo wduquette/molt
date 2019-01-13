@@ -2,9 +2,24 @@
 
 use crate::interp::Interp;
 
+/// "Ok" result codes for GCL calls
+pub enum ResultCode {
+    /// A normal result, e.g., TCL_OK
+    Normal,
+
+    /// A script called [return $value]
+    Return,
+
+    /// A script called [break] in a loop
+    Break,
+
+    /// A script called [continue] in a loop
+    Continue,
+}
+
 /// The interpreter's result.
-/// TODO: This will need to be more general in the long run.
-pub type InterpResult = Result<String,String>;
+/// Err(()) corresponds to TCL_ERROR; the other ResultCodes corresponds to TCL_OK, etc.
+pub type InterpResult = Result<ResultCode,()>;
 
 /// A simple command function, used to implement a command without any attached
 /// context data.

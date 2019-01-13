@@ -1,6 +1,6 @@
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use crate::Interp;
+use crate::interp::Interp;
 
 pub fn shell(interp: &mut Interp, prompt: &str) {
     let mut rl = Editor::<()>::new();
@@ -12,12 +12,12 @@ pub fn shell(interp: &mut Interp, prompt: &str) {
                 let line = line.trim();
                 if !line.is_empty() {
                     match interp.eval(line) {
-                        Ok(result) => {
-                            rl.add_history_entry(line);
-                            println!("{}", result);
+                        Err(()) => {
+                            println!("{}", interp.get_result().as_string());
                         }
-                        Err(msg) => {
-                            println!("{}", msg);
+                        _ => {
+                            rl.add_history_entry(line);
+                            println!("{}", interp.get_result().as_string());
                         }
                     }
                 }

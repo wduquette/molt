@@ -13,6 +13,27 @@
         indentation.
     *   I might actually be better off trying to implement the
         Octalogue directly (https://wiki.tcl-lang.org/page/Dodekalogue).
+*   What have I learned?
+    *   Tcl 7.6 isn't a great example (though it will help)
+        *   Still highly optimized.
+        *   Logic is obscured by C memory handling
+            *   Rust vectors and iterators should help a lot.
+    *   Requirements:
+        *   Ability to parse without evaluating (e.g., "info complete")
+        *   Need to track stack depth, and cut it short before the Rust
+            app blows up.
+            *   Therefore, using "?" syntax isn't desirable in
+                gcl::eval, as I can't decrement the stack depth.
+    *   Result and result code handling
+        *   Tcl's interp result and return code scheme isn't a great match
+            for Rust's `Result<>` type.  What you want to do is add
+            Break, Continue, and Return(val).
+        *   It's probably easier to add a "result" String to interp, to be
+            set for error messages and other result values, and add
+            a ResultCode enum for use with Ok.
+        *   Begin as you mean to go on: the "result" object probably should
+            wrap a string rather than be a string, so I can implement
+            something like Tcl_Obj in the long run.
 
 ## 2018-01-09 (Wednesday)
 *   Extended the Interp::eval() method to actually parse a script, execute

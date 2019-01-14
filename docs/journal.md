@@ -39,6 +39,13 @@
         a nuisance.
         *   Better to use a custom return enum, and write a macro
             like try!().
+        *   Did that. (Except for try!)
+*   Parsing context
+    *   Simple struct.  Contains a peekable iterator, and parsing
+        flags.  eval() creates it, passes it to eval_script() (new), which
+        parses and evaluates commands.
+        *   Flags: parse only, looking for square bracket or not,
+            maybe stack depth.
 
 ## 2018-01-09 (Wednesday)
 *   Extended the Interp::eval() method to actually parse a script, execute

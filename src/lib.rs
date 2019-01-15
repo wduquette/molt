@@ -1,5 +1,6 @@
 //! Main GCL Library File
 
+use crate::types::*;
 use std::str::Chars;
 
 mod commands;
@@ -7,6 +8,16 @@ pub mod interp;
 pub mod shell;
 pub mod types;
 pub mod utils;
+
+/// Returns an Error result.
+pub fn error(msg: &str) -> InterpResult {
+    Err(ResultCode::Error(msg.into()))
+}
+
+/// Returns an Ok result with an empty string.
+pub fn okay() -> InterpResult {
+    Ok("".into())
+}
 
 pub fn parse_command(input: &mut Chars) -> Option<Vec<String>> {
     let mut cmd = Vec::new();

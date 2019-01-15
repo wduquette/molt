@@ -1,4 +1,5 @@
 //! The Interpreter
+use crate::error;
 use crate::types::*;
 use std::collections::HashSet;
 use crate::parse_command;
@@ -64,9 +65,9 @@ impl Interp {
     /// Evaluates a script one command at a time, and returns either an error or
     /// the result of the last command in the script.
     // TODO: I'll ultimately want a more complex Ok result.
-    pub fn eval(&mut self, script: &str) -> Status {
+    pub fn eval(&mut self, script: &str) -> InterpResult {
         let chars = &mut script.chars();
-        let mut result_value = Value::empty();
+        let mut result_value = String::new();
 
         while let Some(vec) = parse_command(chars) {
             // FIRST, convert to Vec<&str>
@@ -76,30 +77,29 @@ impl Interp {
                 let cmd = Rc::clone(cmd);
                 let result = cmd.execute(self, words.as_slice());
                 match result {
-                    Status::Okay(v) => {
+                    Ok(v) => {
                         result_value = v;
                     }
-                    Status::Return(_) => {
-                        return Status::Error(Value::from("return not yet implemented"));
+                    Err(ResultCode::Return(_)) => {
+                        return error("return not yet implemented");
                     }
-                    Status::Break => {
-                        return Status::Error(Value::from("break not yet implemented"));
+                    Err(ResultCode::Break) => {
+                        return error("break not yet implemented");
                     }
-                    Status::Continue => {
-                        return Status::Error(Value::from("break not yet implemented"));
+                    Err(ResultCode::Continue) => {
+                        return error("break not yet implemented");
                     }
-                    Status::Error(v) => {
-                        return Status::Error(v);
+                    Err(ResultCode::Error(_)) => {
+                        return result;
                     }
                 }
             } else {
-                return Status::Error(Value::new(format!("invalid command name \"{}\"", words[0])));
+                return error(&format!("invalid command name \"{}\"", words[0]));
             }
         }
 
-        Status::Okay(result_value)
+        Ok(result_value)
     }
-
 }
 
 /// A struct that wraps a command function and implements the Command trait.
@@ -116,7 +116,7 @@ impl CommandFuncWrapper {
 }
 
 impl Command for CommandFuncWrapper {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> Status {
+    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
         (self.func)(interp, argv)
     }
 }
@@ -139,7 +139,7 @@ impl Command for CommandFuncWrapper {
 // /// * `SKIP tclBasic:1234 - feature...` - There's code here to support a feature we aren't
 // ///   including for now, but might want later.
 // impl Interp {
-//     pub fn evalx(&mut self, script: &str) -> Status {
+//     pub fn evalx(&mut self, script: &str) -> InterpResult {
 //         // FIRST, initialize parsing state.
 //         // tclBasic.c:1153
 //         let src = &mut script.chars().peekable();
@@ -271,7 +271,7 @@ impl Command for CommandFuncWrapper {
 //     /// tclParse.c:607
 //     fn parse_words(&mut self, src: &mut std::iter::Peekable<std::str::Chars<'_>>,
 //         argv: &mut Vec<String>)
-//     -> Status
+//     -> InterpResult
 //     {
 //         // TODO
 //         Ok("".into())

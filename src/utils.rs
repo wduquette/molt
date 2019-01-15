@@ -1,3 +1,5 @@
+use crate::okay;
+use crate::error;
 use crate::types::*;
 
 /// Checks to see whether a command's argument list is of a reasonable size.
@@ -6,14 +8,14 @@ use crate::types::*;
 /// is included in the count; thus, min should always be >= 1.
 ///
 /// *Note:* Defined as a function because it doesn't need anything from the Interp.
-pub fn check_args(argv: &[&str], min: usize, max: usize, argsig: &str) -> Status {
+pub fn check_args(argv: &[&str], min: usize, max: usize, argsig: &str) -> InterpResult {
     assert!(min >= 1);
     assert!(!argv.is_empty());
 
     if argv.len() < min || (max > 0 && argv.len() > max) {
-        Status::error(&format!("wrong # args: should be \"{} {}\"", argv[0], argsig))
+        error(&format!("wrong # args: should be \"{} {}\"", argv[0], argsig))
     } else {
-        Status::okay()
+        okay()
     }
 }
 
@@ -36,15 +38,15 @@ mod tests {
 
     // Helpers
 
-    fn assert_err(result: &Status, msg: &str) {
-        assert_eq!(Status::error(msg), *result);
+    fn assert_err(result: &InterpResult, msg: &str) {
+        assert_eq!(error(msg), *result);
     }
 
-    fn assert_ok(result: &Status) {
-        assert!(result.is_okay(), "Result is not Ok");
+    fn assert_ok(result: &InterpResult) {
+        assert!(result.is_ok(), "Result is not Ok");
     }
 
-    // fn assert_value(result: Status, value: &str) {
+    // fn assert_value(result: InterpResult, value: &str) {
     //     assert_eq!(Ok(value.into()), result);
     // }
 }

@@ -31,9 +31,9 @@ mod tests {
         assert_ok(&check_args(vec!["mycmd","data","data2"].as_slice(), 1, 0, "arg1"));
 
         assert_err(&check_args(vec!["mycmd"].as_slice(), 2, 2, "arg1"),
-            "Wrong # args, should be: \"mycmd arg1\"");
+            "wrong # args: should be \"mycmd arg1\"");
         assert_err(&check_args(vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
-            "Wrong # args, should be: \"mycmd arg1\"");
+            "wrong # args: should be \"mycmd arg1\"");
     }
 
     // Helpers

@@ -4,6 +4,8 @@ use crate::types::*;
 use std::str::Chars;
 
 mod commands;
+#[allow(dead_code)] // TEMP
+mod context;
 pub mod interp;
 pub mod shell;
 pub mod types;

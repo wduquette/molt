@@ -2,7 +2,6 @@
 use crate::commands;
 use crate::context::Context;
 use crate::error;
-use crate::parse_command;
 use crate::types::Command;
 use crate::types::CommandFunc;
 use crate::types::*;

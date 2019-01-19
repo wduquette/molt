@@ -8,6 +8,8 @@
         want to use them as, e.g., `molt::check_args()`.
 *   Added command interpolation.
 *   Added variable interpolation.
+*   Added backslash substitution.
+*   Changed name to "molt".
 
 ### 2019-01-18 (Friday)
 *   Extended `Interp::eval` with the basic parser skeleton.

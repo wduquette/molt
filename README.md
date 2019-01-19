@@ -12,9 +12,11 @@ apps.  See "Plans", below.
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
 * Implement minimal tcltest equivalent for testing the commands.
-  * Main app will need to accept a script
 * Add full command tests.
 * Make molt::get_integer() parse the same varieties as Tcl_GetInt() does.
+* Add Interp::complete() method, to determine whether a command is
+  complete
+  * And use it in the shell.
 * Flesh out documentation
   * Including examples  
 
@@ -71,6 +73,9 @@ The following commands need to get implemented next.
 * for
 * foreach
 * if
+* info vars
+* info commands
+* info complete
 * join
 * lappend
 * lindex

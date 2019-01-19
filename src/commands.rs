@@ -62,3 +62,45 @@ pub fn cmd_set(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
     Ok(value)
 }
+
+/// # test *name* *script* -ok|-error *result*
+///
+/// Executes the script expecting either a successful response or an error.
+///
+/// Note: This is an extremely minimal replacement for tcltest; at some
+/// point I'll need something much more robust.
+pub fn cmd_test(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(argv, 5, 5, "name script -ok|-error result")?;
+
+    let name = argv[1];
+    let script = argv[2];
+    let code = argv[3];
+    let output = argv[4];
+
+    match interp.eval(script) {
+        Ok(out) => {
+            if code == "-ok" && out == output {
+                println!("*** test {} passed.", name);
+            } else {
+                println!("*** test {} FAILED.", name);
+                println!("Expected <{}>", output);
+                println!("Received <{}>", out);
+            }
+        },
+        Err(ResultCode::Error(out)) => {
+            if code == "-error" && out == output {
+                println!("*** test {} passed.", name);
+            } else {
+                println!("*** test {} FAILED.", name);
+                println!("Expected <{}>", output);
+                println!("Received <{}>", out);
+            }
+        }
+        Err(result) => {
+            println!("test {} failed, unexpected result:\n{:?}",
+                name, result);
+        }
+    }
+
+    okay()
+}

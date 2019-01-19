@@ -2,10 +2,10 @@
 
 use crate::interp::Interp;
 
-/// GCL Integer Type
-pub type GclInteger = i32;
+/// Molt Integer Type
+pub type MoltInteger = i32;
 
-/// The result of calling a function during GCL script evaluation, other than
+/// The result of calling a function during Molt script evaluation, other than
 /// `Ok(str)`.
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub enum ResultCode {

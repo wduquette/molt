@@ -1,6 +1,6 @@
-//! # Standard GCL Command Definitions
+//! # Standard Molt Command Definitions
 //!
-//! This module defines the standard GCL commands.
+//! This module defines the standard Molt commands.
 
 use crate::interp::Interp;
 use crate::okay;
@@ -15,7 +15,7 @@ use crate::*;
 pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(argv, 1, 2, "?returnCode?")?;
 
-    let return_code: GclInteger = if argv.len() == 1 {
+    let return_code: MoltInteger = if argv.len() == 1 {
         0
     } else {
         get_integer(argv[1])?

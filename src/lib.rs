@@ -1,6 +1,6 @@
-//! # GCL Client Library
+//! # Molt Client Library
 //!
-//! This module is the primary API for GCL users.
+//! This module is the primary API for Molt users.
 
 use crate::types::*;
 
@@ -41,22 +41,22 @@ pub fn check_args(argv: &[&str], min: usize, max: usize, argsig: &str) -> Interp
     }
 }
 
-/// Converts an argument into a GCL integer, returning an error on failure.
+/// Converts an argument into a Molt integer, returning an error on failure.
 /// A command function will call this to convert an argument into an integer,
 /// using "?" to propagate errors to the interpreter.
 ///
 /// # Example
 ///
 /// ```
-/// # use gcl::types::*;
-/// # fn dummy() -> Result<GclInteger,ResultCode> {
+/// # use molt::types::*;
+/// # fn dummy() -> Result<MoltInteger,ResultCode> {
 /// let arg = "1";
-/// let int = gcl::get_integer(arg)?;
+/// let int = molt::get_integer(arg)?;
 /// # Ok(int)
 /// # }
 /// ```
-pub fn get_integer(arg: &str) -> Result<GclInteger,ResultCode> {
-    match arg.parse::<GclInteger>() {
+pub fn get_integer(arg: &str) -> Result<MoltInteger,ResultCode> {
+    match arg.parse::<MoltInteger>() {
         Ok(int) => Ok(int),
         Err(_) => Err(ResultCode::Error(format!("expected integer but got \"{}\"", arg))),
     }

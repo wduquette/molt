@@ -9,7 +9,7 @@ use crate::types::*;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-/// The GCL Interpreter.
+/// The Molt Interpreter.
 #[derive(Default)]
 #[allow(dead_code)] // TEMP
 pub struct Interp {

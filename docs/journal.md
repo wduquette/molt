@@ -1,11 +1,11 @@
-# GCL Development Journal
+# Molt Development Journal
 
 ### 2019-01-19 (Saturday)
 *   Added `set` command
     *   Because it makes it easier to test the parser.
 *   Spent some time on documentation and tests.
     *   Moved the basic utility functions to lib.rs, since the user will
-        want to use them as, e.g., `gcl::check_args()`.
+        want to use them as, e.g., `molt::check_args()`.
 *   Added command interpolation.
 *   Added variable interpolation.
 
@@ -28,7 +28,7 @@
     *   Thus, TCL_OK really is `Ok(_)`, while TCL_RETURN, TCL_BREAK, TCL_CANCEL,
         and TCL_ERROR are all flavors of `Err(_)`.
     *   The T in `Ok(T)` can reasonably change from one function to another,
-        i.e., in `gcl::get_int()` T can be `i32`, which in `gcl::eval()` it
+        i.e., in `molt::get_int()` T can be `i32`, which in `molt::eval()` it
         can be a String.  But the E in `Err(E)` really needs to be the same,
         so that it can propagate.
     *   So what I want is `type InterpResult = Result<String,ResultCode>` where
@@ -59,7 +59,7 @@
         *   Need to track stack depth, and cut it short before the Rust
             app blows up.
             *   Therefore, using "?" syntax isn't desirable in
-                gcl::eval, as I can't decrement the stack depth.
+                molt::eval, as I can't decrement the stack depth.
     *   Result and result code handling
         *   Tcl's interp result and return code scheme isn't a great match
             for Rust's `Result<>` type.  What you want to do is add
@@ -158,7 +158,7 @@
 *   I will need an Interp to handle this.
 *   Added an Interp struct with new(), define(), eval() methods, although eval()
     doesn't do anythingy yet.
-*   Added gcl_check_args() function.  Perhaps should be method.
+*   Added molt_check_args() function.  Perhaps should be method.
     *   Not clear whether I want the Interp API to be methods or functions.
 *   Realized that I needed a Context type, so that client-created extensions
     can access their context.  But I'm not at all sure how to do this

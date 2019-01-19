@@ -6,19 +6,7 @@ use crate::types::Command;
 use crate::types::CommandFunc;
 use crate::types::*;
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::rc::Rc;
-
-/// A set of flags used during parsing.
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
-#[allow(dead_code)] // TEMP
-pub enum InterpFlags {
-    /// TCL_BRACKET_TERM
-    BracketTerm,
-
-    /// interp->noEval
-    NoEval,
-}
 
 /// The GCL Interpreter.
 #[derive(Default)]
@@ -30,8 +18,8 @@ pub struct Interp {
     // Command Table
     commands: HashMap<String, Rc<dyn Command>>,
 
-    // Parsing flags: used to carry flag info through the parsing methods.
-    flags: HashSet<InterpFlags>,
+    // Variable Table
+    vars: HashMap<String, String>,
 
     // Current number of eval levels.
     num_levels: usize,
@@ -39,17 +27,18 @@ pub struct Interp {
 
 impl Interp {
     /// Create a new interpreter, pre-populated with the standard commands.
-    /// TODO: Probably want to created it empty and provide command sets.
+    /// TODO: Probably want to create it empty and provide command sets.
     pub fn new() -> Self {
         let mut interp = Self {
             max_nesting_depth: 255,
             commands: HashMap::new(),
-            flags: HashSet::new(),
+            vars: HashMap::new(),
             num_levels: 0,
         };
 
         interp.add_command("exit", commands::cmd_exit);
         interp.add_command("puts", commands::cmd_puts);
+        interp.add_command("set", commands::cmd_set);
         interp
     }
 
@@ -60,6 +49,17 @@ impl Interp {
 
     pub fn add_command_obj(&mut self, name: &str, command: Rc<dyn Command>) {
         self.commands.insert(name.into(), command);
+    }
+
+    pub fn get_var(&self, name: &str) -> InterpResult {
+        match self.vars.get(name) {
+            Some(v) => Ok(v.clone()),
+            None => error(&format!("can't read \"{}\": no such variable", name)),
+        }
+    }
+
+    pub fn set_var(&mut self, name: &str, value: &str) {
+        self.vars.insert(name.into(), value.into());
     }
 
     /// Evaluates a script one command at a time, and returns either an error or

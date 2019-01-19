@@ -1,7 +1,6 @@
 //! Main GCL Library File
 
 use crate::types::*;
-use std::str::Chars;
 
 mod commands;
 #[allow(dead_code)] // TEMP

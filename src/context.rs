@@ -88,6 +88,24 @@ impl<'a> Context<'a> {
         }
     }
 
+    /// Is the current character a valid octal digit?
+    pub fn next_is_octal_digit(&mut self) -> bool {
+        match self.chars.peek() {
+            Some('0'...'7') => true,
+            _ => false
+        }
+    }
+
+    /// Is the current character a valid hex digit?
+    pub fn next_is_hex_digit(&mut self) -> bool {
+        match self.chars.peek() {
+            Some('0'...'9') => true,
+            Some('a'...'f') => true,
+            Some('A'...'F') => true,
+            _ => false
+        }
+    }
+
     /// Skips past any whitespace at the current point, *including* newlines.
     /// When this is complete we will be at the end of the script or on a non-white-space
     /// character.

@@ -208,9 +208,6 @@ impl Interp {
     }
 
     /// Parse a quoted word.
-    ///
-    /// TODO: Handle backslashes
-    /// TODO: Handle interpolated variables.
     fn parse_quoted_word(&mut self, ctx: &mut Context) -> InterpResult {
         // FIRST, consume the the opening quote.
         ctx.next();
@@ -224,6 +221,8 @@ impl Interp {
                 word.push_str(&self.parse_script(ctx)?);
             } else if ctx.next_is('$') {
                 word.push_str(&self.parse_variable(ctx)?);
+            } else if ctx.next_is('\\') {
+                self.parse_backslash(ctx, &mut word);
             } else if !ctx.next_is('"') {
                 word.push(ctx.next().unwrap());
             } else {
@@ -236,9 +235,6 @@ impl Interp {
     }
 
     /// Parse a bare word.
-    ///
-    /// TODO: Handle backslashes
-    /// TODO: Handle interpolated variables.
     fn parse_bare_word(&mut self, ctx: &mut Context) -> InterpResult {
         let mut word = String::new();
 
@@ -248,6 +244,8 @@ impl Interp {
                 word.push_str(&self.parse_script(ctx)?);
             } else if ctx.next_is('$') {
                 word.push_str(&self.parse_variable(ctx)?);
+            } else if ctx.next_is('\\') {
+                self.parse_backslash(ctx, &mut word);
             } else {
                 word.push(ctx.next().unwrap());
             }
@@ -319,6 +317,90 @@ impl Interp {
         error("missing close-brace for variable name")
     }
 
+    // Converts a backslash escape into the equivalent character.
+    fn parse_backslash(&self, ctx: &mut Context, word: &mut String) {
+        // FIRST, skip the first backslash.
+        ctx.skip_char('\\');
+
+        // NEXT, get the next character.
+        if let Some(c) = ctx.next() {
+            match c {
+                'a' => word.push('\x07'),  // Audible Alarm
+                'b' => word.push('\x08'),  // Backspace
+                'f' => word.push('\x0c'),  // Form Feed
+                'n' => word.push('\n'),    // New Line
+                'r' => word.push('\r'),    // Carriage Return
+                't' => word.push('\t'),    // Tab
+                'v' => word.push('\x0b'),  // Vertical Tab
+                '0'...'7' => {
+                    let mut octal = String::new();
+                    octal.push(c);
+
+                    if ctx.next_is_octal_digit() {
+                        octal.push(ctx.next().unwrap());
+                    }
+
+                    if ctx.next_is_octal_digit() {
+                        octal.push(ctx.next().unwrap());
+                    }
+
+                    let val = u8::from_str_radix(&octal, 8).unwrap();
+                    word.push(val as char);
+                }
+                // \xhh -- 2 hex digits
+                // \Uhhhhhhhh -- 1 to 8 hex digits
+                'x' => {
+                    if !ctx.next_is_hex_digit() {
+                        word.push(c);
+                        return;
+                    }
+
+                    let mut hex = String::new();
+                    hex.push(ctx.next().unwrap());
+
+                    if ctx.next_is_hex_digit() {
+                        hex.push(ctx.next().unwrap());
+                    } else {
+                        word.push(c);
+                        word.push_str(&hex);
+                        return;
+                    }
+
+                    let val = u32::from_str_radix(&hex, 16).unwrap();
+                    if let Some(ch) = std::char::from_u32(val) {
+                        word.push(ch);
+                    } else {
+                        word.push('x');
+                        word.push_str(&hex);
+                    }
+                }
+                // \uhhhh -- 1 to 4 hex digits
+                // \Uhhhhhhhh -- 1 to 8 hex digits
+                'u' | 'U' => {
+                    if !ctx.next_is_hex_digit() {
+                        word.push(c);
+                        return;
+                    }
+
+                    let mut hex = String::new();
+                    let max = if c == 'u' { 4 } else { 8 };
+
+                    while ctx.next_is_hex_digit() && hex.len() < max {
+                        hex.push(ctx.next().unwrap());
+                    }
+
+                    let val = u32::from_str_radix(&hex, 16).unwrap();
+                    if let Some(ch) = std::char::from_u32(val) {
+                        word.push(ch);
+                    } else {
+                        word.push('u');
+                        word.push_str(&hex);
+                    }
+                }
+                _ => word.push(c),
+            }
+        }
+    }
 }
 
 /// A struct that wraps a command function and implements the Command trait.

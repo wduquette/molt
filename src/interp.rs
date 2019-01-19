@@ -158,8 +158,6 @@ impl Interp {
     }
 
     /// Parse a braced word.
-    ///
-    /// TODO: Handle backslashes!
     fn parse_braced_word(&mut self, ctx: &mut Context) -> InterpResult {
         // FIRST, we have to count braces.  Skip the first one, and count it.
         ctx.next();
@@ -170,7 +168,22 @@ impl Interp {
         // which is NOT added to the word.  It's an error if we reach the end before
         // finding the close-brace.
         while let Some(c) = ctx.next() {
-            if c == '{' {
+            if c == '\\' {
+                // Backslash substitution.  If next character is a
+                // newline, replace it with a space.  Otherwise, this
+                // character and the next go into the word as is.
+                // Note: this means that escaped '{' and '}' characters
+                // don't affect the count.
+                if ctx.next_is('\n') {
+                    word.push(' ');
+                } else {
+                    word.push('\\');
+                    if !ctx.at_end() {
+                        word.push(ctx.next().unwrap());
+                    }
+                }
+                continue;
+            } else if c == '{' {
                 count += 1;
             } else if c == '}' {
                 count -= 1;

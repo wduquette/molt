@@ -192,7 +192,6 @@ impl Interp {
     /// Parse a quoted word.
     ///
     /// TODO: Handle backslashes
-    /// TODO: Handle interpolated commands.
     /// TODO: Handle interpolated variables.
     fn parse_quoted_word(&mut self, ctx: &mut Context) -> InterpResult {
         // FIRST, consume the the opening quote.
@@ -201,10 +200,14 @@ impl Interp {
         // NEXT, add characters to the word until we reach the close quote
         let mut word = String::new();
 
-        while let Some(c) = ctx.next() {
-            if c != '"' {
-                word.push(c);
+        while !ctx.at_end() {
+            // Note: the while condition ensures that there's a character.
+            if ctx.next_is('[') {
+                word.push_str(&self.parse_script(ctx)?);
+            } else if !ctx.next_is('"') {
+                word.push(ctx.next().unwrap());
             } else {
+                ctx.skip_char('"');
                 return Ok(word);
             }
         }

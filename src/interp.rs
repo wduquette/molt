@@ -215,16 +215,42 @@ impl Interp {
     /// Parse a bare word.
     ///
     /// TODO: Handle backslashes
-    /// TODO: Handle interpolated commands.
     /// TODO: Handle interpolated variables.
     fn parse_bare_word(&mut self, ctx: &mut Context) -> InterpResult {
         let mut word = String::new();
 
         while !ctx.at_end_of_command() && !ctx.next_is_line_white() {
-            word.push(ctx.next().unwrap());
+            // Note: the while condition ensures that there's a character.
+            if ctx.next_is('[') {
+                word.push_str(&self.parse_script(ctx)?);
+            } else {
+                word.push(ctx.next().unwrap());
+            }
         }
 
         Ok(word)
+    }
+
+    fn parse_script(&mut self, ctx: &mut Context) -> InterpResult {
+        // FIRST, skip the '['
+        ctx.skip_char('[');
+
+        // NEXT, parse the script up to the matching ']'
+        let old_flag = ctx.is_bracket_term();
+        ctx.set_bracket_term(true);
+        let result = self.eval_script(ctx);
+        ctx.set_bracket_term(old_flag);
+
+        // NEXT, make sure there's a closing bracket
+        if result.is_ok() {
+            if ctx.next_is(']') {
+                ctx.next();
+            } else {
+                return error("missing close-bracket");
+            }
+        }
+
+        result
     }
 }
 

@@ -1,4 +1,5 @@
 //! The Interpreter
+use crate::okay;
 use crate::commands;
 use crate::context::Context;
 use crate::error;
@@ -76,6 +77,10 @@ impl Interp {
 
         while !ctx.at_end_of_script() {
             let vec = self.parse_command(ctx)?;
+
+            if vec.is_empty() {
+                return okay();
+            }
 
             // FIRST, convert to Vec<&str>
             let words: Vec<&str> = vec.iter().map(|s| &**s).collect();

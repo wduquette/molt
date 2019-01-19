@@ -28,7 +28,7 @@ pub fn parse_command(input: &mut Chars) -> Option<Vec<String>> {
 
     for c in input {
         if c == '\n' || c == ';' {
-            break;  // Found newline; TODO: Handle escaped newline
+            break; // Found newline; TODO: Handle escaped newline
         }
 
         if in_word {

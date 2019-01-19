@@ -1,6 +1,6 @@
+use crate::interp::Interp;
 use crate::okay;
 use crate::types::*;
-use crate::interp::Interp;
 use crate::utils;
 
 pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {

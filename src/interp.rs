@@ -1,13 +1,14 @@
 //! The Interpreter
+use crate::commands;
 use crate::error;
-use crate::types::*;
-use std::collections::HashSet;
+use crate::okay;
 use crate::parse_command;
 use crate::types::Command;
 use crate::types::CommandFunc;
-use crate::commands;
-use std::rc::Rc;
+use crate::types::*;
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::rc::Rc;
 
 /// A set of flags used during parsing.
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
@@ -28,7 +29,7 @@ pub struct Interp {
     max_nesting_depth: usize,
 
     // Command Table
-    commands: HashMap<String,Rc<dyn Command>>,
+    commands: HashMap<String, Rc<dyn Command>>,
 
     // Parsing flags: used to carry flag info through the parsing methods.
     flags: HashSet<InterpFlags>,
@@ -100,6 +101,10 @@ impl Interp {
 
         Ok(result_value)
     }
+
+    pub fn evalx(&mut self, script: &mut str) -> InterpResult {
+        okay()
+    }
 }
 
 /// A struct that wraps a command function and implements the Command trait.
@@ -109,9 +114,7 @@ struct CommandFuncWrapper {
 
 impl CommandFuncWrapper {
     fn new(func: CommandFunc) -> Self {
-        Self {
-            func
-        }
+        Self { func }
     }
 }
 

@@ -1,7 +1,7 @@
 //! The parsing context
 
-use std::str::Chars;
 use std::iter::Peekable;
+use std::str::Chars;
 
 /// A struct that holds the editing context: the iterator over the input string, and
 /// any relevant flags.
@@ -14,7 +14,6 @@ pub struct Context<'a> {
 
     // The term_char: the character that ends the script, None or Some<']'>
     term_char: Option<&'a char>,
-
 }
 
 impl<'a> Context<'a> {
@@ -22,7 +21,7 @@ impl<'a> Context<'a> {
         Self {
             chars: input.chars().peekable(),
             bracket_term: false,
-            term_char: None
+            term_char: None,
         }
     }
 
@@ -33,7 +32,7 @@ impl<'a> Context<'a> {
     /// at the end of the input.
     pub fn set_bracket_term(&mut self, flag: bool) {
         self.bracket_term = flag;
-        self.term_char = if flag { Some(&']')} else { None };
+        self.term_char = if flag { Some(&']') } else { None };
     }
 
     pub fn is_bracket_term(&self) -> bool {
@@ -56,8 +55,7 @@ impl<'a> Context<'a> {
     /// We are at the end of the script when we've reached the end-of-script marker
     /// or we are at the end of the input.
     pub fn at_end_of_script(&mut self) -> bool {
-        self.chars.peek() == self.term_char
-            || self.chars.peek() == None
+        self.chars.peek() == self.term_char || self.chars.peek() == None
     }
 
     /// We are at the end of the command if we've reached a semi-colon or new-line, or
@@ -257,7 +255,6 @@ mod tests {
         ctx.set_bracket_term(true);
         assert!(ctx.skip_comment());
         assert!(ctx.next_is('a'));
-
     }
 
 }

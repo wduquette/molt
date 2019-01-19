@@ -1,5 +1,5 @@
-use crate::okay;
 use crate::error;
+use crate::okay;
 use crate::types::*;
 
 /// Checks to see whether a command's argument list is of a reasonable size.
@@ -13,7 +13,10 @@ pub fn check_args(argv: &[&str], min: usize, max: usize, argsig: &str) -> Interp
     assert!(!argv.is_empty());
 
     if argv.len() < min || (max > 0 && argv.len() > max) {
-        error(&format!("wrong # args: should be \"{} {}\"", argv[0], argsig))
+        error(&format!(
+            "wrong # args: should be \"{} {}\"",
+            argv[0], argsig
+        ))
     } else {
         okay()
     }
@@ -27,13 +30,22 @@ mod tests {
     fn test_check_args() {
         assert_ok(&check_args(vec!["mycmd"].as_slice(), 1, 1, ""));
         assert_ok(&check_args(vec!["mycmd"].as_slice(), 1, 2, "arg1"));
-        assert_ok(&check_args(vec!["mycmd","data"].as_slice(), 1, 2, "arg1"));
-        assert_ok(&check_args(vec!["mycmd","data","data2"].as_slice(), 1, 0, "arg1"));
+        assert_ok(&check_args(vec!["mycmd", "data"].as_slice(), 1, 2, "arg1"));
+        assert_ok(&check_args(
+            vec!["mycmd", "data", "data2"].as_slice(),
+            1,
+            0,
+            "arg1",
+        ));
 
-        assert_err(&check_args(vec!["mycmd"].as_slice(), 2, 2, "arg1"),
-            "wrong # args: should be \"mycmd arg1\"");
-        assert_err(&check_args(vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
-            "wrong # args: should be \"mycmd arg1\"");
+        assert_err(
+            &check_args(vec!["mycmd"].as_slice(), 2, 2, "arg1"),
+            "wrong # args: should be \"mycmd arg1\"",
+        );
+        assert_err(
+            &check_args(vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
+            "wrong # args: should be \"mycmd arg1\"",
+        );
     }
 
     // Helpers

@@ -4,7 +4,7 @@ use crate::interp::Interp;
 
 /// The result of calling a function during GCL script evaluation, other than
 /// `Ok(str)`.
-#[derive(Eq,PartialEq,Clone,Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub enum ResultCode {
     Error(String),
     Return(String),
@@ -21,7 +21,7 @@ impl ResultCode {
     }
 }
 
-pub type InterpResult = Result<String,ResultCode>;
+pub type InterpResult = Result<String, ResultCode>;
 
 /// A simple command function, used to implement a command without any attached
 /// context data.

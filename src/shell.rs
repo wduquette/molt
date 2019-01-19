@@ -1,7 +1,7 @@
-use rustyline::error::ReadlineError;
-use rustyline::Editor;
 use crate::interp::Interp;
 use crate::types::*;
+use rustyline::error::ReadlineError;
+use rustyline::Editor;
 
 pub fn shell(interp: &mut Interp, prompt: &str) {
     let mut rl = Editor::<()>::new();
@@ -25,17 +25,15 @@ pub fn shell(interp: &mut Interp, prompt: &str) {
                         }
                     }
                 }
-            },
+            }
             Err(ReadlineError::Interrupted) => {
                 println!("^C");
-                break
-            },
-            Err(ReadlineError::Eof) => {
-                break
-            },
+                break;
+            }
+            Err(ReadlineError::Eof) => break,
             Err(err) => {
                 println!("I/O Error: {:?}", err);
-                break
+                break;
             }
         }
     }

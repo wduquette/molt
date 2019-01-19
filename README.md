@@ -5,14 +5,13 @@ apps.  See "Plans", below.
 
 ## TODO Items
 
+* Fix bugs flagged by current test suite.
 * Add list commands `list`, `lindex`, `llength`, with parsing and formatting
   aids.
   * Update main.rs to use the formatting aid to produce `argv`.
 * Flesh out Rust tests
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
-* Implement minimal tcltest equivalent for testing the commands.
-* Add full command tests.
 * Make molt::get_integer() parse the same varieties as Tcl_GetInt() does.
 * Add Interp::complete() method, to determine whether a command is
   complete

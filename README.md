@@ -5,7 +5,9 @@ apps.  See "Plans", below.
 
 ## TODO Items
 
-* Extend main app to execute a script if given.
+* Add list commands `list`, `lindex`, `llength`, with parsing and formatting
+  aids.
+  * Update main.rs to use the formatting aid to produce `argv`.
 * Flesh out Rust tests
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
@@ -50,6 +52,34 @@ The following features of modern TCL are currently off of the table:
 Ultimately I'll want to add something like byte-compilation for speed; but
 I want to have a test suite in place first.
 
+### Current Status
+
+* The basic parser is in place, but has not been fully tested or
+  optimized for speed.
+
+The following commands have been implemented:
+
+* `exit`
+* `puts` (partially; there's no support for output channels or -nonewline)
+* `set`
+
+The following commands need to get implemented next.
+
+* append
+* error
+* expr
+* for
+* foreach
+* if
+* join
+* lappend
+* lindex
+* list
+* llength
+* proc
+* while
+* unset
+
 ### Specific Differences from TCL
 
 The following are specific differences from TCL 8 not explicitly stated
@@ -60,3 +90,105 @@ above:
 * The encoding is currently always UTF-8.
 * In `$name`, the name may include underscores and any character that
   Rust considers to be alphanumeric.
+
+
+The following commands are not implemented by Molt at the present time:
+
+* after
+* append
+* apply
+* array
+* auto_execok
+* auto_import
+* auto_load
+* auto_load_index
+* auto_qualify
+* binary
+* break
+* case
+* catch
+* cd
+* chan
+* clock
+* close
+* concat
+* continue
+* coroutine
+* dict
+* encoding
+* eof
+* error
+* eval
+* exec
+* expr
+* fblocked
+* fconfigure
+* fcopy
+* file
+* fileevent
+* flush
+* for
+* foreach
+* format
+* gets
+* glob
+* global
+* history
+* if
+* incr
+* info
+* interp
+* join
+* lappend
+* lassign
+* lindex
+* linsert
+* list
+* llength
+* lmap
+* load
+* lrange
+* lrepeat
+* lreplace
+* lreverse
+* lsearch
+* lset
+* lsort
+* namespace
+* open
+* package
+* pid
+* proc
+* pwd
+* read
+* regexp
+* regsub
+* rename
+* return
+* scan
+* seek
+* socket
+* source
+* split
+* string
+* subst
+* switch
+* tailcall
+* tclLog
+* tell
+* throw
+* time
+* trace
+* try
+* unknown
+* unload
+* unset
+* update
+* uplevel
+* upvar
+* variable
+* vwait
+* while
+* yield
+* yieldto
+* zlib

@@ -108,13 +108,17 @@ impl<'a> Context<'a> {
 
     /// Skips past a comment if there is one, including any terminating newline.
     /// Returns true if it skipped a comment, and false otherwise.
-    ///
-    /// TODO: Handle backslashes
     pub fn skip_comment(&mut self) -> bool {
         if self.next_is('#') {
             while !self.at_end() {
-                if self.chars.next() == Some('\n') {
+                let c = self.chars.next();
+                if c == Some('\n') {
                     break;
+                } else if c == Some('\\') {
+                    // Skip the following character. The intent is to skip
+                    // backslashed newlines, but in
+                    // this context it doesn't matter.
+                    self.chars.next();
                 }
             }
             true
@@ -126,7 +130,7 @@ impl<'a> Context<'a> {
     /// Skip a specific character
     pub fn skip_char(&mut self, ch: char) {
         let c = self.chars.next();
-        assert!(c == Some(ch), "expected '{}', got '{:?}' ", ch, c);
+        assert!(c == Some(ch), "expected '{:?}', got '{:?}' ", Some(ch), c);
     }
 
     /// Get the next character.
@@ -271,6 +275,10 @@ mod tests {
         let mut ctx = Context::new("#1 2 3 \na");
         assert!(ctx.skip_comment());
         assert!(ctx.next_is('a'));
+
+        let mut ctx = Context::new("#1 \\na\nb");
+        assert!(ctx.skip_comment());
+        assert!(ctx.next_is('b'));
 
         let mut ctx = Context::new("#1 2] 3 \na");
         ctx.set_bracket_term(true);

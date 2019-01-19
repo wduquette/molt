@@ -11,7 +11,7 @@ Note: I'd call it "RCL", but someone has already taken that crate name.
 
 * Implement full parser
   * Handle backslashes in `Interp::parse_*`.
-  * Handle backslashes in Context::skip_comment()
+* Extend main app to execute a script if given.
 * Flesh out Rust tests
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.

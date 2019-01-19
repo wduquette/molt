@@ -43,7 +43,7 @@ impl<'a> Context<'a> {
     // Helpers
 
     /// Sees if the next character is the given character.
-    fn next_is(&mut self, char: char) -> bool {
+    pub fn next_is(&mut self, char: char) -> bool {
         self.chars.peek() == Some(&char)
     }
 
@@ -100,6 +100,8 @@ impl<'a> Context<'a> {
 
     /// Skips past a comment if there is one, including any terminating newline.
     /// Returns true if it skipped a comment, and false otherwise.
+    ///
+    /// TODO: Handle backslashes
     pub fn skip_comment(&mut self) -> bool {
         if self.next_is('#') {
             while !self.at_end() {
@@ -111,6 +113,16 @@ impl<'a> Context<'a> {
         } else {
             false
         }
+    }
+
+    /// Skip a specific character
+    pub fn skip_char(&mut self, ch: char) {
+        assert!(self.chars.next() == Some(ch));
+    }
+
+    /// Get the next character.
+    pub fn next(&mut self) -> Option<char> {
+        self.chars.next()
     }
 }
 

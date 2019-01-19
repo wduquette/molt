@@ -1,7 +1,7 @@
 //! The Interpreter
 use crate::commands;
+use crate::context::Context;
 use crate::error;
-use crate::okay;
 use crate::parse_command;
 use crate::types::Command;
 use crate::types::CommandFunc;
@@ -65,12 +65,19 @@ impl Interp {
 
     /// Evaluates a script one command at a time, and returns either an error or
     /// the result of the last command in the script.
-    // TODO: I'll ultimately want a more complex Ok result.
     pub fn eval(&mut self, script: &str) -> InterpResult {
-        let chars = &mut script.chars();
+        let mut ctx = Context::new(script);
+
+        self.eval_script(&mut ctx)
+    }
+
+    /// Low-level script evaluator; used to implement eval(), complete(), etc.
+    fn eval_script(&mut self, ctx: &mut Context) -> InterpResult {
         let mut result_value = String::new();
 
-        while let Some(vec) = parse_command(chars) {
+        while !ctx.at_end_of_script() {
+            let vec = self.parse_command(ctx)?;
+
             // FIRST, convert to Vec<&str>
             let words: Vec<&str> = vec.iter().map(|s| &**s).collect();
 
@@ -102,8 +109,123 @@ impl Interp {
         Ok(result_value)
     }
 
-    pub fn evalx(&mut self, script: &mut str) -> InterpResult {
-        okay()
+    fn parse_command(&mut self, ctx: &mut Context) -> Result<Vec<String>,ResultCode> {
+        // FIRST, deal with whitespace and comments between "here" and the next command.
+        while !ctx.at_end_of_script() {
+            ctx.skip_block_white();
+
+            // Either there's a comment, or we're at the beginning of the next command.
+            // If the former, skip the comment; then check for more whitespace and comments.
+            // Otherwise, go on to the command.
+            if !ctx.skip_comment() {
+                break;
+            }
+        }
+
+        let mut words = Vec::new();
+
+        // Read words until we get to the end of the line or hit an error
+        // NOTE: parse_word() can always assume that it's at the beginning of a word.
+        while !ctx.at_end_of_command() {
+            // FIRST, get the next word; there has to be one, or there's an input error.
+            let word = self.parse_word(ctx)?;
+
+            // NEXT, save the word we found.
+            words.push(word);
+
+            // NEXT, skip any whitespace.
+            ctx.skip_line_white();
+        }
+
+        Ok(words)
+    }
+
+    /// We're at the beginning of a word belonging to the current command.
+    /// It's either a bare word, a braced string, or a quoted string--or there's
+    /// an error in the input.  Whichever it is, get it.
+    fn parse_word(&mut self, ctx: &mut Context) -> InterpResult {
+        if ctx.next_is('{') {
+            Ok(self.parse_braced_word(ctx)?)
+        } else if ctx.next_is('"') {
+            Ok(self.parse_quoted_word(ctx)?)
+        } else {
+            Ok(self.parse_bare_word(ctx)?)
+        }
+    }
+
+    /// Parse a braced word.
+    ///
+    /// TODO: Handle backslashes!
+    fn parse_braced_word(&mut self, ctx: &mut Context) -> InterpResult {
+        // FIRST, we have to count braces.  Skip the first one, and count it.
+        ctx.next();
+        let mut count = 1;
+        let mut word = String::new();
+
+        // NEXT, add characters to the word until we find the matching close-brace,
+        // which is NOT added to the word.  It's an error if we reach the end before
+        // finding the close-brace.
+        while let Some(c) = ctx.next() {
+            if c == '{' {
+                count += 1;
+            } else if c == '}' {
+                count -= 1;
+            }
+
+            if count > 0 {
+                word.push(c)
+            } else {
+                // We've found and consumed the closing brace.  We should either
+                // see more more whitespace, or we should be at the end of the command.
+                // Otherwise, there are incorrect characters following the close-brace.
+                if ctx.at_end_of_command() || ctx.next_is_line_white() {
+                    return Ok(word);
+                } else {
+                    return error("extra characters after close-brace");
+                }
+            }
+        }
+
+        assert!(count > 0);
+        error("missing close-brace")
+    }
+
+    /// Parse a quoted word.
+    ///
+    /// TODO: Handle backslashes
+    /// TODO: Handle interpolated commands.
+    /// TODO: Handle interpolated variables.
+    fn parse_quoted_word(&mut self, ctx: &mut Context) -> InterpResult {
+        // FIRST, consume the the opening quote.
+        ctx.next();
+
+        // NEXT, add characters to the word until we reach the close quote
+        let mut word = String::new();
+
+        while let Some(c) = ctx.next() {
+            if c != '"' {
+                word.push(c);
+            } else {
+                return Ok(word);
+            }
+        }
+
+        error("missing \"")
+    }
+
+    /// Parse a bare word.
+    ///
+    /// TODO: Handle backslashes
+    /// TODO: Handle interpolated commands.
+    /// TODO: Handle interpolated variables.
+    fn parse_bare_word(&mut self, ctx: &mut Context) -> InterpResult {
+        let mut word = String::new();
+
+        while !ctx.at_end_of_command() && !ctx.next_is_line_white() {
+            word.push(ctx.next().unwrap());
+        }
+
+        Ok(word)
     }
 }
 

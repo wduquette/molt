@@ -5,6 +5,11 @@ apps.  We'll see how far I get.
 
 Note: I'd call it "RCL", but someone has already taken that package name.
 
+## TODO Items
+
+* Implement full parser
+    * Handle backslashes in Context::skip_comment()
+
 ## Plans
 
 The goal is to produce a command language using basic TCL syntax

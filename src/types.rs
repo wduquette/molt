@@ -2,6 +2,9 @@
 
 use crate::interp::Interp;
 
+/// GCL Integer Type
+pub type GclInteger = i32;
+
 /// The result of calling a function during GCL script evaluation, other than
 /// `Ok(str)`.
 #[derive(Eq, PartialEq, Clone, Debug)]

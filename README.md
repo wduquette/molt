@@ -8,7 +8,18 @@ Note: I'd call it "RCL", but someone has already taken that package name.
 ## TODO Items
 
 * Implement full parser
-    * Handle backslashes in Context::skip_comment()
+  * Handle command interpolation in `Interp::parse_*_word`.
+  * Handle variable interpolation in `Interp::parse_*_word`.
+  * Handle backslashes in `Interp::parse_*`.
+  * Handle backslashes in Context::skip_comment()
+* Flesh out Rust tests
+  * Design public API using `pub use` in `lib.rs`, so the examples read
+    properly from the user's point of view.
+* Implement minimal tcltest equivalent for testing the commands.
+  * Main app will need to accept a script
+* Add full command tests.
+* Flesh out documentation
+  * Including examples  
 
 ## Plans
 

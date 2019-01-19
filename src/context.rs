@@ -117,7 +117,8 @@ impl<'a> Context<'a> {
 
     /// Skip a specific character
     pub fn skip_char(&mut self, ch: char) {
-        assert!(self.chars.next() == Some(ch));
+        let c = self.chars.next();
+        assert!(c == Some(ch), "expected '{}', got '{:?}' ", ch, c);
     }
 
     /// Get the next character.

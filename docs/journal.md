@@ -1,5 +1,22 @@
 # GCL Development Journal
 
+### 2019-01-19 (Saturday)
+*   Added `set` command
+    *   Because it makes it easier to test the parser.
+*   Spent some time on documentation and tests.
+    *   Moved the basic utility functions to lib.rs, since the user will
+        want to use them as, e.g., `gcl::check_args()`.
+        
+### 2019-01-18 (Friday)
+*   Extended `Interp::eval` with the basic parser skeleton.
+    *   Handles comments
+    *   Handles quoted and braced strings.
+    *   Does not yet handle backslash escapes, or command and variable
+        interpolation.
+
+### 2019-01-16 (Wednesday)
+*   Added `Context` struct as a parsing aid.
+
 ### 2019-01-14 (Monday)
 *   Result handling:
     *   `Result<>` and the `?` syntax is the way Rust provides non-local

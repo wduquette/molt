@@ -9,7 +9,7 @@ fn main() {
 }
 
 fn cmd_ident(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    gcl::utils::check_args(argv, 2, 2, "value")?;
+    gcl::check_args(argv, 2, 2, "value")?;
 
     Ok(argv[1].into())
 }

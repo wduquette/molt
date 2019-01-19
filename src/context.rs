@@ -80,6 +80,14 @@ impl<'a> Context<'a> {
         }
     }
 
+    /// Is the current character a valid variable name character?
+    pub fn next_is_varname_char(&mut self) -> bool {
+        match self.chars.peek() {
+            Some(c) => c.is_alphanumeric() || *c == '_',
+            None => false,
+        }
+    }
+
     /// Skips past any whitespace at the current point, *including* newlines.
     /// When this is complete we will be at the end of the script or on a non-white-space
     /// character.

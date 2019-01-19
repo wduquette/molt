@@ -226,6 +226,8 @@ impl Interp {
             // Note: the while condition ensures that there's a character.
             if ctx.next_is('[') {
                 word.push_str(&self.parse_script(ctx)?);
+            } else if ctx.next_is('$') {
+                word.push_str(&self.parse_variable(ctx)?);
             } else {
                 word.push(ctx.next().unwrap());
             }
@@ -255,6 +257,48 @@ impl Interp {
 
         result
     }
+
+    fn parse_variable(&mut self, ctx: &mut Context) -> InterpResult {
+        // FIRST, skip the '$'
+        ctx.skip_char('$');
+
+        // NEXT, make sure this is really a variable reference.  If it isn't
+        // just return a "$".
+        if !ctx.next_is_varname_char() && !ctx.next_is('{') {
+            return Ok("$".into());
+        }
+
+        // NEXT, get the variable name
+        let mut varname = String::new();
+
+        if ctx.next_is_varname_char() {
+            while ctx.next_is_varname_char() {
+                varname.push(ctx.next().unwrap());
+            }
+        } else if ctx.next_is('{') {
+            ctx.skip_char('{');
+            varname.push_str(&self.parse_braced_varname(ctx)?);
+        }
+
+        Ok(self.get_var(&varname)?)
+    }
+
+    fn parse_braced_varname(&self, ctx: &mut Context) -> InterpResult {
+        let mut string = String::new();
+
+        while !ctx.at_end() {
+            let c = ctx.next().unwrap();
+
+            if c == '}' {
+                return Ok(string);
+            } else {
+                string.push(c);
+            }
+        }
+
+        error("missing close-brace for variable name")
+    }
+
 }
 
 /// A struct that wraps a command function and implements the Command trait.

@@ -7,6 +7,7 @@
     *   Moved the basic utility functions to lib.rs, since the user will
         want to use them as, e.g., `gcl::check_args()`.
 *   Added command interpolation.
+*   Added variable interpolation.
 
 ### 2019-01-18 (Friday)
 *   Extended `Interp::eval` with the basic parser skeleton.

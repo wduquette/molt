@@ -204,6 +204,8 @@ impl Interp {
             // Note: the while condition ensures that there's a character.
             if ctx.next_is('[') {
                 word.push_str(&self.parse_script(ctx)?);
+            } else if ctx.next_is('$') {
+                word.push_str(&self.parse_variable(ctx)?);
             } else if !ctx.next_is('"') {
                 word.push(ctx.next().unwrap());
             } else {

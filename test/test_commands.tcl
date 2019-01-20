@@ -17,6 +17,29 @@ test exit-1.2 {
 } -error {wrong # args: should be "exit ?returnCode?"}
 
 #-------------------------------------------------------------------------
+# info
+
+test info-1.1 {
+    info
+} -error {wrong # args: should be "info subcommand ?arg ...?"}
+
+test info-2.1 {
+    info complete
+} -error {wrong # args: should be "info complete command"}
+
+test info-2.2 {
+    info complete foo bar
+} -error {wrong # args: should be "info complete command"}
+
+test info-2.3 {
+    info complete cmd
+} -ok {1}
+
+test info-2.4 {
+    info complete "\{cmd"
+} -ok {0}
+
+#-------------------------------------------------------------------------
 # puts
 
 # Not tested; can't capture stdout.

@@ -12,9 +12,7 @@ apps.  See "Plans", below.
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
 * Make molt::get_integer() parse the same varieties as Tcl_GetInt() does.
-* Add Interp::complete() method, to determine whether a command is
-  complete
-  * And use it in the shell.
+* Use Interp::complete() in the shell, to build up multiline commands.
 * Flesh out documentation
   * Including examples  
 

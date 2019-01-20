@@ -54,7 +54,7 @@ fn execute_script(interp: &mut Interp, script: String, args: &[String]) {
 
 /// Command used for dev testing.  It's temporary.
 fn cmd_ident(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    molt::check_args(argv, 2, 2, "value")?;
+    molt::check_args(1, argv, 2, 2, "value")?;
 
     Ok(argv[1].into())
 }

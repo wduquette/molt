@@ -27,14 +27,15 @@ pub fn okay() -> InterpResult {
 /// is included in the count; thus, min should always be >= 1.
 ///
 /// *Note:* Defined as a function because it doesn't need anything from the Interp.
-pub fn check_args(argv: &[&str], min: usize, max: usize, argsig: &str) -> InterpResult {
+pub fn check_args(namec: usize, argv: &[&str], min: usize, max: usize, argsig: &str) -> InterpResult {
+    assert!(namec >= 1);
     assert!(min >= 1);
     assert!(!argv.is_empty());
 
     if argv.len() < min || (max > 0 && argv.len() > max) {
         error(&format!(
             "wrong # args: should be \"{} {}\"",
-            argv[0], argsig
+            argv[0..namec].join(" "), argsig
         ))
     } else {
         okay()
@@ -68,10 +69,11 @@ mod tests {
 
     #[test]
     fn test_check_args() {
-        assert_ok(&check_args(vec!["mycmd"].as_slice(), 1, 1, ""));
-        assert_ok(&check_args(vec!["mycmd"].as_slice(), 1, 2, "arg1"));
-        assert_ok(&check_args(vec!["mycmd", "data"].as_slice(), 1, 2, "arg1"));
+        assert_ok(&check_args(1, vec!["mycmd"].as_slice(), 1, 1, ""));
+        assert_ok(&check_args(1, vec!["mycmd"].as_slice(), 1, 2, "arg1"));
+        assert_ok(&check_args(1, vec!["mycmd", "data"].as_slice(), 1, 2, "arg1"));
         assert_ok(&check_args(
+            1,
             vec!["mycmd", "data", "data2"].as_slice(),
             1,
             0,
@@ -79,11 +81,11 @@ mod tests {
         ));
 
         assert_err(
-            &check_args(vec!["mycmd"].as_slice(), 2, 2, "arg1"),
+            &check_args(1, vec!["mycmd"].as_slice(), 2, 2, "arg1"),
             "wrong # args: should be \"mycmd arg1\"",
         );
         assert_err(
-            &check_args(vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
+            &check_args(1, vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
             "wrong # args: should be \"mycmd arg1\"",
         );
     }

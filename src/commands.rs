@@ -13,7 +13,7 @@ use crate::*;
 /// If given, _returnCode_ must be an integer return code; if absent, it
 /// defaults to 0.
 pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    check_args(argv, 1, 2, "?returnCode?")?;
+    check_args(1, argv, 1, 2, "?returnCode?")?;
 
     let return_code: MoltInteger = if argv.len() == 1 {
         0
@@ -22,6 +22,30 @@ pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     };
 
     std::process::exit(return_code)
+}
+
+/// # info *subcommand* ?*arg*...?
+pub fn cmd_info(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
+
+    match argv[1] {
+        "commands" => error("TODO: info commands"),
+        "complete" => cmd_info_complete(interp, argv),
+        "vars" => error("TODO: info vars"),
+        // TODO: should return complete list of subcommand names.
+        _ => error(&format!("unknown or ambiguous subcommand \"{}\"", argv[1]))
+    }
+}
+
+pub fn cmd_info_complete(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(2, argv, 3, 3, "command")?;
+
+    // TODO: Add way of returning a boolean result.
+    if interp.complete(argv[2]) {
+        Ok("1".into())
+    } else {
+        Ok("0".into())
+    }
 }
 
 /// # puts *string*
@@ -33,7 +57,7 @@ pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// * Does not support `-nonewline`
 /// * Does not support `channelId`
 pub fn cmd_puts(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    check_args(argv, 2, 2, "string")?;
+    check_args(1, argv, 2, 2, "string")?;
 
     println!("{}", argv[1]);
     okay()
@@ -49,7 +73,7 @@ pub fn cmd_puts(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 ///
 /// * Does not support arrays
 pub fn cmd_set(interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    check_args(argv, 2, 3, "varName ?newValue?")?;
+    check_args(1, argv, 2, 3, "varName ?newValue?")?;
 
     let value;
 
@@ -70,7 +94,7 @@ pub fn cmd_set(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// Note: This is an extremely minimal replacement for tcltest; at some
 /// point I'll need something much more robust.
 pub fn cmd_test(interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    check_args(argv, 5, 5, "name script -ok|-error result")?;
+    check_args(1, argv, 5, 5, "name script -ok|-error result")?;
 
     let name = argv[1];
     let script = argv[2];

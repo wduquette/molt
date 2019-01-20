@@ -21,6 +21,11 @@ test set-1.1 {
     set nonesuch
 } -error {can't read "nonesuch": no such variable}
 
-test set-1.2 { set a 1 } -ok {1}
+test set-1.2 {
+    set a 1
+} -ok {1}
 
-test set-1.3 {set a 2; set a} -ok {2}
+test set-1.3 {
+    set a 2
+    set a
+} -ok {2}

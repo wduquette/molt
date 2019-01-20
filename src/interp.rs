@@ -1,5 +1,4 @@
 //! The Interpreter
-use crate::okay;
 use crate::commands;
 use crate::context::Context;
 use crate::error;
@@ -80,7 +79,7 @@ impl Interp {
             let vec = self.parse_command(ctx)?;
 
             if vec.is_empty() {
-                return okay();
+                break;
             }
 
             // FIRST, convert to Vec<&str>

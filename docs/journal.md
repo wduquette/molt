@@ -10,6 +10,12 @@
 *   Added variable interpolation.
 *   Added backslash substitution.
 *   Changed name to "molt".
+*   Added "test" command, kind of a baby TclTest command.
+*   Began adding tests for the current command set.
+    *   test/test_commands.tcl
+    *   Found a parsing bug
+    *   Added test/test_parser.tcl to verify them.
+    *   Fixed them.
 
 ### 2019-01-18 (Friday)
 *   Extended `Interp::eval` with the basic parser skeleton.

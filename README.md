@@ -41,6 +41,9 @@ as a tool be used on its own. (Famous last words....)
 
 The following features of modern TCL are currently off of the table:
 
+* Abbreviated names
+  * TCL will attempt to match partial names of commands and subcommands,
+    as a convenience for interactive use.  Molt does not.
 * Namespaces
 * Traces
 * Slave interpreters

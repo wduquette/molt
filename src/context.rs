@@ -109,7 +109,7 @@ impl<'a> Context<'a> {
     pub fn next_is_octal_digit(&mut self) -> bool {
         match self.chars.peek() {
             Some('0'...'7') => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -119,7 +119,7 @@ impl<'a> Context<'a> {
             Some('0'...'9') => true,
             Some('a'...'f') => true,
             Some('A'...'F') => true,
-            _ => false
+            _ => false,
         }
     }
 

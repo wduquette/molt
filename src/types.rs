@@ -35,3 +35,7 @@ pub type CommandFunc = fn(&mut Interp, &[&str]) -> InterpResult;
 pub trait Command {
     fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult;
 }
+
+/// Used for defining subcommands of ensemble commands.
+/// Full description TODO, because it might change.
+pub struct Subcommand(pub &'static str, pub CommandFunc);

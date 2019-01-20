@@ -126,7 +126,7 @@ impl Interp {
         Ok(result_value)
     }
 
-    fn parse_command(&mut self, ctx: &mut Context) -> Result<Vec<String>,ResultCode> {
+    fn parse_command(&mut self, ctx: &mut Context) -> Result<Vec<String>, ResultCode> {
         // FIRST, deal with whitespace and comments between "here" and the next command.
         while !ctx.at_end_of_script() {
             ctx.skip_block_white();
@@ -338,13 +338,13 @@ impl Interp {
         // NEXT, get the next character.
         if let Some(c) = ctx.next() {
             match c {
-                'a' => word.push('\x07'),  // Audible Alarm
-                'b' => word.push('\x08'),  // Backspace
-                'f' => word.push('\x0c'),  // Form Feed
-                'n' => word.push('\n'),    // New Line
-                'r' => word.push('\r'),    // Carriage Return
-                't' => word.push('\t'),    // Tab
-                'v' => word.push('\x0b'),  // Vertical Tab
+                'a' => word.push('\x07'), // Audible Alarm
+                'b' => word.push('\x08'), // Backspace
+                'f' => word.push('\x0c'), // Form Feed
+                'n' => word.push('\n'),   // New Line
+                'r' => word.push('\r'),   // Carriage Return
+                't' => word.push('\t'),   // Tab
+                'v' => word.push('\x0b'), // Vertical Tab
                 '0'...'7' => {
                     let mut octal = String::new();
                     octal.push(c);

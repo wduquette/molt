@@ -15,7 +15,7 @@ pub fn shell(interp: &mut Interp, prompt: &str) {
                     match interp.eval(line) {
                         Ok(value) => {
                             rl.add_history_entry(line);
-                            
+
                             // Don't output empty values.
                             if !value.is_empty() {
                                 println!("{}", value);

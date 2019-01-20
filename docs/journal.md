@@ -1,5 +1,21 @@
 # Molt Development Journal
 
+### 2019-01-20 (Sunday)
+*   Found a write-up on proper Tcl list syntax in the Tcl code base,
+    courtesy of wiki.tcl-lang.org.  See docs/list_format.txt.
+    *   Two challenges: parsing lists into vectors, and formatting vectors
+        as valid lists.
+    *   Parsing lists into vectors:
+        *   This is almost but not quite the same as parsing a command
+            without evaluation (as you'd do for `info complete`).
+        *   List of differences:
+            *   TODO
+    *   Formatting vectors as lists:
+        *   This is simply joining the words with whitespace—except that
+            the words may need to be quoted.
+        *   Details:
+            *   TODO
+
 ### 2019-01-19 (Saturday)
 *   Added `set` command
     *   Because it makes it easier to test the parser.

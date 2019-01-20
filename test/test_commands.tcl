@@ -23,6 +23,12 @@ test info-1.1 {
     info
 } -error {wrong # args: should be "info subcommand ?arg ...?"}
 
+# TODO: really need glob matching or something; as it is, this won't
+# pass with tclsh.
+test info-1.2 {
+    info nonesuch
+} -error {unknown or ambiguous subcommand "nonesuch": must be commands, complete, or vars}
+
 test info-2.1 {
     info complete
 } -error {wrong # args: should be "info complete command"}

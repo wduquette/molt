@@ -24,19 +24,56 @@ pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     std::process::exit(return_code)
 }
 
+pub struct Subcommand(&'static str, CommandFunc);
+
+pub fn unknown_subcommand_error(subs: &[Subcommand], sub: &str) -> InterpResult {
+    let mut names = String::new();
+    names.push_str(subs[0].0);
+    let last = subs.len() - 1;
+
+    if subs.len() > 1 {
+        names.push_str(", ");
+    }
+
+    if subs.len() > 2 {
+        let vec: Vec<&str> = subs[1..last].iter().map(|x| x.0).collect();
+        names.push_str(&vec.join(", "));
+    }
+
+    if subs.len() > 1 {
+        names.push_str(", or ");
+        names.push_str(subs[last].0);
+    }
+
+    error(&format!("unknown or ambiguous subcommand \"{}\": must be {}", sub, &names))
+}
+
+const INFO_SUBCOMMANDS: [Subcommand; 3]  = [
+    Subcommand("commands", cmd_info_commands),
+    Subcommand("complete", cmd_info_complete),
+    Subcommand("vars", cmd_info_vars),
+];
+
+
 /// # info *subcommand* ?*arg*...?
 pub fn cmd_info(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
 
-    match argv[1] {
-        "commands" => error("TODO: info commands"),
-        "complete" => cmd_info_complete(interp, argv),
-        "vars" => error("TODO: info vars"),
-        // TODO: should return complete list of subcommand names.
-        _ => error(&format!("unknown or ambiguous subcommand \"{}\"", argv[1]))
+    for Subcommand(name, func) in &INFO_SUBCOMMANDS {
+        if name == &argv[1] {
+            return func(interp, argv);
+        }
     }
+
+    unknown_subcommand_error(&INFO_SUBCOMMANDS, &argv[1])
 }
 
+/// # info commands ?*pattern*?
+pub fn cmd_info_commands(_interp: &mut Interp, _argv: &[&str]) -> InterpResult {
+    error("TODO")
+}
+
+/// # info complete *command*
 pub fn cmd_info_complete(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(2, argv, 3, 3, "command")?;
 
@@ -46,6 +83,11 @@ pub fn cmd_info_complete(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     } else {
         Ok("0".into())
     }
+}
+
+/// # info vars ?*pattern*?
+pub fn cmd_info_vars(_interp: &mut Interp, _argv: &[&str]) -> InterpResult {
+    error("TODO")
 }
 
 /// # puts *string*

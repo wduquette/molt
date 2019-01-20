@@ -14,6 +14,9 @@ pub struct Context<'a> {
 
     // The term_char: the character that ends the script, None or Some<']'>
     term_char: Option<&'a char>,
+
+    // Whether we're evaluating commands or just checking for completeness.
+    no_eval: bool,
 }
 
 impl<'a> Context<'a> {
@@ -22,6 +25,7 @@ impl<'a> Context<'a> {
             chars: input.chars().peekable(),
             bracket_term: false,
             term_char: None,
+            no_eval: false,
         }
     }
 
@@ -35,8 +39,21 @@ impl<'a> Context<'a> {
         self.term_char = if flag { Some(&']') } else { None };
     }
 
+    // Returns whether or not the input ends with ']', i.e., at the end of the
+    // an interpolated script.
     pub fn is_bracket_term(&self) -> bool {
         self.bracket_term
+    }
+
+    // Sets/clears "no eval" mode.  In "no eval" mode we scan the input for
+    // validity, e.g., no unmatched braces, brackets, or quotes.
+    pub fn set_no_eval(&mut self, flag: bool) {
+        self.no_eval = flag;
+    }
+
+    // Returns whether or not we are scanning the input for completeness.
+    pub fn is_no_eval(&self) -> bool {
+        self.no_eval
     }
 
     //-----------------------------------------------------------------------

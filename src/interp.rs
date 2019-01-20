@@ -71,6 +71,13 @@ impl Interp {
         self.eval_script(&mut ctx)
     }
 
+    pub fn complete(&mut self, script: &str) -> bool {
+        let mut ctx = Context::new(script);
+        ctx.set_no_eval(true);
+
+        self.eval_script(&mut ctx).is_ok()
+    }
+
     /// Low-level script evaluator; used to implement eval(), complete(), etc.
     fn eval_script(&mut self, ctx: &mut Context) -> InterpResult {
         let mut result_value = String::new();
@@ -80,6 +87,11 @@ impl Interp {
 
             if vec.is_empty() {
                 break;
+            }
+
+            // When scanning for info
+            if ctx.is_no_eval() {
+                continue;
             }
 
             // FIRST, convert to Vec<&str>

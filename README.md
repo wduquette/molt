@@ -5,7 +5,6 @@ apps.  See "Plans", below.
 
 ## TODO Items
 
-* Fix bugs flagged by current test suite.
 * Add list commands `list`, `lindex`, `llength`, with parsing and formatting
   aids.
   * Update main.rs to use the formatting aid to produce `argv`.
@@ -94,7 +93,6 @@ above:
 * The encoding is currently always UTF-8.
 * In `$name`, the name may include underscores and any character that
   Rust considers to be alphanumeric.
-
 
 The following commands are not implemented by Molt at the present time:
 

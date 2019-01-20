@@ -14,8 +14,16 @@
 *   Began adding tests for the current command set.
     *   test/test_commands.tcl
     *   Found a parsing bug
-    *   Added test/test_parser.tcl to verify them.
-    *   Fixed them.
+    *   Added test/test_parser.tcl to verify the bug and the fix.
+    *   Fixed it.
+    *   Completed the tests for `exit`, `puts`, `set`
+        *   Couldn't really test `puts`, as I don't capture stdout.
+*   Ultimately I'm going to want a fancier test harness.  I'm thinking of
+    a set of subcommands:
+    *   molt shell
+    *   molt run
+    *   molt test
+
 
 ### 2019-01-18 (Friday)
 *   Extended `Interp::eval` with the basic parser skeleton.

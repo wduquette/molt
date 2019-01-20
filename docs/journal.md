@@ -9,12 +9,44 @@
         *   This is almost but not quite the same as parsing a command
             without evaluation (as you'd do for `info complete`).
         *   List of differences:
-            *   TODO
+            *   The set of whitespace characters for lists consists
+                of " ", \t, \n, \v, \f, \r.
+            *   It includes \n which is a command terminator
+            *   It does *not* include other unicode whitespace characters.
+                *   It appears that these ARE valid whitespace during
+                    command parsing.
+            *   backslash-newline is NOT a whitespace character
+        *   Backslash processing is done as for command parsing.
+        *   TODO: When a backslash is the final character in a string,
+            it is replaced by itself. (!)
+            *   Should be true for command parsing as well.
+        *   Braced-words are parsed as for commands, EXCEPT THAT
+            backslash-newline is passed along unchanged rather than
+            being converted to a space.
+        *   Quoted words are processed without looking for interpolated
+            variables or commands; in particular, single "[" characters
+            are not an error.  The words ends with the first unescaped
+            double-quote.  THEN, backslash substitution is done on the
+            word AFTER the full word is known.
+        *   Bare words are processed without looking for variables or
+            commands, reading up to the next list whitespace, and then
+            backslash substitution is done on the result.
+        *   For both quoted and bare words, the rule seems to be that
+            escapes are preserved without processing (so backslash-space)
+            does not break a word; then backslash-substitution is done
+            on the word after.
     *   Formatting vectors as lists:
         *   This is simply joining the words with whitespace—except that
             the words may need to be quoted.
         *   Details:
             *   TODO
+*   Conclusions:
+    *   This is sufficiently different from command parsing as to require
+        distinct code (though some lower-level routines can be shared,
+        e.g., the Context struct).  It doesn't make sense to confuse the
+        command parsing routines with a bunch of if-tests.
+    *   This is NOT `info complete` checking, which does need to be
+        part of the command parser.
 
 ### 2019-01-19 (Saturday)
 *   Added `set` command

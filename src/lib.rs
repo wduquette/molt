@@ -3,11 +3,13 @@
 //! This module is the primary API for Molt users.
 
 use crate::types::*;
+pub use crate::list::get_list;
 
 mod commands;
 #[allow(dead_code)] // TEMP
 mod context;
 pub mod interp;
+mod list;
 pub mod shell;
 pub mod types;
 

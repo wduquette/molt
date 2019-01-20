@@ -11,6 +11,7 @@ fn main() {
     // NEXT, create and initialize the interpreter.
     let mut interp = Interp::new();
     interp.add_command("ident", cmd_ident);
+    interp.add_command("dump", cmd_dump);
 
     // NEXT, if there's at least one (other than the binary name), then it's a script.
     // TODO: capture the remaining arguments and make 'arg0' and 'argv' available.
@@ -57,4 +58,18 @@ fn cmd_ident(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     molt::check_args(1, argv, 2, 2, "value")?;
 
     Ok(argv[1].into())
+}
+
+/// Command used for dev testing.  It's temporary.
+fn cmd_dump(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    molt::check_args(1, argv, 2, 2, "list")?;
+
+    let vec = molt::get_list(&argv[1])?;
+
+    println!("dump list:");
+    for item in vec {
+        println!("item <{}>", item);
+    }
+
+    molt::okay()
 }

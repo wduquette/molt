@@ -47,6 +47,9 @@
         command parsing routines with a bunch of if-tests.
     *   This is NOT `info complete` checking, which does need to be
         part of the command parser.
+*   Added Interp::complete() and "info complete".
+    *   As part of doing "info complete" I added a subcommand mechanism
+        and stubs for "info commands" and "info vars".
 
 ### 2019-01-19 (Saturday)
 *   Added `set` command

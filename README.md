@@ -5,13 +5,26 @@ apps.  See "Plans", below.
 
 ## TODO Items
 
-* Add `source` command.
-* Add list commands `list`, `lindex`, `llength`.
-* Flesh out Rust tests and public docs.
+* Continue to add commands from the "next" list, below.
+* Flesh out Rust tests and Rust API docs.
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
+* Improve the `test` harness for the TCL command test suite.
+  * Support test flags, so that tests can be excluded.
+  * Support accumulating test results, so that the logs can be short.
+  * Consider implementing "molt test" as part of the molt app,
+    alongside "molt shell".
+    *   Would provide the `test` command, as well as the overall harness.
 * Use Interp::complete() in the shell, to build up multiline commands.
-* Make molt::get_integer() parse the same varieties as Tcl_GetInt() does.
+* Make molt::get_int() parse the same varieties as Tcl_GetInt() does.
+* Implement expression parser
+* Document the TCL dialect using mdbook, and publish to GitHub pages.
+* Consider adding an "object" command that defines a simple object
+  containing a dictionary:
+  * `$obj set var ?value?`
+* Consider generalizing the Subcommand array mechanism; standard command sets
+  can be defined the same way, and loaded into the interpreter on creation.
+  * A binary extension is just a crate that can so initialize the interp.
 
 ## Plans
 
@@ -31,8 +44,12 @@ as a tool be used on its own. (Famous last words....)
 * Procs
 * Expression parsing.
 * A simple tcltest equivalent.
-* The embedding API will allow the client to easily control the set of
-  standard commands included in an interpreter.
+* Pay for what you need
+  * I.e. don't require large regex, etc., libraries of all clients.
+* Configurable command sets
+  * The embedding API should allow the client to easily control the set of
+    commands included in an interpreter.  For example, a game engine might
+    want to exclude `proc`, `source`, `eval`, etc.
 
 ### Excluded Features
 
@@ -58,6 +75,10 @@ I want to have a test suite in place first.
 The following commands have been implemented:
 
 * `exit`
+* `info complete`
+* `lindex`
+* `list`
+* `llength`
 * `puts` (partially; there's no support for output channels or -nonewline)
 * `set`
 
@@ -69,15 +90,12 @@ The following commands need to get implemented next.
 * for
 * foreach
 * if
-* info vars
-* info commands
-* info complete
+* info vars (without glob matching)
+* info commands (without glob matching)
 * join
 * lappend
-* lindex
-* list
-* llength
 * proc
+* source
 * while
 * unset
 

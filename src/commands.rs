@@ -60,6 +60,28 @@ pub fn cmd_info_vars(_interp: &mut Interp, _argv: &[&str]) -> InterpResult {
     error("TODO")
 }
 
+/// # lindex *list* ?*index* ...?
+///
+/// Returns an element from the list, indexing into nested lists.
+pub fn cmd_lindex(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 2, 0, "list ?index ...?")?;
+
+    let mut value = argv[1].to_string();
+
+    for index_string in &argv[2..] {
+        let list = get_list(&value)?;
+        let index = get_int(index_string)?;
+
+        value = if index < 0 || index as usize >= list.len() {
+            "".to_string()
+        }  else {
+            list[index as usize].to_string()
+        };
+    }
+
+    Ok(value)
+}
+
 /// # list ?*arg*...?
 ///
 /// Converts its arguments into a canonical list.

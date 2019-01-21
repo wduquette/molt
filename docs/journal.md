@@ -1,6 +1,7 @@
 # Molt Development Journal
 
 ### 2019-01-21 (Monday)
+*   Added `list`, `llength`, `lindex` (with tests)
 
 ### 2019-01-20 (Sunday)
 *   Found a write-up on proper Tcl list syntax in the Tcl code base,

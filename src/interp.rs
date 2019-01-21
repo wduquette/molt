@@ -38,6 +38,7 @@ impl Interp {
 
         interp.add_command("exit", commands::cmd_exit);
         interp.add_command("info", commands::cmd_info);
+        interp.add_command("lindex", commands::cmd_lindex);
         interp.add_command("list", commands::cmd_list);
         interp.add_command("llength", commands::cmd_llength);
         interp.add_command("puts", commands::cmd_puts);

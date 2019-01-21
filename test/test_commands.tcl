@@ -45,6 +45,36 @@ test info-2.3 {
 test info-2.4 {
     info complete "\{cmd"
 } -ok {0}
+#-------------------------------------------------------------------------
+# lindex
+
+test lindex-1.1 {
+    lindex
+} -error {wrong # args: should be "lindex list ?index ...?"}
+
+test lindex-2.1 {
+    lindex {a {b c} d}
+} -ok {a {b c} d}
+
+test lindex-2.2 {
+    lindex {a {b c} d} 1
+} -ok {b c}
+
+test lindex-2.3 {
+    lindex {a {b c} d} -1
+} -ok {}
+
+test lindex-2.4 {
+    lindex {a {b c} d} 3
+} -ok {}
+
+test lindex-2.5 {
+    lindex {a {b c} d} 1 1
+} -ok {c}
+
+test lindex-2.6 {
+    lindex {a {b c} d} 1 1 1
+} -ok {}
 
 #-------------------------------------------------------------------------
 # list

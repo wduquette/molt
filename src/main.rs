@@ -7,7 +7,7 @@ use std::fs;
 fn main() {
     // FIRST, get the command line arguments.
     let args: Vec<String> = env::args().collect();
-    let args: Vec<&str> = args.iter().map(|x| &**x).collect();
+    let args: Vec<&str> = molt::vec_string_to_str(&args);
     
     // NEXT, create and initialize the interpreter.
     let mut interp = Interp::new();

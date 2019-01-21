@@ -142,9 +142,9 @@ fn parse_bare_item(ctx: &mut Context) -> InterpResult {
 //--------------------------------------------------------------------------
 // List Formatting
 
-/// Converts a list, represented as a slice of Strings, into a string, doing
+/// Converts a list, represented as a slice of &str, into a string, doing
 /// all necessary quoting and escaping.
-pub fn list_to_string(list: &[String]) -> String {
+pub fn list_to_string(list: &[&str]) -> String {
     let mut vec: Vec<String> = Vec::new();
 
     // TODO: Use this
@@ -257,23 +257,13 @@ mod tests {
 
     #[test]
     fn test_list_to_string() {
-        assert_eq!(cvt(&["a"]), "a");
-        assert_eq!(cvt(&["a", "b"]), "a b");
-        assert_eq!(cvt(&["a", "b", "c"]), "a b c");
-        assert_eq!(cvt(&["a;b"]), "{a;b}");
-        assert_eq!(cvt(&["a$b"]), "{a$b}");
-        assert_eq!(cvt(&["a[b"]), "{a[b}");
-        assert_eq!(cvt(&["a]b"]), "{a]b}");
-        assert_eq!(cvt(&["a\\nb"]), "{a\\nb}");
-    }
-
-    fn cvt(list: &[&str]) -> String {
-        let mut vec: Vec<String> = Vec::new();
-
-        for item in list {
-            vec.push(item.to_string());
-        }
-
-        list_to_string(&vec)
+        assert_eq!(list_to_string(&["a"]), "a");
+        assert_eq!(list_to_string(&["a", "b"]), "a b");
+        assert_eq!(list_to_string(&["a", "b", "c"]), "a b c");
+        assert_eq!(list_to_string(&["a;b"]), "{a;b}");
+        assert_eq!(list_to_string(&["a$b"]), "{a$b}");
+        assert_eq!(list_to_string(&["a[b"]), "{a[b}");
+        assert_eq!(list_to_string(&["a]b"]), "{a]b}");
+        assert_eq!(list_to_string(&["a\\nb"]), "{a\\nb}");
     }
 }

@@ -60,6 +60,14 @@ pub fn cmd_info_vars(_interp: &mut Interp, _argv: &[&str]) -> InterpResult {
     error("TODO")
 }
 
+/// # list ?*arg*...?
+///
+/// Converts its arguments into a canonical list.
+pub fn cmd_list(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    // No arg check needed; can take any number.
+    Ok(list_to_string(&argv[1..]))
+}
+
 /// # puts *string*
 ///
 /// Outputs the string to stdout.

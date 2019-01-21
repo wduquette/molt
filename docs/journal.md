@@ -1,5 +1,7 @@
 # Molt Development Journal
 
+### 2019-01-21 (Monday)
+
 ### 2019-01-20 (Sunday)
 *   Found a write-up on proper Tcl list syntax in the Tcl code base,
     courtesy of wiki.tcl-lang.org.  See docs/list_format.txt.
@@ -50,6 +52,8 @@
 *   Added Interp::complete() and "info complete".
     *   As part of doing "info complete" I added a subcommand mechanism
         and stubs for "info commands" and "info vars".
+*   Added list parsing and formatting: `crate::list::get_list()` and
+    `crate::list::list_to_string()`.
 
 ### 2019-01-19 (Saturday)
 *   Added `set` command

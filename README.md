@@ -5,16 +5,13 @@ apps.  See "Plans", below.
 
 ## TODO Items
 
-* Add list commands `list`, `lindex`, `llength`, with parsing and formatting
-  aids.
-  * Update main.rs to use the formatting aid to produce `argv`.
-* Flesh out Rust tests
+* Add `source` command.
+* Add list commands `list`, `lindex`, `llength`.
+* Flesh out Rust tests and public docs.
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
-* Make molt::get_integer() parse the same varieties as Tcl_GetInt() does.
 * Use Interp::complete() in the shell, to build up multiline commands.
-* Flesh out documentation
-  * Including examples  
+* Make molt::get_integer() parse the same varieties as Tcl_GetInt() does.
 
 ## Plans
 

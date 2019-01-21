@@ -24,7 +24,8 @@ test info-1.1 {
 } -error {wrong # args: should be "info subcommand ?arg ...?"}
 
 # TODO: really need glob matching or something; as it is, this won't
-# pass with tclsh.
+# pass with tclsh.  Or, I need a way to limit tests to the right
+# context, as with tcltest.
 test info-1.2 {
     info nonesuch
 } -error {unknown or ambiguous subcommand "nonesuch": must be commands, complete, or vars}
@@ -44,6 +45,28 @@ test info-2.3 {
 test info-2.4 {
     info complete "\{cmd"
 } -ok {0}
+
+#-------------------------------------------------------------------------
+# list
+#
+# Note: this is intended to cover just the command.  The canonical list
+# formatter is tested elsewhere.
+
+test list-1.1 {
+    list
+} -ok {}
+
+test list-1.2 {
+    list a
+} -ok {a}
+
+test list-1.3 {
+    list a b
+} -ok {a b}
+
+test list-1.4 {
+    list a {b c} d
+} -ok {a {b c} d}
 
 #-------------------------------------------------------------------------
 # puts

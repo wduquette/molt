@@ -7,7 +7,8 @@ use std::fs;
 fn main() {
     // FIRST, get the command line arguments.
     let args: Vec<String> = env::args().collect();
-
+    let args: Vec<&str> = args.iter().map(|x| &**x).collect();
+    
     // NEXT, create and initialize the interpreter.
     let mut interp = Interp::new();
     interp.add_command("ident", cmd_ident);
@@ -29,7 +30,7 @@ fn main() {
     }
 }
 
-fn execute_script(interp: &mut Interp, script: String, args: &[String]) {
+fn execute_script(interp: &mut Interp, script: String, args: &[&str]) {
     let arg0 = &args[1];
     let argv = if args.len() > 2 {
         molt::list_to_string(&args[2..])

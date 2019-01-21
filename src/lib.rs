@@ -4,6 +4,7 @@
 
 use crate::types::*;
 pub use crate::list::get_list;
+pub use crate::list::list_to_string;
 
 mod commands;
 #[allow(dead_code)] // TEMP

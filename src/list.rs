@@ -5,6 +5,9 @@ use crate::error;
 use crate::context::Context;
 use crate::interp::subst_backslashes;
 
+//--------------------------------------------------------------------------
+// List Parsing
+
 /// Parses a list-formatted string into a vector, throwing
 /// a Molt error if the list cannot be parsed as a list.
 pub fn get_list(str: &str) -> Result<Vec<String>, ResultCode> {
@@ -134,4 +137,143 @@ fn parse_bare_item(ctx: &mut Context) -> InterpResult {
     }
 
     Ok(item)
+}
+
+//--------------------------------------------------------------------------
+// List Formatting
+
+/// Converts a list, represented as a slice of Strings, into a string, doing
+/// all necessary quoting and escaping.
+pub fn list_to_string(list: &[String]) -> String {
+    let mut vec: Vec<String> = Vec::new();
+
+    // TODO: Use this
+    let mut hash = !list.is_empty() && list[0].starts_with('#');
+
+    for item in list {
+        match get_mode(item) {
+            Mode::AsIs => {
+                if hash {
+                    vec.push(brace_item(item));
+                    hash = false;
+                } else {
+                    vec.push(item.to_string())
+                }
+            }
+            Mode::Brace => {
+                vec.push(brace_item(item));
+            }
+            Mode::Escape => {
+                vec.push(escape_item(hash, item));
+                hash = false;
+            }
+        }
+    }
+
+    vec.join(" ")
+}
+
+fn brace_item(item: &str) -> String {
+    let mut word = String::new();
+    word.push('{');
+    word.push_str(item);
+    word.push('}');
+    word
+}
+
+fn escape_item(hash: bool, item: &str) -> String {
+    let mut word = String::new();
+
+    // If hash, the first character is a "#" that must be escaped.
+    // Just push the backslash on the front.
+    if hash {
+        word.push('\\');
+    }
+
+    for ch in item.chars() {
+        if ch.is_whitespace() {
+            word.push('\\');
+            word.push(ch);
+            continue;
+        }
+
+        match ch {
+            ';' | '$' | '[' | ']' | '\\' => {
+                word.push('\\');
+                word.push(ch);
+            }
+            _ => word.push(ch)
+        }
+    }
+
+    word
+}
+
+#[derive(Eq,PartialEq)]
+enum Mode {
+    AsIs,
+    Brace,
+    Escape
+}
+
+fn get_mode(word: &str) -> Mode {
+    let mut mode = Mode::AsIs;
+    let mut brace_count = 0;
+
+    let mut iter = word.chars().peekable();
+
+    while let Some(ch) = iter.next() {
+        if ch.is_whitespace() {
+            mode = Mode::Brace;
+            continue;
+        }
+        match ch {
+            ';' | '$' | '[' | ']' => {
+                mode = Mode::Brace;
+            }
+            '{' => brace_count += 1,
+            '}' => brace_count -= 1,
+            '\\' => {
+                if iter.peek() == Some(&'\n') {
+                    return Mode::Escape;
+                } else {
+                    mode = Mode::Brace;
+                }
+            }
+            _ => ()
+        }
+    }
+
+    if brace_count != 0 {
+        Mode::Escape
+    } else {
+        mode
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_list_to_string() {
+        assert_eq!(cvt(&["a"]), "a");
+        assert_eq!(cvt(&["a", "b"]), "a b");
+        assert_eq!(cvt(&["a", "b", "c"]), "a b c");
+        assert_eq!(cvt(&["a;b"]), "{a;b}");
+        assert_eq!(cvt(&["a$b"]), "{a$b}");
+        assert_eq!(cvt(&["a[b"]), "{a[b}");
+        assert_eq!(cvt(&["a]b"]), "{a]b}");
+        assert_eq!(cvt(&["a\\nb"]), "{a\\nb}");
+    }
+
+    fn cvt(list: &[&str]) -> String {
+        let mut vec: Vec<String> = Vec::new();
+
+        for item in list {
+            vec.push(item.to_string());
+        }
+
+        list_to_string(&vec)
+    }
 }

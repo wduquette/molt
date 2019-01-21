@@ -32,7 +32,7 @@ fn main() {
 fn execute_script(interp: &mut Interp, script: String, args: &[String]) {
     let arg0 = &args[1];
     let argv = if args.len() > 2 {
-        args[2..].join(" ") // TODO: Should be joined as a Tcl list!
+        molt::list_to_string(&args[2..])
     } else {
         String::new()
     };

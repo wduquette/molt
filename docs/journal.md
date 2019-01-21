@@ -2,7 +2,40 @@
 
 ### 2019-01-21 (Monday)
 *   Added `list`, `llength`, `lindex` (with tests)
-
+*   Implementing `proc`
+    *   `proc` presents these difficulties
+        *   Argument processing
+            *   Handling optional arguments and the args argument
+                *   This is tedious, but not tricky.
+                *   Need not be done for initial implementation.
+        *   Variable management
+            *   Variables are local by default (including arguments)
+            *   Global variables are available only when declared.
+            *   We will support the `global` command, but not the
+                `variable` command for now.
+                *   Variable only really makes sense with namespaces.
+        *   Return handling
+            *   A return from the middle of the body needs to be handled
+                correctly.
+                *   I think I have all of the ground work done for this.
+    *   Handling local variables
+        *   First, store variables in a VarMap: a struct wrapping a
+            `HashMap<String, RefCell<String>>`
+            *   Question: what happens if you're looping over a list and
+                and modify the list contents in TCL?  I'm pretty sure the
+                loop is effectively over a copy, because of copy-on-write
+                semantics.
+        *   Next, the Interp has a stack of VarMaps.  The bottom entry
+            reflects the global scope (`upvar #0`!).
+        *   Next, each proc pushes a VarMap on the stack, and initializes
+            it with its arguments.
+        *   `set` and variable interpolation refer to the top of the stack.
+        *   The `global` command copies the RefCell for a global variable
+            into the top VarMap (and creates it in the global namespace as
+            well, if need be)
+        *   When the proc returns, it pops its varmap off of the stack.
+            *   Could/should we do this in a Drop handler?
+            
 ### 2019-01-20 (Sunday)
 *   Found a write-up on proper Tcl list syntax in the Tcl code base,
     courtesy of wiki.tcl-lang.org.  See docs/list_format.txt.

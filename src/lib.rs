@@ -62,14 +62,14 @@ pub fn check_args(
 ///
 /// ```
 /// # use molt::types::*;
-/// # fn dummy() -> Result<MoltInteger,ResultCode> {
+/// # fn dummy() -> Result<MoltInt,ResultCode> {
 /// let arg = "1";
 /// let int = molt::get_integer(arg)?;
 /// # Ok(int)
 /// # }
 /// ```
-pub fn get_integer(arg: &str) -> Result<MoltInteger, ResultCode> {
-    match arg.parse::<MoltInteger>() {
+pub fn get_int(arg: &str) -> Result<MoltInt, ResultCode> {
+    match arg.parse::<MoltInt>() {
         Ok(int) => Ok(int),
         Err(_) => Err(ResultCode::Error(format!(
             "expected integer but got \"{}\"",

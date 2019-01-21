@@ -15,10 +15,10 @@ use crate::*;
 pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 1, 2, "?returnCode?")?;
 
-    let return_code: MoltInteger = if argv.len() == 1 {
+    let return_code: MoltInt = if argv.len() == 1 {
         0
     } else {
-        get_integer(argv[1])?
+        get_int(argv[1])?
     };
 
     std::process::exit(return_code)
@@ -66,6 +66,17 @@ pub fn cmd_info_vars(_interp: &mut Interp, _argv: &[&str]) -> InterpResult {
 pub fn cmd_list(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     // No arg check needed; can take any number.
     Ok(list_to_string(&argv[1..]))
+}
+
+/// # llength *list*
+///
+/// Returns the length of the list.
+pub fn cmd_llength(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 2, 2, "list")?;
+
+    let list = get_list(argv[1])?;
+
+    Ok(list.len().to_string())
 }
 
 /// # puts *string*
@@ -120,6 +131,10 @@ pub fn cmd_test(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     let script = argv[2];
     let code = argv[3];
     let output = argv[4];
+
+    if code != "-ok" && code != "-error" {
+        return error(&format!("unknown option: \"{}\"", code));
+    }
 
     match interp.eval(script) {
         Ok(out) => {

@@ -69,6 +69,25 @@ test list-1.4 {
 } -ok {a {b c} d}
 
 #-------------------------------------------------------------------------
+# llength
+
+test llength-1.1 {
+    llength
+} -error {wrong # args: should be "llength list"}
+
+test llength-2.1 {
+    llength {}
+} -ok {0}
+
+test llength-2.2 {
+    llength {a}
+} -ok {1}
+
+test llength-2.3 {
+    llength {a b}
+} -ok {2}
+
+#-------------------------------------------------------------------------
 # puts
 
 # Not tested; can't capture stdout.

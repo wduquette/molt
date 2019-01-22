@@ -10,6 +10,7 @@ apps.  See "Plans", below.
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
 * Improve the `test` harness for the TCL command test suite.
+  * Need ability to clean up.
   * Support test flags, so that tests can be excluded.
   * Support accumulating test results, so that the logs can be short.
   * Consider implementing "molt test" as part of the molt app,
@@ -74,17 +75,19 @@ I want to have a test suite in place first.
 
 The following commands have been implemented:
 
+* `append`
 * `exit`
 * `info complete`
+* `join`  
 * `lindex`
 * `list`
 * `llength`
 * `puts` (partially; there's no support for output channels or -nonewline)
 * `set`
+* `unset`
 
 The following commands need to get implemented next.
 
-* append
 * error
 * expr
 * for
@@ -92,12 +95,10 @@ The following commands need to get implemented next.
 * if
 * info vars (without glob matching)
 * info commands (without glob matching)
-* join
 * lappend
 * proc
 * source
 * while
-* unset
 
 ### Specific Differences from TCL
 
@@ -113,7 +114,6 @@ above:
 The following commands are not implemented by Molt at the present time:
 
 * after
-* append
 * apply
 * array
 * auto_execok
@@ -154,15 +154,10 @@ The following commands are not implemented by Molt at the present time:
 * history
 * if
 * incr
-* info
 * interp
-* join
 * lappend
 * lassign
-* lindex
 * linsert
-* list
-* llength
 * lmap
 * load
 * lrange
@@ -200,7 +195,6 @@ The following commands are not implemented by Molt at the present time:
 * try
 * unknown
 * unload
-* unset
 * update
 * uplevel
 * upvar

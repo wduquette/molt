@@ -4,6 +4,29 @@
 # what we have.
 
 #-------------------------------------------------------------------------
+# append
+
+test append-1.1 {
+    append
+} -error {wrong # args: should be "append varName ?value ...?"}
+
+test append-2.1 {
+    unset x
+    append x
+} -ok {}
+
+test append-2.2 {
+    unset x
+    append x a b c
+} -ok {abc}
+
+test append-2.3 {
+    unset x
+    append x a b c
+    append x d e f
+} -ok {abcdef}
+
+#-------------------------------------------------------------------------
 # exit
 #
 # Test error cases only, since success would terminate the app.
@@ -45,6 +68,26 @@ test info-2.3 {
 test info-2.4 {
     info complete "\{cmd"
 } -ok {0}
+
+#-------------------------------------------------------------------------
+# join
+
+test join-1.1 {
+    join
+} -error {wrong # args: should be "join list ?joinString?"}
+
+test join-2.1 {
+    join a
+} -ok {a}
+
+test join-2.2 {
+    join {a {b c} d}
+} -ok {a b c d}
+
+test join-2.3 {
+    join {a b} -
+} -ok {a-b}
+
 #-------------------------------------------------------------------------
 # lindex
 
@@ -126,16 +169,17 @@ test llength-2.3 {
 # set
 
 test set-1.1 {
-    set nonesuch
-} -error {can't read "nonesuch": no such variable}
-
-test set-1.2 {
     set
 } -error {wrong # args: should be "set varName ?newValue?"}
 
-test set-1.3 {
+test set-1.2 {
     set a b c
 } -error {wrong # args: should be "set varName ?newValue?"}
+
+test set-1.3 {
+    set nonesuch
+} -error {can't read "nonesuch": no such variable}
+
 
 test set-2.1 {
     set a 1
@@ -145,3 +189,20 @@ test set-2.2 {
     set a 2
     set a
 } -ok {2}
+
+#-------------------------------------------------------------------------
+# set
+
+test unset-1.1 {
+    unset
+} -error {wrong # args: should be "unset varName"}
+
+test unset-2.1 {
+    unset nonesuch
+} -ok {}
+
+test unset-2.2 {
+    set x 1
+    unset x
+    set x
+} -error {can't read "x": no such variable}

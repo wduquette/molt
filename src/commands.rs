@@ -7,6 +7,30 @@ use crate::okay;
 use crate::types::*;
 use crate::*;
 
+/// # append *varName* ?*value* ...?
+///
+/// Appends any number of values to a variable's value, which need not
+/// initially exist.
+pub fn cmd_append(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 2, 0, "varName ?value ...?")?;
+
+    let var_result = interp.get_var(argv[1]);
+
+    let mut new_value = if var_result.is_ok() {
+        var_result.unwrap()
+    } else {
+        String::new()
+    };
+
+    for value in &argv[2..] {
+        new_value.push_str(value);
+    }
+
+    interp.set_var(argv[1], &new_value);
+
+    Ok(new_value)
+}
+
 /// # exit ?*returnCode*?
 ///
 /// Terminates the application by calling `std::process::exit()`.
@@ -58,6 +82,23 @@ pub fn cmd_info_complete(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// # info vars ?*pattern*?
 pub fn cmd_info_vars(_interp: &mut Interp, _argv: &[&str]) -> InterpResult {
     error("TODO")
+}
+
+/// # join *list* ?*joinString*?
+///
+/// Joins the elements of a list with a string.  The join string defaults to " ".
+pub fn cmd_join(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 2, 3, "list ?joinString?")?;
+
+    let list = get_list(argv[1])?;
+
+    let join_string = if argv.len() == 3 {
+        argv[2]
+    } else {
+        " "
+    };
+
+    Ok(list.join(join_string))
 }
 
 /// # lindex *list* ?*index* ...?
@@ -138,6 +179,18 @@ pub fn cmd_set(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     }
 
     Ok(value)
+}
+
+/// # unset *varName*
+///
+/// Removes the variable from the interpreter.  This is a no op if
+/// there is no such variable.
+pub fn cmd_unset(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 2, 2, "varName")?;
+
+    interp.unset_var(argv[1]);
+
+    okay()
 }
 
 /// # test *name* *script* -ok|-error *result*

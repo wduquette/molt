@@ -36,14 +36,17 @@ impl Interp {
             num_levels: 0,
         };
 
+        interp.add_command("append", commands::cmd_append);
         interp.add_command("exit", commands::cmd_exit);
         interp.add_command("info", commands::cmd_info);
+        interp.add_command("join", commands::cmd_join);
         interp.add_command("lindex", commands::cmd_lindex);
         interp.add_command("list", commands::cmd_list);
         interp.add_command("llength", commands::cmd_llength);
         interp.add_command("puts", commands::cmd_puts);
         interp.add_command("set", commands::cmd_set);
         interp.add_command("test", commands::cmd_test);
+        interp.add_command("unset", commands::cmd_unset);
         interp
     }
 
@@ -65,6 +68,10 @@ impl Interp {
 
     pub fn set_var(&mut self, name: &str, value: &str) {
         self.vars.insert(name.into(), value.into());
+    }
+
+    pub fn unset_var(&mut self, name: &str) {
+        self.vars.remove(name);
     }
 
     /// Evaluates a script one command at a time, and returns either an error or

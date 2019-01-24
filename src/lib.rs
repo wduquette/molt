@@ -13,6 +13,7 @@ pub mod interp;
 mod list;
 pub mod shell;
 pub mod types;
+pub mod var_stack;
 
 /// Returns an Error result.
 pub fn error(msg: &str) -> InterpResult {

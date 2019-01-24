@@ -1,5 +1,13 @@
 # Molt Development Journal
 
+### 2019-01-23 (Wednesday)
+*   Added a stub for `proc`.  At present it just executes the body in
+    the global context, ignoring the arguments completely.
+*   Discovered that I didn't completely fix the "empty command at end
+    of script bug"; or, at least, there's another bug.
+    *   The following script returns 1; it should return 2.
+        *   `set a 1; set b 2`
+
 ### 2019-01-21 (Monday)
 *   Added `list`, `llength`, `lindex` (with tests)
 *   Implementing `proc`
@@ -35,7 +43,7 @@
             well, if need be)
         *   When the proc returns, it pops its varmap off of the stack.
             *   Could/should we do this in a Drop handler?
-            
+
 ### 2019-01-20 (Sunday)
 *   Found a write-up on proper Tcl list syntax in the Tcl code base,
     courtesy of wiki.tcl-lang.org.  See docs/list_format.txt.

@@ -43,6 +43,7 @@ impl Interp {
         interp.add_command("lindex", commands::cmd_lindex);
         interp.add_command("list", commands::cmd_list);
         interp.add_command("llength", commands::cmd_llength);
+        interp.add_command("proc", commands::cmd_proc);
         interp.add_command("puts", commands::cmd_puts);
         interp.add_command("set", commands::cmd_set);
         interp.add_command("test", commands::cmd_test);
@@ -52,6 +53,15 @@ impl Interp {
 
     pub fn add_command(&mut self, name: &str, func: CommandFunc) {
         let command = Rc::new(CommandFuncWrapper::new(func));
+        self.add_command_obj(name, command);
+    }
+
+    pub fn add_command_proc(&mut self, name: &str, args: Vec<String>, body: &str) {
+        let command = Rc::new(CommandProc {
+            _args: args,
+            body: body.to_string(),
+        });
+
         self.add_command_obj(name, command);
     }
 
@@ -162,6 +172,11 @@ impl Interp {
 
             // NEXT, skip any whitespace.
             ctx.skip_line_white();
+        }
+
+        // If we ended at a ";", consume the semi-colon.
+        if ctx.next_is(';') {
+            ctx.next();
         }
 
         Ok(words)
@@ -355,6 +370,18 @@ impl CommandFuncWrapper {
 impl Command for CommandFuncWrapper {
     fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
         (self.func)(interp, argv)
+    }
+}
+
+// Context structure for a proc.
+struct CommandProc {
+    _args: Vec<String>,
+    body: String
+}
+
+impl Command for CommandProc {
+    fn execute(&self, interp: &mut Interp, _argv: &[&str]) -> InterpResult {
+        interp.eval(&self.body)
     }
 }
 

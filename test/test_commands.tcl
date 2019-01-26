@@ -247,7 +247,15 @@ test proc-2.4 {
     list $x $y $z
 } -ok {1 2 {this that}}
 
-# test proc-3.*: proc calling errors
+test proc-3.1 {
+    proc myproc {} {}
+    myproc a
+} -error {wrong # args: should be "myproc"}
+
+test proc-3.2 {
+    proc myproc {a {b 1} args} {}
+    myproc 
+} -error {wrong # args: should be "myproc a ?b? ?arg ...?"}
 
 # Normal argument
 test proc-4.1 {

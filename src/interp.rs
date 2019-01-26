@@ -451,14 +451,13 @@ impl Command for CommandProc {
                 interp.set_var(&vec[0], &vec[1]);
             } else {
                 // We don't; we're missing a required argument.
-                return error("wrong # args: TODO, A");
+                return wrong_num_args_for_proc(argv[0], &self.args);
             }
         }
 
         // NEXT, do we have any arguments left over?
         if argi != argv.len() {
-            println!("argv={:?}, argv.len={}, argi={}", argv, argv.len(), argi);
-            return error("wrong # args: TODO, B");
+            return wrong_num_args_for_proc(argv[0], &self.args);
         }
 
         // NEXT, evaluate the proc's body, getting the result.
@@ -472,6 +471,35 @@ impl Command for CommandProc {
         // interp.eval() returns only Ok or a real error.
         result
     }
+}
+
+fn wrong_num_args_for_proc(name: &str, args: &[String]) -> InterpResult {
+    let mut msg = String::new();
+    msg.push_str("wrong # args: should be \"");
+    msg.push_str(name);
+
+    for arg in args {
+
+        msg.push(' ');
+
+        if arg == "args" {
+            msg.push_str("?arg ...?");
+            break;
+        }
+
+        let vec = get_list(arg).expect("error in proc arglist validation!");
+
+        if vec.len() == 1 {
+            msg.push_str(&vec[0]);
+        } else {
+            msg.push('?');
+            msg.push_str(&vec[0]);
+            msg.push('?');
+        }
+    }
+    msg.push_str("\"");
+
+    error(&msg)
 }
 
 /// Substitutes backslashes in the string, returning a new string.

@@ -65,7 +65,7 @@ pub fn check_args(
 /// # use molt::types::*;
 /// # fn dummy() -> Result<MoltInt,ResultCode> {
 /// let arg = "1";
-/// let int = molt::get_integer(arg)?;
+/// let int = molt::get_int(arg)?;
 /// # Ok(int)
 /// # }
 /// ```

@@ -80,9 +80,10 @@ impl VarStack {
 
     /// Links a variable in the current scope to variable at the given level, counting
     /// from 0, the global scope.
-    pub fn upvar(&mut self, name: &str, level: usize) {
+    pub fn upvar(&mut self, level: usize, name: &str) {
         assert!(level < self.top(), "Can't upvar to current stack level");
-        self.stack[level].map.insert(name.into(), Var::Level(level));
+        let top = self.top();
+        self.stack[top].map.insert(name.into(), Var::Level(level));
     }
 
     pub fn top(&self) -> usize {
@@ -99,4 +100,119 @@ impl VarStack {
         self.stack.pop();
         assert!(!self.stack.is_empty(), "Popped global scope!");
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let vs = VarStack::new();
+        assert_eq!(vs.stack.len(), 1);
+    }
+
+    #[test]
+    fn test_push() {
+        let mut vs = VarStack::new();
+        vs.push();
+        assert_eq!(vs.stack.len(), 2);
+        vs.push();
+        assert_eq!(vs.stack.len(), 3);
+    }
+
+    #[test]
+    fn test_pop() {
+        let mut vs = VarStack::new();
+        vs.push();
+        vs.push();
+        assert_eq!(vs.stack.len(), 3);
+        vs.pop();
+        assert_eq!(vs.stack.len(), 2);
+        vs.pop();
+        assert_eq!(vs.stack.len(), 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_pop_global_scope() {
+        let mut vs = VarStack::new();
+        assert_eq!(vs.stack.len(), 1);
+        vs.pop();
+    }
+
+    #[test]
+    fn test_top() {
+        let mut vs = VarStack::new();
+        assert_eq!(vs.top(), 0);
+        vs.push();
+        assert_eq!(vs.top(), 1);
+        vs.push();
+        assert_eq!(vs.top(), 2);
+        vs.pop();
+        assert_eq!(vs.top(), 1);
+        vs.pop();
+        assert_eq!(vs.top(), 0);
+    }
+
+    #[test]
+    fn test_set_get() {
+        let mut vs = VarStack::new();
+
+        vs.set("a", "1");
+        assert_eq!(vs.get("a"), Some("1".into()));
+
+        vs.set("b", "2");
+        assert_eq!(vs.get("b"), Some("2".into()));
+
+        assert_eq!(vs.get("c"), None);
+    }
+
+    #[test]
+    fn test_set_levels() {
+        let mut vs = VarStack::new();
+
+        vs.set("a", "1");
+        vs.set("b", "2");
+
+        vs.push();
+        assert_eq!(vs.get("a"), None);
+        assert_eq!(vs.get("b"), None);
+        assert_eq!(vs.get("c"), None);
+
+        vs.set("a", "3");
+        vs.set("b", "4");
+        vs.set("c", "5");
+        assert_eq!(vs.get("a"), Some("3".into()));
+        assert_eq!(vs.get("b"), Some("4".into()));
+        assert_eq!(vs.get("c"), Some("5".into()));
+
+        vs.pop();
+        assert_eq!(vs.get("a"), Some("1".into()));
+        assert_eq!(vs.get("b"), Some("2".into()));
+        assert_eq!(vs.get("c"), None);
+    }
+
+    #[test]
+    fn test_set_get_upvar() {
+        let mut vs = VarStack::new();
+
+        vs.set("a", "1");
+        vs.set("b", "2");
+
+        vs.push();
+        vs.upvar(0, "a");
+        assert_eq!(vs.get("a"), Some("1".into()));
+        assert_eq!(vs.get("b"), None);
+
+        vs.set("a", "3");
+        vs.set("b", "4");
+        assert_eq!(vs.get("a"), Some("3".into()));
+        assert_eq!(vs.get("b"), Some("4".into()));
+
+        vs.pop();
+        assert_eq!(vs.get("a"), Some("3".into()));
+        assert_eq!(vs.get("b"), Some("2".into()));
+    }
+
 }

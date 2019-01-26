@@ -211,6 +211,14 @@ test proc-1.1 {
     proc
 } -error {wrong # args: should be "proc name args body"}
 
+test proc-1.2 {
+    proc myproc {a {} b} {}
+} -error {argument with no name}
+
+test proc-1.3 {
+    proc myproc {a {b 1 extra} c} {}
+} -error {too many fields in argument specifier "b 1 extra"}
+
 # Defining a proc returns {}
 test proc-2.1 {
     proc a {} {}
@@ -254,7 +262,7 @@ test proc-3.1 {
 
 test proc-3.2 {
     proc myproc {a {b 1} args} {}
-    myproc 
+    myproc
 } -error {wrong # args: should be "myproc a ?b? ?arg ...?"}
 
 # Normal argument

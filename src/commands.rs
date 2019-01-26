@@ -160,10 +160,24 @@ pub fn cmd_llength(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
 pub fn cmd_proc(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 4, 4, "name args body")?;
+
+    // FIRST, get the arguments
     let name = argv[1];
     let args = get_list(argv[2])?;
     let body = argv[3];
 
+    // NEXT, validate the argument specs
+    for arg in &args {
+        let vec = get_list(&arg)?;
+
+        if vec.is_empty() {
+            return error("argument with no name");
+        } else if vec.len() > 2 {
+            return error(&format!("too many fields in argument specifier \"{}\"", arg));
+        }
+    }
+
+    // NEXT, add the command.
     interp.add_command_proc(name, args, body);
 
     okay()

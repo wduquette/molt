@@ -217,6 +217,12 @@ enum Mode {
 }
 
 fn get_mode(word: &str) -> Mode {
+    // FIRST, if it's the empty string, just brace it.
+    if word.is_empty() {
+        return Mode::Brace;
+    }
+
+    // NEXT, inspect the content.
     let mut mode = Mode::AsIs;
     let mut brace_count = 0;
 
@@ -260,6 +266,8 @@ mod tests {
         assert_eq!(list_to_string(&["a"]), "a");
         assert_eq!(list_to_string(&["a", "b"]), "a b");
         assert_eq!(list_to_string(&["a", "b", "c"]), "a b c");
+        assert_eq!(list_to_string(&["a", " ", "c"]), "a { } c");
+        assert_eq!(list_to_string(&["a", "", "c"]), "a {} c");
         assert_eq!(list_to_string(&["a;b"]), "{a;b}");
         assert_eq!(list_to_string(&["a$b"]), "{a$b}");
         assert_eq!(list_to_string(&["a[b"]), "{a[b}");

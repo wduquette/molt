@@ -22,9 +22,15 @@
         not worry about handling `return` explicitly.
     *   Which is why Tcl_Eval() converts break and continue results to
         errors!  Got it!
-*   Next Steps:
-    *   `global` command
-    *   Argument processing.
+*   Implemented `global`, with tests.
+*   Argument processing.
+    *   Got basic processing down, including optional and var args.
+        *   Found bug in list_to_string(); empty arguments weren't braced.
+            Fixed.
+    *   Still to do:
+        *   `proc` needs to validate the argument list
+        *   "wrong # args" output
+
 
 ### 2019-01-25 (Friday)
 *   Added tests for the VarStack struct.

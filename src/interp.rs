@@ -1,4 +1,6 @@
 //! The Interpreter
+use crate::list::list_to_string;
+use crate::list::get_list;
 use crate::commands;
 use crate::context::Context;
 use crate::error;
@@ -61,7 +63,7 @@ impl Interp {
 
     pub fn add_command_proc(&mut self, name: &str, args: Vec<String>, body: &str) {
         let command = Rc::new(CommandProc {
-            _args: args,
+            args: args,
             body: body.to_string(),
         });
 
@@ -403,16 +405,69 @@ impl Command for CommandFuncWrapper {
 
 // Context structure for a proc.
 struct CommandProc {
-    _args: Vec<String>,
+    args: Vec<String>,
     body: String
 }
 
 impl Command for CommandProc {
-    fn execute(&self, interp: &mut Interp, _argv: &[&str]) -> InterpResult {
+    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
+        // FIRST, push the proc's local scope onto the stack.
         interp.push_scope();
+
+        // NEXT, process the proc's argument list.
+        let mut argi = 1; // Skip the proc's name
+
+        for spec in &self.args {
+            // FIRST, get the parameter as a vector.  It should be a list of
+            // one or two elements.
+            let vec = get_list(&spec)?;  // Should never fail
+            assert!(vec.len() == 1 || vec.len() == 2);
+
+            // NEXT, if this is the args parameter, give the remaining args,
+            // if any.
+            if vec[0] == "args" {
+                let args = if argi < argv.len() {
+                    list_to_string(&argv[argi..])
+                } else {
+                    "".into()
+                };
+                interp.set_var("args", &args);
+
+                // We've processed all of the args
+                argi = argv.len();
+                break;
+            }
+
+            // NEXT, do we have a matching argument?
+             if argi < argv.len() {
+                // Pair them up
+                interp.set_var(&vec[0], argv[argi]);
+                argi += 1;
+                continue;
+            }
+
+            // NEXT, do we have a default value?
+            if vec.len() == 2 {
+                interp.set_var(&vec[0], &vec[1]);
+            } else {
+                // We don't; we're missing a required argument.
+                return error("wrong # args: TODO, A");
+            }
+        }
+
+        // NEXT, do we have any arguments left over?
+        if argi != argv.len() {
+            println!("argv={:?}, argv.len={}, argi={}", argv, argv.len(), argi);
+            return error("wrong # args: TODO, B");
+        }
+
+        // NEXT, evaluate the proc's body, getting the result.
         let result = interp.eval(&self.body);
+
+        // NEXT, pop the scope off of the stack; we're done with it.
         interp.pop_scope();
 
+        // NEXT, return the computed result.
         // Note: no need for special handling for return, break, continue;
         // interp.eval() returns only Ok or a real error.
         result

@@ -180,6 +180,10 @@ test list-1.4 {
     list a {b c} d
 } -ok {a {b c} d}
 
+test list-1.5 {
+    list a {} c
+} -ok {a {} c}
+
 #-------------------------------------------------------------------------
 # llength
 
@@ -242,6 +246,35 @@ test proc-2.4 {
     set z [a]
     list $x $y $z
 } -ok {1 2 {this that}}
+
+# test proc-3.*: proc calling errors
+
+# Normal argument
+test proc-4.1 {
+    proc myproc {a} {
+        list $a $a
+    }
+
+    myproc x
+} -ok {x x}
+
+# Optional argument
+test proc-4.2 {
+    proc myproc {{a A}} {
+        list $a
+    }
+
+    list [myproc x] [myproc]
+} -ok {x A}
+
+# Var args
+test proc-4.3 {
+    proc myproc {a args} {
+        list $a $args
+    }
+
+    list A [myproc 1] B [myproc 1 2] C [myproc 1 2 3]
+} -ok {A {1 {}} B {1 2} C {1 {2 3}}}
 
 #-------------------------------------------------------------------------
 # puts

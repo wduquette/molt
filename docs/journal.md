@@ -27,10 +27,21 @@
     *   Got basic processing down, including optional and var args.
         *   Found bug in list_to_string(); empty arguments weren't braced.
             Fixed.
-    *   Still to do:
-        *   `proc` needs to validate the argument list
-        *   "wrong # args" output
-
+    *   Added proper "wrong # args" output
+*   Proc argument validation
+    *   Playing with TCL, found the following behavior:
+        *   `proc` rejects arguments that aren't lists of 1 or 2 elements.
+        *   `proc` does **not** check whether required/optional/args are
+            in the correct order.
+            *   In `proc {{a 1} b} {...}` the default for `a` can never
+                be used, so it's irrelevant; but it isn't flagged as an error.
+        *   The `args` argument is treated as a normal argument if it's
+            not in the last place.
+    *   Next:
+        *   Do `proc` arg spec length checking:
+            *   "argument with no name"
+            *   "too many fields in argument specifier "b 1 2""
+        *   Fix CommandProc's argument processing for "args".
 
 ### 2019-01-25 (Friday)
 *   Added tests for the VarStack struct.

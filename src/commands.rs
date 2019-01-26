@@ -168,6 +168,26 @@ pub fn cmd_puts(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     okay()
 }
 
+/// # return ?value?
+///
+/// Returns from a proc.  The proc will return the given value, or ""
+/// if no value is specified.
+///
+/// ## TCL Liens
+///
+/// * Doesn't support all of TCL's fancy return machinery.
+pub fn cmd_return(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 1, 2, "?value?")?;
+
+    let value = if argv.len() == 1 {
+        ""
+    } else {
+        argv[1]
+    };
+
+    Err(ResultCode::Return(value.into()))
+}
+
 /// # set *varName* ?*newValue*?
 ///
 /// Sets variable *varName* to *newValue*, returning the value.

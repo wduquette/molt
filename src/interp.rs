@@ -46,6 +46,7 @@ impl Interp {
         interp.add_command("llength", commands::cmd_llength);
         interp.add_command("proc", commands::cmd_proc);
         interp.add_command("puts", commands::cmd_puts);
+        interp.add_command("return", commands::cmd_return);
         interp.add_command("set", commands::cmd_set);
         interp.add_command("test", commands::cmd_test);
         interp.add_command("unset", commands::cmd_unset);
@@ -96,12 +97,28 @@ impl Interp {
         self.var_stack.pop();
     }
 
-    /// Evaluates a script one command at a time, and returns either an error or
-    /// the result of the last command in the script.
+    /// Evaluates a script one command at a time, and returning the
+    /// value of the last command in the script, the value of an explicit
+    /// `return` command, or an error.
+    ///
+    /// `break` and `continue` results are converted to errors.
     pub fn eval(&mut self, script: &str) -> InterpResult {
         let mut ctx = Context::new(script);
 
-        self.eval_script(&mut ctx)
+        let result = self.eval_script(&mut ctx);
+
+        match result {
+            Err(ResultCode::Return(value)) => {
+                Ok(value)
+            }
+            Err(ResultCode::Break) => {
+                error("invoked \"break\" outside of a loop")
+            }
+            Err(ResultCode::Continue) => {
+                error("invoked \"continue\" outside of a loop")
+            }
+            _ => result
+        }
     }
 
     pub fn complete(&mut self, script: &str) -> bool {
@@ -134,21 +151,8 @@ impl Interp {
                 let cmd = Rc::clone(cmd);
                 let result = cmd.execute(self, words.as_slice());
                 match result {
-                    Ok(v) => {
-                        result_value = v;
-                    }
-                    Err(ResultCode::Return(_)) => {
-                        return error("return not yet implemented");
-                    }
-                    Err(ResultCode::Break) => {
-                        return error("break not yet implemented");
-                    }
-                    Err(ResultCode::Continue) => {
-                        return error("break not yet implemented");
-                    }
-                    Err(ResultCode::Error(_)) => {
-                        return result;
-                    }
+                    Ok(v) => result_value = v,
+                    _ => return result,
                 }
             } else {
                 return error(&format!("invalid command name \"{}\"", words[0]));
@@ -397,13 +401,9 @@ impl Command for CommandProc {
         let result = interp.eval(&self.body);
         interp.pop_scope();
 
-        // Convert explicit returns into normal results.  All other
-        // results are passed along unchanged.
-        if let Err(ResultCode::Return(value)) = result {
-            Ok(value)
-        } else {
-            result
-        }
+        // Note: no need for special handling for return, break, continue;
+        // interp.eval() returns only Ok or a real error.
+        result
     }
 }
 

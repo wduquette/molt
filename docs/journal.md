@@ -4,6 +4,27 @@
 *   First, I need to replace the Interp's variable map with a VarStack.
     *   Done.  `Interp::{set,get,unset}` all work as expected.
 *   Next, `proc` needs to push and pop stacks.
+    *   Done, and tested.  Variables in procs really do have local scope.
+*   Implemented `return`.
+    *   Subset of full TCL behavior; no way to use return for anything
+        but a standard return.
+    *   Issue: when to convert a Return result to a normal result?
+    *   In TCL the `eval` command clearly does this and proc bodies
+        do this, both of which are appropriate.
+        *   Procs, because that's what "return" is for.
+        *   `eval`, because that's what's used for interpreting interactive
+            commands, and that's how it responds.
+    *   But control structures like "if" and "while" will need to let
+        "return" pass through unchanged.
+    *   In TCL, you'd use `catch` instead of `eval`; I suppose I'll need
+        an Interp method for that.
+    *   Meanwhile, `proc` bodies can use standard `eval` semantics and
+        not worry about handling `return` explicitly.
+    *   Which is why Tcl_Eval() converts break and continue results to
+        errors!  Got it!
+*   Next Steps:
+    *   `global` command
+    *   Argument processing.
 
 ### 2019-01-25 (Friday)
 *   Added tests for the VarStack struct.

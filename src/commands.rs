@@ -2,6 +2,7 @@
 //!
 //! This module defines the standard Molt commands.
 
+use crate::list::vec_to_string;
 use crate::interp::Interp;
 use crate::okay;
 use crate::types::*;
@@ -31,22 +32,6 @@ pub fn cmd_append(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     Ok(new_value)
 }
 
-/// # global ?*varName* ...?
-///
-/// Appends any number of values to a variable's value, which need not
-/// initially exist.
-pub fn cmd_global(interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    // Accepts any number of arguments
-
-    // FIRST, if we're at the global scope this is a no-op.
-    if interp.scope_level() > 0 {
-        for name in argv {
-            interp.upvar(0, name);
-        }
-    }
-    okay()
-}
-
 /// # exit ?*returnCode*?
 ///
 /// Terminates the application by calling `std::process::exit()`.
@@ -64,6 +49,22 @@ pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     std::process::exit(return_code)
 }
 
+/// # global ?*varName* ...?
+///
+/// Appends any number of values to a variable's value, which need not
+/// initially exist.
+pub fn cmd_global(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    // Accepts any number of arguments
+
+    // FIRST, if we're at the global scope this is a no-op.
+    if interp.scope_level() > 0 {
+        for name in argv {
+            interp.upvar(0, name);
+        }
+    }
+    okay()
+}
+
 /// # info *subcommand* ?*arg*...?
 pub fn cmd_info(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
@@ -79,8 +80,8 @@ const INFO_SUBCOMMANDS: [Subcommand; 3] = [
 ];
 
 /// # info commands ?*pattern*?
-pub fn cmd_info_commands(_interp: &mut Interp, _argv: &[&str]) -> InterpResult {
-    error("TODO")
+pub fn cmd_info_commands(interp: &mut Interp, _argv: &[&str]) -> InterpResult {
+    Ok(vec_to_string(&interp.get_command_names()))
 }
 
 /// # info complete *command*
@@ -96,8 +97,8 @@ pub fn cmd_info_complete(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 }
 
 /// # info vars ?*pattern*?
-pub fn cmd_info_vars(_interp: &mut Interp, _argv: &[&str]) -> InterpResult {
-    error("TODO")
+pub fn cmd_info_vars(interp: &mut Interp, _argv: &[&str]) -> InterpResult {
+    Ok(vec_to_string(&interp.get_visible_var_names()))
 }
 
 /// # join *list* ?*joinString*?

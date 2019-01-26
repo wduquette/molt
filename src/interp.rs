@@ -74,6 +74,13 @@ impl Interp {
         self.commands.insert(name.into(), command);
     }
 
+    /// Gets a vector of the command names.
+    pub fn get_command_names(&self) -> Vec<String> {
+        let vec: Vec<String> = self.commands.keys().cloned().collect();
+
+        vec
+    }
+
     pub fn get_var(&self, name: &str) -> InterpResult {
         match self.var_stack.get(name) {
             Some(v) => Ok(v.clone()),
@@ -87,6 +94,11 @@ impl Interp {
 
     pub fn unset_var(&mut self, name: &str) {
         self.var_stack.unset(name);
+    }
+
+    /// Gets a vector of the visible var names.
+    pub fn get_visible_var_names(&self) -> Vec<String> {
+        self.var_stack.get_visible_names()
     }
 
     /// Pushes a variable scope on to the var_stack.
@@ -417,15 +429,16 @@ impl Command for CommandProc {
         // NEXT, process the proc's argument list.
         let mut argi = 1; // Skip the proc's name
 
-        for spec in &self.args {
+        for (speci, spec) in self.args.iter().enumerate() {
             // FIRST, get the parameter as a vector.  It should be a list of
             // one or two elements.
             let vec = get_list(&spec)?;  // Should never fail
             assert!(vec.len() == 1 || vec.len() == 2);
 
             // NEXT, if this is the args parameter, give the remaining args,
-            // if any.
-            if vec[0] == "args" {
+            // if any.  Note that "args" has special meaning only if it's the
+            // final arg spec in the list.
+            if vec[0] == "args" && speci == self.args.len() - 1 {
                 let args = if argi < argv.len() {
                     list_to_string(&argv[argi..])
                 } else {
@@ -478,11 +491,11 @@ fn wrong_num_args_for_proc(name: &str, args: &[String]) -> InterpResult {
     msg.push_str("wrong # args: should be \"");
     msg.push_str(name);
 
-    for arg in args {
-
+    for (i, arg) in args.iter().enumerate() {
         msg.push(' ');
 
-        if arg == "args" {
+        // "args" has special meaning only in the last place.
+        if arg == "args" && i == args.len() - 1  {
             msg.push_str("?arg ...?");
             break;
         }

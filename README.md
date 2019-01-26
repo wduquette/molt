@@ -5,8 +5,13 @@ apps.  See "Plans", below.
 
 ## TODO Items
 
+* Test `info vars` in local context
+* Document all other existing commands in The Molt Book
+* Implement `error`
+* Implement `if` (with condition implemented as a script!)
 * Continue to add commands from the "next" list, below.
-* Flesh out Rust tests and Rust API docs.
+* Implement expression parser
+* Flesh out Rust tests and Rust API docs in the code base.
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
 * Improve the `test` harness for the TCL command test suite.
@@ -18,7 +23,6 @@ apps.  See "Plans", below.
     *   Would provide the `test` command, as well as the overall harness.
 * Use Interp::complete() in the shell, to build up multiline commands.
 * Make molt::get_int() parse the same varieties as Tcl_GetInt() does.
-* Implement expression parser
 * Document the TCL dialect using mdbook, and publish to GitHub pages.
 * Consider adding an "object" command that defines a simple object
   containing a dictionary:
@@ -26,6 +30,9 @@ apps.  See "Plans", below.
 * Consider generalizing the Subcommand array mechanism; standard command sets
   can be defined the same way, and loaded into the interpreter on creation.
   * A binary extension is just a crate that can so initialize the interp.
+* Implement stack traces
+  * Need not mimic TCL's.
+* Implement interp evaluation depth checking.
 
 ## Plans
 
@@ -51,6 +58,7 @@ as a tool be used on its own. (Famous last words....)
   * The embedding API should allow the client to easily control the set of
     commands included in an interpreter.  For example, a game engine might
     want to exclude `proc`, `source`, `eval`, etc.
+* Stack traces
 
 ### Excluded Features
 
@@ -78,12 +86,14 @@ The following commands have been implemented:
 * `append`
 * `exit`
 * `global`
+* `info commands` (without pattern matching)
 * `info complete`
+* `info vars` (without pattern matching)
 * `join`  
 * `lindex`
 * `list`
 * `llength`
-* `proc` (in progress)
+* `proc`
 * `puts` (partially; there's no support for output channels or -nonewline)
 * `return` (partially; supports only normal returns)
 * `set`
@@ -96,11 +106,12 @@ The following commands need to get implemented next.
 * for
 * foreach
 * if
+* info level
 * info vars (without glob matching)
 * info commands (without glob matching)
 * lappend
-* proc
 * source
+* upvar
 * while
 
 ### Specific Differences from TCL
@@ -156,6 +167,7 @@ The following commands are not implemented by Molt at the present time:
 * history
 * if
 * incr
+* info * (most subcommands)
 * interp
 * lappend
 * lassign

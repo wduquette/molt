@@ -37,11 +37,10 @@
                 be used, so it's irrelevant; but it isn't flagged as an error.
         *   The `args` argument is treated as a normal argument if it's
             not in the last place.
-    *   Next:
-        *   Do `proc` arg spec length checking:
+        *   Added `proc` arg spec length checking:
             *   "argument with no name"
             *   "too many fields in argument specifier "b 1 2""
-        *   Fix CommandProc's argument processing for "args".
+        *   Fixed CommandProc's argument processing for "args".
 
 ### 2019-01-25 (Friday)
 *   Added tests for the VarStack struct.

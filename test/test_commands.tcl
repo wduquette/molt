@@ -265,6 +265,12 @@ test proc-3.2 {
     myproc
 } -error {wrong # args: should be "myproc a ?b? ?arg ...?"}
 
+test proc-3.3 {
+    # Weird but allowed
+    proc myproc {args {b 1} a} {}
+    myproc
+} -error {wrong # args: should be "myproc args ?b? a"}
+
 # Normal argument
 test proc-4.1 {
     proc myproc {a} {
@@ -291,6 +297,12 @@ test proc-4.3 {
 
     list A [myproc 1] B [myproc 1 2] C [myproc 1 2 3]
 } -ok {A {1 {}} B {1 2} C {1 {2 3}}}
+
+test proc-4.4 {
+    # Weird but allowed
+    proc myproc {args {b 1} a} {list args $args b $b a $a}
+    myproc 1 2 3
+} -ok {args 1 b 2 a 3}
 
 #-------------------------------------------------------------------------
 # puts

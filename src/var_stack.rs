@@ -118,6 +118,13 @@ impl VarStack {
         self.stack.pop();
         assert!(!self.stack.is_empty(), "Popped global scope!");
     }
+
+    pub fn get_visible_names(&self) -> Vec<String> {
+        let top = self.stack.len() - 1;
+        let vec: Vec<String> = self.stack[top].map.keys().cloned().collect();
+
+        vec
+    }
 }
 
 #[cfg(test)]

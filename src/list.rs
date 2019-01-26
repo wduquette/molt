@@ -142,6 +142,13 @@ fn parse_bare_item(ctx: &mut Context) -> InterpResult {
 //--------------------------------------------------------------------------
 // List Formatting
 
+/// Converts a list, represented as a vector of Strings, into a string, doing
+/// all necessary quoting and escaping.
+pub fn vec_to_string(vec: &[String]) -> String {
+    let words: Vec<&str> = vec.iter().map(|s| &**s).collect();
+    list_to_string(&words)
+}
+
 /// Converts a list, represented as a slice of &str, into a string, doing
 /// all necessary quoting and escaping.
 pub fn list_to_string(list: &[&str]) -> String {

@@ -57,7 +57,7 @@ pub fn cmd_global(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
     // FIRST, if we're at the global scope this is a no-op.
     if interp.scope_level() > 0 {
-        for name in argv {
+        for name in &argv[1..] {
             interp.upvar(0, name);
         }
     }

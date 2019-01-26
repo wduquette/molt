@@ -108,6 +108,36 @@ test info-2.4 {
     info complete "\{cmd"
 } -ok {0}
 
+test info-3.1 {
+    proc myproc {} {
+        info vars
+    }
+    myproc
+} -ok {}
+
+test info-3.2 {
+    proc myproc {a} {
+        info vars
+    }
+    myproc a
+} -ok {a}
+
+test info-3.2 {
+    proc myproc {} {
+        set v 1
+        info vars
+    }
+    myproc
+} -ok {v}
+
+test info-3.3 {
+    proc myproc {} {
+        global x
+        info vars
+    }
+    myproc
+} -ok {x}
+
 #-------------------------------------------------------------------------
 # join
 

@@ -6,7 +6,6 @@ apps.  See "Plans", below.
 ## TODO Items
 
 * Test `info vars` in local context
-* Document all other existing commands in The Molt Book
 * Implement `error`
 * Implement `if` (with condition implemented as a script!)
 * Continue to add commands from the "next" list, below.

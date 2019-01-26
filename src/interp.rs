@@ -2,6 +2,7 @@
 use crate::commands;
 use crate::context::Context;
 use crate::error;
+use crate::var_stack::VarStack;
 use crate::types::Command;
 use crate::types::CommandFunc;
 use crate::types::*;
@@ -19,7 +20,7 @@ pub struct Interp {
     commands: HashMap<String, Rc<dyn Command>>,
 
     // Variable Table
-    vars: HashMap<String, String>,
+    var_stack: VarStack,
 
     // Current number of eval levels.
     num_levels: usize,
@@ -32,7 +33,7 @@ impl Interp {
         let mut interp = Self {
             max_nesting_depth: 255,
             commands: HashMap::new(),
-            vars: HashMap::new(),
+            var_stack: VarStack::new(),
             num_levels: 0,
         };
 
@@ -70,18 +71,29 @@ impl Interp {
     }
 
     pub fn get_var(&self, name: &str) -> InterpResult {
-        match self.vars.get(name) {
+        match self.var_stack.get(name) {
             Some(v) => Ok(v.clone()),
             None => error(&format!("can't read \"{}\": no such variable", name)),
         }
     }
 
     pub fn set_var(&mut self, name: &str, value: &str) {
-        self.vars.insert(name.into(), value.into());
+        self.var_stack.set(name, value);
     }
 
     pub fn unset_var(&mut self, name: &str) {
-        self.vars.remove(name);
+        self.var_stack.unset(name);
+    }
+
+    /// Pushes a variable scope on to the var_stack.
+    /// Procs use this to define their local scope.
+    fn push_scope(&mut self) {
+        self.var_stack.push();
+    }
+
+    /// Pops a variable scope off of the var_stack.
+    fn pop_scope(&mut self) {
+        self.var_stack.pop();
     }
 
     /// Evaluates a script one command at a time, and returns either an error or
@@ -381,7 +393,17 @@ struct CommandProc {
 
 impl Command for CommandProc {
     fn execute(&self, interp: &mut Interp, _argv: &[&str]) -> InterpResult {
-        interp.eval(&self.body)
+        interp.push_scope();
+        let result = interp.eval(&self.body);
+        interp.pop_scope();
+
+        // Convert explicit returns into normal results.  All other
+        // results are passed along unchanged.
+        if let Err(ResultCode::Return(value)) = result {
+            Ok(value)
+        } else {
+            result
+        }
     }
 }
 

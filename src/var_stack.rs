@@ -49,6 +49,12 @@ impl VarStack {
         value.into()
     }
 
+    pub fn unset(&mut self, name: &str) {
+        let top = self.stack.len() - 1;
+        // self.stack[top].map.remove(name);
+        self.unset_at(top, name);
+    }
+
     /// Gets the value of the named variable in the current scope.
     pub fn get(&self, name: &str) -> Option<String> {
         let top = self.stack.len() - 1;
@@ -76,6 +82,18 @@ impl VarStack {
                 self.stack[level].map.insert(name.into(), Var::Value(value.into()));
             }
         }
+    }
+
+    /// Unset a variable at a given level in the stack.  If the variable at that level
+    /// is linked to a previous level, follows the chain down, unsetting as it goes.
+    fn unset_at(&mut self, level: usize, name: &str) {
+        // FIRST, if the variable at this level links to a lower level, follow the chain.
+        if let Some(Var::Level(at)) = self.stack[level].map.get(name) {
+            self.unset_at(*at, name);
+        }
+
+        // NEXT, remove the link at this level.
+        self.stack[level].map.remove(name);
     }
 
     /// Links a variable in the current scope to variable at the given level, counting
@@ -215,4 +233,50 @@ mod tests {
         assert_eq!(vs.get("b"), Some("2".into()));
     }
 
+    #[test]
+    fn test_unset() {
+        let mut vs = VarStack::new();
+
+        vs.set("a", "1");
+        assert_eq!(vs.get("a"), Some("1".into()));
+        vs.unset("a");
+        assert_eq!(vs.get("a"), None);
+    }
+
+    #[test]
+    fn test_unset_levels() {
+        let mut vs = VarStack::new();
+
+        vs.set("a", "1");
+        vs.set("b", "2");
+
+        vs.push();
+        vs.set("a", "3");
+
+        vs.unset("a");  // Was set in this scope
+        vs.unset("b");  // Was not set in this scope
+
+        vs.pop();
+        assert_eq!(vs.get("a"), Some("1".into()));
+        assert_eq!(vs.get("b"), Some("2".into()));
+    }
+
+    #[test]
+    fn test_unset_upvar() {
+        let mut vs = VarStack::new();
+
+        // Set a value at level 0
+        vs.set("a", "1");
+        vs.push();
+
+        // Link a@1 to a@0
+        vs.upvar(0, "a");
+
+        // Unset it; it should be unset in both scopes.
+        vs.unset("a");
+
+        assert_eq!(vs.get("a"), None);
+        vs.pop();
+        assert_eq!(vs.get("a"), None);
+    }
 }

@@ -161,6 +161,50 @@ test llength-2.3 {
 } -ok {2}
 
 #-------------------------------------------------------------------------
+# proc
+
+# TODO: tests should have oneline descriptions
+test proc-1.1 {
+    proc
+} -error {wrong # args: should be "proc name args body"}
+
+# Defining a proc returns {}
+test proc-2.1 {
+    proc a {} {}
+} -ok {}
+
+# A proc returns the value of evaluating its body
+test proc-2.2 {
+    proc a {} {
+        set x 1
+    }
+    a
+} -ok {1}
+
+# Setting a variable in a proc doesn't affect the global scope.
+test proc-2.3 {
+    set x 1
+    proc a {} {
+        set x 2
+    }
+    set y [a]
+    list $x $y
+} -ok {1 2}
+
+# Setting a variable in a proc really does set its value in the local scope
+test proc-2.4 {
+    set x 1
+    set y 2
+    proc a {} {
+        set x this
+        set y that
+        list $x $y
+    }
+    set z [a]
+    list $x $y $z
+} -ok {1 2 {this that}}
+
+#-------------------------------------------------------------------------
 # puts
 
 # Not tested; can't capture stdout.

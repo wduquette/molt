@@ -1,5 +1,21 @@
 # Molt Development Journal
 
+### 2019-01-26 (Saturday)
+*   First, I need to replace the Interp's variable map with a VarStack.
+    *   Done.  `Interp::{set,get,unset}` all work as expected.
+*   Next, `proc` needs to push and pop stacks.
+
+### 2019-01-25 (Friday)
+*   Added tests for the VarStack struct.
+    *   Found only one bug, in `upvar()`.  Fixed.
+*   Now I have the infrastructure I need for proc arguments and local
+    variables.
+
+### 2019-01-24 (Thursday)
+*   Added the VarStack struct, for managing an interpreter's variables.
+    *   Maintains all variable scopes for the interpreter.
+    *   Supports upvar/global.
+
 ### 2019-01-23 (Wednesday)
 *   Added a stub for `proc`.  At present it just executes the body in
     the global context, ignoring the arguments completely.

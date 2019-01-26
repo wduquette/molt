@@ -142,22 +142,16 @@ fn parse_bare_item(ctx: &mut Context) -> InterpResult {
 //--------------------------------------------------------------------------
 // List Formatting
 
-/// Converts a list, represented as a vector of Strings, into a string, doing
-/// all necessary quoting and escaping.
-pub fn vec_to_string(vec: &[String]) -> String {
-    let words: Vec<&str> = vec.iter().map(|s| &**s).collect();
-    list_to_string(&words)
-}
-
 /// Converts a list, represented as a slice of &str, into a string, doing
 /// all necessary quoting and escaping.
-pub fn list_to_string(list: &[&str]) -> String {
+pub fn list_to_string<T: AsRef<str>>(list: &[T]) -> String {
     let mut vec: Vec<String> = Vec::new();
 
     // TODO: Use this
-    let mut hash = !list.is_empty() && list[0].starts_with('#');
+    let mut hash = !list.is_empty() && list[0].as_ref().starts_with('#');
 
-    for item in list {
+    for item_value in list {
+        let item = item_value.as_ref();
         match get_mode(item) {
             Mode::AsIs => {
                 if hash {

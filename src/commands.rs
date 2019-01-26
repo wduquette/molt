@@ -2,7 +2,6 @@
 //!
 //! This module defines the standard Molt commands.
 
-use crate::list::vec_to_string;
 use crate::interp::Interp;
 use crate::okay;
 use crate::types::*;
@@ -81,7 +80,7 @@ const INFO_SUBCOMMANDS: [Subcommand; 3] = [
 
 /// # info commands ?*pattern*?
 pub fn cmd_info_commands(interp: &mut Interp, _argv: &[&str]) -> InterpResult {
-    Ok(vec_to_string(&interp.get_command_names()))
+    Ok(list_to_string(&interp.get_command_names()))
 }
 
 /// # info complete *command*
@@ -98,7 +97,7 @@ pub fn cmd_info_complete(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
 /// # info vars ?*pattern*?
 pub fn cmd_info_vars(interp: &mut Interp, _argv: &[&str]) -> InterpResult {
-    Ok(vec_to_string(&interp.get_visible_var_names()))
+    Ok(list_to_string(&interp.get_visible_var_names()))
 }
 
 /// # join *list* ?*joinString*?

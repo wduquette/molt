@@ -31,6 +31,22 @@ pub fn cmd_append(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     Ok(new_value)
 }
 
+/// # global ?*varName* ...?
+///
+/// Appends any number of values to a variable's value, which need not
+/// initially exist.
+pub fn cmd_global(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    // Accepts any number of arguments
+
+    // FIRST, if we're at the global scope this is a no-op.
+    if interp.scope_level() > 0 {
+        for name in argv {
+            interp.upvar(0, name);
+        }
+    }
+    okay()
+}
+
 /// # exit ?*returnCode*?
 ///
 /// Terminates the application by calling `std::process::exit()`.

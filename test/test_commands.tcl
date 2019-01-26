@@ -40,6 +40,45 @@ test exit-1.2 {
 } -error {wrong # args: should be "exit ?returnCode?"}
 
 #-------------------------------------------------------------------------
+# global
+
+# Takes any number of arguments, including 0
+test global-1.1 {
+    global
+} -ok {}
+
+# No op at global scope.
+test global-1.2 {
+    global a b c
+} -ok {}
+
+# Links local to global variables
+test global-2.1 {
+    set x 1
+    proc a {} {
+        global x
+        set x 2
+    }
+    a
+    set x
+} -ok {2}
+
+# Can link multiple vars
+test global-2.2 {
+    set x 1
+    set y 2
+    set z 3
+    proc a {} {
+        global y z
+        set x 4
+        set y 5
+        set z 6
+    }
+    a
+    list $x $y $z
+} -ok {1 5 6}
+
+#-------------------------------------------------------------------------
 # info
 
 test info-1.1 {

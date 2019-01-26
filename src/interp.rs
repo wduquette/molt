@@ -39,6 +39,7 @@ impl Interp {
 
         interp.add_command("append", commands::cmd_append);
         interp.add_command("exit", commands::cmd_exit);
+        interp.add_command("global", commands::cmd_global);
         interp.add_command("info", commands::cmd_info);
         interp.add_command("join", commands::cmd_join);
         interp.add_command("lindex", commands::cmd_lindex);
@@ -95,6 +96,17 @@ impl Interp {
     /// Pops a variable scope off of the var_stack.
     fn pop_scope(&mut self) {
         self.var_stack.pop();
+    }
+
+    /// Return the current scope level
+    pub fn scope_level(&self) -> usize {
+        self.var_stack.top()
+    }
+
+    /// Links the variable name in the current scope to the given scope.
+    pub fn upvar(&mut self, level: usize, name: &str) {
+        assert!(level <= self.var_stack.top(), "Invalid scope level");
+        self.var_stack.upvar(level, name);
     }
 
     /// Evaluates a script one command at a time, and returning the

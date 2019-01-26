@@ -77,12 +77,15 @@ The following commands have been implemented:
 
 * `append`
 * `exit`
+* `global`
 * `info complete`
 * `join`  
 * `lindex`
 * `list`
 * `llength`
+* `proc` (in progress)
 * `puts` (partially; there's no support for output channels or -nonewline)
+* `return` (partially; supports only normal returns)
 * `set`
 * `unset`
 
@@ -150,7 +153,6 @@ The following commands are not implemented by Molt at the present time:
 * format
 * gets
 * glob
-* global
 * history
 * if
 * incr
@@ -171,13 +173,11 @@ The following commands are not implemented by Molt at the present time:
 * open
 * package
 * pid
-* proc
 * pwd
 * read
 * regexp
 * regsub
 * rename
-* return
 * scan
 * seek
 * socket

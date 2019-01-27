@@ -31,6 +31,20 @@ pub fn cmd_append(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     Ok(new_value)
 }
 
+/// assert_eq received, expected
+///
+/// Returns an error if received doesn't equal the expected value.
+/// Primarily for use in examples.
+pub fn cmd_assert_eq(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 3, 3, "received expected")?;
+
+    if argv[1] == argv[2] {
+        okay()
+    } else {
+        error(&format!("assertion failed: received \"{}\", expected \"{}\".", argv[1], argv[2]))
+    }
+}
+
 /// # exit ?*returnCode*?
 ///
 /// Terminates the application by calling `std::process::exit()`.

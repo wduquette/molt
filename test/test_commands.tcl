@@ -27,6 +27,22 @@ test append-2.3 {
 } -ok {abcdef}
 
 #-------------------------------------------------------------------------
+# assert_eq
+
+test assert_eq-1.1 {
+    assert_eq
+} -error {wrong # args: should be "assert_eq received expected"}
+
+test assert_eq-2.1 {
+    assert_eq a a
+} -ok {}
+
+test assert_eq-2.2 {
+    assert_eq a b
+} -error {assertion failed: received "a", expected "b".}
+
+
+#-------------------------------------------------------------------------
 # exit
 #
 # Test error cases only, since success would terminate the app.

@@ -11,6 +11,8 @@ mod commands;
 mod context;
 pub mod interp;
 mod list;
+#[macro_use]
+mod macros;
 pub mod shell;
 pub mod types;
 pub mod var_stack;

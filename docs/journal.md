@@ -7,6 +7,7 @@
 *   molt-book
     *   Added docs for `assert_eq` and `test`, with examples.
     *   Added example for `append`, using `assert_eq`.
+*   Added `molt_ok!` and `molt_err!` macros.
 
 ### 2019-01-26 (Saturday)
 *   First, I need to replace the Interp's variable map with a VarStack.

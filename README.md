@@ -5,15 +5,10 @@ apps.  See "Plans", below.
 
 ## TODO Items
 
+* Replace the `okay()` and `error()` functions with `molt_ok!` and
+  `molt_err!`, then delete them.
 * Implement interp evaluation depth checking.
 * Use Interp::complete() in the shell, to build up multiline commands.
-* Implement macros to make writing commands easier.
-  * `molt_ok!()`: produces Ok(string), producing the result string with
-    `println!`-like syntax.  With no arguments, returns the empty string.
-    Accepts both String and &str.
-    Replaces the `okay()` function.
-  * `molt_error!()`: Like `molt_ok!()`, but produces
-    `Err(ResultCode::Error(string))`.
 * Implement `error` command
 * Implement `if` (with condition implemented as a script!)
 * Implement `foreach` (one variable/list only, at first)

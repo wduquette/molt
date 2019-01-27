@@ -28,7 +28,7 @@ pub fn cmd_append(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
     interp.set_var(argv[1], &new_value);
 
-    Ok(new_value)
+    molt_ok!("{}", new_value)
 }
 
 /// assert_eq received, expected
@@ -41,7 +41,7 @@ pub fn cmd_assert_eq(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     if argv[1] == argv[2] {
         okay()
     } else {
-        error(&format!("assertion failed: received \"{}\", expected \"{}\".", argv[1], argv[2]))
+        molt_err!("assertion failed: received \"{}\", expected \"{}\".", argv[1], argv[2])
     }
 }
 
@@ -75,7 +75,7 @@ pub fn cmd_global(interp: &mut Interp, argv: &[&str]) -> InterpResult {
             interp.upvar(0, name);
         }
     }
-    okay()
+    molt_ok!()
 }
 
 /// # info *subcommand* ?*arg*...?
@@ -94,7 +94,7 @@ const INFO_SUBCOMMANDS: [Subcommand; 3] = [
 
 /// # info commands ?*pattern*?
 pub fn cmd_info_commands(interp: &mut Interp, _argv: &[&str]) -> InterpResult {
-    Ok(list_to_string(&interp.get_command_names()))
+    molt_ok!("{}", list_to_string(&interp.get_command_names()))
 }
 
 /// # info complete *command*
@@ -103,15 +103,15 @@ pub fn cmd_info_complete(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
     // TODO: Add way of returning a boolean result.
     if interp.complete(argv[2]) {
-        Ok("1".into())
+        molt_ok!("1")
     } else {
-        Ok("0".into())
+        molt_ok!("0")
     }
 }
 
 /// # info vars ?*pattern*?
 pub fn cmd_info_vars(interp: &mut Interp, _argv: &[&str]) -> InterpResult {
-    Ok(list_to_string(&interp.get_visible_var_names()))
+    molt_ok!(list_to_string(&interp.get_visible_var_names()))
 }
 
 /// # join *list* ?*joinString*?

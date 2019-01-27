@@ -5,9 +5,18 @@ apps.  See "Plans", below.
 
 ## TODO Items
 
-* Test `info vars` in local context
-* Implement `error`
+* Implement interp evaluation depth checking.
+* Use Interp::complete() in the shell, to build up multiline commands.
+* Implement macros to make writing commands easier.
+  * `molt_ok!()`: produces Ok(string), producing the result string with
+    `println!`-like syntax.  With no arguments, returns the empty string.
+    Accepts both String and &str.
+    Replaces the `okay()` function.
+  * `molt_error!()`: Like `molt_ok!()`, but produces
+    `Err(ResultCode::Error(string))`.
+* Implement `error` command
 * Implement `if` (with condition implemented as a script!)
+* Implement `foreach` (one variable/list only, at first)
 * Continue to add commands from the "next" list, below.
 * Implement expression parser
 * Flesh out Rust tests and Rust API docs in the code base.
@@ -17,12 +26,18 @@ apps.  See "Plans", below.
   * Need ability to clean up.
   * Support test flags, so that tests can be excluded.
   * Support accumulating test results, so that the logs can be short.
-  * Consider implementing "molt test" as part of the molt app,
+  * Implementing "molt test" as part of the molt app,
     alongside "molt shell".
     *   Would provide the `test` command, as well as the overall harness.
-* Use Interp::complete() in the shell, to build up multiline commands.
+* Turn molt into a multi-crate project.
+  * The base language crate, `molt`
+  * The application crate, `molt-app`
+  * Extension crates, e.g., `molt-pattern` (provides regexp, glob)
+  * This keeps the base language crate small, while allowing `molt test` to
+    use patterns.
 * Make molt::get_int() parse the same varieties as Tcl_GetInt() does.
-* Document the TCL dialect using mdbook, and publish to GitHub pages.
+* On-going:
+    * Document Molt's TCL dialect using mdbook, and publish to GitHub pages.
 * Consider adding an "object" command that defines a simple object
   containing a dictionary:
   * `$obj set var ?value?`
@@ -30,8 +45,7 @@ apps.  See "Plans", below.
   can be defined the same way, and loaded into the interpreter on creation.
   * A binary extension is just a crate that can so initialize the interp.
 * Implement stack traces
-  * Need not mimic TCL's.
-* Implement interp evaluation depth checking.
+  * Need not mimic TCL's output.
 
 ## Plans
 

@@ -1,5 +1,13 @@
 # Molt Development Journal
 
+### 2019-01-27 (Sunday)
+*   molt language
+    *   Added an `assert_eq` command, for use in molt-book examples, a la the
+        Rust documentation.
+*   molt-book
+    *   Added docs for `assert_eq` and `test`, with examples.
+    *   Added example for `append`, using `assert_eq`.
+
 ### 2019-01-26 (Saturday)
 *   First, I need to replace the Interp's variable map with a VarStack.
     *   Done.  `Interp::{set,get,unset}` all work as expected.

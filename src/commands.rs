@@ -3,7 +3,6 @@
 //! This module defines the standard Molt commands.
 
 use crate::interp::Interp;
-use crate::okay;
 use crate::types::*;
 use crate::*;
 
@@ -39,7 +38,7 @@ pub fn cmd_assert_eq(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 3, 3, "received expected")?;
 
     if argv[1] == argv[2] {
-        okay()
+        molt_ok!()
     } else {
         molt_err!("assertion failed: received \"{}\", expected \"{}\".", argv[1], argv[2])
     }
@@ -128,7 +127,7 @@ pub fn cmd_join(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
         " "
     };
 
-    Ok(list.join(join_string))
+    molt_ok!(list.join(join_string))
 }
 
 /// # lindex *list* ?*index* ...?
@@ -150,7 +149,7 @@ pub fn cmd_lindex(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
         };
     }
 
-    Ok(value)
+    molt_ok!(value)
 }
 
 /// # list ?*arg*...?
@@ -158,7 +157,7 @@ pub fn cmd_lindex(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// Converts its arguments into a canonical list.
 pub fn cmd_list(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     // No arg check needed; can take any number.
-    Ok(list_to_string(&argv[1..]))
+    molt_ok!(list_to_string(&argv[1..]))
 }
 
 /// # llength *list*
@@ -169,7 +168,7 @@ pub fn cmd_llength(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
     let list = get_list(argv[1])?;
 
-    Ok(list.len().to_string())
+    molt_ok!(list.len().to_string())
 }
 
 pub fn cmd_proc(interp: &mut Interp, argv: &[&str]) -> InterpResult {
@@ -185,16 +184,16 @@ pub fn cmd_proc(interp: &mut Interp, argv: &[&str]) -> InterpResult {
         let vec = get_list(&arg)?;
 
         if vec.is_empty() {
-            return error("argument with no name");
+            return molt_err!("argument with no name");
         } else if vec.len() > 2 {
-            return error(&format!("too many fields in argument specifier \"{}\"", arg));
+            return molt_err!("too many fields in argument specifier \"{}\"", arg);
         }
     }
 
     // NEXT, add the command.
     interp.add_command_proc(name, args, body);
 
-    okay()
+    molt_ok!()
 }
 
 /// # puts *string*
@@ -209,7 +208,7 @@ pub fn cmd_puts(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 2, 2, "string")?;
 
     println!("{}", argv[1]);
-    okay()
+    molt_ok!()
 }
 
 /// # return ?value?
@@ -253,7 +252,7 @@ pub fn cmd_set(interp: &mut Interp, argv: &[&str]) -> InterpResult {
         value = interp.get_var(argv[1])?;
     }
 
-    Ok(value)
+    molt_ok!(value)
 }
 
 /// # unset *varName*
@@ -265,7 +264,7 @@ pub fn cmd_unset(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
     interp.unset_var(argv[1]);
 
-    okay()
+    molt_ok!()
 }
 
 /// # test *name* *script* -ok|-error *result*
@@ -283,7 +282,7 @@ pub fn cmd_test(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     let output = argv[4];
 
     if code != "-ok" && code != "-error" {
-        return error(&format!("unknown option: \"{}\"", code));
+        return molt_err!("unknown option: \"{}\"", code);
     }
 
     match interp.eval(script) {
@@ -310,5 +309,5 @@ pub fn cmd_test(interp: &mut Interp, argv: &[&str]) -> InterpResult {
         }
     }
 
-    okay()
+    molt_ok!()
 }

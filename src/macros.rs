@@ -25,6 +25,9 @@ macro_rules! molt_ok {
 /// as with `format!()`.
 #[macro_export]
 macro_rules! molt_err {
+    ($arg:expr) => (
+        Err(ResultCode::Error($arg.to_string()))
+    );
     ($($arg:tt)*) => (
         Err(ResultCode::Error(format!($($arg)*)))
     )

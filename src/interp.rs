@@ -3,7 +3,8 @@ use crate::list::list_to_string;
 use crate::list::get_list;
 use crate::commands;
 use crate::context::Context;
-use crate::error;
+use crate::molt_ok;
+use crate::molt_err;
 use crate::var_stack::VarStack;
 use crate::types::Command;
 use crate::types::CommandFunc;
@@ -84,8 +85,8 @@ impl Interp {
 
     pub fn get_var(&self, name: &str) -> InterpResult {
         match self.var_stack.get(name) {
-            Some(v) => Ok(v.clone()),
-            None => error(&format!("can't read \"{}\": no such variable", name)),
+            Some(v) => molt_ok!(v.clone()),
+            None => molt_err!("can't read \"{}\": no such variable", name),
         }
     }
 
@@ -136,13 +137,13 @@ impl Interp {
 
         match result {
             Err(ResultCode::Return(value)) => {
-                Ok(value)
+                molt_ok!(value)
             }
             Err(ResultCode::Break) => {
-                error("invoked \"break\" outside of a loop")
+                molt_err!("invoked \"break\" outside of a loop")
             }
             Err(ResultCode::Continue) => {
-                error("invoked \"continue\" outside of a loop")
+                molt_err!("invoked \"continue\" outside of a loop")
             }
             _ => result
         }
@@ -182,7 +183,7 @@ impl Interp {
                     _ => return result,
                 }
             } else {
-                return error(&format!("invalid command name \"{}\"", words[0]));
+                return molt_err!("invalid command name \"{}\"", words[0]);
             }
         }
 
@@ -277,15 +278,15 @@ impl Interp {
                 // see more more whitespace, or we should be at the end of the command.
                 // Otherwise, there are incorrect characters following the close-brace.
                 if ctx.at_end_of_command() || ctx.next_is_line_white() {
-                    return Ok(word);
+                    return molt_ok!(word);
                 } else {
-                    return error("extra characters after close-brace");
+                    return molt_err!("extra characters after close-brace");
                 }
             }
         }
 
         assert!(count > 0);
-        error("missing close-brace")
+        molt_err!("missing close-brace")
     }
 
     /// Parse a quoted word.
@@ -312,7 +313,7 @@ impl Interp {
             }
         }
 
-        error("missing \"")
+        molt_err!("missing \"")
     }
 
     /// Parse a bare word.
@@ -350,7 +351,7 @@ impl Interp {
             if ctx.next_is(']') {
                 ctx.next();
             } else {
-                return error("missing close-bracket");
+                return molt_err!("missing close-bracket");
             }
         }
 
@@ -395,7 +396,7 @@ impl Interp {
             }
         }
 
-        error("missing close-brace for variable name")
+        molt_err!("missing close-brace for variable name")
     }
 }
 
@@ -513,7 +514,7 @@ fn wrong_num_args_for_proc(name: &str, args: &[String]) -> InterpResult {
     }
     msg.push_str("\"");
 
-    error(&msg)
+    molt_err!(&msg)
 }
 
 /// Substitutes backslashes in the string, returning a new string.

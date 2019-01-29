@@ -1,7 +1,8 @@
 //! TCL List Parsing and Formatting
 
+use crate::molt_err;
+use crate::molt_ok;
 use crate::types::*;
-use crate::error;
 use crate::context::Context;
 use crate::interp::subst_backslashes;
 
@@ -83,13 +84,13 @@ fn parse_braced_item(ctx: &mut Context) -> InterpResult {
             if ctx.at_end() || ctx.next_is_list_white() {
                 return Ok(item);
             } else {
-                return error("extra characters after close-brace");
+                return molt_err!("extra characters after close-brace");
             }
         }
     }
 
     assert!(count > 0);
-    error("missing close-brace")
+    molt_err!("missing close-brace")
 }
 
 /// Parse a quoted item.  Does *not* do backslash substitution.
@@ -116,7 +117,7 @@ fn parse_quoted_item(ctx: &mut Context) -> InterpResult {
         }
     }
 
-    error("missing \"")
+    molt_err!("missing \"")
 }
 
 /// Parse a bare item.  Does *not* do backslash substitution.
@@ -136,7 +137,7 @@ fn parse_bare_item(ctx: &mut Context) -> InterpResult {
         }
     }
 
-    Ok(item)
+    molt_ok!(item)
 }
 
 //--------------------------------------------------------------------------

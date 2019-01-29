@@ -17,16 +17,6 @@ pub mod shell;
 pub mod types;
 pub mod var_stack;
 
-/// Returns an Error result.
-pub fn error(msg: &str) -> InterpResult {
-    Err(ResultCode::Error(msg.into()))
-}
-
-/// Returns an Ok result with an empty string.
-pub fn okay() -> InterpResult {
-    Ok("".into())
-}
-
 /// Checks to see whether a command's argument list is of a reasonable size.
 /// Returns an error if not.  The arglist must have at least min entries, and can have up
 /// to max.  If max is 0, there is no maximum.  argv[0] is always the command name, and
@@ -45,13 +35,12 @@ pub fn check_args(
     assert!(!argv.is_empty());
 
     if argv.len() < min || (max > 0 && argv.len() > max) {
-        error(&format!(
-            "wrong # args: should be \"{} {}\"",
+        molt_err!("wrong # args: should be \"{} {}\"",
             argv[0..namec].join(" "),
             argsig
-        ))
+        )
     } else {
-        okay()
+        molt_ok!()
     }
 }
 
@@ -74,10 +63,7 @@ pub fn check_args(
 pub fn get_int(arg: &str) -> Result<MoltInt, ResultCode> {
     match arg.parse::<MoltInt>() {
         Ok(int) => Ok(int),
-        Err(_) => Err(ResultCode::Error(format!(
-            "expected integer but got \"{}\"",
-            arg
-        ))),
+        Err(_) => molt_err!("expected integer but got \"{}\"", arg),
     }
 }
 
@@ -110,10 +96,7 @@ pub fn get_subcommand<'a>(subs: &'a [Subcommand], sub: &str) -> Result<&'a Subco
         names.push_str(subs[last].0);
     }
 
-    Err(ResultCode::Error(format!(
-        "unknown or ambiguous subcommand \"{}\": must be {}",
-        sub, &names
-    )))
+    molt_err!("unknown or ambiguous subcommand \"{}\": must be {}", sub, &names)
 }
 
 /// Converts a `Vec<String>` to a `Vec<&str>`.
@@ -158,7 +141,7 @@ mod tests {
     // Helpers
 
     fn assert_err(result: &InterpResult, msg: &str) {
-        assert_eq!(error(msg), *result);
+        assert_eq!(molt_err!(msg), *result);
     }
 
     fn assert_ok(result: &InterpResult) {

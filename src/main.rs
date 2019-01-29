@@ -1,6 +1,7 @@
 use molt::interp::Interp;
 use molt::types::InterpResult;
 use molt::types::ResultCode;
+use molt::molt_ok;
 use std::env;
 use std::fs;
 
@@ -8,7 +9,7 @@ fn main() {
     // FIRST, get the command line arguments.
     let args: Vec<String> = env::args().collect();
     let args: Vec<&str> = molt::vec_string_to_str(&args);
-    
+
     // NEXT, create and initialize the interpreter.
     let mut interp = Interp::new();
     interp.add_command("ident", cmd_ident);
@@ -58,7 +59,7 @@ fn execute_script(interp: &mut Interp, script: String, args: &[&str]) {
 fn cmd_ident(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     molt::check_args(1, argv, 2, 2, "value")?;
 
-    Ok(argv[1].into())
+    molt_ok!(argv[1])
 }
 
 /// Command used for dev testing.  It's temporary.
@@ -72,5 +73,5 @@ fn cmd_dump(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
         println!("item <{}>", item);
     }
 
-    molt::okay()
+    molt_ok!()
 }

@@ -67,6 +67,32 @@ pub fn get_int(arg: &str) -> Result<MoltInt, ResultCode> {
     }
 }
 
+/// Converts an argument into a boolean, returning an error on failure.
+/// A command function will call this to convert an argument,
+/// using "?" to propagate errors to the interpreter.
+///
+/// Boolean values:
+///
+/// true:
+/// # Example
+///
+/// ```
+/// # use molt::types::*;
+/// # fn dummy() -> Result<bool,ResultCode> {
+/// let arg = "yes";
+/// let flag = molt::get_boolean(arg)?;
+/// # Ok(flag)
+/// # }
+/// ```
+pub fn get_boolean(arg: &str) -> Result<bool, ResultCode> {
+    let value: &str = &arg.to_lowercase();
+    match value {
+        "1" | "true" | "yes" | "on" => Ok(true),
+        "0" | "false" | "no" | "off" => Ok(false),
+        _ => molt_err!("expected boolean but got \"{}\"", arg),
+    }
+}
+
 /// Looks up a subcommand of an ensemble command by name in a table,
 /// returning the usual error if it can't be found.
 ///
@@ -136,6 +162,25 @@ mod tests {
             &check_args(1, vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
             "wrong # args: should be \"mycmd arg1\"",
         );
+    }
+
+    #[test]
+    fn test_get_boolean() {
+        assert_eq!(Ok(true), get_boolean("1"));
+        assert_eq!(Ok(true), get_boolean("true"));
+        assert_eq!(Ok(true), get_boolean("yes"));
+        assert_eq!(Ok(true), get_boolean("on"));
+        assert_eq!(Ok(true), get_boolean("TRUE"));
+        assert_eq!(Ok(true), get_boolean("YES"));
+        assert_eq!(Ok(true), get_boolean("ON"));
+        assert_eq!(Ok(false), get_boolean("0"));
+        assert_eq!(Ok(false), get_boolean("false"));
+        assert_eq!(Ok(false), get_boolean("no"));
+        assert_eq!(Ok(false), get_boolean("off"));
+        assert_eq!(Ok(false), get_boolean("FALSE"));
+        assert_eq!(Ok(false), get_boolean("NO"));
+        assert_eq!(Ok(false), get_boolean("OFF"));
+        assert_eq!(get_boolean("nonesuch"), molt_err!("expected boolean but got \"nonesuch\""));
     }
 
     // Helpers

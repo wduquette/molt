@@ -77,6 +77,68 @@ pub fn cmd_global(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     molt_ok!()
 }
 
+/// # if *condition* ?then? *script* ?else? ?*script*?
+pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    // FIRST, do we have an expression?
+    if argv.len() == 1 {
+        return molt_err!("wrong # args: no expression after \"{}\" argument",
+            argv[0]);
+    }
+
+    let cond = &argv[1];
+
+    // NEXT, find the "then" script.
+    let mut argi = 2;
+
+    if argi < argv.len() && argv[argi] == "then" {
+        argi += 1;
+    }
+
+    if argi == argv.len() {
+        return molt_err!("wrong # args: no script following after \"{}\" argument",
+            argv[argi - 1]);
+    }
+
+    let then_script = &argv[argi];
+    argi += 1;
+
+    // NEXT, find the else script, if any.
+    let mut else_script: Option<&str> = None;
+
+    if argi < argv.len() {
+        if argv[argi] == "else" {
+            argi += 1;
+        }
+
+        if argi < argv.len() {
+            else_script = Some(&argv[argi]);
+            argi += 1;
+        } else {
+            return molt_err!("wrong # args: no script following after \"{}\" argument",
+                argv[argi - 1]);
+        }
+
+        if argi < argv.len() {
+            return molt_err!(
+                "wrong # args: extra words after \"else\" clause in \"if\" command");
+        }
+    }
+
+    // NEXT, evaluate the condition.
+    // TODO: This should be an expr, but we don't have that yet. For now, use
+    // just plain eval(); "return", "break", or "continue" should be errors.
+    let cond_result = interp.eval(cond)?;
+    let flag = get_boolean(&cond_result)?;
+
+    if flag {
+        interp.eval_body(then_script)
+    } else if let Some(script) = else_script {
+        interp.eval_body(script)
+    } else {
+        molt_ok!()
+    }
+}
+
 /// # info *subcommand* ?*arg*...?
 pub fn cmd_info(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;

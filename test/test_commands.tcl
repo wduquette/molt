@@ -95,6 +95,116 @@ test global-2.2 {
 } -ok {1 5 6}
 
 #-------------------------------------------------------------------------
+# if
+
+test if-1.1 {
+    if
+} -error {wrong # args: no expression after "if" argument}
+
+test if-1.2 {
+    if cond
+} -error {wrong # args: no script following after "cond" argument}
+
+test if-1.3 {
+    if cond then
+} -error {wrong # args: no script following after "then" argument}
+
+test if-1.4 {
+    if cond script else
+} -error {wrong # args: no script following after "else" argument}
+
+test if-1.5 {
+    if cond script1 else script2 extra
+} -error {wrong # args: extra words after "else" clause in "if" command}
+
+# Full syntax, true
+test if-2.1 {
+    # TODO: Fix when we have expressions
+    if {set x 1} then {
+        set a "then"
+    } else {
+        set a "else"
+    }
+    set a
+} -ok {then}
+
+# Minimal syntax, true
+test if-2.2 {
+    # TODO: Fix when we have expressions
+    if {set x 1} {
+        set a "then"
+    } {
+        set a "else"
+    }
+    set a
+} -ok {then}
+
+# No else, true
+test if-2.3 {
+    # TODO: Fix when we have expressions
+    set a "before"
+    if {set x 1} {
+        set a "then"
+    }
+    set a
+} -ok {then}
+
+# Full syntax, false
+test if-2.4 {
+    # TODO: Fix when we have expressions
+    if {set x 0} then {
+        set a "then"
+    } else {
+        set a "else"
+    }
+    set a
+} -ok {else}
+
+# Minimal syntax, false
+test if-2.5 {
+    # TODO: Fix when we have expressions
+    if {set x 0} {
+        set a "then"
+    } {
+        set a "else"
+    }
+    set a
+} -ok {else}
+
+# No else, false
+test if-2.6 {
+    # TODO: Fix when we have expressions
+    set a "before"
+    if {set x 0} {
+        set a "then"
+    }
+    set a
+} -ok {before}
+
+# Returns value
+test if-3.1 {
+    # TODO: Fix when we have expressions
+    set a [if {set x 1} { set result "then" }]
+    set b [if {set x 0} { set result "then" }]
+    set c [if {set x 1} { set result "then" } { set result "else"}]
+    set d [if {set x 0} { set result "then" } { set result "else"}]
+    list $a $b $c $d
+} -ok {then {} then else}
+
+# Handles return properly, true
+test if-4.1 {
+    proc doit {x} {
+        if {set x} {
+            return "then"
+        } else {
+            return "else"
+        }
+    }
+
+    list [doit 1] [doit 0]
+} -ok {then else}
+
+#-------------------------------------------------------------------------
 # info
 
 test info-1.1 {

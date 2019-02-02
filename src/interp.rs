@@ -44,6 +44,7 @@ impl Interp {
         interp.add_command("assert_eq", commands::cmd_assert_eq);
         interp.add_command("exit", commands::cmd_exit);
         interp.add_command("global", commands::cmd_global);
+        interp.add_command("if", commands::cmd_if);
         interp.add_command("info", commands::cmd_info);
         interp.add_command("join", commands::cmd_join);
         interp.add_command("lindex", commands::cmd_lindex);
@@ -125,15 +126,17 @@ impl Interp {
         self.var_stack.upvar(level, name);
     }
 
-    /// Evaluates a script one command at a time, and returning the
+    /// Evaluates a script one command at a time, returning the
     /// value of the last command in the script, the value of an explicit
     /// `return` command, or an error.
     ///
     /// `break` and `continue` results are converted to errors.
+    ///
+    /// This is the method to use when evaluating an entire script.
     pub fn eval(&mut self, script: &str) -> InterpResult {
         let mut ctx = Context::new(script);
 
-        let result = self.eval_script(&mut ctx);
+        let result = self.eval_context(&mut ctx);
 
         match result {
             Err(ResultCode::Return(value)) => {
@@ -149,15 +152,32 @@ impl Interp {
         }
     }
 
+    /// Evaluates a script one command at a time, returning whatever
+    /// InterpResult arises.
+    ///
+    /// This is the method to use when evaluating a control structure's
+    /// script body; the control structure must handle the special
+    /// result codes appropriately.
+    pub fn eval_body(&mut self, script: &str) -> InterpResult {
+        let mut ctx = Context::new(script);
+
+        self.eval_context(&mut ctx)
+    }
+
+    /// Determines whether or not the script is syntactically complete,
+    /// e.g., has no unmatched quotes, brackets, or braces.  Used by
+    /// REPLs to determine whether or not to ask for another line of
+    /// input.
     pub fn complete(&mut self, script: &str) -> bool {
         let mut ctx = Context::new(script);
         ctx.set_no_eval(true);
 
-        self.eval_script(&mut ctx).is_ok()
+        self.eval_context(&mut ctx).is_ok()
     }
 
-    /// Low-level script evaluator; used to implement eval(), complete(), etc.
-    fn eval_script(&mut self, ctx: &mut Context) -> InterpResult {
+    /// Low-level script evaluator; evaluates the next script in the
+    /// context.
+    fn eval_context(&mut self, ctx: &mut Context) -> InterpResult {
         let mut result_value = String::new();
 
         while !ctx.at_end_of_script() {
@@ -343,7 +363,7 @@ impl Interp {
         // NEXT, parse the script up to the matching ']'
         let old_flag = ctx.is_bracket_term();
         ctx.set_bracket_term(true);
-        let result = self.eval_script(ctx);
+        let result = self.eval_context(ctx);
         ctx.set_bracket_term(old_flag);
 
         // NEXT, make sure there's a closing bracket

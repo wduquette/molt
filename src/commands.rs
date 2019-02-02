@@ -78,64 +78,93 @@ pub fn cmd_global(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 }
 
 /// # if *condition* ?then? *script* ?else? ?*script*?
+#[derive(Eq, PartialEq, Debug)]
+enum IfWants {
+    Expr,
+    ThenBody,
+    SkipThenClause,
+    ElseClause,
+    ElseBody,
+}
+
 pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    // FIRST, do we have an expression?
-    if argv.len() == 1 {
-        return molt_err!("wrong # args: no expression after \"{}\" argument",
-            argv[0]);
-    }
+    let mut argi = 1;
+    let mut wants = IfWants::Expr;
 
-    let cond = &argv[1];
+    while argi < argv.len() {
+        match wants {
+            IfWants::Expr => {
+                let cond_result = interp.eval(argv[argi])?;
+                wants = if get_boolean(&cond_result)? {
+                    IfWants::ThenBody
+                } else {
+                    IfWants::SkipThenClause
+                };
+            },
+            IfWants::ThenBody => {
+                if argv[argi] == "then" {
+                    argi += 1;
+                }
 
-    // NEXT, find the "then" script.
-    let mut argi = 2;
+                if argi < argv.len() {
+                    return interp.eval_body(argv[argi]);
+                } else {
+                    break;
+                }
+            },
+            IfWants::SkipThenClause => {
+                if argv[argi] == "then" {
+                    argi += 1;
+                }
 
-    if argi < argv.len() && argv[argi] == "then" {
+                if argi < argv.len() {
+                    argi += 1;
+                    wants = IfWants::ElseClause;
+                }
+                continue;
+            }
+            IfWants::ElseClause => {
+                if argv[argi] == "elseif" {
+                    wants = IfWants::Expr;
+                } else {
+                    wants = IfWants::ElseBody;
+                    continue;
+                }
+            }
+            IfWants::ElseBody => {
+                if argv[argi] == "else" {
+                    argi += 1;
+
+                    // If "else" appears, then the else body is required.
+                    if argi == argv.len() {
+                        return molt_err!("wrong # args: no script following after \"{}\" argument",
+                            argv[argi - 1]);
+                    }
+                }
+
+                if argi < argv.len() {
+                    return interp.eval_body(argv[argi]);
+                } else {
+                    break;
+                }
+            }
+        }
+
         argi += 1;
     }
 
-    if argi == argv.len() {
+    if argi < argv.len() {
+        return molt_err!(
+            "wrong # args: extra words after \"else\" clause in \"if\" command");
+    } else if wants == IfWants::Expr {
+        return molt_err!("wrong # args: no expression after \"{}\" argument",
+            argv[argi-1]);
+    } else if wants == IfWants::ThenBody || wants == IfWants::SkipThenClause {
         return molt_err!("wrong # args: no script following after \"{}\" argument",
             argv[argi - 1]);
-    }
-
-    let then_script = &argv[argi];
-    argi += 1;
-
-    // NEXT, find the else script, if any.
-    let mut else_script: Option<&str> = None;
-
-    if argi < argv.len() {
-        if argv[argi] == "else" {
-            argi += 1;
-        }
-
-        if argi < argv.len() {
-            else_script = Some(&argv[argi]);
-            argi += 1;
-        } else {
-            return molt_err!("wrong # args: no script following after \"{}\" argument",
-                argv[argi - 1]);
-        }
-
-        if argi < argv.len() {
-            return molt_err!(
-                "wrong # args: extra words after \"else\" clause in \"if\" command");
-        }
-    }
-
-    // NEXT, evaluate the condition.
-    // TODO: This should be an expr, but we don't have that yet. For now, use
-    // just plain eval(); "return", "break", or "continue" should be errors.
-    let cond_result = interp.eval(cond)?;
-    let flag = get_boolean(&cond_result)?;
-
-    if flag {
-        interp.eval_body(then_script)
-    } else if let Some(script) = else_script {
-        interp.eval_body(script)
     } else {
-        molt_ok!()
+        // Looking for ElseBody, but there doesn't need to be one.
+        molt_ok!() // temp
     }
 }
 

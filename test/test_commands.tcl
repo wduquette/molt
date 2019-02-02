@@ -96,26 +96,29 @@ test global-2.2 {
 
 #-------------------------------------------------------------------------
 # if
+#
+# TODO: All of these will need to be updated once we have expression
+# parsing.
 
 test if-1.1 {
     if
 } -error {wrong # args: no expression after "if" argument}
 
 test if-1.2 {
-    if cond
-} -error {wrong # args: no script following after "cond" argument}
+    if {set x 1}
+} -error {wrong # args: no script following after "set x 1" argument}
 
 test if-1.3 {
-    if cond then
+    if {set x 1} then
 } -error {wrong # args: no script following after "then" argument}
 
 test if-1.4 {
-    if cond script else
+    if {set x 0} script else
 } -error {wrong # args: no script following after "else" argument}
 
 test if-1.5 {
-    if cond script1 else script2 extra
-} -error {wrong # args: extra words after "else" clause in "if" command}
+    if {set x 0} script elseif
+} -error {wrong # args: no expression after "elseif" argument}
 
 # Full syntax, true
 test if-2.1 {

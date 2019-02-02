@@ -61,6 +61,26 @@ pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     std::process::exit(return_code)
 }
 
+/// # foreach *varName* *list* *body*
+///
+/// Calls the *body* as a script once for each entry in the *list*,
+/// with *varName* taking on successive list items
+pub fn cmd_foreach(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 4, 4, "varName list body")?;
+
+    let var_name = argv[1];
+    let list = get_list(argv[2])?;
+    let body = argv[3];
+
+    for item in list {
+        interp.set_var(var_name, &item);
+        interp.eval_body(body)?;
+    }
+
+    molt_ok!()
+}
+
+
 /// # global ?*varName* ...?
 ///
 /// Appends any number of values to a variable's value, which need not

@@ -4,6 +4,9 @@
 *   Added "if" command.
     *   Since we have no expression parser yet, the conditions
         are assumed to be scripts returning a boolean value.
+*   Added "foreach" command.
+    *   Only iterates over a single list.
+*   Added "break" and "continue" commands.
 
 ### 2019-01-27 (Sunday)
 *   molt language

@@ -44,6 +44,24 @@ pub fn cmd_assert_eq(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     }
 }
 
+/// # break
+///
+/// Terminates the inmost loop.
+pub fn cmd_break(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 1, 1, "")?;
+
+    Err(ResultCode::Break)
+}
+
+/// # continue
+///
+/// Continues with the next iteration of the inmost loop.
+pub fn cmd_continue(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 1, 1, "")?;
+
+    Err(ResultCode::Continue)
+}
+
 /// # exit ?*returnCode*?
 ///
 /// Terminates the application by calling `std::process::exit()`.
@@ -61,20 +79,43 @@ pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     std::process::exit(return_code)
 }
 
-/// # foreach *varName* *list* *body*
+/// # foreach *varList* *list* *body*
 ///
-/// Calls the *body* as a script once for each entry in the *list*,
-/// with *varName* taking on successive list items
+/// Loops over the items the list, assigning successive items to the variables in the
+/// *varList* and calling the *body* as a script once for each set of assignments.
+/// On the last iteration, the second and subsequents variables in the *varList* will
+/// be assigned the empty string if there are not enough list elements to fill them.
+///
+/// ## TCL Liens
+///
+/// * In Standard TCL, `foreach` can loop over several lists at the same time.
 pub fn cmd_foreach(interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    check_args(1, argv, 4, 4, "varName list body")?;
+    check_args(1, argv, 4, 4, "varList list body")?;
 
-    let var_name = argv[1];
+    let var_list = get_list(argv[1])?;
     let list = get_list(argv[2])?;
     let body = argv[3];
 
-    for item in list {
-        interp.set_var(var_name, &item);
-        interp.eval_body(body)?;
+    let mut i = 0;
+
+    while i < list.len() {
+        for var_name in &var_list {
+            if i < list.len() {
+                interp.set_var(&var_name, &list[i]);
+                i += 1;
+            } else {
+                interp.set_var(&var_name, "");
+            }
+        }
+
+        let result = interp.eval_body(body);
+
+        match result {
+            Ok(_) => (),
+            Err(ResultCode::Break) => break,
+            Err(ResultCode::Continue) => (),
+            _ => return result,
+        }
     }
 
     molt_ok!()
@@ -97,7 +138,6 @@ pub fn cmd_global(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     molt_ok!()
 }
 
-/// # if *condition* ?then? *script* ?else? ?*script*?
 #[derive(Eq, PartialEq, Debug)]
 enum IfWants {
     Expr,
@@ -107,6 +147,15 @@ enum IfWants {
     ElseBody,
 }
 
+/// # if *expr* ?then? *script* elseif *expr* ?then? *script* ... ?else? ?*script*?
+///
+/// Standard conditional.  Returns the value of the selected script (or
+/// "" if there is no else body and the none of the previous branches were selected).
+///
+/// # TCL Liens
+///
+/// * Because we don't yet have an expression parser, the *expr* arguments are evaluated as
+///   scripts that must return a boolean value.
 pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     let mut argi = 1;
     let mut wants = IfWants::Expr;

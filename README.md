@@ -8,7 +8,6 @@ apps.  See "Plans", below.
 * Implement interp evaluation depth checking.
 * Use Interp::complete() in the shell, to build up multiline commands.
 * Implement `error` command
-* Implement `foreach` (one variable/list only, at first)
 * Continue to add commands from the "next" list, below.
 * Implement expression parser
   * Revise `if` command to use it.
@@ -90,6 +89,8 @@ I want to have a test suite in place first.
 The following commands have been implemented:
 
 * `append`
+* `break`
+* `continue`
 * `exit`
 * `global`
 * `if` (using scripts instead of expressions)
@@ -111,7 +112,6 @@ The following commands need to get implemented next.
 * error
 * expr
 * for
-* foreach
 * info level
 * info vars (without glob matching)
 * info commands (without glob matching)
@@ -142,7 +142,6 @@ The following commands are not implemented by Molt at the present time:
 * auto_load_index
 * auto_qualify
 * binary
-* break
 * case
 * catch
 * cd
@@ -150,7 +149,6 @@ The following commands are not implemented by Molt at the present time:
 * clock
 * close
 * concat
-* continue
 * coroutine
 * dict
 * encoding
@@ -166,7 +164,6 @@ The following commands are not implemented by Molt at the present time:
 * fileevent
 * flush
 * for
-* foreach
 * format
 * gets
 * glob

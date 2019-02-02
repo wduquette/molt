@@ -41,6 +41,27 @@ test assert_eq-2.2 {
     assert_eq a b
 } -error {assertion failed: received "a", expected "b".}
 
+#-------------------------------------------------------------------------
+# break
+#
+# This will be tested in the context of each kind of loop.
+#
+# TODO: test return value with "catch" when that's available.
+
+test break-1.1 {
+    break
+} -error {invoked "break" outside of a loop}
+
+#-------------------------------------------------------------------------
+# continue
+#
+# This will be tested in the context of each kind of loop.
+#
+# TODO: test return value with "catch" when that's available.
+
+test continue-1.1 {
+    continue
+} -error {invoked "continue" outside of a loop}
 
 #-------------------------------------------------------------------------
 # exit
@@ -54,6 +75,64 @@ test exit-1.1 {
 test exit-1.2 {
     exit foo bar
 } -error {wrong # args: should be "exit ?returnCode?"}
+
+#-------------------------------------------------------------------------
+# foreach
+
+test foreach-1.1 {
+    foreach
+} -error {wrong # args: should be "foreach varList list body"}
+
+# Doesn't execute if there's no list data.
+test foreach-2.1 {
+    set result "0"
+    foreach a {} { set result 1}
+    set result
+} -ok {0}
+
+# Executes once per list entry
+test foreach-2.2 {
+    set result ""
+    foreach a {1 2 3} { append result $a}
+    set result
+} -ok {123}
+
+# Stride > 1
+test foreach-2.3 {
+    set alist ""
+    set blist ""
+    foreach {a b} {1 2 3} {
+        append alist $a
+        append blist $b
+    }
+    list $alist $blist
+} -ok {13 2}
+
+# Poor man's lassign
+test foreach-3.1 {
+    foreach {a b c} {1 2 3} {}
+    list $a $b $c
+} -ok {1 2 3}
+
+# Break
+test foreach-4.1 {
+    set b "start"
+    foreach a {1 2 3} {
+        break
+        set b "middle"
+    }
+    list $a $b
+} -ok {1 start}
+
+# Continue
+test foreach-4.2 {
+    set b "start"
+    foreach a {1 2 3} {
+        continue
+        set b "middle"
+    }
+    list $a $b
+} -ok {3 start}
 
 #-------------------------------------------------------------------------
 # global

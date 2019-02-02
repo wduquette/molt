@@ -1,7 +1,9 @@
 # Molt Development Journal
 
 ### 2019-02-01 (Saturday)
-*   Adding "if" command.
+*   Added "if" command.
+    *   Since we have no expression parser yet, the conditions
+        are assumed to be scripts returning a boolean value.
 
 ### 2019-01-27 (Sunday)
 *   molt language

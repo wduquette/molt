@@ -8,10 +8,10 @@ apps.  See "Plans", below.
 * Implement interp evaluation depth checking.
 * Use Interp::complete() in the shell, to build up multiline commands.
 * Implement `error` command
-* Implement `if` (with condition implemented as a script!)
 * Implement `foreach` (one variable/list only, at first)
 * Continue to add commands from the "next" list, below.
 * Implement expression parser
+  * Revise `if` command to use it.
 * Flesh out Rust tests and Rust API docs in the code base.
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
@@ -92,6 +92,7 @@ The following commands have been implemented:
 * `append`
 * `exit`
 * `global`
+* `if` (using scripts instead of expressions)
 * `info commands` (without pattern matching)
 * `info complete`
 * `info vars` (without pattern matching)
@@ -111,7 +112,6 @@ The following commands need to get implemented next.
 * expr
 * for
 * foreach
-* if
 * info level
 * info vars (without glob matching)
 * info commands (without glob matching)

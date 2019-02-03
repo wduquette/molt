@@ -1,6 +1,40 @@
 # Molt Development Journal
 
-### 2019-02-01 (Saturday)
+### 2019-02-03
+*   Expression Parsing
+    *   Spent some time yesterday looking at Nom and Pest.
+        *   Nom is a parser combinator library.
+        *   Pest is a PEG parser generator.
+    *   Observations:
+        *   Pest has better intro documentation (though it's not perfect).
+        *   Pest uses a grammar definition file, Nom does not.
+        *   Pest has built-in support for operator precedence and a partial
+            example of its use, and Nom does not.
+        *   It's much easier to integrate existing code with Nom code:
+            Nom parsers are built up of smaller parsers, which can be
+            hand-coded if need be.
+            *   E.g., I can handle interpolated scripts using
+                a suitably-wrapped call to `Interp::eval()`.
+        *   Big difficulty with Pest: it wants to do the whole job.  I'd
+            need to include rules for command interpolation strings.
+        *   Difficulty with Nom: parsing for operator precedence.
+            *   Could use an example.
+            *   I know people at JPL who have used Nom, who might be able
+                to help.
+        *   Nom seems like the better choice going forward, if I can
+            figure out how to use it.
+    *   Need to read up on parsing algebraic expressions.
+    *   Two approaches:
+        *   Evaluate as I go.  This can work if the structure of the parser
+            matches the operator precedence.
+        *   "Compile" and evaluate the syntax tree.
+    *   The latter lends itself to byte compilation in a way that
+        the former doesn't, and is probably no more work to write, once
+        I've defined the syntax tree data structure.
+        *   So that's probably the next task.
+*   Sent email to Don Porter and Andreas Kupries asking for advice.    
+
+### 2019-02-02 (Saturday)
 *   Added "if" command.
     *   Since we have no expression parser yet, the conditions
         are assumed to be scripts returning a boolean value.

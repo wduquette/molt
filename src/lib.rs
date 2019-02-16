@@ -8,6 +8,7 @@ pub use crate::list::list_to_string;
 
 mod commands;
 mod context;
+#[allow(dead_code)] // Temporary
 mod expr;
 pub mod interp;
 mod list;

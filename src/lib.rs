@@ -7,8 +7,8 @@ pub use crate::list::get_list;
 pub use crate::list::list_to_string;
 
 mod commands;
-#[allow(dead_code)] // TEMP
 mod context;
+mod expr;
 pub mod interp;
 mod list;
 #[macro_use]

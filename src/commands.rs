@@ -76,7 +76,7 @@ pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
         get_int(argv[1])?
     };
 
-    std::process::exit(return_code)
+    std::process::exit(return_code as i32)
 }
 
 /// # foreach *varList* *list* *body*

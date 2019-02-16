@@ -3,7 +3,7 @@
 use crate::interp::Interp;
 
 /// Molt Integer Type
-pub type MoltInt = i32;
+pub type MoltInt = i64;
 
 /// The result of calling a function during Molt script evaluation, other than
 /// `Ok(str)`.

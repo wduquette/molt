@@ -3,6 +3,7 @@
 //! * Ultimately, the command should probably move to commands.rs.
 //!   But this is convenient for now.
 
+use crate::char_ptr::CharPtr;
 use std::str::Chars;
 use std::iter::Peekable;
 use crate::*;
@@ -52,7 +53,7 @@ struct ExprInfo<'a> {
     original_expr: String,
 
     // The input iterator, e.g., the pointer to the next character.
-    expr: Peekable<Chars<'a>>,
+    expr: CharPtr<'a>,
 
     // Last token's type; see constants
     token: i32,
@@ -66,28 +67,9 @@ impl<'a> ExprInfo<'a> {
     fn new(expr: &'a str) -> Self {
         Self {
             original_expr: expr.to_string(),
-            expr: expr.chars().peekable(),
+            expr: CharPtr::new(expr),
             token: -1,
             no_eval: false,
-        }
-    }
-
-    fn next_is(&mut self, ch: char) -> bool {
-        Some(&ch) == self.expr.peek()
-    }
-
-    // Are we at the end of the input expression?
-    fn at_end(&mut self) -> bool {
-        self.expr.peek().is_none()
-    }
-
-    // Skip whitespace characters
-    fn skip_space(&mut self) {
-        while let Some(c) = self.expr.peek() {
-            if !c.is_whitespace() {
-                break;
-            }
-            self.expr.next();
         }
     }
 }
@@ -351,12 +333,12 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     }
 
 
-    info.skip_space();
-
-    if info.at_end() {
-        info.token = END;
-        return Ok(Value::None);
-    }
+    // info.skip_space();
+    //
+    // if info.at_end() {
+    //     info.token = END;
+    //     return Ok(Value::None);
+    // }
 
     // First try to parse the token as an integer or floating-point number.
     // Don't want to check for a number if the first character is "+"
@@ -380,17 +362,26 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     Ok(Value::None) // TEMP
 }
 
-// fn expr_looks_like_int<'a>(ptr: &mut CPtr<'a>) -> bool {
-    // // FIRST, skip whitespace
-    // ptr.skip_while(|c| c.is_whitespace());
-    //
-    // if ptr.peek() == Some(&'+') || ptr.peek() == Some(&'-') {
-    //     ptr.next();
-    // }
-//
-//
-//     true
-// }
+fn expr_looks_like_int<'a>(ptr: &CharPtr<'a>) -> bool {
+    // FIRST, skip whitespace
+    let mut p = ptr.clone();
+    p.skip_while(|c| c.is_whitespace());
+
+    if p.is('+') || p.is('-') {
+        p.skip();
+    }
+
+    if !p.is_digit() {
+        return false;
+    }
+    p.skip();
+
+    while p.is_digit() {
+        p.skip();
+    }
+
+    !p.is('.') && !p.is('e') && !p.is('E')
+}
 
 impl Value {
     fn is_numeric(&self) -> bool {
@@ -417,4 +408,32 @@ fn illegal_type(value: &Value, op: i32) -> ValueResult {
     };
 
     molt_err!("can't use {} as operand of \"{}\"", type_str, OP_STRINGS[op as usize])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn call(str: &str) -> bool {
+        let p = CharPtr::new(str);
+
+        expr_looks_like_int(&p)
+    }
+
+    #[test]
+    fn test_expr_looks_like_int() {
+        assert!(call("1"));
+        assert!(call("+1"));
+        assert!(call("-1"));
+        assert!(call("123"));
+        assert!(call("123a"));
+        assert!(!call(""));
+        assert!(!call("a"));
+        assert!(!call("123."));
+        assert!(!call("123e"));
+        assert!(!call("123E"));
+        assert!(!call("."));
+        assert!(!call("e"));
+        assert!(!call("E"));
+    }
 }

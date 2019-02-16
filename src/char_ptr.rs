@@ -26,14 +26,6 @@ impl<'a> CharPtr<'a> {
         }
     }
 
-    pub fn is(&mut self, ch: char) -> bool {
-        if let Some(c) = self.chars.peek() {
-            *c == ch
-        } else {
-            false
-        }
-    }
-
     pub fn skip(&mut self) {
         self.chars.next();
     }
@@ -47,6 +39,36 @@ impl<'a> CharPtr<'a> {
             Some(*pc)
         } else {
             None
+        }
+    }
+
+    pub fn is(&mut self, ch: char) -> bool {
+        if let Some(c) = self.chars.peek() {
+            *c == ch
+        } else {
+            false
+        }
+    }
+
+    pub fn is_none(&mut self) -> bool {
+        self.chars.peek().is_none()
+    }
+
+    pub fn is_digit(&mut self) -> bool {
+        if let Some(pc) = self.chars.peek() {
+            pc.is_digit(10)
+        } else {
+            false
+        }
+    }
+
+    pub fn has<P>(&mut self, predicate: P) -> bool
+        where P: Fn(&char) -> bool
+    {
+        if let Some(ch) = self.chars.peek() {
+            predicate(ch)
+        } else {
+            false
         }
     }
 }
@@ -99,5 +121,33 @@ mod tests {
         assert!(p.is('a'));
         p.skip_while(|c| c.is_whitespace());
         assert!(p.is('a'));
+    }
+
+    #[test]
+    fn test_char_ptr_is_none() {
+        let mut p = CharPtr::new("a");
+        assert!(!p.is_none());
+        p.skip();
+        assert!(p.is_none());
+    }
+
+    #[test]
+    fn test_char_ptr_is_digit() {
+        let mut p = CharPtr::new("1a");
+        assert!(p.is_digit());
+        p.skip();
+        assert!(!p.is_digit());
+        p.skip();
+        assert!(!p.is_digit());
+    }
+
+    #[test]
+    fn test_char_ptr_has() {
+        let mut p = CharPtr::new("a1");
+        assert!(p.has(|c| c.is_alphabetic()));
+        p.skip();
+        assert!(!p.has(|c| c.is_alphabetic()));
+        p.skip();
+        assert!(!p.has(|c| c.is_alphabetic()));
     }
 }

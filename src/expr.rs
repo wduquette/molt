@@ -4,8 +4,6 @@
 //!   But this is convenient for now.
 
 use crate::char_ptr::CharPtr;
-use std::str::Chars;
-use std::iter::Peekable;
 use crate::*;
 use crate::interp::Interp;
 
@@ -324,26 +322,27 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     // FIRST, skip white space.
     let mut p = info.expr.clone();
 
-    while let Some(ch) = p.peek() {
-        if ch.is_whitespace() {
-            p.next();
-        } else {
-            break;
-        }
+    p.skip_while(|c| c.is_whitespace());
+
+    if p.is_none() {
+        info.token = END;
+        info.expr = p;
+        return Ok(Value::None);
     }
-
-
-    // info.skip_space();
-    //
-    // if info.at_end() {
-    //     info.token = END;
-    //     return Ok(Value::None);
-    // }
 
     // First try to parse the token as an integer or floating-point number.
     // Don't want to check for a number if the first character is "+"
     // or "-".  If we do, we might treat a binary operator as unary by
     // mistake, which will eventually cause a syntax error.
+
+    if !p.is('+') && !p.is('-') {
+        if expr_looks_like_int(&p) {
+            // There's definitely an integer to parse; parse it.
+             
+        } else {
+            let x = 1;
+        }
+    }
 
     // if !info.next_is('+') && !info.next_is('-') {
     //     if expr_looks_like_int(info) {
@@ -414,7 +413,7 @@ fn illegal_type(value: &Value, op: i32) -> ValueResult {
 mod tests {
     use super::*;
 
-    fn call(str: &str) -> bool {
+    fn call_expr_looks_like_int(str: &str) -> bool {
         let p = CharPtr::new(str);
 
         expr_looks_like_int(&p)
@@ -422,18 +421,20 @@ mod tests {
 
     #[test]
     fn test_expr_looks_like_int() {
-        assert!(call("1"));
-        assert!(call("+1"));
-        assert!(call("-1"));
-        assert!(call("123"));
-        assert!(call("123a"));
-        assert!(!call(""));
-        assert!(!call("a"));
-        assert!(!call("123."));
-        assert!(!call("123e"));
-        assert!(!call("123E"));
-        assert!(!call("."));
-        assert!(!call("e"));
-        assert!(!call("E"));
+        assert!(call_expr_looks_like_int("1"));
+        assert!(call_expr_looks_like_int("+1"));
+        assert!(call_expr_looks_like_int("-1"));
+        assert!(call_expr_looks_like_int("123"));
+        assert!(call_expr_looks_like_int("123a"));
+        assert!(!call_expr_looks_like_int(""));
+        assert!(!call_expr_looks_like_int("a"));
+        assert!(!call_expr_looks_like_int("123."));
+        assert!(!call_expr_looks_like_int("123e"));
+        assert!(!call_expr_looks_like_int("123E"));
+        assert!(!call_expr_looks_like_int("."));
+        assert!(!call_expr_looks_like_int("e"));
+        assert!(!call_expr_looks_like_int("E"));
     }
+
+
 }

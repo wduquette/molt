@@ -1,5 +1,15 @@
 # Molt Development Journal
 
+### 2019-02-16
+*   Expression Parsing.
+*   Starting with Tcl 7.6 parser, per Don Porter.
+*   The expression parser often needs to look ahead, i.e., try to parse an integer.
+    If it succeeds, the ExprContext needs to get updated to point to the next thing.
+    We can do this by cloning the iterator.
+    *   info.chars points at the next character in the input.
+    *   let mut p = info.chars.clone() gives us the ability to work farther along.
+    *   info.chars = p updates the pointer to the next thing.
+
 ### 2019-02-03
 *   Expression Parsing
     *   Spent some time yesterday looking at Nom and Pest.

@@ -6,6 +6,8 @@ use crate::types::*;
 pub use crate::list::get_list;
 pub use crate::list::list_to_string;
 
+#[allow(dead_code)] // Temporary
+mod char_ptr;
 mod commands;
 mod context;
 #[allow(dead_code)] // Temporary

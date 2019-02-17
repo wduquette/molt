@@ -9,6 +9,15 @@
     *   info.chars points at the next character in the input.
     *   let mut p = info.chars.clone() gives us the ability to work farther along.
     *   info.chars = p updates the pointer to the next thing.
+    *   Built this into CharPtr.
+*   Note: you can't easily compare two iterators for equality the way you can
+    compare two `char*`'s.  Better approach: ask parsing routine to return
+    `Result<Option<_>,ResultCode>`.  Keep the cloned iterator if Some, and
+    not if None.
+    *   Could define CharPtr to keep the input `&str` and use `enumerate()` to
+        get the index of each character.  Then I could compare these for
+        equality.
+    *   Tried this; it appears to work.  I'd rather avoid it, though.
 
 ### 2019-02-03
 *   Expression Parsing

@@ -141,7 +141,7 @@ const OP_STRINGS: [&str; 32] = [
     "-", "+", "!", "~"
 ];
 
-/// Evaluate an expression and returns its value in string form.
+/// Evaluates an expression and returns its value in string form.
 pub fn molt_expr_string(interp: &mut Interp, string: &str) -> InterpResult {
     let value = expr_top_level(interp, string)?;
 
@@ -150,6 +150,40 @@ pub fn molt_expr_string(interp: &mut Interp, string: &str) -> InterpResult {
         Value::Float(flt) => molt_ok!("{}", flt), // TODO: better float->string logic
         Value::Str(str) => molt_ok!(str),
         Value::None => molt_ok!(""),
+    }
+}
+
+/// Evaluates an expression and returns its value as a Molt integer.
+pub fn molt_expr_int(interp: &mut Interp, string: &str) -> Result<MoltInt, ResultCode> {
+    let value = expr_top_level(interp, string)?;
+
+    match value {
+        Value::Int(int) => Ok(int),
+        Value::Float(flt) => Ok(flt as MoltInt),
+        _ => molt_err!("expression didn't have numeric value"),
+    }
+}
+
+/// Evaluates an expression and returns its value as a Molt float.
+pub fn molt_expr_float(interp: &mut Interp, string: &str) -> Result<MoltFloat, ResultCode> {
+    let value = expr_top_level(interp, string)?;
+
+    match value {
+        Value::Int(int) => Ok(int as MoltFloat),
+        Value::Float(flt) => Ok(flt),
+        _ => molt_err!("expression didn't have numeric value"),
+    }
+}
+
+/// Evaluates an expression and returns its value as a boolean.
+pub fn molt_expr_bool(interp: &mut Interp, string: &str) -> Result<bool, ResultCode> {
+    let value = expr_top_level(interp, string)?;
+
+    match value {
+        Value::Int(int) => Ok(int != 0),
+        Value::Float(flt) => Ok(flt != 0.0),
+        Value::Str(str) => get_boolean(&str),
+        Value::None => get_boolean(""),
     }
 }
 

@@ -45,13 +45,27 @@ pub fn cmd_expr(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
 type ValueResult = Result<Value,ResultCode>;
 
-/// A parsed value
+/// The value type.  Includes the parsed value.
 #[derive(Debug)]
-enum Value {
+enum ValueType {
     Int(MoltInt),
     Float(MoltFloat),
     Str(String),
     None, // Equivalent to Str("").
+}
+
+/// A parsed value
+#[derive(Debug)]
+struct Value {
+    vtype: ValueType,
+}
+
+impl Value {
+    fn new() -> Self {
+        Self {
+            vtype: ValueType::None,
+        }
+    }
 }
 
 //------------------------------------------------------------------------------------------------
@@ -163,11 +177,11 @@ const OP_STRINGS: [&str; 32] = [
 pub fn molt_expr_string(interp: &mut Interp, string: &str) -> InterpResult {
     let value = expr_top_level(interp, string)?;
 
-    match value {
-        Value::Int(int) => molt_ok!("{}", int),
-        Value::Float(flt) => molt_ok!("{}", flt), // TODO: better float->string logic
-        Value::Str(str) => molt_ok!(str),
-        Value::None => molt_ok!(""),
+    match value.vtype {
+        ValueType::Int(int) => molt_ok!("{}", int),
+        ValueType::Float(flt) => molt_ok!("{}", flt), // TODO: better float->string logic
+        ValueType::Str(str) => molt_ok!(str),
+        ValueType::None => molt_ok!(""),
     }
 }
 
@@ -175,9 +189,9 @@ pub fn molt_expr_string(interp: &mut Interp, string: &str) -> InterpResult {
 pub fn molt_expr_int(interp: &mut Interp, string: &str) -> Result<MoltInt, ResultCode> {
     let value = expr_top_level(interp, string)?;
 
-    match value {
-        Value::Int(int) => Ok(int),
-        Value::Float(flt) => Ok(flt as MoltInt),
+    match value.vtype {
+        ValueType::Int(int) => Ok(int),
+        ValueType::Float(flt) => Ok(flt as MoltInt),
         _ => molt_err!("expression didn't have numeric value"),
     }
 }
@@ -186,9 +200,9 @@ pub fn molt_expr_int(interp: &mut Interp, string: &str) -> Result<MoltInt, Resul
 pub fn molt_expr_float(interp: &mut Interp, string: &str) -> Result<MoltFloat, ResultCode> {
     let value = expr_top_level(interp, string)?;
 
-    match value {
-        Value::Int(int) => Ok(int as MoltFloat),
-        Value::Float(flt) => Ok(flt),
+    match value.vtype {
+        ValueType::Int(int) => Ok(int as MoltFloat),
+        ValueType::Float(flt) => Ok(flt),
         _ => molt_err!("expression didn't have numeric value"),
     }
 }
@@ -197,11 +211,11 @@ pub fn molt_expr_float(interp: &mut Interp, string: &str) -> Result<MoltFloat, R
 pub fn molt_expr_bool(interp: &mut Interp, string: &str) -> Result<bool, ResultCode> {
     let value = expr_top_level(interp, string)?;
 
-    match value {
-        Value::Int(int) => Ok(int != 0),
-        Value::Float(flt) => Ok(flt != 0.0),
-        Value::Str(str) => get_boolean(&str),
-        Value::None => get_boolean(""),
+    match value.vtype {
+        ValueType::Int(int) => Ok(int != 0),
+        ValueType::Float(flt) => Ok(flt != 0.0),
+        ValueType::Str(str) => get_boolean(&str),
+        ValueType::None => get_boolean(""),
     }
 }
 
@@ -212,17 +226,17 @@ pub fn molt_expr_bool(interp: &mut Interp, string: &str) -> Result<bool, ResultC
 fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> ValueResult {
     let info = &mut ExprInfo::new(string);
 
-    let result: Value = expr_get_value(interp, info, -1)?;
+    let value = expr_get_value(interp, info, -1)?;
 
     if info.token != END {
         return molt_err!("syntax error in expression \"{}\"", string);
     }
 
-    if let Value::Float(_) = result {
+    if let ValueType::Float(_) = value.vtype {
         // TODO: check for NaN, INF, and throw IEEE floating point error.
     }
 
-    Ok(result)
+    Ok(value)
 }
 
 /// Converts a value from int or double representation to a string, if it wasn't
@@ -265,12 +279,12 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             if !info.no_eval {
                 match operator {
                     UNARY_MINUS => {
-                        match value {
-                            Value::Int(int) => {
-                                value = Value::Int(-int);
+                        match value.vtype {
+                            ValueType::Int(int) => {
+                                value.vtype = ValueType::Int(-int);
                             }
-                            Value::Float(flt) => {
-                                value = Value::Float(-flt);
+                            ValueType::Float(flt) => {
+                                value.vtype = ValueType::Float(-flt);
                             }
                             _ => {
                                 return illegal_type(&value, operator);
@@ -283,19 +297,19 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                         }
                     }
                     NOT => {
-                        match value {
-                            Value::Int(int) => {
+                        match value.vtype {
+                            ValueType::Int(int) => {
                                 if int == 0 {
-                                    value = Value::Int(1);
+                                    value.vtype = ValueType::Int(1);
                                 } else {
-                                    value = Value::Int(0);
+                                    value.vtype = ValueType::Int(0);
                                 }
                             }
-                            Value::Float(flt) => {
+                            ValueType::Float(flt) => {
                                 if flt == 0.0 {
-                                    value = Value::Int(1);
+                                    value.vtype = ValueType::Int(1);
                                 } else {
-                                    value = Value::Int(0);
+                                    value.vtype = ValueType::Int(0);
                                 }
                             }
                             _ => {
@@ -304,8 +318,8 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                         }
                     }
                     BIT_NOT => {
-                        if let Value::Int(int) = value {
-                            value = Value::Int(!int);
+                        if let ValueType::Int(int) = value.vtype {
+                            value.vtype = ValueType::Int(!int);
                         } else {
                             return illegal_type(&value, operator);
                         }
@@ -323,7 +337,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 
     // Got the first operand.  Now fetch (operator, operand) pairs
 
-    let mut value2 = Value::None;
+    let mut value2 = Value::new();
 
     if !got_op {
         // TODO: There is serious magic going on here in the TCL code.
@@ -341,7 +355,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 // TODO: What value are we returning?
                 // It appears that interp->result was set by something called
                 // by this routine.
-                return Ok(Value::Str("WTF".into()));
+                return Ok(Value::new());
             } else {
                 return syntax_error(info);
             }
@@ -349,7 +363,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 
         if PREC_TABLE[operator as usize] <= prec {
             // TODO: What value should we be returning?
-            return Ok(Value::Str("WTF".into()));
+            return Ok(Value::new());
         }
 
         // If we're doing an AND or OR and the first operand already determines
@@ -362,7 +376,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
     }
 
     // Just to quiet the warnings for now.
-    Ok(Value::None)
+    Ok(Value::new())
 }
 
 /// Lexical analyzer for the expression parser.  Parses a single value, operator, or other
@@ -373,10 +387,10 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 /// Returns an error result if an error occurs while doing lexical analysis or
 /// executing an embedded command.  On success, info.token is set to the last token type,
 /// and info is updated to point to the next token.  If the token is VALUE, the returned
-/// Value contains it; otherwise, the value is Value::None.
+/// Value contains it; otherwise, the value is ValueType::None.
 ///
 /// TODO: It might be better to combine info.token and the value into one data object,
-/// i.e., add Value::Op(i32) or make each token type a Value (and handle precedence).
+/// i.e., add ValueType::Op(i32) or make each token type a Value (and handle precedence).
 /// But one step at a time.
 fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     // FIRST, skip white space.
@@ -387,7 +401,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     if p.is_none() {
         info.token = END;
         info.expr = p;
-        return Ok(Value::None);
+        return Ok(Value::new());
     }
 
     // First try to parse the token as an integer or floating-point number.
@@ -408,17 +422,17 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     //     if expr_looks_like_int(info) {
     //         // Convert value at next to int
     //         // Return error on overflow; next is unchanged.
-    //         // Return Value::Int with token=VALUE.
+    //         // Return ValueType::Int with token=VALUE.
     //     } else {
     //         // Convert value at next to double
     //         // Return error on overflow; next is unchanged.
-    //         // Return Value::Float with token=VALUE.
+    //         // Return ValueType::Float with token=VALUE.
     //     }
     // }
 
 
 
-    Ok(Value::None) // TEMP
+    Ok(Value::new()) // TEMP
 }
 
 fn expr_looks_like_int<'a>(ptr: &CharPtr<'a>) -> bool {
@@ -444,11 +458,11 @@ fn expr_looks_like_int<'a>(ptr: &CharPtr<'a>) -> bool {
 
 impl Value {
     fn is_numeric(&self) -> bool {
-        match self {
-            Value::Int(_) => true,
-            Value::Float(_) => true,
-            Value::Str(_) => false,
-            Value::None => false,
+        match self.vtype {
+            ValueType::Int(_) => true,
+            ValueType::Float(_) => true,
+            ValueType::Str(_) => false,
+            ValueType::None => false,
         }
     }
 }
@@ -460,7 +474,7 @@ fn syntax_error(info: &mut ExprInfo) -> ValueResult {
 
 // Return standard illegal type error
 fn illegal_type(value: &Value, op: i32) -> ValueResult {
-    let type_str = if let Value::Float(_) = value {
+    let type_str = if let ValueType::Float(_) = value.vtype {
         "floating-point value"
     } else {
         "non-numeric string"

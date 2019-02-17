@@ -1,5 +1,23 @@
 # Molt Development Journal
 
+### 2019-02-17
+*   Expression Parsing.
+    *   Tcl 7.6 parses integers using `strtoul` with a base of "0", which
+        means that it will accept "0x..." as hex, "0..." as octal, and
+        anything else as decimal.  
+    *   Further, `strtoul` parses the integer from the beginning of a string,
+        and returns a pointer to the next character.
+    *   There is no equivalent to `strtoul` in Rust.
+    *   I don't want or need the octal conversion anyway.
+    *   Thing to do: write a function that takes a CharPtr and returns
+        Option<String>.  The CharPtr will point to the next character, and the
+        String will contain the text of the integer.  Then, use `molt_get_int()`
+        to convert it to a MoltInt.
+        *   Then, both functions can eventually be extended to support hex.
+    *   Similar for MoltFloat.
+    *   Added util::read_int() and util::read_float(), with tests.
+    *   Added CharPtr::skip_over().
+
 ### 2019-02-16
 *   Expression Parsing.
 *   Starting with Tcl 7.6 parser, per Don Porter.
@@ -16,6 +34,15 @@
     *   expr_lex() needs routines that parse an unsigned long or double out of a string,
         leaving whatever's left in place.  Not clear how to do that.  The `&str.parse()`
         method doesn't do that.
+*   Note: you can't easily compare two iterators for equality the way you can
+    compare two `char*`'s.  Better approach: ask parsing routine to return
+    `Result<Option<_>,ResultCode>`.  Keep the cloned iterator if Some, and
+    not if None.
+    *   Could define CharPtr to keep the input `&str` and use `enumerate()` to
+        get the index of each character.  Then I could compare these for
+        equality.
+    *   Tried this; it appears to work.  I'd rather avoid it, though.
+        Took the changes out.
 
 ### 2019-02-03
 *   Expression Parsing

@@ -338,7 +338,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     if !p.is('+') && !p.is('-') {
         if expr_looks_like_int(&p) {
             // There's definitely an integer to parse; parse it.
-             
+
         } else {
             let x = 1;
         }

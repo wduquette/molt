@@ -1,5 +1,6 @@
-use std::str::Chars;
+//! A character iterator that mimics a C (char*) pointer into a buffer.
 
+use std::str::Chars;
 use std::iter::Peekable;
 
 #[derive(Clone)]
@@ -28,6 +29,14 @@ impl<'a> CharPtr<'a> {
 
     pub fn skip(&mut self) {
         self.chars.next();
+    }
+
+    /// Skips the given number of characters.
+    /// It is not an error if the iterator doesn't contain that many.
+    pub fn skip_over(&mut self, num_chars: usize) {
+        for _ in 0..num_chars {
+            self.chars.next();
+        }
     }
 
     pub fn next(&mut self) -> Option<char> {
@@ -101,6 +110,21 @@ mod tests {
         p.skip();
         assert_eq!(Some('c'), p.peek());
         p.skip();
+        assert_eq!(None, p.peek());
+    }
+
+    #[test]
+    fn test_char_ptr_skip_over() {
+        let mut p = CharPtr::new("abc");
+        p.skip_over(2);
+        assert_eq!(Some('c'), p.peek());
+
+        let mut p = CharPtr::new("abc");
+        p.skip_over(3);
+        assert_eq!(None, p.peek());
+
+        let mut p = CharPtr::new("abc");
+        p.skip_over(6);
         assert_eq!(None, p.peek());
     }
 

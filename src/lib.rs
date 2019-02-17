@@ -18,6 +18,7 @@ mod list;
 mod macros;
 pub mod shell;
 pub mod types;
+pub mod util;
 pub mod var_stack;
 
 /// Checks to see whether a command's argument list is of a reasonable size.

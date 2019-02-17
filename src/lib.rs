@@ -52,7 +52,7 @@ pub fn check_args(
 /// A command function will call this to convert an argument into an integer,
 /// using "?" to propagate errors to the interpreter.
 ///
-/// TODO: parse integers as TCL does.
+/// TODO: support hex as well.  Util util::read_int at the same time.
 ///
 /// # Example
 ///
@@ -68,6 +68,27 @@ pub fn get_int(arg: &str) -> Result<MoltInt, ResultCode> {
     match arg.parse::<MoltInt>() {
         Ok(int) => Ok(int),
         Err(_) => molt_err!("expected integer but got \"{}\"", arg),
+    }
+}
+
+/// Converts an argument into a Molt float, returning an error on failure.
+/// A command function will call this to convert an argument into a number,
+/// using "?" to propagate errors to the interpreter.
+///
+/// # Example
+///
+/// ```
+/// # use molt::types::*;
+/// # fn dummy() -> Result<MoltFloat,ResultCode> {
+/// let arg = "1e2";
+/// let val = molt::get_float(arg)?;
+/// # Ok(val)
+/// # }
+/// ```
+pub fn get_float(arg: &str) -> Result<MoltFloat, ResultCode> {
+    match arg.parse::<MoltFloat>() {
+        Ok(val) => Ok(val),
+        Err(_) => molt_err!("expected floating-point number but got \"{}\"", arg),
     }
 }
 
@@ -187,6 +208,23 @@ mod tests {
         assert_eq!(get_boolean("nonesuch"), molt_err!("expected boolean but got \"nonesuch\""));
     }
 
+    #[test]
+    fn test_get_int() {
+        assert_eq!(get_int("1"), Ok(1));
+        assert_eq!(get_int("-1"), Ok(-1));
+        assert_eq!(get_int("+1"), Ok(1));
+        assert_eq!(get_int("a"), molt_err!("expected integer but got \"a\""));
+    }
+
+    #[test]
+    fn test_get_float() {
+        assert_eq!(get_float("1"), Ok(1.0));
+        assert_eq!(get_float("-1"), Ok(-1.0));
+        assert_eq!(get_float("+1"), Ok(1.0));
+        assert_eq!(get_float("1e3"), Ok(1000.0));
+        assert_eq!(get_float("a"), molt_err!("expected floating-point number but got \"a\""));
+    }
+
     // Helpers
 
     fn assert_err(result: &InterpResult, msg: &str) {
@@ -196,8 +234,4 @@ mod tests {
     fn assert_ok(result: &InterpResult) {
         assert!(result.is_ok(), "Result is not Ok");
     }
-
-    // fn assert_value(result: InterpResult, value: &str) {
-    //     assert_eq!(Ok(value.into()), result);
-    // }
 }

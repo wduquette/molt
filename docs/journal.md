@@ -17,6 +17,9 @@
     *   Similar for MoltFloat.
     *   Added util::read_int() and util::read_float(), with tests.
     *   Added CharPtr::skip_over().
+*   Tcl 7.6's Value and ParseValue
+    *   Just realized: I will eventually need to preserve the string value of any parsed integers
+        and doubles, because I might need it for "eq" and "ne".
 
 ### 2019-02-16
 *   Expression Parsing.

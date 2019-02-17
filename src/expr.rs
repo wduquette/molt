@@ -7,6 +7,11 @@ use crate::char_ptr::CharPtr;
 use crate::*;
 use crate::interp::Interp;
 
+//------------------------------------------------------------------------------------------------
+// expr command
+//
+// TODO: Move to commands.rs
+
 /// # expr expr
 ///
 /// Evaluates an expression and returns its result.
@@ -33,6 +38,11 @@ pub fn cmd_expr(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     molt_err!("TODO")
 }
 
+//------------------------------------------------------------------------------------------------
+// Value Representation
+//
+// TODO: At some point we might want to make this a two-legged struct, a la TclObj.
+
 type ValueResult = Result<Value,ResultCode>;
 
 /// A parsed value
@@ -44,8 +54,10 @@ enum Value {
     None, // Equivalent to Str("").
 }
 
-/// Context for expr parsing
+//------------------------------------------------------------------------------------------------
+// Parsing Context
 
+/// Context for expr parsing
 struct ExprInfo<'a> {
     // The full expr.
     original_expr: String,
@@ -71,6 +83,9 @@ impl<'a> ExprInfo<'a> {
         }
     }
 }
+
+//------------------------------------------------------------------------------------------------
+// Constants and Lookup Tables
 
 // Token constants
 //
@@ -141,6 +156,9 @@ const OP_STRINGS: [&str; 32] = [
     "-", "+", "!", "~"
 ];
 
+//------------------------------------------------------------------------------------------------
+// Public API
+
 /// Evaluates an expression and returns its value in string form.
 pub fn molt_expr_string(interp: &mut Interp, string: &str) -> InterpResult {
     let value = expr_top_level(interp, string)?;
@@ -187,6 +205,9 @@ pub fn molt_expr_bool(interp: &mut Interp, string: &str) -> Result<bool, ResultC
     }
 }
 
+//------------------------------------------------------------------------------------------------
+// Expression Internals
+
 /// Provides top-level functionality shared by molt_expr_string, molt_expr_int, etc.
 fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> ValueResult {
     let info = &mut ExprInfo::new(string);
@@ -202,6 +223,11 @@ fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> ValueResult {
     }
 
     Ok(result)
+}
+
+/// Converts a value from int or double representation to a string, if it wasn't
+/// already.
+fn expr_make_string(_interp: &mut Interp, value: &mut Value) {
 }
 
 /// Parse a "value" from the remainder of the expression in info.

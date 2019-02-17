@@ -9,6 +9,13 @@
     *   info.chars points at the next character in the input.
     *   let mut p = info.chars.clone() gives us the ability to work farther along.
     *   info.chars = p updates the pointer to the next thing.
+*   Wrote CharPtr, a simple struct that wraps the peekable iterator and makes it work more
+    like a `char* p`;
+*   Added and tested `expr_looks_like_int()`.
+*   Next Steps:
+    *   expr_lex() needs routines that parse an unsigned long or double out of a string,
+        leaving whatever's left in place.  Not clear how to do that.  The `&str.parse()`
+        method doesn't do that.
 
 ### 2019-02-03
 *   Expression Parsing

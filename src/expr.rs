@@ -290,13 +290,15 @@ fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> ValueResult {
 /// The `prec` is a precedence value; treat any unparenthesized operator
 /// with precedence less than or equal to `prec` as the end of the
 /// expression.
+#[allow(clippy::collapsible_if)]
+#[allow(clippy::cyclomatic_complexity)]
 fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) -> ValueResult {
     // There are two phases to this procedure.  First, pick off an initial value.
     // Then, parse (binary operator, value) pairs until done.
     let mut got_op = false;
-    let mut value = expr_lex(interp, info)?;
-    let mut value2 = Value::none();
-    let mut operator: i32 = -1;
+    let mut value = dbg!(expr_lex(interp, info)?);
+    let mut value2: Value;
+    let mut operator: i32;
 
     if info.token == OPEN_PAREN {
         // Parenthesized sub-expression.
@@ -377,7 +379,9 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             }
             got_op = true;
         } else if info.token != VALUE {
-            return syntax_error(info);
+            // Getting syntax error on "1.0 * 1.0"
+            println!("info.token={}", info.token);
+            return dbg!(syntax_error(info));
         }
     }
 
@@ -385,7 +389,9 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 
     if !got_op {
         // This reads the next token, which we expect to be an operator.
-        value2 = expr_lex(interp, info)?;
+        // All we really care about is the token enum; if it's a value, it doesn't matter
+        // what the value is.
+        let _ = expr_lex(interp, info)?;
     }
 
     loop {
@@ -396,7 +402,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             if operator == END || operator == CLOSE_PAREN || operator == COMMA {
                 return Ok(value);
             } else {
-                return syntax_error(info);
+                return dbg!(syntax_error(info));
             }
         }
 
@@ -456,7 +462,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             && info.token != COMMA
             && info.token != CLOSE_PAREN
         {
-            return syntax_error(info);
+            return dbg!(syntax_error(info));
         }
 
         if info.no_eval > 0 {
@@ -468,13 +474,86 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
         // type conversion if necessary.
 
         match operator {
+            // For the operators below, no strings are allowed and ints get converted to
+            // floats if necessary.
             MULT | DIVIDE | PLUS | MINUS => {
+                if value.vtype == Type::String || value2.vtype == Type::String {
+                    return illegal_type(Type::String, operator);
+                }
+
+                if value.vtype == Type::Float {
+                    if value2.vtype == Type::Int {
+                        value2.flt = value2.int as MoltFloat;
+                        value2.vtype = Type::Float;
+                    }
+                } else if value2.vtype == Type::Float {
+                    if value.vtype == Type::Int {
+                        value.flt = value.int as MoltFloat;
+                        value.vtype = Type::Float;
+                    }
+                }
             }
-            _ => return molt_err!("Not yet implemented: check ops {}", OP_STRINGS[operator as usize]),
+
+            // For the operators below, only integers are allowed.
+            MOD | LEFT_SHIFT | RIGHT_SHIFT | BIT_AND | BIT_XOR | BIT_OR => {
+                if value.vtype != Type::Int {
+                    return illegal_type(value.vtype, operator);
+                } else if value2.vtype != Type::Int {
+                    return illegal_type(value2.vtype, operator);
+                }
+            }
+
+            // For the operators below, any type is allowed, but the operators must have
+            // the same type.
+            LESS | GREATER | LEQ | GEQ | EQUAL | NEQ => {
+                if value.vtype == Type::String {
+                    if value2.vtype != Type::String {
+                        value2 = expr_as_string(value2);
+                    }
+                } else if value2.vtype == Type::String {
+                    if value.vtype != Type::String {
+                        value = expr_as_string(value);
+                    }
+                } else if value.vtype == Type::Float {
+                    if value2.vtype == Type::Int {
+                        value2 = Value::float(value2.int as MoltFloat);
+                    }
+                } else if value2.vtype == Type::Float {
+                    if value.vtype == Type::Int {
+                        value = Value::float(value.int as MoltFloat);
+                    }
+                }
+            }
+
+            // For the operators below, no strings are allowed, but no int->float conversions
+            // are performed.
+            AND | OR => {
+                if value.vtype == Type::String {
+                    return illegal_type(value.vtype, operator);
+                }
+                if value2.vtype == Type::String {
+                    return illegal_type(value2.vtype, operator);
+                }
+            }
+
+            // For the operators below, type and conversions are irrelevant: they're
+            // handled elsewhere.
+            QUESTY | COLON => {
+                // Nothing to do
+            }
+
+            _ => return molt_err!("unknown operator in expression"),
         }
 
         // Carry out the function of the specified operator.
         match operator {
+            MULT => {
+                if value.vtype == Type::Int {
+                    value.int *= value2.int;
+                } else {
+                    value.flt *= value2.flt;
+                }
+            }
             _ => return molt_err!("Not yet implemented: eval {}", OP_STRINGS[operator as usize]),
         }
     }
@@ -519,13 +598,9 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             info.expr = p;
             return Ok(Value::int(int));
         } else if let Some(token) = util::read_float(&mut p) {
-            p.skip_while(|c| c.is_whitespace());
-
-            if p.is_none() {
-                info.token = VALUE;
-                info.expr = p;
-                return Ok(Value::float(get_float(&token)?));
-            }
+            info.token = VALUE;
+            info.expr = p;
+            return Ok(Value::float(get_float(&token)?));
         }
     }
 
@@ -694,7 +769,6 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
 /// conversions.
 fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
     if !string.is_empty() {
-        let mut value = Value::none();
         let mut p = CharPtr::new(string);
 
         if expr_looks_like_int(&p) {
@@ -711,8 +785,7 @@ fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
 
             if p.is_none() {
                 let int = get_int(&token)?;
-                value = Value::int(int);
-                return Ok(value);
+                return Ok(Value::int(int));
             }
         } else {
             // FIRST, see if it's a double. Skip leading whitespace.
@@ -727,8 +800,7 @@ fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
 
                 if p.is_none() {
                     let flt = get_float(&token)?;
-                    value = Value::float(flt);
-                    return Ok(value);
+                    return Ok(Value::float(flt));
                 }
             }
         }
@@ -750,11 +822,19 @@ fn expr_make_string(_interp: &mut Interp, value: &mut Value) {
             value.vtype=Type::String;
             value.str = format!("{}", value.int);
         }
-        Type::Int => {
+        Type::Float => {
             value.vtype=Type::String;
             value.str = format!("{}", value.flt);
         }
         _ => {},
+    }
+}
+
+fn expr_as_string(value: Value) -> Value {
+    match value.vtype {
+        Type::Int => Value::string(&format!("{}", value.int)),
+        Type::Float => Value::string(&format!("{}", value.flt)),
+        _ => value,
     }
 }
 

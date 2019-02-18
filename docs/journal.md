@@ -4,6 +4,15 @@
 *   Expression Parsing.
     *   At some point I'm going to need to figure out how you get info about floating-point
         errors in Rust, e.g., overflow, underflow.
+    *   I have expr_lex working (apparently) for numbers and operators.
+        *   Still need to handle interpolated variables, commands, etc.
+    *   I have expr_get_value working partially; I've got the skeleton complete, but all
+        of the operators return a "not yet implemented" error.
+        *   Using this, it appears that the lexer is working right.
+    *   Note: I'm not sure my ValueType enum is the right way to do things; it seems to
+        be leading to more complex code.
+        *   Yup.  Switched to a simple enum plus a struct with several value fields.  Code is
+            now shorter.
 
 ### 2019-02-17
 *   Expression Parsing.

@@ -46,43 +46,71 @@ pub fn cmd_expr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 type ValueResult = Result<Value,ResultCode>;
 
 /// The value type.  Includes the parsed value.
-#[derive(Debug)]
-enum ValueType {
-    Int(MoltInt),
-    Float(MoltFloat),
-    Str(String),
-    None, // Equivalent to Str("").
+#[derive(Debug,PartialEq,Eq,Copy,Clone)]
+enum Type {
+    Int,
+    Float,
+    String,
 }
 
-/// A parsed value
+/// A parsed value.
+///
+/// **Note**: Originally did this as a struct containing an enum with associated values
+/// for the data, but that complicated the logic.  We need to easily compare the types
+/// of two values (which `if let` doesn't allow), and we need to be able to refer to a
+/// type without reference to the typed value.
+///
+/// I could have used a union to save space, but we don't keep large numbers of these
+/// around.
 #[derive(Debug)]
 struct Value {
-    vtype: ValueType,
+    vtype: Type,
+    int: MoltInt,
+    flt: MoltFloat,
+    str: String,
 }
 
 impl Value {
     fn none() -> Self {
         Self {
-            vtype: ValueType::None,
+            vtype: Type::String,
+            int: 0,
+            flt: 0.0,
+            str: String::new(),
         }
     }
 
     fn int(int: MoltInt) -> Self {
-        Self { vtype: ValueType::Int(int) }
+        Self {
+            vtype: Type::Int,
+            int: int,
+            flt: 0.0,
+            str: String::new(),
+        }
     }
 
     fn float(flt: MoltFloat) -> Self {
-        Self { vtype: ValueType::Float(flt) }
+        Self {
+            vtype: Type::Float,
+            int: 0,
+            flt: flt,
+            str: String::new(),
+        }
     }
 
     fn string(string: &str) -> Self {
-        Self { vtype: ValueType::Str(string.into()) }
+        Self {
+            vtype: Type::String,
+            int: 0,
+            flt: 0.0,
+            str: string.to_string(),
+        }
     }
 
     // Only for checking integers.
     fn is_true(&self) -> bool {
         match self.vtype {
-            ValueType::Int(val) => val != 0,
+            Type::Int => self.int != 0,
             _ => {
                 panic!("Value::is_true called for non-integer");
             }
@@ -199,10 +227,9 @@ pub fn molt_expr_string(interp: &mut Interp, string: &str) -> InterpResult {
     let value = expr_top_level(interp, string)?;
 
     match value.vtype {
-        ValueType::Int(int) => molt_ok!("{}", int),
-        ValueType::Float(flt) => molt_ok!("{}", flt), // TODO: better float->string logic
-        ValueType::Str(str) => molt_ok!(str),
-        ValueType::None => molt_ok!(""),
+        Type::Int => molt_ok!("{}", value.int),
+        Type::Float => molt_ok!("{}", value.flt), // TODO: better float->string logic
+        Type::String => molt_ok!(value.str),
     }
 }
 
@@ -211,8 +238,8 @@ pub fn molt_expr_int(interp: &mut Interp, string: &str) -> Result<MoltInt, Resul
     let value = expr_top_level(interp, string)?;
 
     match value.vtype {
-        ValueType::Int(int) => Ok(int),
-        ValueType::Float(flt) => Ok(flt as MoltInt),
+        Type::Int => Ok(value.int),
+        Type::Float => Ok(value.flt as MoltInt),
         _ => molt_err!("expression didn't have numeric value"),
     }
 }
@@ -222,8 +249,8 @@ pub fn molt_expr_float(interp: &mut Interp, string: &str) -> Result<MoltFloat, R
     let value = expr_top_level(interp, string)?;
 
     match value.vtype {
-        ValueType::Int(int) => Ok(int as MoltFloat),
-        ValueType::Float(flt) => Ok(flt),
+        Type::Int => Ok(value.int as MoltFloat),
+        Type::Float => Ok(value.flt),
         _ => molt_err!("expression didn't have numeric value"),
     }
 }
@@ -233,10 +260,9 @@ pub fn molt_expr_bool(interp: &mut Interp, string: &str) -> Result<bool, ResultC
     let value = expr_top_level(interp, string)?;
 
     match value.vtype {
-        ValueType::Int(int) => Ok(int != 0),
-        ValueType::Float(flt) => Ok(flt != 0.0),
-        ValueType::Str(str) => get_boolean(&str),
-        ValueType::None => get_boolean(""),
+        Type::Int => Ok(value.int != 0),
+        Type::Float => Ok(value.flt != 0.0),
+        Type::String => get_boolean(&value.str),
     }
 }
 
@@ -253,7 +279,7 @@ fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> ValueResult {
         return molt_err!("syntax error in expression \"{}\"", string);
     }
 
-    if let ValueType::Float(_) = value.vtype {
+    if value.vtype == Type::Float {
         // TODO: check for NaN, INF, and throw IEEE floating point error.
     }
 
@@ -297,50 +323,51 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 match operator {
                     UNARY_MINUS => {
                         match value.vtype {
-                            ValueType::Int(int) => {
-                                value.vtype = ValueType::Int(-int);
+                            Type::Int => {
+                                value.int = -value.int;
                             }
-                            ValueType::Float(flt) => {
-                                value.vtype = ValueType::Float(-flt);
+                            Type::Float => {
+                                value.flt = -value.flt;
                             }
                             _ => {
-                                return illegal_type(&value, operator);
+                                return illegal_type(value.vtype, operator);
                             }
                         }
                     }
                     UNARY_PLUS  => {
                         if !value.is_numeric() {
-                            return illegal_type(&value, operator);
+                            return illegal_type(value.vtype, operator);
                         }
                     }
                     NOT => {
                         match value.vtype {
-                            ValueType::Int(int) => {
+                            Type::Int => {
                                 // NOTE: Tcl uses !int here, but in Rust !int_value is a bitwise
                                 // operator, not a logical one.
-                                if int == 0 {
-                                    value.vtype = ValueType::Int(1);
+                                if value.int == 0 {
+                                    value.int = 1;
                                 } else {
-                                    value.vtype = ValueType::Int(0);
+                                    value.int = 0;
                                 }
                             }
-                            ValueType::Float(flt) => {
-                                if flt == 0.0 {
-                                    value.vtype = ValueType::Int(1);
+                            Type::Float => {
+                                if value.flt == 0.0 {
+                                    value = Value::int(1);
                                 } else {
-                                    value.vtype = ValueType::Int(0);
+                                    value = Value::int(0);
                                 }
                             }
                             _ => {
-                                return illegal_type(&value, operator);
+                                return illegal_type(value.vtype, operator);
                             }
                         }
                     }
                     BIT_NOT => {
-                        if let ValueType::Int(int) = value.vtype {
-                            value.vtype = ValueType::Int(!int);
+                        if let Type::Int = value.vtype {
+                            // Note: in Rust, unlike C, !int_value is a bitwise operator.
+                            value.int = !value.int;
                         } else {
-                            return illegal_type(&value, operator);
+                            return illegal_type(value.vtype, operator);
                         }
                     }
                     _ => {
@@ -385,16 +412,16 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             // For these operators, we need an integer value.  Convert or return
             // an error.
             match value.vtype {
-                ValueType::Float(flt) => {
-                    if flt == 0.0 {
+                Type::Float => {
+                    if value.flt == 0.0 {
                         value = Value::int(0);
                     } else {
                         value = Value::int(1);
                     }
                 }
-                ValueType::Str(_) => {
+                Type::String => {
                     if info.no_eval == 0 {
-                        return illegal_type(&value, operator);
+                        return illegal_type(value.vtype, operator);
                     }
                     value = Value::int(0);
                 }
@@ -441,6 +468,8 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
         // type conversion if necessary.
 
         match operator {
+            MULT | DIVIDE | PLUS | MINUS => {
+            }
             _ => return molt_err!("Not yet implemented: check ops {}", OP_STRINGS[operator as usize]),
         }
 
@@ -459,10 +488,10 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 /// Returns an error result if an error occurs while doing lexical analysis or
 /// executing an embedded command.  On success, info.token is set to the last token type,
 /// and info is updated to point to the next token.  If the token is VALUE, the returned
-/// Value contains it; otherwise, the value is ValueType::None.
+/// Value contains it; otherwise, the value is Type::None.
 ///
 /// TODO: It might be better to combine info.token and the value into one data object,
-/// i.e., add ValueType::Op(i32) or make each token type a Value (and handle precedence).
+/// i.e., add Type::Op(i32) or make each token type a Value (and handle precedence).
 /// But one step at a time.
 fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     // FIRST, skip white space.
@@ -682,7 +711,7 @@ fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
 
             if p.is_none() {
                 let int = get_int(&token)?;
-                value.vtype = ValueType::Int(int);
+                value = Value::int(int);
                 return Ok(value);
             }
         } else {
@@ -698,7 +727,7 @@ fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
 
                 if p.is_none() {
                     let flt = get_float(&token)?;
-                    value.vtype = ValueType::Float(flt);
+                    value = Value::float(flt);
                     return Ok(value);
                 }
             }
@@ -713,10 +742,18 @@ fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
 ///
 /// **Note:** In the TCL code, the interp is used for the floating point precision.
 /// At some point I might add that.
+/// Also, should probably make this return a new Value directly, instead of modifying
+/// the old one.
 fn expr_make_string(_interp: &mut Interp, value: &mut Value) {
     match value.vtype {
-        ValueType::Int(val) => value.vtype=ValueType::Str(format!("{}", val)),
-        ValueType::Float(val) => value.vtype=ValueType::Str(format!("{}", val)),
+        Type::Int => {
+            value.vtype=Type::String;
+            value.str = format!("{}", value.int);
+        }
+        Type::Int => {
+            value.vtype=Type::String;
+            value.str = format!("{}", value.flt);
+        }
         _ => {},
     }
 }
@@ -745,10 +782,9 @@ fn expr_looks_like_int<'a>(ptr: &CharPtr<'a>) -> bool {
 impl Value {
     fn is_numeric(&self) -> bool {
         match self.vtype {
-            ValueType::Int(_) => true,
-            ValueType::Float(_) => true,
-            ValueType::Str(_) => false,
-            ValueType::None => false,
+            Type::Int => true,
+            Type::Float => true,
+            Type::String => false,
         }
     }
 }
@@ -759,8 +795,8 @@ fn syntax_error(info: &mut ExprInfo) -> ValueResult {
 }
 
 // Return standard illegal type error
-fn illegal_type(value: &Value, op: i32) -> ValueResult {
-    let type_str = if let ValueType::Float(_) = value.vtype {
+fn illegal_type(bad_type: Type, op: i32) -> ValueResult {
+    let type_str = if bad_type == Type::Float {
         "floating-point value"
     } else {
         "non-numeric string"
@@ -784,32 +820,19 @@ mod tests {
     // verifying that we got the number we expected, so this is probably OK.
     #[allow(clippy::float_cmp)]
     fn veq(val1: &Value, val2: &Value) -> bool {
+        if val1.vtype != val2.vtype {
+            return false;
+        }
+
         match &val1.vtype {
-            ValueType::Int(v1) => {
-                match &val2.vtype {
-                    ValueType::Int(v2) => v1 == v2,
-                    _ => false,
-                }
+            Type::Int => {
+                val1.int == val2.int
             }
-            ValueType::Float(v1) => {
-                match &val2.vtype {
-                    ValueType::Float(v2) => v1 == v2,
-                    _ => false,
-                }
+            Type::Float => {
+                val1.flt == val2.flt
             }
-            ValueType::Str(v1) => {
-                match &val2.vtype {
-                    ValueType::Str(v2) => v1 == v2,
-                    ValueType::None => v1.is_empty(),
-                    _ => false,
-                }
-            }
-            ValueType::None => {
-                match &val2.vtype {
-                    ValueType::Str(v2) => v2.is_empty(),
-                    ValueType::None => true,
-                    _ => false,
-                }
+            Type::String => {
+                val1.str == val2.str
             }
         }
     }

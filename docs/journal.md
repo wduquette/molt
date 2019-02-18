@@ -1,5 +1,10 @@
 # Molt Development Journal
 
+### 2019-02-18
+*   Expression Parsing.
+    *   At some point I'm going to need to figure out how you get info about floating-point
+        errors in Rust, e.g., overflow, underflow.
+
 ### 2019-02-17
 *   Expression Parsing.
     *   Tcl 7.6 parses integers using `strtoul` with a base of "0", which

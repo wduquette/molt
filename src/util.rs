@@ -8,22 +8,36 @@ use crate::char_ptr::CharPtr;
 /// the value is the integer string that was read, and the `ptr` points to the following
 /// character. Otherwise the `ptr` will be unchanged.
 ///
+/// The string may consist of:
+///
+/// * A unary plus or minus
+/// * One or more decimal digits.
+///
 /// ## Notes
 ///
-/// * This function does not handle leading unary `+` or `-`.
 /// * The resulting string has the form of an integer, but might be out of the valid range.
-///
-/// TODO: Add hex parsing as well.
-pub fn read_int(ptr: &mut CharPtr) -> Option<String> {
-    let mut result = String::new();
+/// * Hex numbers are not yet supported. TODO: Add hex parsing as well.
 
-    while ptr.is_digit() {
-        result.push(ptr.next().unwrap());
+pub fn read_int(ptr: &mut CharPtr) -> Option<String> {
+    let mut p = ptr.clone();
+    let mut result = String::new();
+    let mut missing_digits = true;
+
+    // FIRST, skip a unary operator.
+    if p.is('+') || p.is('-') {
+        result.push(p.next().unwrap());
     }
 
-    if result.is_empty() {
+    // NEXT, read the digits
+    while p.is_digit() {
+        missing_digits = false;
+        result.push(p.next().unwrap());
+    }
+
+    if result.is_empty() || missing_digits {
         None
     } else {
+        ptr.skip_over(result.len());
         Some(result)
     }
 }
@@ -34,13 +48,13 @@ pub fn read_int(ptr: &mut CharPtr) -> Option<String> {
 ///
 /// The string will consist of:
 ///
+/// * Possibly, a unary plus/minus
 /// * Some number of decimal digits, optionally containing a ".".
 /// * An optional exponent beginning with "e" or "E"
 /// * The exponent may contain a + or -, followed by some number of digits.
 ///
 /// ## Notes
 ///
-/// * This function does not handle leading unary `+` or `-`.
 /// * The resulting string has the form of a floating point number but might be out of the
 ///   valid range.
 pub fn read_float(ptr: &mut CharPtr) -> Option<String> {
@@ -49,7 +63,12 @@ pub fn read_float(ptr: &mut CharPtr) -> Option<String> {
     let mut missing_mantissa = true;
     let mut missing_exponent = false;
 
-    // FIRST, get any integer digits
+    // FIRST, skip a unary operator.
+    if p.is('+') || p.is('-') {
+        result.push(p.next().unwrap());
+    }
+
+    // NEXT, get any integer digits
     while p.is_digit() {
         missing_mantissa = false;
         result.push(p.next().unwrap());
@@ -99,6 +118,14 @@ mod tests {
         assert_eq!(None, read_int(&mut p));
         assert_eq!(Some('a'), p.peek());
 
+        let mut p = CharPtr::new("-abc");
+        assert_eq!(None, read_int(&mut p));
+        assert_eq!(Some('-'), p.peek());
+
+        let mut p = CharPtr::new("+abc");
+        assert_eq!(None, read_int(&mut p));
+        assert_eq!(Some('+'), p.peek());
+
         let mut p = CharPtr::new("123");
         assert_eq!(Some("123".into()), read_int(&mut p));
         assert_eq!(None, p.peek());
@@ -106,13 +133,30 @@ mod tests {
         let mut p = CharPtr::new("123abc");
         assert_eq!(Some("123".into()), read_int(&mut p));
         assert_eq!(Some('a'), p.peek());
+
+        let mut p = CharPtr::new("+123abc");
+        assert_eq!(Some("+123".into()), read_int(&mut p));
+        assert_eq!(Some('a'), p.peek());
+
+        let mut p = CharPtr::new("-123abc");
+        assert_eq!(Some("-123".into()), read_int(&mut p));
+        assert_eq!(Some('a'), p.peek());
     }
 
     #[test]
+    #[allow(clippy::cyclomatic_complexity)]
     fn test_util_read_float() {
         let mut p = CharPtr::new("abc");
         assert_eq!(None, read_float(&mut p));
         assert_eq!(Some('a'), p.peek());
+
+        let mut p = CharPtr::new("-abc");
+        assert_eq!(None, read_float(&mut p));
+        assert_eq!(Some('-'), p.peek());
+
+        let mut p = CharPtr::new("+abc");
+        assert_eq!(None, read_float(&mut p));
+        assert_eq!(Some('+'), p.peek());
 
         let mut p = CharPtr::new("123");
         assert_eq!(Some("123".into()), read_float(&mut p));
@@ -148,6 +192,14 @@ mod tests {
 
         let mut p = CharPtr::new("1.1e1a");
         assert_eq!(Some("1.1e1".into()), read_float(&mut p));
+        assert_eq!(Some('a'), p.peek());
+
+        let mut p = CharPtr::new("+123abc");
+        assert_eq!(Some("+123".into()), read_float(&mut p));
+        assert_eq!(Some('a'), p.peek());
+
+        let mut p = CharPtr::new("-123abc");
+        assert_eq!(Some("-123".into()), read_float(&mut p));
         assert_eq!(Some('a'), p.peek());
     }
 }

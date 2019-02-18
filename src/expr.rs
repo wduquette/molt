@@ -66,6 +66,18 @@ impl Value {
             vtype: ValueType::None,
         }
     }
+
+    fn int(int: MoltInt) -> Self {
+        Self { vtype: ValueType::Int(int) }
+    }
+
+    fn float(flt: MoltFloat) -> Self {
+        Self { vtype: ValueType::Float(flt) }
+    }
+
+    fn string(string: &str) -> Self {
+        Self { vtype: ValueType::Str(string.into()) }
+    }
 }
 
 //------------------------------------------------------------------------------------------------
@@ -237,11 +249,6 @@ fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> ValueResult {
     }
 
     Ok(value)
-}
-
-/// Converts a value from int or double representation to a string, if it wasn't
-/// already.
-fn expr_make_string(_interp: &mut Interp, value: &mut Value) {
 }
 
 /// Parse a "value" from the remainder of the expression in info.
@@ -435,6 +442,68 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     Ok(Value::new()) // TEMP
 }
 
+/// Given a string (such as one coming from command or variable substitution) make a
+/// Value based on the string.  The value will be floating-point or integer if possible,
+/// or else it will just be a copy of the string.  Returns an error on failed numeric
+/// conversions.
+fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
+    if !string.is_empty() {
+        let mut value = Value::new();
+        let mut p = CharPtr::new(string);
+
+        if expr_looks_like_int(&p) {
+            // FIRST, skip leading whitespace.
+            p.skip_while(|c| c.is_whitespace());
+
+            // NEXT, get the integer token from it.  We know there has to be something,
+            // since it "looks like int".
+            let token = util::read_int(&mut p).unwrap();
+
+            // NEXT, did we read the whole string?  If not, it isn't really an integer.
+            // Otherwise, drop through and return it as a string.
+            p.skip_while(|c| c.is_whitespace());
+
+            if p.is_none() {
+                let int = get_int(&token)?;
+                value.vtype = ValueType::Int(int);
+                return Ok(value);
+            }
+        } else {
+            // FIRST, see if it's a double. Skip leading whitespace.
+            p.skip_while(|c| c.is_whitespace());
+
+            // NEXT, see if we can get a float token from it.
+            // since it "looks like int".
+            if let Some(token) = util::read_float(&mut p) {
+                // Did we read the whole string?  If not, it isn't really a float.
+                // Otherwise, drop through and return it as a string.
+                p.skip_while(|c| c.is_whitespace());
+
+                if p.is_none() {
+                    let flt = get_float(&token)?;
+                    value.vtype = ValueType::Float(flt);
+                    return Ok(value);
+                }
+            }
+        }
+    }
+
+    Ok(Value::string(string))
+}
+
+/// Converts a value from int or double representation to a string, if it wasn't
+/// already.
+///
+/// **Note:** In the TCL code, the interp is used for the floating point precision.
+/// At some point I might add that.
+fn expr_make_string(_interp: &mut Interp, value: &mut Value) {
+    match value.vtype {
+        ValueType::Int(val) => value.vtype=ValueType::Str(format!("{}", val)),
+        ValueType::Float(val) => value.vtype=ValueType::Str(format!("{}", val)),
+        _ => {},
+    }
+}
+
 fn expr_looks_like_int<'a>(ptr: &CharPtr<'a>) -> bool {
     // FIRST, skip whitespace
     let mut p = ptr.clone();
@@ -493,6 +562,41 @@ mod tests {
         expr_looks_like_int(&p)
     }
 
+    // Note: comparing floating point values for equality is usually a mistake.  In this
+    // case, we are simply converting simple floating-point values to and from strings, and
+    // verifying that we got the number we expected, so this is probably OK.
+    #[allow(clippy::float_cmp)]
+    fn veq(val1: &Value, val2: &Value) -> bool {
+        match &val1.vtype {
+            ValueType::Int(v1) => {
+                match &val2.vtype {
+                    ValueType::Int(v2) => v1 == v2,
+                    _ => false,
+                }
+            }
+            ValueType::Float(v1) => {
+                match &val2.vtype {
+                    ValueType::Float(v2) => v1 == v2,
+                    _ => false,
+                }
+            }
+            ValueType::Str(v1) => {
+                match &val2.vtype {
+                    ValueType::Str(v2) => v1 == v2,
+                    ValueType::None => v1.is_empty(),
+                    _ => false,
+                }
+            }
+            ValueType::None => {
+                match &val2.vtype {
+                    ValueType::Str(v2) => v2.is_empty(),
+                    ValueType::None => true,
+                    _ => false,
+                }
+            }
+        }
+    }
+
     #[test]
     fn test_expr_looks_like_int() {
         assert!(call_expr_looks_like_int("1"));
@@ -510,5 +614,55 @@ mod tests {
         assert!(!call_expr_looks_like_int("E"));
     }
 
+    #[test]
+    fn test_expr_make_string() {
+        let mut interp = Interp::new();
 
+        let mut value = Value::int(123);
+        expr_make_string(&mut interp, &mut value);
+        assert!(veq(&value, &Value::string("123")));
+
+        let mut value = Value::float(1.1);
+        expr_make_string(&mut interp, &mut value);
+        assert!(veq(&value, &Value::string("1.1")));
+
+        let mut value = Value::string("abc");
+        expr_make_string(&mut interp, &mut value);
+        assert!(veq(&value, &Value::string("abc")));
+    }
+
+    #[test]
+    fn test_expr_parse_string() {
+        let mut interp = Interp::new();
+
+        let result = expr_parse_string(&mut interp, "");
+        assert!(result.is_ok());
+        assert!(veq(&result.unwrap(), &Value::string("")));
+
+        let result = expr_parse_string(&mut interp, "abc");
+        assert!(result.is_ok());
+        assert!(veq(&result.unwrap(), &Value::string("abc")));
+
+        let result = expr_parse_string(&mut interp, " 123abc");
+        assert!(result.is_ok());
+        assert!(veq(&result.unwrap(), &Value::string(" 123abc")));
+
+        let result = expr_parse_string(&mut interp, " 123.0abc");
+        assert!(result.is_ok());
+        assert!(veq(&result.unwrap(), &Value::string(" 123.0abc")));
+
+        let result = expr_parse_string(&mut interp, " 123   ");
+        assert!(result.is_ok());
+        assert!(veq(&result.unwrap(), &Value::int(123)));
+
+        let result = expr_parse_string(&mut interp, " 1.0   ");
+        assert!(result.is_ok());
+        assert!(veq(&result.unwrap(), &Value::float(1.0)));
+
+        let result = expr_parse_string(&mut interp, "1234567890123456789012345678901234567890");
+        assert!(result.is_err());
+
+        // Should have an example of a float overflow/underflow, but I've not found a literal
+        // string that gives one.
+    }
 }

@@ -59,11 +59,15 @@ impl<'a> CharPtr<'a> {
         }
     }
 
+    #[allow(clippy::wrong_self_convention)]
     pub fn is_none(&mut self) -> bool {
+        // &mut is needed because peek() can mutate the iterator
         self.chars.peek().is_none()
     }
 
+    #[allow(clippy::wrong_self_convention)]
     pub fn is_digit(&mut self) -> bool {
+        // &mut is needed because peek() can mutate the iterator
         if let Some(pc) = self.chars.peek() {
             pc.is_digit(10)
         } else {

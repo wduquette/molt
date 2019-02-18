@@ -292,11 +292,12 @@ fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> ValueResult {
 /// expression.
 #[allow(clippy::collapsible_if)]
 #[allow(clippy::cyclomatic_complexity)]
+#[allow(clippy::float_cmp)]
 fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) -> ValueResult {
     // There are two phases to this procedure.  First, pick off an initial value.
     // Then, parse (binary operator, value) pairs until done.
     let mut got_op = false;
-    let mut value = dbg!(expr_lex(interp, info)?);
+    let mut value = expr_lex(interp, info)?;
     let mut value2: Value;
     let mut operator: i32;
 
@@ -379,7 +380,6 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             }
             got_op = true;
         } else if info.token != VALUE {
-            // Getting syntax error on "1.0 * 1.0"
             println!("info.token={}", info.token);
             return dbg!(syntax_error(info));
         }
@@ -554,7 +554,174 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     value.flt *= value2.flt;
                 }
             }
-            _ => return molt_err!("Not yet implemented: eval {}", OP_STRINGS[operator as usize]),
+            DIVIDE | MOD => {
+                if value.vtype == Type::Int {
+                    if value2.int == 0 {
+                        return molt_err!("divide by zero");
+                    }
+
+                    // TCL guarantees that the remainder always has the same sign as the
+                    // divisor and a smaller absolute value.
+                    let mut divisor = value2.int;
+
+                    let negative = if divisor < 0 {
+                        divisor = -divisor;
+                        value.int = -value.int;
+                        true
+                    } else {
+                        false
+                    };
+
+                    let mut quot = value.int / divisor;
+                    let mut rem = value.int % divisor;
+
+                    if rem < 0 {
+                        rem += divisor;
+                        quot -= 1;
+                    }
+                    if negative {
+                        rem = -rem;
+                    }
+
+                    value.int = if operator == DIVIDE { quot } else { rem };
+                } else {
+                    assert!(operator == DIVIDE);
+                    if value2.flt == 0.0 {
+                        return molt_err!("divide by zero");
+                    }
+                    value.flt /= value2.flt;
+                }
+            }
+            PLUS => {
+                if value.vtype == Type::Int {
+                    value.int += value2.int;
+                } else {
+                    value.flt += value2.flt;
+                }
+            }
+            MINUS => {
+                if value.vtype == Type::Int {
+                    value.int -= value2.int;
+                } else {
+                    value.flt -= value2.flt;
+                }
+            }
+            LEFT_SHIFT => {
+                value.int <<= value2.int;
+            }
+            RIGHT_SHIFT => {
+                // The following code is a bit tricky:  it ensures that
+                // right shifts propagate the sign bit even on machines
+                // where ">>" won't do it by default.
+                // WHD: Not sure if this is an issue in Rust.
+                if value.int < 0 {
+                    value.int = !((!value.int) >> value2.int)
+                } else {
+                    value.int >>= value2.int;
+                }
+            }
+            LESS => {
+                let flag = match value.vtype {
+                    Type::Int => value.int < value2.int,
+                    Type::Float => value.flt < value2.flt,
+                    Type::String => value.str < value2.str,
+                };
+
+                value = if flag { Value::int(1) } else { Value::int(0) };
+            }
+            GREATER => {
+                let flag = match value.vtype {
+                    Type::Int => value.int > value2.int,
+                    Type::Float => value.flt > value2.flt,
+                    Type::String => value.str > value2.str,
+                };
+
+                value = if flag { Value::int(1) } else { Value::int(0) };
+            }
+            LEQ => {
+                let flag = match value.vtype {
+                    Type::Int => value.int <= value2.int,
+                    Type::Float => value.flt <= value2.flt,
+                    Type::String => value.str <= value2.str,
+                };
+
+                value = if flag { Value::int(1) } else { Value::int(0) };
+            }
+            GEQ => {
+                let flag = match value.vtype {
+                    Type::Int => value.int >= value2.int,
+                    Type::Float => value.flt >= value2.flt,
+                    Type::String => value.str >= value2.str,
+                };
+
+                value = if flag { Value::int(1) } else { Value::int(0) };
+            }
+            EQUAL => {
+                // NOTE: comparing floats using == is dangerous; but Tcl leaves that to the
+                // TCL programmer.
+                let flag = match value.vtype {
+                    Type::Int => value.int == value2.int,
+                    Type::Float => value.flt == value2.flt,
+                    Type::String => value.str == value2.str,
+                };
+
+                value = if flag { Value::int(1) } else { Value::int(0) };
+            }
+            NEQ => {
+                // NOTE: comparing floats using == is dangerous; but Tcl leaves that to the
+                // TCL programmer.
+                let flag = match value.vtype {
+                    Type::Int => value.int != value2.int,
+                    Type::Float => value.flt != value2.flt,
+                    Type::String => value.str != value2.str,
+                };
+
+                value = if flag { Value::int(1) } else { Value::int(0) };
+            }
+            BIT_AND => {
+                value.int &= value2.int;
+            }
+            BIT_XOR => {
+                value.int ^= value2.int;
+            }
+            BIT_OR => {
+                value.int |= value2.int;
+            }
+
+            // For AND and OR, we know that the first value has already been converted to
+            // an integer.  Thus we need only consider the possibility of int vs. double
+            // for the second value.
+            AND => {
+                if value2.vtype == Type::Float {
+                   value2.vtype = Type::Int;
+                   value2.int = if value2.flt != 0.0 { 1 } else { 0 };
+                }
+                value.int = if value.int != 0 && value2.int != 0 {
+                    1
+                } else {
+                    0
+                };
+            }
+            OR => {
+                if value2.vtype == Type::Float {
+                   value2.vtype = Type::Int;
+                   value2.int = if value2.flt != 0.0 { 1 } else { 0 };
+                }
+                value.int = if value.int != 0 || value2.int != 0 {
+                    1
+                } else {
+                    0
+                };
+            }
+
+            COLON => {
+                // TODO: Where is QUESTY-COLON handled, actually?
+                return molt_err!("can't have : operator without ? first");
+            }
+
+            _ => {
+                // Nothing to do.
+            }
         }
     }
 }

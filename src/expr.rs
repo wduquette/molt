@@ -399,7 +399,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 /// TODO: It might be better to combine info.token and the value into one data object,
 /// i.e., add ValueType::Op(i32) or make each token type a Value (and handle precedence).
 /// But one step at a time.
-fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
+fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     // FIRST, skip white space.
     let mut p = info.expr.clone();
 
@@ -419,27 +419,179 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     if !p.is('+') && !p.is('-') {
         if expr_looks_like_int(&p) {
             // There's definitely an integer to parse; parse it.
+            let token = util::read_int(&mut p).unwrap();
+            let int = get_int(&token)?;
+            info.token = VALUE;
+            info.expr = p;
+            return Ok(Value::int(int));
+        } else if let Some(token) = util::read_float(&mut p) {
+            p.skip_while(|c| c.is_whitespace());
 
-        } else {
-            let x = 1;
+            if p.is_none() {
+                info.token = VALUE;
+                info.expr = p;
+                return Ok(Value::float(get_float(&token)?));
+            }
         }
     }
 
-    // if !info.next_is('+') && !info.next_is('-') {
-    //     if expr_looks_like_int(info) {
-    //         // Convert value at next to int
-    //         // Return error on overflow; next is unchanged.
-    //         // Return ValueType::Int with token=VALUE.
-    //     } else {
-    //         // Convert value at next to double
-    //         // Return error on overflow; next is unchanged.
-    //         // Return ValueType::Float with token=VALUE.
-    //     }
-    // }
+    // It isn't a number, so the next character will determine what it is.
+    info.expr = p.clone();
+    info.expr.skip();
 
-
-
-    Ok(Value::new()) // TEMP
+    match p.peek() {
+        Some('$') => {
+            molt_err!("Not yet implemented: {:?}", p.peek())
+        }
+        Some('[') => {
+            molt_err!("Not yet implemented: {:?}", p.peek())
+        }
+        Some('"') => {
+            molt_err!("Not yet implemented: {:?}", p.peek())
+        }
+        Some('{') => {
+            molt_err!("Not yet implemented: {:?}", p.peek())
+        }
+        Some('(') => {
+            info.token = OPEN_PAREN;
+            Ok(Value::new())
+        }
+        Some(')') => {
+            info.token = CLOSE_PAREN;
+            Ok(Value::new())
+        }
+        Some(',') => {
+            info.token = COMMA;
+            Ok(Value::new())
+        }
+        Some('*') => {
+            info.token = MULT;
+            Ok(Value::new())
+        }
+        Some('/') => {
+            info.token = DIVIDE;
+            Ok(Value::new())
+        }
+        Some('%') => {
+            info.token = MOD;
+            Ok(Value::new())
+        }
+        Some('+') => {
+            info.token = PLUS;
+            Ok(Value::new())
+        }
+        Some('-') => {
+            info.token = MINUS;
+            Ok(Value::new())
+        }
+        Some('?') => {
+            info.token = QUESTY;
+            Ok(Value::new())
+        }
+        Some(':') => {
+            info.token = COLON;
+            Ok(Value::new())
+        }
+        Some('<') => {
+            p.skip();
+            match p.peek() {
+                Some('<') => {
+                    info.token = LEFT_SHIFT;
+                    p.skip();
+                    info.expr = p;
+                    Ok(Value::new())
+                }
+                Some('=') => {
+                    info.token = LEQ;
+                    p.skip();
+                    info.expr = p;
+                    Ok(Value::new())
+                }
+                _ => {
+                    info.token = LESS;
+                    Ok(Value::new())
+                }
+            }
+        }
+        Some('>') => {
+            p.skip();
+            match p.peek() {
+                Some('>') => {
+                    info.token = RIGHT_SHIFT;
+                    p.skip();
+                    info.expr = p;
+                    Ok(Value::new())
+                }
+                Some('=') => {
+                    info.token = GEQ;
+                    p.skip();
+                    info.expr = p;
+                    Ok(Value::new())
+                }
+                _ => {
+                    info.token = GREATER;
+                    Ok(Value::new())
+                }
+            }
+        }
+        Some('=') => {
+            p.skip();
+            if let Some('=') = p.peek() {
+                info.token = EQUAL;
+                p.skip();
+                info.expr = p;
+            } else {
+                info.token = UNKNOWN;
+            }
+            Ok(Value::new())
+        }
+        Some('!') => {
+            p.skip();
+            if let Some('=') = p.peek() {
+                info.token = NEQ;
+                p.skip();
+                info.expr = p;
+            } else {
+                info.token = NOT;
+            }
+            Ok(Value::new())
+        }
+        Some('&') => {
+            p.skip();
+            if let Some('=') = p.peek() {
+                info.token = AND;
+                p.skip();
+                info.expr = p;
+            } else {
+                info.token = BIT_AND;
+            }
+            Ok(Value::new())
+        }
+        Some('^') => {
+            info.token = BIT_XOR;
+            Ok(Value::new())
+        }
+        Some('|') => {
+            molt_err!("Not yet implemented: {:?}", p.peek())
+        }
+        Some('~') => {
+            info.token = BIT_NOT;
+            Ok(Value::new())
+        }
+        Some(_) => {
+            // TODO: if is alphabetic, see if it's a function.
+            p.skip();
+            info.expr = p;
+            info.token = UNKNOWN;
+            Ok(Value::new())
+        }
+        None => {
+            p.skip();
+            info.expr = p;
+            info.token = UNKNOWN;
+            Ok(Value::new())
+        }
+    }
 }
 
 /// Given a string (such as one coming from command or variable substitution) make a

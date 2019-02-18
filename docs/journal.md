@@ -28,6 +28,9 @@
     *   floating point/integer error handling isn't yet handled.  There must be a way to
         trap overflow/underflow, etc. without panicking, but I haven't looked into that
         in Rust yet.
+        *   For integers: http://huonw.github.io/blog/2016/04/myths-and-legends-about-integer-overflow-in-rust/
+        *   See std:f64.  Provides NAN, INFINITY, etc.
+
 
 ### 2019-02-17
 *   Expression Parsing.

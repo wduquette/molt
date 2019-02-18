@@ -5,12 +5,13 @@ apps.  See "Plans", below.
 
 ## TODO Items
 
+* Implement expression parser
+  * CURRENTLY IN PROGRESS.
+  * Revise `if` command to use it.
 * Implement interp evaluation depth checking.
 * Use Interp::complete() in the shell, to build up multiline commands.
 * Implement `error` command
 * Continue to add commands from the "next" list, below.
-* Implement expression parser
-  * Revise `if` command to use it.
 * Flesh out Rust tests and Rust API docs in the code base.
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.

@@ -40,8 +40,6 @@ pub fn cmd_expr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
 //------------------------------------------------------------------------------------------------
 // Value Representation
-//
-// TODO: At some point we might want to make this a two-legged struct, a la TclObj.
 
 type ValueResult = Result<Value,ResultCode>;
 
@@ -448,6 +446,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 // Go on to the next operator.
                 continue;
             } else if operator == QUESTY {
+                // TODO: Implement "?:"
                 return molt_err!("QUESTY not implemented yet!");
             } else {
                 value2 = expr_get_value(interp, info, PREC_TABLE[operator as usize])?;
@@ -715,7 +714,6 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             }
 
             COLON => {
-                // TODO: Where is QUESTY-COLON handled, actually?
                 return molt_err!("can't have : operator without ? first");
             }
 
@@ -734,11 +732,8 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 /// Returns an error result if an error occurs while doing lexical analysis or
 /// executing an embedded command.  On success, info.token is set to the last token type,
 /// and info is updated to point to the next token.  If the token is VALUE, the returned
-/// Value contains it; otherwise, the value is Type::None.
-///
-/// TODO: It might be better to combine info.token and the value into one data object,
-/// i.e., add Type::Op(i32) or make each token type a Value (and handle precedence).
-/// But one step at a time.
+/// Value contains it.
+
 fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     // FIRST, skip white space.
     let mut p = info.expr.clone();

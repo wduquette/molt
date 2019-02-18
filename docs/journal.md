@@ -13,6 +13,21 @@
         be leading to more complex code.
         *   Yup.  Switched to a simple enum plus a struct with several value fields.  Code is
             now shorter.
+*   Current status:
+    *   Basic math appears to be working, though much more testing is required.
+    *   expr_lex() doesn't yet handle the following constructs.  In order to do so, I need to
+        unify how expr.rs and interp.rs do parsing (i.e., make interp use CharPtr).
+        *   interpolated variables
+        *   interpolated commands
+        *   quoted strings
+        *   braced strings
+    *   expr_lex() also doesn't handle math functions.  That will be a lot of work, but
+        it should be straightforward at this point.
+        *   math functions
+    *   expr_get_value() does everything but "?:".
+    *   floating point/integer error handling isn't yet handled.  There must be a way to
+        trap overflow/underflow, etc. without panicking, but I haven't looked into that
+        in Rust yet.
 
 ### 2019-02-17
 *   Expression Parsing.

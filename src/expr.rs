@@ -32,10 +32,10 @@ use crate::interp::Interp;
 /// parsing.  This is horrible for performance, and can also lead to subtle errors
 /// if the expression parser expands things it shouldn't.  Consequently, Molt
 /// requires a single argument.
-pub fn cmd_expr(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_expr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 2, 2, "expr")?;
 
-    molt_err!("TODO")
+    molt_expr_string(interp, argv[1])
 }
 
 //------------------------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ struct Value {
 }
 
 impl Value {
-    fn new() -> Self {
+    fn none() -> Self {
         Self {
             vtype: ValueType::None,
         }
@@ -77,6 +77,16 @@ impl Value {
 
     fn string(string: &str) -> Self {
         Self { vtype: ValueType::Str(string.into()) }
+    }
+
+    // Only for checking integers.
+    fn is_true(&self) -> bool {
+        match self.vtype {
+            ValueType::Int(val) => val != 0,
+            _ => {
+                panic!("Value::is_true called for non-integer");
+            }
+        }
     }
 }
 
@@ -94,9 +104,8 @@ struct ExprInfo<'a> {
     // Last token's type; see constants
     token: i32,
 
-    // No Evaluation flag.
-    // TODO: consider moving to Interp.
-    no_eval: bool,
+    // No Evaluation if > 0
+    no_eval: i32,
 }
 
 impl<'a> ExprInfo<'a> {
@@ -105,7 +114,7 @@ impl<'a> ExprInfo<'a> {
             original_expr: expr.to_string(),
             expr: CharPtr::new(expr),
             token: -1,
-            no_eval: false,
+            no_eval: 0,
         }
     }
 }
@@ -260,6 +269,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
     // Then, parse (binary operator, value) pairs until done.
     let mut got_op = false;
     let mut value = expr_lex(interp, info)?;
+    let mut value2 = Value::none();
     let mut operator: i32 = -1;
 
     if info.token == OPEN_PAREN {
@@ -283,7 +293,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             operator = info.token;
             value = expr_get_value(interp, info, PREC_TABLE[info.token as usize])?;
 
-            if !info.no_eval {
+            if info.no_eval == 0 {
                 match operator {
                     UNARY_MINUS => {
                         match value.vtype {
@@ -306,6 +316,8 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     NOT => {
                         match value.vtype {
                             ValueType::Int(int) => {
+                                // NOTE: Tcl uses !int here, but in Rust !int_value is a bitwise
+                                // operator, not a logical one.
                                 if int == 0 {
                                     value.vtype = ValueType::Int(1);
                                 } else {
@@ -344,11 +356,8 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 
     // Got the first operand.  Now fetch (operator, operand) pairs
 
-    let mut value2 = Value::new();
-
     if !got_op {
-        // TODO: There is serious magic going on here in the TCL code.
-        // with the value's "ParseValue" struct.
+        // This reads the next token, which we expect to be an operator.
         value2 = expr_lex(interp, info)?;
     }
 
@@ -358,19 +367,14 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 
         if operator < MULT || operator >= UNARY_MINUS {
             if operator == END || operator == CLOSE_PAREN || operator == COMMA {
-                // goto done, Ok
-                // TODO: What value are we returning?
-                // It appears that interp->result was set by something called
-                // by this routine.
-                return Ok(Value::new());
+                return Ok(value);
             } else {
                 return syntax_error(info);
             }
         }
 
         if PREC_TABLE[operator as usize] <= prec {
-            // TODO: What value should we be returning?
-            return Ok(Value::new());
+            return Ok(value);
         }
 
         // If we're doing an AND or OR and the first operand already determines
@@ -378,12 +382,73 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
         // Same style for ?: pairs.
 
         if operator == AND || operator == OR || operator == QUESTY {
+            // For these operators, we need an integer value.  Convert or return
+            // an error.
+            match value.vtype {
+                ValueType::Float(flt) => {
+                    if flt == 0.0 {
+                        value = Value::int(0);
+                    } else {
+                        value = Value::int(1);
+                    }
+                }
+                ValueType::Str(_) => {
+                    if info.no_eval == 0 {
+                        return illegal_type(&value, operator);
+                    }
+                    value = Value::int(0);
+                }
+                _ => {}
+            }
 
+            if (operator == AND && !value.is_true()) || (operator == OR && value.is_true()) {
+                // Short-circuit; we don't care about the next operand, but it must be
+                // syntactically correct.
+                info.no_eval += 1;
+                let _ = expr_get_value(interp, info, PREC_TABLE[operator as usize])?;
+                info.no_eval -= 1;
+
+                if operator == OR {
+                    value = Value::int(1);
+                }
+
+                // Go on to the next operator.
+                continue;
+            } else if operator == QUESTY {
+                return molt_err!("QUESTY not implemented yet!");
+            } else {
+                value2 = expr_get_value(interp, info, PREC_TABLE[operator as usize])?;
+            }
+        } else {
+            value2 = expr_get_value(interp, info, PREC_TABLE[operator as usize])?;
+        }
+
+        if info.token < MULT
+            && info.token != VALUE
+            && info.token != END
+            && info.token != COMMA
+            && info.token != CLOSE_PAREN
+        {
+            return syntax_error(info);
+        }
+
+        if info.no_eval > 0 {
+            continue;
+        }
+
+        // At this point we've got two values and an operator.  Check to make sure that the
+        // particular data types are appropriate for the particular operator, and perform
+        // type conversion if necessary.
+
+        match operator {
+            _ => return molt_err!("Not yet implemented: check ops {}", OP_STRINGS[operator as usize]),
+        }
+
+        // Carry out the function of the specified operator.
+        match operator {
+            _ => return molt_err!("Not yet implemented: eval {}", OP_STRINGS[operator as usize]),
         }
     }
-
-    // Just to quiet the warnings for now.
-    Ok(Value::new())
 }
 
 /// Lexical analyzer for the expression parser.  Parses a single value, operator, or other
@@ -408,7 +473,7 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     if p.is_none() {
         info.token = END;
         info.expr = p;
-        return Ok(Value::new());
+        return Ok(Value::none());
     }
 
     // First try to parse the token as an integer or floating-point number.
@@ -454,43 +519,43 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
         }
         Some('(') => {
             info.token = OPEN_PAREN;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some(')') => {
             info.token = CLOSE_PAREN;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some(',') => {
             info.token = COMMA;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some('*') => {
             info.token = MULT;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some('/') => {
             info.token = DIVIDE;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some('%') => {
             info.token = MOD;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some('+') => {
             info.token = PLUS;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some('-') => {
             info.token = MINUS;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some('?') => {
             info.token = QUESTY;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some(':') => {
             info.token = COLON;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some('<') => {
             p.skip();
@@ -499,17 +564,17 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
                     info.token = LEFT_SHIFT;
                     p.skip();
                     info.expr = p;
-                    Ok(Value::new())
+                    Ok(Value::none())
                 }
                 Some('=') => {
                     info.token = LEQ;
                     p.skip();
                     info.expr = p;
-                    Ok(Value::new())
+                    Ok(Value::none())
                 }
                 _ => {
                     info.token = LESS;
-                    Ok(Value::new())
+                    Ok(Value::none())
                 }
             }
         }
@@ -520,17 +585,17 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
                     info.token = RIGHT_SHIFT;
                     p.skip();
                     info.expr = p;
-                    Ok(Value::new())
+                    Ok(Value::none())
                 }
                 Some('=') => {
                     info.token = GEQ;
                     p.skip();
                     info.expr = p;
-                    Ok(Value::new())
+                    Ok(Value::none())
                 }
                 _ => {
                     info.token = GREATER;
-                    Ok(Value::new())
+                    Ok(Value::none())
                 }
             }
         }
@@ -543,7 +608,7 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             } else {
                 info.token = UNKNOWN;
             }
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some('!') => {
             p.skip();
@@ -554,7 +619,7 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             } else {
                 info.token = NOT;
             }
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some('&') => {
             p.skip();
@@ -565,31 +630,31 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             } else {
                 info.token = BIT_AND;
             }
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some('^') => {
             info.token = BIT_XOR;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some('|') => {
             molt_err!("Not yet implemented: {:?}", p.peek())
         }
         Some('~') => {
             info.token = BIT_NOT;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         Some(_) => {
             // TODO: if is alphabetic, see if it's a function.
             p.skip();
             info.expr = p;
             info.token = UNKNOWN;
-            Ok(Value::new())
+            Ok(Value::none())
         }
         None => {
             p.skip();
             info.expr = p;
             info.token = UNKNOWN;
-            Ok(Value::new())
+            Ok(Value::none())
         }
     }
 }
@@ -600,7 +665,7 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
 /// conversions.
 fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
     if !string.is_empty() {
-        let mut value = Value::new();
+        let mut value = Value::none();
         let mut p = CharPtr::new(string);
 
         if expr_looks_like_int(&p) {

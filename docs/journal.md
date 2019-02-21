@@ -1,5 +1,13 @@
 # Molt Development Journal
 
+### 2019-02-20
+*   Expression Parsing.
+    *   Added tests for all of the existing operators.
+        *   ?: isn't yet implemented.
+        *   && had a bug, and || wasn't implemented.  Fixed both problems.
+        *   true, false, etc., are not yet accepted as valid literals.
+            *   I suspect this is in the part of the lexer that handles functions.
+
 ### 2019-02-18
 *   Expression Parsing.
     *   At some point I'm going to need to figure out how you get info about floating-point

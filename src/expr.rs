@@ -889,7 +889,7 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
         }
         Some('&') => {
             p.skip();
-            if let Some('=') = p.peek() {
+            if let Some('&') = p.peek() {
                 info.token = AND;
                 p.skip();
                 info.expr = p;
@@ -903,7 +903,15 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             Ok(Value::none())
         }
         Some('|') => {
-            molt_err!("Not yet implemented: {:?}", p.peek())
+            p.skip();
+            if let Some('|') = p.peek() {
+                info.token = OR;
+                p.skip();
+                info.expr = p;
+            } else {
+                info.token = BIT_OR;
+            }
+            Ok(Value::none())
         }
         Some('~') => {
             info.token = BIT_NOT;

@@ -152,3 +152,9 @@ test expr-5.2 {
 test expr-5.3 {
     lexpr {~1} {~0}
 } -ok {-2 -1}
+
+# expr-6.*: ?: operator
+
+test expr-6.1 {
+    lexpr {1 ? 2 : 3} {0 ? 2 : 3}
+} -ok {2 3}

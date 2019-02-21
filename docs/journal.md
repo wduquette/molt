@@ -3,6 +3,10 @@
 ### 2019-02-21
 *   lappend command
     *   I wanted this for expr testing.
+*   Added "lexpr" to test_expr.tcl, and simplified all of the tests accordingly.
+    *   Also, added some more floating point and mixed integer/floating point tests.
+    *   No new errors found.
+*   Added the "?:" operator, with test.
 
 ### 2019-02-20
 *   Expression Parsing.

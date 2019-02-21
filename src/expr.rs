@@ -446,8 +446,30 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 // Go on to the next operator.
                 continue;
             } else if operator == QUESTY {
-                // TODO: Implement "?:"
-                return molt_err!("QUESTY not implemented yet!");
+                // Special note: ?: operators must associate right to left.  To make
+                // this happen, use a precedence one lower than QUESTY when calling
+                // expr_get_value recursively.
+                if value.int != 0 {
+                    value = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
+
+                    if info.token != COLON {
+                        return syntax_error(info);
+                    }
+
+                    info.no_eval += 1;
+                    value2 = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] -1)?;
+                    info.no_eval -= 1;
+                } else {
+                    info.no_eval += 1;
+                    value2 = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] -1)?;
+                    info.no_eval -= 1;
+
+                    if info.token != COLON {
+                        return syntax_error(info);
+                    }
+
+                    value = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] -1)?;
+                }
             } else {
                 value2 = expr_get_value(interp, info, PREC_TABLE[operator as usize])?;
             }

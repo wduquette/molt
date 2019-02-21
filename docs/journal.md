@@ -7,6 +7,12 @@
     *   Also, added some more floating point and mixed integer/floating point tests.
     *   No new errors found.
 *   Added the "?:" operator, with test.
+*   Was looking at the function lexing, expecting to find support for boolean constants,
+    and didn't.  Apparently, the Tcl 7.6 expression parser doesn't support them.
+    Seems like it would be easy enough to add, though.
+    *   In ExprMathFunc, where it looks to see if the next token is a "(", first look to see
+        if the string is a boolean constant (or, in fact, one of "eq", "ne", "in", "ni").
+        If it is, return the appropriate value.
 
 ### 2019-02-20
 *   Expression Parsing.

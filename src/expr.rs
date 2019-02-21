@@ -940,11 +940,39 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             Ok(Value::none())
         }
         Some(_) => {
-            // TODO: if is alphabetic, see if it's a function.
-            p.skip();
-            info.expr = p;
-            info.token = UNKNOWN;
-            Ok(Value::none())
+            // TODO: if the next character is alphabetic, see if it's a boolean literal,
+            // string operator, or function
+            if p.has(|c| c.is_alphabetic()) {
+                let mut str = String::new();
+                while p.has(|c| c.is_alphabetic() || c.is_digit(10)) {
+                    str.push(p.next().unwrap());
+                }
+
+                match str.as_ref() {
+                    "true" | "yes" | "on" => {
+                        info.expr = p;
+                        info.token = VALUE;
+                        Ok(Value::int(1))
+                    }
+                    "false" | "no" | "off" => {
+                        info.expr = p;
+                        info.token = VALUE;
+                        Ok(Value::int(0))
+                    }
+                    _ => {
+                        // TODO: check for "eq", "ne", "in", "ni"
+                        // (need to add them to the token types, precedence table, etc.)
+                        // TODO: check for match funcs!
+                        info.token = UNKNOWN;
+                        Ok(Value::none())
+                    }
+                }
+            } else {
+                p.skip();
+                info.expr = p;
+                info.token = UNKNOWN;
+                Ok(Value::none())
+            }
         }
         None => {
             p.skip();

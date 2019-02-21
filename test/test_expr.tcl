@@ -27,9 +27,10 @@ test expr-1.3 {
     # TODO: Look into floating point compatibility with TCL.
 } -ok {1 -1 1}
 
-# test expr-1.4 {
-#    lexpr true yes on false no off
-# } -ok {true yes on false no off}
+test expr-1.4 {
+   lexpr true yes on false no off
+   # TCL, would return the symbolic constants in this case.
+} -ok {1 1 1 0 0 0}
 
 # expr-2.*: arithmetic
 
@@ -82,8 +83,6 @@ test expr-2.12 {
 } -error {can't use floating-point value as operand of "%"}
 
 # expr-3.*: Logical Operators
-#
-# Note: can't use boolean constants yet.
 
 test expr-3.1 {
     lexpr {1 && 1} {1 && 0} {0 && 1} {0 && 0}
@@ -108,6 +107,10 @@ test expr-3.5 {
 test expr-3.6 {
     lexpr {!1.1} {!0.0}
 } -ok {0 1}
+
+test expr-3.7 {
+    lexpr {true && true} {true && false} {true || false}
+} -ok {1 0 1}
 
 # expr-4.*: Comparisons
 

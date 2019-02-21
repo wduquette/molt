@@ -93,12 +93,14 @@ The following commands have been implemented:
 * `break`
 * `continue`
 * `exit`
+* `expr` (implementation in progress)
 * `global`
 * `if` (using scripts instead of expressions)
 * `info commands` (without pattern matching)
 * `info complete`
 * `info vars` (without pattern matching)
 * `join`  
+* `lappend`
 * `lindex`
 * `list`
 * `llength`
@@ -111,12 +113,10 @@ The following commands have been implemented:
 The following commands need to get implemented next.
 
 * error
-* expr
 * for
 * info level
 * info vars (without glob matching)
 * info commands (without glob matching)
-* lappend
 * source
 * upvar
 * while
@@ -157,7 +157,6 @@ The following commands are not implemented by Molt at the present time:
 * error
 * eval
 * exec
-* expr
 * fblocked
 * fconfigure
 * fcopy
@@ -173,7 +172,6 @@ The following commands are not implemented by Molt at the present time:
 * incr
 * info * (most subcommands)
 * interp
-* lappend
 * lassign
 * linsert
 * lmap

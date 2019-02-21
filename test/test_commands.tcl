@@ -366,6 +366,29 @@ test join-2.3 {
 } -ok {a-b}
 
 #-------------------------------------------------------------------------
+# lappend
+
+test lappend-1.1 {
+    lappend
+} -error {wrong # args: should be "lappend varName ?value ...?"}
+
+test lappend-2.1 {
+    unset x
+    lappend x
+} -ok {}
+
+test lappend-2.2 {
+    unset x
+    lappend x a b c
+} -ok {a b c}
+
+test lappend-2.3 {
+    unset x
+    lappend x a b c
+    lappend x d e f
+} -ok {a b c d e f}
+
+#-------------------------------------------------------------------------
 # lindex
 
 test lindex-1.1 {

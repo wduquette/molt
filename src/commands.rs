@@ -289,6 +289,31 @@ pub fn cmd_join(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
     molt_ok!(list.join(join_string))
 }
+/// # lappend *varName* ?*value* ...?
+///
+/// Appends any number of values to a variable's list value, which need not
+/// initially exist.
+pub fn cmd_lappend(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 2, 0, "varName ?value ...?")?;
+
+    let var_result = interp.get_var(argv[1]);
+
+    let mut list: Vec<String> = if var_result.is_ok() {
+        get_list(&var_result.unwrap())?
+    } else {
+        Vec::new()
+    };
+
+    for value in &argv[2..] {
+        list.push(value.to_string());
+    }
+
+    let new_value = list_to_string(&list);
+
+    interp.set_var(argv[1], &new_value);
+
+    molt_ok!("{}", new_value)
+}
 
 /// # lindex *list* ?*index* ...?
 ///

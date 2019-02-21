@@ -1,5 +1,9 @@
 # Molt Development Journal
 
+### 2019-02-21
+*   lappend command
+    *   I wanted this for expr testing.
+
 ### 2019-02-20
 *   Expression Parsing.
     *   Added tests for all of the existing operators.

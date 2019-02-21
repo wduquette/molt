@@ -52,6 +52,7 @@ impl Interp {
         interp.add_command("if", commands::cmd_if);
         interp.add_command("info", commands::cmd_info);
         interp.add_command("join", commands::cmd_join);
+        interp.add_command("lappend", commands::cmd_lappend);
         interp.add_command("lindex", commands::cmd_lindex);
         interp.add_command("list", commands::cmd_list);
         interp.add_command("llength", commands::cmd_llength);

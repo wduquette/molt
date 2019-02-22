@@ -362,7 +362,7 @@ impl Interp {
         Ok(word)
     }
 
-    fn parse_script(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_script(&mut self, ctx: &mut Context) -> InterpResult {
         // FIRST, skip the '['
         ctx.skip_char('[');
 

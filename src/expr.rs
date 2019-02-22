@@ -843,8 +843,15 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             }
         }
         Some('[') => {
-            // TODO
-            molt_err!("Not yet implemented: {:?}", p.peek())
+            let mut ctx = Context::from_peekable(p.to_peekable());
+            let script_val = interp.parse_script(&mut ctx)?;
+            info.token = VALUE;
+            info.expr = CharPtr::from_peekable(ctx.to_peekable());
+            if info.no_eval > 0 {
+                Ok(Value::none())
+            } else {
+                expr_parse_string(interp, &script_val)
+            }
         }
         Some('"') => {
             // TODO

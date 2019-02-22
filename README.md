@@ -7,7 +7,11 @@ apps.  See "Plans", below.
 
 * Implement expression parser
   * CURRENTLY IN PROGRESS.  See docs/journal.md.
-  * Revise `if` command to use it.
+  * Implement evaluation for "in" and "ni".
+  * Add tests for "eq", "ne", "in", "ni", variable interpolation, command interpolation,
+    quoted strings, and braced strings.
+  * Add expr to the molt book (if I didn't already)
+  * Revise `if` command to use molt_expr_bool()
 * Implement interp evaluation depth checking.
 * Use Interp::complete() in the shell, to build up multiline commands.
 * Implement `error` command

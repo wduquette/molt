@@ -18,13 +18,16 @@
     *   Evaluation of "in" and "ni" returns a "not yet implemented" error.
     *   "eq" and "ne" appear to work with numeric arguments.
         *   I can't yet enter non-numeric arguments.
+*   Added handling for:
+    *   interpolated variables
+    *   interpolated commands
+    *   quoted strings
+    *   braced strings
+*   At some point I should see about making interp.rs use CharPtr instead of Context, leaving
+    the parsing context an internal struct in interp.rs the way it is in expr.rs.
 *   Current status:
-    *   expr_lex() doesn't yet handle the following constructs.  In order to do so, I need to
-        unify how expr.rs and interp.rs do parsing (i.e., make interp use CharPtr).
-        *   interpolated variables
-        *   interpolated commands
-        *   quoted strings
-        *   braced strings
+    *   "in" and "ni" are parsed but not evaluated.
+        *   There's no point until I can handle variables or strings.
     *   expr_lex() also doesn't handle math functions.  That will be a lot of work, but
         it should be straightforward at this point.
     *   floating point/integer error handling isn't yet handled.  There must be a way to
@@ -32,8 +35,6 @@
         in Rust yet.
         *   For integers: http://huonw.github.io/blog/2016/04/myths-and-legends-about-integer-overflow-in-rust/
         *   See std:f64.  Provides NAN, INFINITY, etc.
-    *   "in" and "ni" are parsed but not evaluated.
-        *   There's no point until I can handle variables or strings.
 
 ### 2019-02-20
 *   Expression Parsing.

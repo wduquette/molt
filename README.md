@@ -6,7 +6,7 @@ apps.  See "Plans", below.
 ## TODO Items
 
 * Implement expression parser
-  * CURRENTLY IN PROGRESS.
+  * CURRENTLY IN PROGRESS.  See docs/journal.md.
   * Revise `if` command to use it.
 * Implement interp evaluation depth checking.
 * Use Interp::complete() in the shell, to build up multiline commands.

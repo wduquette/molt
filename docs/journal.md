@@ -13,6 +13,27 @@
     *   In ExprMathFunc, where it looks to see if the next token is a "(", first look to see
         if the string is a boolean constant (or, in fact, one of "eq", "ne", "in", "ni").
         If it is, return the appropriate value.
+*   Added eq, ne, in, and ni to the list of token types, the precedence table, etc.
+    *   All four get lexed.
+    *   Evaluation of "in" and "ni" returns a "not yet implemented" error.
+    *   "eq" and "ne" appear to work with numeric arguments.
+        *   I can't yet enter non-numeric arguments.
+*   Current status:
+    *   expr_lex() doesn't yet handle the following constructs.  In order to do so, I need to
+        unify how expr.rs and interp.rs do parsing (i.e., make interp use CharPtr).
+        *   interpolated variables
+        *   interpolated commands
+        *   quoted strings
+        *   braced strings
+    *   expr_lex() also doesn't handle math functions.  That will be a lot of work, but
+        it should be straightforward at this point.
+    *   floating point/integer error handling isn't yet handled.  There must be a way to
+        trap overflow/underflow, etc. without panicking, but I haven't looked into that
+        in Rust yet.
+        *   For integers: http://huonw.github.io/blog/2016/04/myths-and-legends-about-integer-overflow-in-rust/
+        *   See std:f64.  Provides NAN, INFINITY, etc.
+    *   "in" and "ni" are parsed but not evaluated.
+        *   There's no point until I can handle variables or strings.
 
 ### 2019-02-20
 *   Expression Parsing.
@@ -45,7 +66,6 @@
         *   braced strings
     *   expr_lex() also doesn't handle math functions.  That will be a lot of work, but
         it should be straightforward at this point.
-        *   math functions
     *   expr_get_value() does everything but "?:".
     *   floating point/integer error handling isn't yet handled.  There must be a way to
         trap overflow/underflow, etc. without panicking, but I haven't looked into that

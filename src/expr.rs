@@ -177,29 +177,35 @@ const LEQ: i32 = 17;
 const GEQ: i32 = 18;
 const EQUAL: i32 = 19;
 const NEQ: i32 = 20;
-const BIT_AND: i32 = 21;
-const BIT_XOR: i32 = 22;
-const BIT_OR: i32 = 23;
-const AND: i32 = 24;
-const OR: i32 = 25;
-const QUESTY: i32 = 26;
-const COLON: i32 = 27;
+const STRING_EQ: i32 = 21;
+const STRING_NE: i32 = 22;
+const IN: i32 = 23;
+const NI: i32 = 24;
+const BIT_AND: i32 = 25;
+const BIT_XOR: i32 = 26;
+const BIT_OR: i32 = 27;
+const AND: i32 = 28;
+const OR: i32 = 29;
+const QUESTY: i32 = 30;
+const COLON: i32 = 31;
 
 // Unary operators:
-const UNARY_MINUS: i32 = 28;
-const UNARY_PLUS: i32 = 29;
-const NOT: i32 = 30;
-const BIT_NOT: i32 = 31;
+const UNARY_MINUS: i32 = 32;
+const UNARY_PLUS: i32 = 33;
+const NOT: i32 = 34;
+const BIT_NOT: i32 = 35;
 
 // Precedence table.  The values for non-operator token types are ignored.
 
-const PREC_TABLE: [i32; 32] = [
+const PREC_TABLE: [i32; 36] = [
     0, 0, 0, 0, 0, 0, 0, 0,
-    12, 12, 12, // MULT, DIVIDE, MOD
-    11, 11, // PLUS, MINUS
-    10, 10, // LEFT_SHIFT, RIGHT_SHIFT
-    9, 9, 9, 9, // LESS, GREATER, LEQ, GEQ
-    8, 8, // EQUAL, NEQ
+    14, 14, 14, // MULT, DIVIDE, MOD
+    13, 13, // PLUS, MINUS
+    12, 12, // LEFT_SHIFT, RIGHT_SHIFT
+    11, 11, 11, 11, // LESS, GREATER, LEQ, GEQ
+    10, 10, // EQUAL, NEQ
+    9, 9, // STRING_EQ, STRING_NE
+    8, 8, // IN, NI
     7, // BIT_AND
     6, // BIT_XOR
     5, // BIT_OR
@@ -210,10 +216,10 @@ const PREC_TABLE: [i32; 32] = [
     13, 13, 13, 13, // UNARY_MINUS, UNARY_PLUS, NOT, BIT_NOT
 ];
 
-const OP_STRINGS: [&str; 32] = [
+const OP_STRINGS: [&str; 36] = [
     "VALUE", "(", ")", ",", "END", "UNKNOWN", "6", "7",
     "*", "/", "%", "+", "-", "<<", ">>", "<", ">", "<=",
-    ">=", "==", "!=", "&", "^", "|", "&&", "||", "?", ":",
+    ">=", "==", "!=", "eq", "ne", "in", "ni", "&", "^", "|", "&&", "||", "?", ":",
     "-", "+", "!", "~"
 ];
 
@@ -546,6 +552,23 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 }
             }
 
+
+            // For the operators below, everything's treated as a string.
+            STRING_EQ | STRING_NE => {
+                if value.vtype != Type::String {
+                    value = expr_as_string(value);
+                }
+                if value2.vtype != Type::String {
+                    value2 = expr_as_string(value2);
+                }
+            }
+
+            // For the operators below, value is a string and value2 is a list.
+            IN | NI => {
+                // TODO
+                return molt_err!("not yet implemented: in, ni operators");
+            }
+
             // For the operators below, no strings are allowed, but no int->float conversions
             // are performed.
             AND | OR => {
@@ -698,6 +721,20 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 };
 
                 value = if flag { Value::int(1) } else { Value::int(0) };
+            }
+            STRING_EQ => {
+                value = if value.str == value2.str {
+                    Value::int(1)
+                } else {
+                    Value::int(0)
+                };
+            }
+            STRING_NE => {
+                value = if value.str != value2.str {
+                    Value::int(1)
+                } else {
+                    Value::int(0)
+                };
             }
             BIT_AND => {
                 value.int &= value2.int;
@@ -959,9 +996,27 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
                         info.token = VALUE;
                         Ok(Value::int(0))
                     }
+                    "eq" => {
+                        info.expr = p;
+                        info.token = STRING_EQ;
+                        Ok(Value::none())
+                    }
+                    "ne" => {
+                        info.expr = p;
+                        info.token = STRING_NE;
+                        Ok(Value::none())
+                    }
+                    "in" => {
+                        info.expr = p;
+                        info.token = IN;
+                        Ok(Value::none())
+                    }
+                    "ni" => {
+                        info.expr = p;
+                        info.token = NI;
+                        Ok(Value::none())
+                    }
                     _ => {
-                        // TODO: check for "eq", "ne", "in", "ni"
-                        // (need to add them to the token types, precedence table, etc.)
                         // TODO: check for match funcs!
                         info.token = UNKNOWN;
                         Ok(Value::none())

@@ -4,6 +4,7 @@
 //!   But this is convenient for now.
 
 use crate::char_ptr::CharPtr;
+use crate::context::Context;
 use crate::*;
 use crate::interp::Interp;
 
@@ -793,7 +794,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 /// and info is updated to point to the next token.  If the token is VALUE, the returned
 /// Value contains it.
 
-fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
+fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     // FIRST, skip white space.
     let mut p = info.expr.clone();
 
@@ -831,15 +832,26 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
 
     match p.peek() {
         Some('$') => {
-            molt_err!("Not yet implemented: {:?}", p.peek())
+            let mut ctx = Context::from_peekable(p.to_peekable());
+            let var_val = interp.parse_variable(&mut ctx)?;
+            info.token = VALUE;
+            info.expr = CharPtr::from_peekable(ctx.to_peekable());
+            if info.no_eval > 0 {
+                Ok(Value::none())
+            } else {
+                expr_parse_string(interp, &var_val)
+            }
         }
         Some('[') => {
+            // TODO
             molt_err!("Not yet implemented: {:?}", p.peek())
         }
         Some('"') => {
+            // TODO
             molt_err!("Not yet implemented: {:?}", p.peek())
         }
         Some('{') => {
+            // TODO
             molt_err!("Not yet implemented: {:?}", p.peek())
         }
         Some('(') => {
@@ -977,8 +989,6 @@ fn expr_lex(_interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             Ok(Value::none())
         }
         Some(_) => {
-            // TODO: if the next character is alphabetic, see if it's a boolean literal,
-            // string operator, or function
             if p.has(|c| c.is_alphabetic()) {
                 let mut str = String::new();
                 while p.has(|c| c.is_alphabetic() || c.is_digit(10)) {

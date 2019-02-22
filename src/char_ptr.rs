@@ -15,6 +15,18 @@ impl<'a> CharPtr<'a> {
         }
     }
 
+    /// Converts a Peekable<Chars> into a CharPtr.
+    pub fn from_peekable(chars: Peekable<Chars<'a>>) -> Self {
+        Self {
+            chars
+        }
+    }
+
+    /// Converts a CharPtr into a Peekable<Chars>.
+    pub fn to_peekable(&self) -> Peekable<Chars<'a>> {
+        self.chars.clone()
+    }
+
     pub fn skip_while<P>(&mut self, predicate: P)
         where P: Fn(&char) -> bool
     {

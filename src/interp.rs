@@ -384,7 +384,7 @@ impl Interp {
         result
     }
 
-    fn parse_variable(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_variable(&mut self, ctx: &mut Context) -> InterpResult {
         // FIRST, skip the '$'
         ctx.skip_char('$');
 

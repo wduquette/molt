@@ -266,7 +266,7 @@ impl Interp {
     }
 
     /// Parse a braced word.
-    fn parse_braced_word(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_braced_word(&mut self, ctx: &mut Context) -> InterpResult {
         // FIRST, we have to count braces.  Skip the first one, and count it.
         ctx.next();
         let mut count = 1;
@@ -316,7 +316,7 @@ impl Interp {
     }
 
     /// Parse a quoted word.
-    fn parse_quoted_word(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_quoted_word(&mut self, ctx: &mut Context) -> InterpResult {
         // FIRST, consume the the opening quote.
         ctx.next();
 

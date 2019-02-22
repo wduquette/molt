@@ -12,6 +12,8 @@ apps.  See "Plans", below.
     quoted strings, and braced strings.
   * Add expr to the molt book (if I didn't already)
   * Revise `if` command to use molt_expr_bool()
+  * Update expr.md to include all operators (since I put them all in)
+  * Implement math functions.
 * Implement interp evaluation depth checking.
 * Use Interp::complete() in the shell, to build up multiline commands.
 * Implement `error` command

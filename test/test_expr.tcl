@@ -83,32 +83,59 @@ test expr-2.12 {
 } -error {can't use floating-point value as operand of "%"}
 
 # expr-3.*: Logical Operators
+proc aflag {flag} {
+    global a
+    set a "A"
+    return $flag
+}
+
+proc bflag {flag} {
+    global b
+    set b "B"
+    return $flag
+}
 
 test expr-3.1 {
     lexpr {1 && 1} {1 && 0} {0 && 1} {0 && 0}
 } -ok {1 0 0 0}
 
 test expr-3.2 {
+    set a ""
+    set b ""
+    # bflag should not execute.
+    set result [expr {[aflag 0] && [bflag 1]}]
+    list $result $a $b
+} -ok {0 A {}}
+
+test expr-3.3 {
     lexpr {1 || 1} {1 || 0} {0 || 1} {0 || 0}
 } -ok {1 1 1 0}
 
-test expr-3.3 {
+test expr-3.4 {
+    set a ""
+    set b ""
+    # bflag should not execute.
+    set result [expr {[aflag 1] || [bflag 1]}]
+    list $result $a $b
+} -ok {1 A {}}
+
+test expr-3.5 {
     lexpr {!1} {!0}
 } -ok {0 1}
 
-test expr-3.4 {
+test expr-3.6 {
     lexpr {1.1 && 1.1} {1.1 && 0.0} {0.0 && 1.1} {0.0 && 0.0}
 } -ok {1 0 0 0}
 
-test expr-3.5 {
+test expr-3.7 {
     lexpr {1.1 || 1.1} {1.1 || 0.0} {0.0 || 1.1} {0.0 || 0.0}
 } -ok {1 1 1 0}
 
-test expr-3.6 {
+test expr-3.8 {
     lexpr {!1.1} {!0.0}
 } -ok {0 1}
 
-test expr-3.7 {
+test expr-3.9 {
     lexpr {true && true} {true && false} {true || false}
 } -ok {1 0 1}
 
@@ -161,3 +188,35 @@ test expr-5.3 {
 test expr-6.1 {
     lexpr {1 ? 2 : 3} {0 ? 2 : 3}
 } -ok {2 3}
+
+proc a {} {
+    global a
+    set a 1
+    return 1
+}
+
+proc b {} {
+    global b
+    set b 2
+    return 2
+}
+
+test expr-6.2 {
+    set a 0
+    set b 0
+    set result [expr {0 ? [a] : [b]}]
+
+    # [a] should not have executed.  If it did,
+    # $a will be 1.
+    list $result $a $b
+} -ok {2 0 2}
+
+test expr-6.3 {
+    set a 0
+    set b 0
+    set result [expr {1 ? [a] : [b]}]
+
+    # [b] should not have executed.  If it did,
+    # $b will be 2.
+    list $result $a $b
+} -ok {1 1 0}

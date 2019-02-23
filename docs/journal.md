@@ -1,6 +1,11 @@
 # Molt Development Journal
 
-### 2019-02-21
+### 2019-02-23 (Saturday)
+*   Realized that I'm not handling "no_eval" correctly in the code I added
+    on Thursday.  If the parse method uses no_eval, I need to set the context
+    to the expression parser's no_eval.
+
+### 2019-02-21 (Thursday)
 *   lappend command
     *   I wanted this for expr testing.
 *   Added "lexpr" to test_expr.tcl, and simplified all of the tests accordingly.

@@ -833,6 +833,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     match p.peek() {
         Some('$') => {
             let mut ctx = Context::from_peekable(p.to_peekable());
+            ctx.set_no_eval(info.no_eval > 0);
             let var_val = interp.parse_variable(&mut ctx)?;
             info.token = VALUE;
             info.expr = CharPtr::from_peekable(ctx.to_peekable());
@@ -844,6 +845,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
         }
         Some('[') => {
             let mut ctx = Context::from_peekable(p.to_peekable());
+            ctx.set_no_eval(info.no_eval > 0);
             let script_val = interp.parse_script(&mut ctx)?;
             info.token = VALUE;
             info.expr = CharPtr::from_peekable(ctx.to_peekable());
@@ -855,6 +857,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
         }
         Some('"') => {
             let mut ctx = Context::from_peekable(p.to_peekable());
+            ctx.set_no_eval(info.no_eval > 0);
             let val = interp.parse_quoted_word(&mut ctx)?;
             info.token = VALUE;
             info.expr = CharPtr::from_peekable(ctx.to_peekable());
@@ -866,6 +869,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
         }
         Some('{') => {
             let mut ctx = Context::from_peekable(p.to_peekable());
+            ctx.set_no_eval(info.no_eval > 0);
             let val = interp.parse_braced_word(&mut ctx)?;
             info.token = VALUE;
             info.expr = CharPtr::from_peekable(ctx.to_peekable());

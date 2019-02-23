@@ -19,6 +19,7 @@ fn main() {
             "shell" => {
                 if args.len() == 2 {
                     // TODO: should be `molt::shell()`
+                    println!("Molt {}", env!("CARGO_PKG_VERSION"));
                     molt::shell::shell(&mut interp, "% ");
                 } else {
                     // TODO: capture the remaining arguments and make 'arg0' and 'argv' available.
@@ -32,16 +33,14 @@ fn main() {
                 eprintln!("molt test: not yet implemented");
             }
             "help" => {
-                eprintln!("molt help: not yet implemented");
+                molt_help();
             }
             _ => {
                 eprintln!("unknown subcommand: \"{}\"", subcmd);
             }
         }
     } else {
-        // Just run the interactive shell.
-        // But really, should run "molt help"
-        molt::shell::shell(&mut interp, "% ");
+        molt_help();
     }
 }
 
@@ -67,4 +66,18 @@ fn execute_script(interp: &mut Interp, script: String, args: &[&str]) {
             std::process::exit(1);
         }
     }
+}
+
+fn molt_help() {
+    println!("Molt {}", env!("CARGO_PKG_VERSION"));
+    println!();
+    println!("Usage: molt <subcommand> [args...]");
+    println!();
+    println!("Subcommands:");
+    println!();
+    println!("  help                          -- This help");
+    println!("  shell [<script>] [args...]    -- The Molt shell");
+    println!("  test  [<script>] [args...]    -- The Molt test harness");
+    println!();
+    println!("See the Molt Book for details.");
 }

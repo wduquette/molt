@@ -5,6 +5,7 @@
 use crate::types::*;
 pub use crate::list::get_list;
 pub use crate::list::list_to_string;
+pub use crate::test_harness::*;
 
 #[allow(dead_code)] // Temporary
 mod char_ptr;
@@ -17,6 +18,7 @@ mod list;
 #[macro_use]
 mod macros;
 pub mod shell;
+pub mod test_harness;
 pub mod types;
 pub mod util;
 pub mod var_stack;

@@ -29,7 +29,7 @@ fn main() {
                 }
             }
             "test" => {
-                eprintln!("molt test: not yet implemented");
+                molt::test_harness(&mut interp, &args[2..]);
             }
             "help" => {
                 molt_help();

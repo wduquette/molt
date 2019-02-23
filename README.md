@@ -5,10 +5,10 @@ apps.  See "Plans", below.
 
 ## TODO Items
 
-* Implement expression parser
-  * CURRENTLY IN PROGRESS.  See docs/journal.md.
+* Add "molt test" test harness.
   * Revise `test` to take a description, like the tcltest command does.
   * Copy the Tcl 7.6 tests, and look for errors.
+* Test expression parser thoroughly
   * Add tests for "eq", "ne", "in", "ni"
   * Implement remaining math functions
 * Implement interp evaluation depth checking.

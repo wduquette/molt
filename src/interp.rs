@@ -3,6 +3,7 @@ use crate::list::list_to_string;
 use crate::list::get_list;
 use crate::commands;
 use crate::context::Context;
+use crate::expr;
 use crate::molt_ok;
 use crate::molt_err;
 use crate::var_stack::VarStack;
@@ -45,11 +46,13 @@ impl Interp {
         interp.add_command("break", commands::cmd_break);
         interp.add_command("continue", commands::cmd_continue);
         interp.add_command("exit", commands::cmd_exit);
+        interp.add_command("expr", expr::cmd_expr);
         interp.add_command("foreach", commands::cmd_foreach);
         interp.add_command("global", commands::cmd_global);
         interp.add_command("if", commands::cmd_if);
         interp.add_command("info", commands::cmd_info);
         interp.add_command("join", commands::cmd_join);
+        interp.add_command("lappend", commands::cmd_lappend);
         interp.add_command("lindex", commands::cmd_lindex);
         interp.add_command("list", commands::cmd_list);
         interp.add_command("llength", commands::cmd_llength);
@@ -263,7 +266,7 @@ impl Interp {
     }
 
     /// Parse a braced word.
-    fn parse_braced_word(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_braced_word(&mut self, ctx: &mut Context) -> InterpResult {
         // FIRST, we have to count braces.  Skip the first one, and count it.
         ctx.next();
         let mut count = 1;
@@ -313,7 +316,7 @@ impl Interp {
     }
 
     /// Parse a quoted word.
-    fn parse_quoted_word(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_quoted_word(&mut self, ctx: &mut Context) -> InterpResult {
         // FIRST, consume the the opening quote.
         ctx.next();
 
@@ -359,7 +362,7 @@ impl Interp {
         Ok(word)
     }
 
-    fn parse_script(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_script(&mut self, ctx: &mut Context) -> InterpResult {
         // FIRST, skip the '['
         ctx.skip_char('[');
 
@@ -381,7 +384,7 @@ impl Interp {
         result
     }
 
-    fn parse_variable(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_variable(&mut self, ctx: &mut Context) -> InterpResult {
         // FIRST, skip the '$'
         ctx.skip_char('$');
 

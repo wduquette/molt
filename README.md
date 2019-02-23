@@ -5,12 +5,20 @@ apps.  See "Plans", below.
 
 ## TODO Items
 
+* Implement expression parser
+  * CURRENTLY IN PROGRESS.  See docs/journal.md.
+  * Add expr to the molt book.  
+    *   Include precedence table.
+  * Remove expr.md
+  * Revise `if` command to use molt_expr_bool()
+  * Revise `test` to take a description, like the tcltest command does.
+  * Copy the Tcl 7.6 tests, and look for errors.
+  * Add tests for "eq", "ne", "in", "ni"
+  * Implement remaining math functions
 * Implement interp evaluation depth checking.
 * Use Interp::complete() in the shell, to build up multiline commands.
 * Implement `error` command
 * Continue to add commands from the "next" list, below.
-* Implement expression parser
-  * Revise `if` command to use it.
 * Flesh out Rust tests and Rust API docs in the code base.
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
@@ -92,12 +100,14 @@ The following commands have been implemented:
 * `break`
 * `continue`
 * `exit`
+* `expr` (implementation in progress)
 * `global`
 * `if` (using scripts instead of expressions)
 * `info commands` (without pattern matching)
 * `info complete`
 * `info vars` (without pattern matching)
 * `join`  
+* `lappend`
 * `lindex`
 * `list`
 * `llength`
@@ -110,12 +120,10 @@ The following commands have been implemented:
 The following commands need to get implemented next.
 
 * error
-* expr
 * for
 * info level
 * info vars (without glob matching)
 * info commands (without glob matching)
-* lappend
 * source
 * upvar
 * while
@@ -156,7 +164,6 @@ The following commands are not implemented by Molt at the present time:
 * error
 * eval
 * exec
-* expr
 * fblocked
 * fconfigure
 * fcopy
@@ -172,7 +179,6 @@ The following commands are not implemented by Molt at the present time:
 * incr
 * info * (most subcommands)
 * interp
-* lappend
 * lassign
 * linsert
 * lmap

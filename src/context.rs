@@ -34,6 +34,19 @@ impl<'a> Context<'a> {
         }
     }
 
+    pub fn from_peekable(peekable: Peekable<Chars<'a>>) -> Self {
+        Self {
+            chars: peekable,
+            bracket_term: false,
+            term_char: None,
+            no_eval: false,
+        }
+    }
+
+    pub fn to_peekable(&self) -> Peekable<Chars<'a>> {
+        self.chars.clone()
+    }
+
     //-----------------------------------------------------------------------
     // Configuration
 

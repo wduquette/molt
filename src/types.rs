@@ -2,8 +2,9 @@
 
 use crate::interp::Interp;
 
-/// Molt Integer Type
-pub type MoltInt = i32;
+/// Molt Numeric Types
+pub type MoltInt   = i64;
+pub type MoltFloat = f64;
 
 /// The result of calling a function during Molt script evaluation, other than
 /// `Ok(str)`.

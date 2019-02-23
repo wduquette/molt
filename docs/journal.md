@@ -1,5 +1,157 @@
 # Molt Development Journal
 
+### 2019-02-23 (Saturday)
+*   Current `expr` status:
+    *   "eq", "ne", variables, commands, quoted and braced strings are not
+        tested.
+    *   Parentheses are not tested.
+    *   Precedence is not tested.
+    *   expr_lex() also doesn't handle math functions.  That will be a lot of work, but
+        it should be straightforward at this point.
+    *   floating point/integer error handling isn't yet handled.  There must be a way to
+        trap overflow/underflow, etc. without panicking, but I haven't looked into that
+        in Rust yet.
+        *   For integers: http://huonw.github.io/blog/2016/04/myths-and-legends-about-integer-overflow-in-rust/
+        *   See std:f64.  Provides NAN, INFINITY, etc.
+*   Realized that I'm not handling "no_eval" correctly in the code I added
+    on Thursday.  If the parse method uses no_eval, I need to set the context
+    to the expression parser's no_eval.
+    *   Done, and it works.
+*   Integer/floating point error handling:
+    *   What I'd like to do, I think, is get a hold of the TclTest scripts
+        for `expr` before I spend too much time on the numerics.
+    *   But this means having a reasonably TclTest compatible test tool.
+    *   This applies to a lot of the expr testing, actually.
+    *   Does Tcl 7.6 have TclTest?
+        *   Checked; it has a precursor, and a bunch of expr tests.  I'll
+            want to make use of those.
+*   "in" and "ni" are now evaluated.
+*   Added math funcs abs(), int(), round(), double().
+
+
+### 2019-02-21 (Thursday)
+*   lappend command
+    *   I wanted this for expr testing.
+*   Added "lexpr" to test_expr.tcl, and simplified all of the tests accordingly.
+    *   Also, added some more floating point and mixed integer/floating point tests.
+    *   No new errors found.
+*   Added the "?:" operator, with test.
+*   Was looking at the function lexing, expecting to find support for boolean constants,
+    and didn't.  Apparently, the Tcl 7.6 expression parser doesn't support them.
+    Seems like it would be easy enough to add, though.
+    *   In ExprMathFunc, where it looks to see if the next token is a "(", first look to see
+        if the string is a boolean constant (or, in fact, one of "eq", "ne", "in", "ni").
+        If it is, return the appropriate value.
+*   Added eq, ne, in, and ni to the list of token types, the precedence table, etc.
+    *   All four get lexed.
+    *   Evaluation of "in" and "ni" returns a "not yet implemented" error.
+    *   "eq" and "ne" appear to work with numeric arguments.
+        *   I can't yet enter non-numeric arguments.
+*   Added handling for:
+    *   interpolated variables
+    *   interpolated commands
+    *   quoted strings
+    *   braced strings
+*   At some point I should see about making interp.rs use CharPtr instead of Context, leaving
+    the parsing context an internal struct in interp.rs the way it is in expr.rs.
+*   Current status:
+    *   "in" and "ni" are parsed but not evaluated.
+        *   There's no point until I can handle variables or strings.
+    *   expr_lex() also doesn't handle math functions.  That will be a lot of work, but
+        it should be straightforward at this point.
+    *   floating point/integer error handling isn't yet handled.  There must be a way to
+        trap overflow/underflow, etc. without panicking, but I haven't looked into that
+        in Rust yet.
+        *   For integers: http://huonw.github.io/blog/2016/04/myths-and-legends-about-integer-overflow-in-rust/
+        *   See std:f64.  Provides NAN, INFINITY, etc.
+
+### 2019-02-20
+*   Expression Parsing.
+    *   Added tests for all of the existing operators.
+        *   ?: isn't yet implemented.
+        *   && had a bug, and || wasn't implemented.  Fixed both problems.
+        *   true, false, etc., are not yet accepted as valid literals.
+            *   I suspect this is in the part of the lexer that handles functions.
+
+### 2019-02-18
+*   Expression Parsing.
+    *   At some point I'm going to need to figure out how you get info about floating-point
+        errors in Rust, e.g., overflow, underflow.
+    *   I have expr_lex working (apparently) for numbers and operators.
+        *   Still need to handle interpolated variables, commands, etc.
+    *   I have expr_get_value working partially; I've got the skeleton complete, but all
+        of the operators return a "not yet implemented" error.
+        *   Using this, it appears that the lexer is working right.
+    *   Note: I'm not sure my ValueType enum is the right way to do things; it seems to
+        be leading to more complex code.
+        *   Yup.  Switched to a simple enum plus a struct with several value fields.  Code is
+            now shorter.
+*   Current status:
+    *   Basic math appears to be working, though much more testing is required.
+    *   expr_lex() doesn't yet handle the following constructs.  In order to do so, I need to
+        unify how expr.rs and interp.rs do parsing (i.e., make interp use CharPtr).
+        *   interpolated variables
+        *   interpolated commands
+        *   quoted strings
+        *   braced strings
+    *   expr_lex() also doesn't handle math functions.  That will be a lot of work, but
+        it should be straightforward at this point.
+    *   expr_get_value() does everything but "?:".
+    *   floating point/integer error handling isn't yet handled.  There must be a way to
+        trap overflow/underflow, etc. without panicking, but I haven't looked into that
+        in Rust yet.
+        *   For integers: http://huonw.github.io/blog/2016/04/myths-and-legends-about-integer-overflow-in-rust/
+        *   See std:f64.  Provides NAN, INFINITY, etc.
+
+
+### 2019-02-17
+*   Expression Parsing.
+    *   Tcl 7.6 parses integers using `strtoul` with a base of "0", which
+        means that it will accept "0x..." as hex, "0..." as octal, and
+        anything else as decimal.  
+    *   Further, `strtoul` parses the integer from the beginning of a string,
+        and returns a pointer to the next character.
+    *   There is no equivalent to `strtoul` in Rust.
+    *   I don't want or need the octal conversion anyway.
+    *   Thing to do: write a function that takes a CharPtr and returns
+        Option<String>.  The CharPtr will point to the next character, and the
+        String will contain the text of the integer.  Then, use `molt_get_int()`
+        to convert it to a MoltInt.
+        *   Then, both functions can eventually be extended to support hex.
+    *   Similar for MoltFloat.
+    *   Added util::read_int() and util::read_float(), with tests.
+    *   Added CharPtr::skip_over().
+*   Tcl 7.6's Value and ParseValue
+    *   Just realized: I will eventually need to preserve the string value of any parsed integers
+        and doubles, because I might need it for "eq" and "ne".
+*   Added lib::get_float(), and added tests for lib::get_float() and lib::get_int().
+
+### 2019-02-16
+*   Expression Parsing.
+*   Starting with Tcl 7.6 parser, per Don Porter.
+*   The expression parser often needs to look ahead, i.e., try to parse an integer.
+    If it succeeds, the ExprContext needs to get updated to point to the next thing.
+    We can do this by cloning the iterator.
+    *   info.chars points at the next character in the input.
+    *   let mut p = info.chars.clone() gives us the ability to work farther along.
+    *   info.chars = p updates the pointer to the next thing.
+*   Wrote CharPtr, a simple struct that wraps the peekable iterator and makes it work more
+    like a `char* p`;
+*   Added and tested `expr_looks_like_int()`.
+*   Next Steps:
+    *   expr_lex() needs routines that parse an unsigned long or double out of a string,
+        leaving whatever's left in place.  Not clear how to do that.  The `&str.parse()`
+        method doesn't do that.
+*   Note: you can't easily compare two iterators for equality the way you can
+    compare two `char*`'s.  Better approach: ask parsing routine to return
+    `Result<Option<_>,ResultCode>`.  Keep the cloned iterator if Some, and
+    not if None.
+    *   Could define CharPtr to keep the input `&str` and use `enumerate()` to
+        get the index of each character.  Then I could compare these for
+        equality.
+    *   Tried this; it appears to work.  I'd rather avoid it, though.
+        Took the changes out.
+
 ### 2019-02-03
 *   Expression Parsing
     *   Spent some time yesterday looking at Nom and Pest.

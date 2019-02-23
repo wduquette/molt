@@ -1,7 +1,5 @@
 use molt::interp::Interp;
-use molt::types::InterpResult;
 use molt::types::ResultCode;
-use molt::molt_ok;
 use std::env;
 use std::fs;
 
@@ -12,21 +10,37 @@ fn main() {
 
     // NEXT, create and initialize the interpreter.
     let mut interp = Interp::new();
-    interp.add_command("ident", cmd_ident);
-    interp.add_command("dump", cmd_dump);
 
-    // NEXT, if there's at least one (other than the binary name), then it's a script.
-    // TODO: capture the remaining arguments and make 'arg0' and 'argv' available.
+    // NEXT, if there's at least one then it's a subcommand.
     if args.len() > 1 {
-        let filename = &args[1];
+        let subcmd: &str = &args[1];
 
-        match fs::read_to_string(filename) {
-            Ok(script) => execute_script(&mut interp, script, &args),
-            Err(e) => println!("{}", e),
+        match subcmd {
+            "shell" => {
+                if args.len() == 2 {
+                    // TODO: should be `molt::shell()`
+                    molt::shell::shell(&mut interp, "% ");
+                } else {
+                    // TODO: capture the remaining arguments and make 'arg0' and 'argv' available.
+                    match fs::read_to_string(&args[2]) {
+                        Ok(script) => execute_script(&mut interp, script, &args),
+                        Err(e) => println!("{}", e),
+                    }
+                }
+            }
+            "test" => {
+                eprintln!("molt test: not yet implemented");
+            }
+            "help" => {
+                eprintln!("molt help: not yet implemented");
+            }
+            _ => {
+                eprintln!("unknown subcommand: \"{}\"", subcmd);
+            }
         }
     } else {
         // Just run the interactive shell.
-        // TODO: should be `molt::shell()`
+        // But really, should run "molt help"
         molt::shell::shell(&mut interp, "% ");
     }
 }
@@ -53,25 +67,4 @@ fn execute_script(interp: &mut Interp, script: String, args: &[&str]) {
             std::process::exit(1);
         }
     }
-}
-
-/// Command used for dev testing.  It's temporary.
-fn cmd_ident(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    molt::check_args(1, argv, 2, 2, "value")?;
-
-    molt_ok!(argv[1])
-}
-
-/// Command used for dev testing.  It's temporary.
-fn cmd_dump(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    molt::check_args(1, argv, 2, 2, "list")?;
-
-    let vec = molt::get_list(&argv[1])?;
-
-    println!("dump list:");
-    for item in vec {
-        println!("item <{}>", item);
-    }
-
-    molt_ok!()
 }

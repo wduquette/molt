@@ -7,7 +7,6 @@ apps.  See "Plans", below.
 
 * Implement expression parser
   * CURRENTLY IN PROGRESS.  See docs/journal.md.
-  * Revise `if` command to use molt_expr_bool()
   * Revise `test` to take a description, like the tcltest command does.
   * Copy the Tcl 7.6 tests, and look for errors.
   * Add tests for "eq", "ne", "in", "ni"

@@ -7,13 +7,14 @@ apps.  See "Plans", below.
 
 * Implement expression parser
   * CURRENTLY IN PROGRESS.  See docs/journal.md.
-  * Implement evaluation for "in" and "ni".
-  * Add tests for "eq", "ne", "in", "ni", variable interpolation, command interpolation,
-    quoted strings, and braced strings.
-  * Add expr to the molt book (if I didn't already)
+  * Add expr to the molt book.  
+    *   Include precedence table.
+  * Remove expr.md
   * Revise `if` command to use molt_expr_bool()
-  * Update expr.md to include all operators (since I put them all in)
-  * Implement math functions.
+  * Revise `test` to take a description, like the tcltest command does.
+  * Copy the Tcl 7.6 tests, and look for errors.
+  * Add tests for "eq", "ne", "in", "ni"
+  * Implement remaining math functions
 * Implement interp evaluation depth checking.
 * Use Interp::complete() in the shell, to build up multiline commands.
 * Implement `error` command

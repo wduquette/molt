@@ -1,6 +1,18 @@
 # Molt Development Journal
 
 ### 2019-02-23 (Saturday)
+*   Current `expr` status:
+    *   "eq", "ne", variables, commands, quoted and braced strings are not
+        tested.
+    *   Parentheses are not tested.
+    *   Precedence is not tested.
+    *   expr_lex() also doesn't handle math functions.  That will be a lot of work, but
+        it should be straightforward at this point.
+    *   floating point/integer error handling isn't yet handled.  There must be a way to
+        trap overflow/underflow, etc. without panicking, but I haven't looked into that
+        in Rust yet.
+        *   For integers: http://huonw.github.io/blog/2016/04/myths-and-legends-about-integer-overflow-in-rust/
+        *   See std:f64.  Provides NAN, INFINITY, etc.
 *   Realized that I'm not handling "no_eval" correctly in the code I added
     on Thursday.  If the parse method uses no_eval, I need to set the context
     to the expression parser's no_eval.
@@ -13,20 +25,9 @@
     *   Does Tcl 7.6 have TclTest?
         *   Checked; it has a precursor, and a bunch of expr tests.  I'll
             want to make use of those.
-*   Current status:
-    *   "in" and "ni" are parsed but not evaluated.
-        *   There's no point until I can handle variables or strings.
-    *   "eq", "ne", variables, commands, quoted and braced strings are not
-        tested.
-    *   Parentheses are not tested.
-    *   Precedence is not tested.
-    *   expr_lex() also doesn't handle math functions.  That will be a lot of work, but
-        it should be straightforward at this point.
-    *   floating point/integer error handling isn't yet handled.  There must be a way to
-        trap overflow/underflow, etc. without panicking, but I haven't looked into that
-        in Rust yet.
-        *   For integers: http://huonw.github.io/blog/2016/04/myths-and-legends-about-integer-overflow-in-rust/
-        *   See std:f64.  Provides NAN, INFINITY, etc.
+*   "in" and "ni" are now evaluated.
+*   Added math funcs abs(), int(), round(), double().
+
 
 ### 2019-02-21 (Thursday)
 *   lappend command

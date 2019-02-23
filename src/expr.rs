@@ -44,7 +44,7 @@ pub fn cmd_expr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
 type ValueResult = Result<Value,ResultCode>;
 
-/// The value type.  Includes the parsed value.
+/// The value type.
 #[derive(Debug,PartialEq,Eq,Copy,Clone)]
 enum Type {
     Int,
@@ -116,6 +116,56 @@ impl Value {
         }
     }
 }
+
+//------------------------------------------------------------------------------------------------
+// Functions
+
+const MAX_MATH_ARGS: usize = 2;
+
+/// The argument type.
+#[derive(Debug,PartialEq,Eq,Copy,Clone)]
+enum ArgType {
+    None,
+    Float, // Must convert to Type::Float
+    Int, // Must convert to Type::Int
+    Number, // Either Type::Int or Type::Float is OK
+}
+
+type MathFunc = fn(args: &[Value; MAX_MATH_ARGS]) -> ValueResult;
+
+struct BuiltinFunc {
+    name: &'static str,
+    num_args: usize,
+    arg_types: [ArgType; MAX_MATH_ARGS],
+    func: MathFunc,
+}
+
+const FUNC_TABLE: [BuiltinFunc;4] = [
+    BuiltinFunc {
+        name: "abs",
+        num_args: 1,
+        arg_types: [ArgType::Number, ArgType::None],
+        func: expr_abs_func,
+    },
+    BuiltinFunc {
+        name: "double",
+        num_args: 1,
+        arg_types: [ArgType::Number, ArgType::None],
+        func: expr_double_func,
+    },
+    BuiltinFunc {
+        name: "int",
+        num_args: 1,
+        arg_types: [ArgType::Number, ArgType::None],
+        func: expr_int_func,
+    },
+    BuiltinFunc {
+        name: "round",
+        num_args: 1,
+        arg_types: [ArgType::Number, ArgType::None],
+        func: expr_round_func,
+    },
+];
 
 //------------------------------------------------------------------------------------------------
 // Parsing Context
@@ -385,8 +435,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             }
             got_op = true;
         } else if info.token != VALUE {
-            println!("info.token={}", info.token);
-            return dbg!(syntax_error(info));
+            return syntax_error(info);
         }
     }
 
@@ -407,7 +456,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             if operator == END || operator == CLOSE_PAREN || operator == COMMA {
                 return Ok(value);
             } else {
-                return dbg!(syntax_error(info));
+                return syntax_error(info);
             }
         }
 
@@ -490,7 +539,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             && info.token != COMMA
             && info.token != CLOSE_PAREN
         {
-            return dbg!(syntax_error(info));
+            return syntax_error(info);
         }
 
         if info.no_eval > 0 {
@@ -1032,6 +1081,8 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
                     str.push(p.next().unwrap());
                 }
 
+                // NOTE: Could use get_boolean to test for the boolean constants, but it's
+                // probably overkill.
                 match str.as_ref() {
                     "true" | "yes" | "on" => {
                         info.expr = p;
@@ -1064,9 +1115,8 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
                         Ok(Value::none())
                     }
                     _ => {
-                        // TODO: check for match funcs!
-                        info.token = UNKNOWN;
-                        Ok(Value::none())
+                        info.expr = p;
+                        expr_math_func(interp, info, &str)
                     }
                 }
             } else {
@@ -1083,6 +1133,100 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             Ok(Value::none())
         }
     }
+}
+
+/// Parses math functions, returning the evaluated value.
+#[allow(clippy::needless_range_loop)]
+fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> ValueResult {
+    // FIRST, is this actually a function?
+    // TODO: this does a linear search of the FUNC_TABLE.  Ultimately, it should probably
+    // be a hash lookup.  And if we want to allow users to add functions, it should be
+    // kept in the Interp.
+    let bfunc = expr_find_func(func_name)?;
+
+    // NEXT, get the open paren.
+    let _ = expr_lex(interp, info)?;
+
+    if info.token != OPEN_PAREN {
+        return syntax_error(info);
+    }
+
+    // NEXT, scan off the arguments for the function, if there are any.
+    let mut args: [Value; MAX_MATH_ARGS] = [Value::none(), Value::none()];
+
+    if bfunc.num_args == 0 {
+        let _ = expr_lex(interp, info)?;
+        if info.token != OPEN_PAREN {
+            return syntax_error(info);
+        }
+    } else {
+        for i in 0..bfunc.num_args {
+            let arg = expr_get_value(interp, info, -1)?;
+
+            // At present we have no string functions.
+            if arg.vtype == Type::String {
+                return molt_err!("argument to math function didn't have numeric value");
+            }
+
+            // Copy the value to the argument record, converting it if necessary.
+            if arg.vtype == Type::Int {
+                if bfunc.arg_types[i] == ArgType::Float {
+                    args[i] = Value::float(arg.int as MoltFloat);
+                } else {
+                    args[i] = arg;
+                }
+            } else {  // Type::Float
+                if bfunc.arg_types[i] == ArgType::Int {
+                    // TODO: Need to handle overflow?
+                    args[i] = Value::int(arg.flt as MoltInt);
+                } else {
+                    args[i] = arg;
+                }
+            }
+
+            // Check for a comma separator between arguments or a close-paren to end
+            // the argument list.
+            if i == bfunc.num_args - 1 {
+                if info.token == CLOSE_PAREN {
+                    break;
+                }
+                if info.token == COMMA {
+                    return molt_err!("too many arguments for math function");
+                } else {
+                    return syntax_error(info);
+                }
+            }
+
+            if info.token != COMMA {
+                if info.token == CLOSE_PAREN {
+                    return molt_err!("too few arguments for math function");
+                } else {
+                    return syntax_error(info);
+                }
+            }
+        }
+    }
+
+    // NEXT, if we aren't evaluating, return an empty value.
+    if info.no_eval > 0 {
+        return Ok(Value::none());
+    }
+
+    // NEXT, invoke the math function.
+    info.token = VALUE;
+    (bfunc.func)(&args)
+}
+
+// Find the function in the table.
+// TODO: Really, functions should be registered with the interpreter.
+fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc,ResultCode> {
+    for bfunc in &FUNC_TABLE {
+        if bfunc.name == func_name {
+            return Ok(bfunc);
+        }
+    }
+
+    molt_err!("unknown math function \"{}\"", func_name)
 }
 
 /// Given a string (such as one coming from command or variable substitution) make a
@@ -1190,6 +1334,57 @@ impl Value {
         }
     }
 }
+
+#[allow(clippy::collapsible_if)]
+fn expr_abs_func(args: &[Value; MAX_MATH_ARGS]) -> ValueResult {
+    let arg = &args[0];
+    if arg.vtype == Type::Float {
+        if arg.flt < 0.0 {
+            Ok(Value::float(-arg.flt))
+        } else {
+            Ok(Value::float(arg.flt))
+        }
+    } else {
+        // TODO: need to handle integer overflow here.
+        if arg.int < 0 {
+            Ok(Value::int(-arg.int))
+        } else {
+            Ok(Value::int(arg.int))
+        }
+    }
+}
+
+fn expr_double_func(args: &[Value; MAX_MATH_ARGS]) -> ValueResult {
+    let arg = &args[0];
+    if arg.vtype == Type::Float {
+        Ok(Value::float(arg.flt))
+    } else {
+        Ok(Value::float(arg.int as MoltFloat))
+    }
+}
+
+fn expr_int_func(args: &[Value; MAX_MATH_ARGS]) -> ValueResult {
+    let arg = &args[0];
+    if arg.vtype == Type::Int {
+        Ok(Value::int(arg.int))
+    } else {
+        // TODO: need to handle integer overflow here.
+        Ok(Value::int(arg.flt as MoltInt))
+    }
+}
+
+fn expr_round_func(args: &[Value; MAX_MATH_ARGS]) -> ValueResult {
+    // TODO: need to handle integer overflow here.
+    let arg = &args[0];
+    if arg.vtype == Type::Int {
+        Ok(Value::int(arg.int))
+    } else if arg.flt < 0.0 {
+        Ok(Value::int((arg.flt - 0.5) as MoltInt))
+    } else {
+        Ok(Value::int((arg.flt + 0.5) as MoltInt))
+    }
+}
+
 
 // Return standard syntax error
 fn syntax_error(info: &mut ExprInfo) -> ValueResult {

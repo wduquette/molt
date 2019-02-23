@@ -4,6 +4,29 @@
 *   Realized that I'm not handling "no_eval" correctly in the code I added
     on Thursday.  If the parse method uses no_eval, I need to set the context
     to the expression parser's no_eval.
+    *   Done, and it works.
+*   Integer/floating point error handling:
+    *   What I'd like to do, I think, is get a hold of the TclTest scripts
+        for `expr` before I spend too much time on the numerics.
+    *   But this means having a reasonably TclTest compatible test tool.
+    *   This applies to a lot of the expr testing, actually.
+    *   Does Tcl 7.6 have TclTest?
+        *   Checked; it has a precursor, and a bunch of expr tests.  I'll
+            want to make use of those.
+*   Current status:
+    *   "in" and "ni" are parsed but not evaluated.
+        *   There's no point until I can handle variables or strings.
+    *   "eq", "ne", variables, commands, quoted and braced strings are not
+        tested.
+    *   Parentheses are not tested.
+    *   Precedence is not tested.
+    *   expr_lex() also doesn't handle math functions.  That will be a lot of work, but
+        it should be straightforward at this point.
+    *   floating point/integer error handling isn't yet handled.  There must be a way to
+        trap overflow/underflow, etc. without panicking, but I haven't looked into that
+        in Rust yet.
+        *   For integers: http://huonw.github.io/blog/2016/04/myths-and-legends-about-integer-overflow-in-rust/
+        *   See std:f64.  Provides NAN, INFINITY, etc.
 
 ### 2019-02-21 (Thursday)
 *   lappend command

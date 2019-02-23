@@ -555,19 +555,15 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 
 
             // For the operators below, everything's treated as a string.
-            STRING_EQ | STRING_NE => {
+            // For IN and NI, the second value is a list, but we'll parse it as a list
+            // as part of evaluation.
+            STRING_EQ | STRING_NE | IN | NI => {
                 if value.vtype != Type::String {
                     value = expr_as_string(value);
                 }
                 if value2.vtype != Type::String {
                     value2 = expr_as_string(value2);
                 }
-            }
-
-            // For the operators below, value is a string and value2 is a list.
-            IN | NI => {
-                // TODO
-                return molt_err!("not yet implemented: in, ni operators");
             }
 
             // For the operators below, no strings are allowed, but no int->float conversions
@@ -735,6 +731,22 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     Value::int(1)
                 } else {
                     Value::int(0)
+                };
+            }
+            IN => {
+                let list = get_list(&value2.str)?;
+                value = if list.contains(&value.str) {
+                    Value::int(1)
+                } else {
+                    Value::int(0)
+                };
+            }
+            NI => {
+                let list = get_list(&value2.str)?;
+                value = if list.contains(&value.str) {
+                    Value::int(0)
+                } else {
+                    Value::int(1)
                 };
             }
             BIT_AND => {

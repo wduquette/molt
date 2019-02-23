@@ -22,7 +22,6 @@ fn main() {
                     println!("Molt {}", env!("CARGO_PKG_VERSION"));
                     molt::shell::shell(&mut interp, "% ");
                 } else {
-                    // TODO: capture the remaining arguments and make 'arg0' and 'argv' available.
                     match fs::read_to_string(&args[2]) {
                         Ok(script) => execute_script(&mut interp, script, &args),
                         Err(e) => println!("{}", e),
@@ -45,9 +44,9 @@ fn main() {
 }
 
 fn execute_script(interp: &mut Interp, script: String, args: &[&str]) {
-    let arg0 = &args[1];
-    let argv = if args.len() > 2 {
-        molt::list_to_string(&args[2..])
+    let arg0 = &args[2];
+    let argv = if args.len() > 3 {
+        molt::list_to_string(&args[3..])
     } else {
         String::new()
     };

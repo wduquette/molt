@@ -2,6 +2,8 @@
 //!
 //! This module defines the standard Molt commands.
 
+use crate::expr::molt_expr_string;
+use crate::expr::molt_expr_bool;
 use crate::interp::Interp;
 use crate::types::*;
 use crate::*;
@@ -77,6 +79,20 @@ pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     };
 
     std::process::exit(return_code as i32)
+}
+
+/// # expr expr
+///
+/// Evaluates an expression and returns its result.
+///
+/// ## TCL Liens
+///
+/// See the Molt Book.
+
+pub fn cmd_expr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 2, 2, "expr")?;
+
+    molt_expr_string(interp, argv[1])
 }
 
 /// # foreach *varList* *list* *body*
@@ -163,8 +179,7 @@ pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     while argi < argv.len() {
         match wants {
             IfWants::Expr => {
-                let cond_result = interp.eval(argv[argi])?;
-                wants = if get_boolean(&cond_result)? {
+                wants = if molt_expr_bool(interp, argv[argi])? {
                     IfWants::ThenBody
                 } else {
                     IfWants::SkipThenClause

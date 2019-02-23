@@ -6,8 +6,7 @@
         tested.
     *   Parentheses are not tested.
     *   Precedence is not tested.
-    *   expr_lex() also doesn't handle math functions.  That will be a lot of work, but
-        it should be straightforward at this point.
+    *   Not all of the math functions are handled.
     *   floating point/integer error handling isn't yet handled.  There must be a way to
         trap overflow/underflow, etc. without panicking, but I haven't looked into that
         in Rust yet.
@@ -27,6 +26,8 @@
             want to make use of those.
 *   "in" and "ni" are now evaluated.
 *   Added math funcs abs(), int(), round(), double().
+*   Merged the expr-parser branch.
+*   Added `expr` to the Molt Book.
 
 
 ### 2019-02-21 (Thursday)

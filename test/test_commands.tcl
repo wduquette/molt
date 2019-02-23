@@ -184,25 +184,24 @@ test if-1.1 {
 } -error {wrong # args: no expression after "if" argument}
 
 test if-1.2 {
-    if {set x 1}
-} -error {wrong # args: no script following after "set x 1" argument}
+    if {true}
+} -error {wrong # args: no script following after "true" argument}
 
 test if-1.3 {
-    if {set x 1} then
+    if {true} then
 } -error {wrong # args: no script following after "then" argument}
 
 test if-1.4 {
-    if {set x 0} script else
+    if {false} script else
 } -error {wrong # args: no script following after "else" argument}
 
 test if-1.5 {
-    if {set x 0} script elseif
+    if {false} script elseif
 } -error {wrong # args: no expression after "elseif" argument}
 
 # Full syntax, true
 test if-2.1 {
-    # TODO: Fix when we have expressions
-    if {set x 1} then {
+    if {true} then {
         set a "then"
     } else {
         set a "else"
@@ -212,8 +211,7 @@ test if-2.1 {
 
 # Minimal syntax, true
 test if-2.2 {
-    # TODO: Fix when we have expressions
-    if {set x 1} {
+    if {true} {
         set a "then"
     } {
         set a "else"
@@ -223,9 +221,8 @@ test if-2.2 {
 
 # No else, true
 test if-2.3 {
-    # TODO: Fix when we have expressions
     set a "before"
-    if {set x 1} {
+    if {true} {
         set a "then"
     }
     set a
@@ -233,8 +230,7 @@ test if-2.3 {
 
 # Full syntax, false
 test if-2.4 {
-    # TODO: Fix when we have expressions
-    if {set x 0} then {
+    if {false} then {
         set a "then"
     } else {
         set a "else"
@@ -244,8 +240,7 @@ test if-2.4 {
 
 # Minimal syntax, false
 test if-2.5 {
-    # TODO: Fix when we have expressions
-    if {set x 0} {
+    if {false} {
         set a "then"
     } {
         set a "else"
@@ -255,9 +250,8 @@ test if-2.5 {
 
 # No else, false
 test if-2.6 {
-    # TODO: Fix when we have expressions
     set a "before"
-    if {set x 0} {
+    if {false} {
         set a "then"
     }
     set a
@@ -265,18 +259,17 @@ test if-2.6 {
 
 # Returns value
 test if-3.1 {
-    # TODO: Fix when we have expressions
-    set a [if {set x 1} { set result "then" }]
-    set b [if {set x 0} { set result "then" }]
-    set c [if {set x 1} { set result "then" } { set result "else"}]
-    set d [if {set x 0} { set result "then" } { set result "else"}]
+    set a [if {true} { set result "then" }]
+    set b [if {false} { set result "then" }]
+    set c [if {true} { set result "then" } { set result "else"}]
+    set d [if {false} { set result "then" } { set result "else"}]
     list $a $b $c $d
 } -ok {then {} then else}
 
 # Handles return properly, true
 test if-4.1 {
     proc doit {x} {
-        if {set x} {
+        if {$x} {
             return "then"
         } else {
             return "else"

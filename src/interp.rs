@@ -3,7 +3,6 @@ use crate::list::list_to_string;
 use crate::list::get_list;
 use crate::commands;
 use crate::context::Context;
-use crate::expr;
 use crate::molt_ok;
 use crate::molt_err;
 use crate::var_stack::VarStack;
@@ -46,7 +45,7 @@ impl Interp {
         interp.add_command("break", commands::cmd_break);
         interp.add_command("continue", commands::cmd_continue);
         interp.add_command("exit", commands::cmd_exit);
-        interp.add_command("expr", expr::cmd_expr);
+        interp.add_command("expr", commands::cmd_expr);
         interp.add_command("foreach", commands::cmd_foreach);
         interp.add_command("global", commands::cmd_global);
         interp.add_command("if", commands::cmd_if);

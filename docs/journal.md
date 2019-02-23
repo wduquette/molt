@@ -28,7 +28,9 @@
 *   Added math funcs abs(), int(), round(), double().
 *   Merged the expr-parser branch.
 *   Added `expr` to the Molt Book.
-
+*   Added "molt shell", "molt test".
+    *   "molt test" is the test harness, and accumulates test results.
+*   Added a "description" field to the `test` command.
 
 ### 2019-02-21 (Thursday)
 *   lappend command

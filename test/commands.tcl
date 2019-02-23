@@ -4,29 +4,6 @@
 # what we have.
 
 #-------------------------------------------------------------------------
-# append
-
-test append-1.1 {append command} {
-    append
-} -error {wrong # args: should be "append varName ?value ...?"}
-
-test append-2.1 {append command} {
-    unset x
-    append x
-} -ok {}
-
-test append-2.2 {append command} {
-    unset x
-    append x a b c
-} -ok {abc}
-
-test append-2.3 {append command} {
-    unset x
-    append x a b c
-    append x d e f
-} -ok {abcdef}
-
-#-------------------------------------------------------------------------
 # assert_eq
 
 test assert_eq-1.1 {assert_eq errors} {

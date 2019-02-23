@@ -13,7 +13,7 @@ use crate::*;
 /// Appends any number of values to a variable's value, which need not
 /// initially exist.
 pub fn cmd_append(interp: &mut Interp, argv: &[&str]) -> InterpResult {
-    check_args(1, argv, 2, 0, "varName ?value ...?")?;
+    check_args(1, argv, 2, 0, "varName ?value value ...?")?;
 
     let var_result = interp.get_var(argv[1]);
 

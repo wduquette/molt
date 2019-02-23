@@ -6,7 +6,9 @@ apps.  See "Plans", below.
 ## TODO Items
 
 * Add "molt test" test harness.
-  * Revise `test` to take a description, like the tcltest command does.
+  * Add `catch`
+  * Add `error`
+  * Add `source` 
   * Copy the Tcl 7.6 tests, and look for errors.
 * Test expression parser thoroughly
   * Add tests for "eq", "ne", "in", "ni"

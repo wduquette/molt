@@ -13,72 +13,72 @@ proc lexpr {args} {
 
 # expr-1.*: Literals
 
-test expr-1.1 {
+test expr-1.1 {literals} {
     lexpr {1} {-1} {+1}
 } -ok {1 -1 1}
 
-test expr-1.2 {
+test expr-1.2 {literals} {
     lexpr {1.1} {-1.1} {+1.1} {1.1e3} {-1.1e3} {1.1e-3}
 } -ok {1.1 -1.1 1.1 1100 -1100 0.0011}
 
-test expr-1.3 {
+test expr-1.3 {literals} {
     lexpr {1.0} {-1.0} {+1.0}
     # In Tcl, would be "1.0", etc.
     # TODO: Look into floating point compatibility with TCL.
 } -ok {1 -1 1}
 
-test expr-1.4 {
+test expr-1.4 {literals} {
    lexpr true yes on false no off
    # TCL, would return the symbolic constants in this case.
 } -ok {1 1 1 0 0 0}
 
 # expr-2.*: arithmetic
 
-test expr-2.1 {
+test expr-2.1 {arithmetic} {
     lexpr {1 + 2} {3 + 2} {3 + 0}
 } -ok {3 5 3}
 
-test expr-2.2 {
+test expr-2.2 {arithmetic} {
     lexpr {3 - 1} {1 - 3} {3 - 0}
 } -ok {2 -2 3}
 
-test expr-2.3 {
+test expr-2.3 {arithmetic} {
     lexpr {2 * 3} {0 * 2} {2 * 0}
 } -ok {6 0 0}
 
-test expr-2.4 {
+test expr-2.4 {arithmetic} {
     lexpr {4 / 2} {5 / 2} {6 / 2}
 } -ok {2 2 3}
 
-test expr-2.5 {
+test expr-2.5 {arithmetic} {
     expr {2 / 0}
 } -error {divide by zero}
 
-test expr-2.6 {
+test expr-2.6 {arithmetic} {
     lexpr {1 % 4} {3 % 4} {5 % 3}
 } -ok {1 3 2}
 
-test expr-2.7 {
+test expr-2.7 {arithmetic} {
     lexpr {1.1 + 2} {3 + 2.1} {3 + 1.0}
 } -ok {3.1 5.1 4}
 
-test expr-2.8 {
+test expr-2.8 {arithmetic} {
     lexpr {3.1 - 1} {1.1 - 3} {3.1 - 0}
 } -ok {2.1 -1.9 3.1}
 
-test expr-2.9 {
+test expr-2.9 {arithmetic} {
     lexpr {2.5 * 3} {0.0 * 2} {2.0 * 0}
 } -ok {7.5 0 0}
 
-test expr-2.10 {
+test expr-2.10 {arithmetic} {
     lexpr {4.0 / 2} {5 / 2.0} {6.2 / 2}
 } -ok {2 2.5 3.1}
 
-test expr-2.11 {
+test expr-2.11 {arithmetic} {
     expr {2.1 / 0.0}
 } -error {divide by zero}
 
-test expr-2.12 {
+test expr-2.12 {arithmetic} {
     expr {2.2 % 0.0}
 } -error {can't use floating-point value as operand of "%"}
 
@@ -95,11 +95,11 @@ proc bflag {flag} {
     return $flag
 }
 
-test expr-3.1 {
+test expr-3.1 {logical} {
     lexpr {1 && 1} {1 && 0} {0 && 1} {0 && 0}
 } -ok {1 0 0 0}
 
-test expr-3.2 {
+test expr-3.2 {logical} {
     set a ""
     set b ""
     # bflag should not execute.
@@ -107,11 +107,11 @@ test expr-3.2 {
     list $result $a $b
 } -ok {0 A {}}
 
-test expr-3.3 {
+test expr-3.3 {logical} {
     lexpr {1 || 1} {1 || 0} {0 || 1} {0 || 0}
 } -ok {1 1 1 0}
 
-test expr-3.4 {
+test expr-3.4 {logical} {
     set a ""
     set b ""
     # bflag should not execute.
@@ -119,73 +119,73 @@ test expr-3.4 {
     list $result $a $b
 } -ok {1 A {}}
 
-test expr-3.5 {
+test expr-3.5 {logical} {
     lexpr {!1} {!0}
 } -ok {0 1}
 
-test expr-3.6 {
+test expr-3.6 {logical} {
     lexpr {1.1 && 1.1} {1.1 && 0.0} {0.0 && 1.1} {0.0 && 0.0}
 } -ok {1 0 0 0}
 
-test expr-3.7 {
+test expr-3.7 {logical} {
     lexpr {1.1 || 1.1} {1.1 || 0.0} {0.0 || 1.1} {0.0 || 0.0}
 } -ok {1 1 1 0}
 
-test expr-3.8 {
+test expr-3.8 {logical} {
     lexpr {!1.1} {!0.0}
 } -ok {0 1}
 
-test expr-3.9 {
+test expr-3.9 {logical} {
     lexpr {true && true} {true && false} {true || false}
 } -ok {1 0 1}
 
 # expr-4.*: Comparisons
 
-test expr-4.1 {
+test expr-4.1 {comparisons} {
     lexpr {0 == 0} {1 == 0} {0 == 1}
 } -ok {1 0 0}
 
-test expr-4.2 {
+test expr-4.2 {comparisons} {
     lexpr {0 != 0} {1 != 0} {0 != 1}
 } -ok {0 1 1}
 
-test expr-4.3 {
+test expr-4.3 {comparisons} {
     lexpr {0 < 1} {1 < 1} {2 < 1}
 } -ok {1 0 0}
 
-test expr-4.4 {
+test expr-4.4 {comparisons} {
     lexpr {0 <= 1} {1 <= 1} {2 <= 1}
 } -ok {1 1 0}
 
-test expr-4.5 {
+test expr-4.5 {comparisons} {
     lexpr {0 > 1} {1 > 1} {2 > 1}
 } -ok {0 0 1}
 
-test expr-4.6 {
+test expr-4.6 {comparisons} {
     lexpr {0 >= 1} {1 >= 1} {2 >= 1}
 } -ok {0 1 1}
 
-test expr-4.7 {
+test expr-4.7 {comparisons} {
     lexpr {1.1 == 1.1} {1.1 != 1.1} {1.1 < 1.1} {1.1 <= 1.1} {1.1 > 1.1} {1.1 >= 1.1}
 } -ok {1 0 0 1 0 1}
 
 # expr-5.*: bitwise operators
 
-test expr-5.1 {
+test expr-5.1 {bit-wise} {
     lexpr {1 & 2} {2 & 2} {3 & 2}
 } -ok {0 2 2}
 
-test expr-5.2 {
+test expr-5.2 {bit-wise} {
     lexpr {1 | 2} {2 | 2} {3 | 2}
 } -ok {3 2 3}
 
-test expr-5.3 {
+test expr-5.3 {bit-wise} {
     lexpr {~1} {~0}
 } -ok {-2 -1}
 
 # expr-6.*: ?: operator
 
-test expr-6.1 {
+test expr-6.1 {questy} {
     lexpr {1 ? 2 : 3} {0 ? 2 : 3}
 } -ok {2 3}
 
@@ -201,7 +201,7 @@ proc b {} {
     return 2
 }
 
-test expr-6.2 {
+test expr-6.2 {questy} {
     set a 0
     set b 0
     set result [expr {0 ? [a] : [b]}]
@@ -211,7 +211,7 @@ test expr-6.2 {
     list $result $a $b
 } -ok {2 0 2}
 
-test expr-6.3 {
+test expr-6.3 {questy} {
     set a 0
     set b 0
     set result [expr {1 ? [a] : [b]}]

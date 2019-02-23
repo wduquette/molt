@@ -90,13 +90,14 @@ impl TestCommand {
 
 impl Command for TestCommand {
     fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
-        check_args(1, argv, 5, 5, "name script -ok|-error result")?;
+        check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
 
         // FIRST, get the arguments
         let name = argv[1];
-        let script = argv[2];
-        let code = argv[3];
-        let output = argv[4];
+        let description = argv[2];
+        let script = argv[3];
+        let code = argv[4];
+        let output = argv[5];
 
         if code != "-ok" && code != "-error" {
             return molt_err!("unknown option: \"{}\"", code);
@@ -115,7 +116,7 @@ impl Command for TestCommand {
                     ctx.num_passed += 1;
                 } else {
                     ctx.num_failed += 1;
-                    println!("\n*** test {} FAILED.", name);
+                    println!("\n*** FAILED {} {}", name, description);
                     println!("Expected <{}>", output);
                     println!("Received <{}>", out);
                 }
@@ -126,7 +127,7 @@ impl Command for TestCommand {
                     ctx.num_passed += 1;
                 } else {
                     ctx.num_failed += 1;
-                    println!("\n*** test {} FAILED.", name);
+                    println!("\n*** FAILED {} {}", name, description);
                     println!("Expected <{}>", output);
                     println!("Received <{}>", out);
                 }

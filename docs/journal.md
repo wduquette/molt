@@ -1,5 +1,19 @@
 # Molt Development Journal
 
+### 2019-02-24 (Sunday)
+*   The `source` command.
+    *   Checked the TCL docs and wrote a couple of test scripts.
+    *   `source` does not change the current working directory in any way.
+    *   `source` reads up to the first ^Z, allowing for scripted documents.
+*   As a result:
+    *   "molt test" needs to document that it changes the CWD to the
+        folder containing the test script being executed.
+    *   The Molt Book needs to document these differences.
+    *   DONE.
+*   Wrote the first chapter of the Molt Book, and updated the command line
+    section.
+*   Simplified the molt/README.md, and references the Molt Book.
+
 ### 2019-02-23 (Saturday)
 *   Current `expr` status:
     *   "eq", "ne", variables, commands, quoted and braced strings are not

@@ -1,7 +1,8 @@
 # Molt -- More Or Less TCL
 
 The general notion is to build a minimal version of TCL for embedding in Rust
-apps.  See "Plans", below.
+apps.  See [The Molt Book](https://github.com/wduquette/molt-book) for details
+and user documentation.
 
 ## TODO Items
 
@@ -37,77 +38,6 @@ apps.  See "Plans", below.
 * Implement stack traces
   * Need not mimic TCL's output.
 
-## Plans
-
-The goal is to produce a command language using basic TCL syntax
-(e.g., commands, strings, and variable and command interpolation) that is
-embeddable in Rust applications and extensible in Rust.  It will include
-a "molt" application that provides script execution and an interactive
-shell, but this is intended as an example and development aid, rather than
-as a tool be used on its own. (Famous last words....)
-
-### Initial Goals:
-
-* Embedding, script execution, and an interactive shell.
-* Basic parsing, as in TCL 7.6.
-* Support for lists and dicts
-* A smattering of basic commands
-* Procs
-* Expression parsing.
-* A simple tcltest equivalent.
-* Pay for what you need
-  * I.e. don't require large regex, etc., libraries for all clients.
-* Configurable command sets
-  * The embedding API should allow the client to easily control the set of
-    commands included in an interpreter.  For example, a game engine might
-    want to exclude `proc`, `source`, `eval`, etc.
-* Stack traces
-
-### Excluded Features
-
-The following features of modern TCL are currently off of the table:
-
-* Abbreviated names
-  * TCL will attempt to match partial names of commands and subcommands,
-    as a convenience for interactive use.  Molt does not.
-* Namespaces
-* Traces
-* Slave interpreters
-* The majority of standard TCL commands.
-* Byte-compiling
-
-Ultimately I'll want to add something like byte-compilation for speed; but
-I want to have a test suite in place first.
-
-### Current Status
-
-* The basic parser is in place, but has not been fully tested or
-  optimized for speed.
-
-The following commands have been implemented:
-
-* `append`
-* `break`
-* `continue`
-* `exit`
-* `expr` (see liens in man page)
-* `global`
-* `if`
-* `info commands` (without pattern matching)
-* `info complete`
-* `info vars` (without pattern matching)
-* `join`  
-* `lappend`
-* `lindex`
-* `list`
-* `llength`
-* `proc`
-* `puts` (partially; there's no support for output channels or -nonewline)
-* `return` (partially; supports only normal returns)
-* `source` (in progress)
-* `set`
-* `unset`
-
 The following commands need to get implemented next.
 
 * catch
@@ -118,60 +48,23 @@ The following commands need to get implemented next.
 * upvar
 * while
 
-### Specific Differences from TCL
+The following commands are not implemented by Molt at the present time,
+but most will probably be added eventually.
 
-The following are specific differences from TCL 8 not explicitly stated
-above:
-
-* Integer literals beginning with "0" are NOT assumed to be octal.
-  Nor will they ever be.
-* The encoding is currently always UTF-8.
-* In `$name`, the name may include underscores and any character that
-  Rust considers to be alphanumeric.
-
-The following commands are not implemented by Molt at the present time:
-
-* after
-* apply
 * array
-* auto_execok
-* auto_import
-* auto_load
-* auto_load_index
-* auto_qualify
-* binary
-* case
 * catch
 * cd
-* chan
-* clock
-* close
 * concat
-* coroutine
 * dict
-* encoding
-* eof
 * error
 * eval
-* exec
-* fblocked
-* fconfigure
-* fcopy
-* file
-* fileevent
-* flush
 * for
 * format
-* gets
-* glob
-* history
 * incr
 * info * (most subcommands)
-* interp
 * lassign
 * linsert
 * lmap
-* load
 * lrange
 * lrepeat
 * lreplace
@@ -179,37 +72,17 @@ The following commands are not implemented by Molt at the present time:
 * lsearch
 * lset
 * lsort
-* namespace
-* open
-* package
-* pid
 * pwd
-* read
 * regexp
 * regsub
 * rename
-* scan
-* seek
-* socket
 * split
 * string
 * subst
 * switch
-* tailcall
-* tclLog
-* tell
 * throw
 * time
-* trace
 * try
-* unknown
-* unload
-* update
 * uplevel
 * upvar
-* variable
-* vwait
 * while
-* yield
-* yieldto
-* zlib

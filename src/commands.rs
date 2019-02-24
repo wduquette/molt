@@ -56,6 +56,46 @@ pub fn cmd_break(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     Err(ResultCode::Break)
 }
 
+/// catch script ?resultVarName?
+///
+/// Executes a script, returning the result code.  If the resultVarName is given, the result
+/// of executing the script is returned in it.  The result code is returned as an integer,
+/// 0=Ok, 1=Error, 2=Return, 3=Break, 4=Continue.
+pub fn cmd_catch(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 2, 3, "script ?resultVarName")?;
+
+    let result = interp.eval_body(argv[1]);
+    let code: MoltInt;
+    let mut value = String::new();
+
+    match result {
+        Ok(val) => {
+            code = 0;
+            value = val;
+        }
+        Err(ResultCode::Error(val)) => {
+            code = 1;
+            value = val;
+        }
+        Err(ResultCode::Return(val)) => {
+            code = 2;
+            value = val;
+        }
+        Err(ResultCode::Break) => {
+            code = 3;
+        }
+        Err(ResultCode::Continue) => {
+            code = 4;
+        }
+    }
+
+    if argv.len() == 3 {
+        interp.set_var(argv[2], &value);
+    }
+
+    Ok(code.to_string())
+}
+
 /// # continue
 ///
 /// Continues with the next iteration of the inmost loop.

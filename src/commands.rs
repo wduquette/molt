@@ -7,6 +7,7 @@ use crate::expr::molt_expr_bool;
 use crate::interp::Interp;
 use crate::types::*;
 use crate::*;
+use std::fs;
 
 /// # append *varName* ?*value* ...?
 ///
@@ -453,6 +454,18 @@ pub fn cmd_set(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     }
 
     molt_ok!(value)
+}
+
+/// # source *filename*
+///
+/// Sources the file, returning the result.
+pub fn cmd_source(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 2, 2, "filename")?;
+
+    match fs::read_to_string(argv[1]) {
+        Ok(script) => interp.eval(&script),
+        Err(e) => molt_err!("couldn't read file \"{}\": {}", argv[1], e),
+    }
 }
 
 /// # unset *varName*

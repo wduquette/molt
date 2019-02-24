@@ -31,6 +31,13 @@
 *   Added "molt shell", "molt test".
     *   "molt test" is the test harness, and accumulates test results.
 *   Added a "description" field to the `test` command.
+*   Add "source" command.
+*   Added test/all.tcl, to run all of the test scripts.
+    *   Apparently have some cross-talk between test/commands.tcl and test/expr.tcl
+        *   We get some test failures if we run the expr.tcl tests after the commands.tcl
+            tests.
+    *   Updated test_harness.rs to set the current working directory to the file's directory
+        when sourcing the test script, so that source commands will work right.
 
 ### 2019-02-21 (Thursday)
 *   lappend command

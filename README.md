@@ -6,27 +6,22 @@ apps.  See "Plans", below.
 ## TODO Items
 
 * Add "molt test" test harness.
+  * Fix `source` so that the CWD is set to the source'd file's folder during evaluation, and reset
+    after.
+  * Improve the `test` harness
+    * Need ability to set up, clean up.
   * Add `catch`
   * Add `error`
-  * Add `source` 
   * Copy the Tcl 7.6 tests, and look for errors.
 * Test expression parser thoroughly
   * Add tests for "eq", "ne", "in", "ni"
   * Implement remaining math functions
 * Implement interp evaluation depth checking.
 * Use Interp::complete() in the shell, to build up multiline commands.
-* Implement `error` command
 * Continue to add commands from the "next" list, below.
 * Flesh out Rust tests and Rust API docs in the code base.
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
-* Improve the `test` harness for the TCL command test suite.
-  * Need ability to clean up.
-  * Support test flags, so that tests can be excluded.
-  * Support accumulating test results, so that the logs can be short.
-  * Implementing "molt test" as part of the molt app,
-    alongside "molt shell".
-    *   Would provide the `test` command, as well as the overall harness.
 * Turn molt into a multi-crate project.
   * The base language crate, `molt`
   * The application crate, `molt-app`
@@ -36,9 +31,6 @@ apps.  See "Plans", below.
 * Make molt::get_int() parse the same varieties as Tcl_GetInt() does.
 * On-going:
     * Document Molt's TCL dialect using mdbook, and publish to GitHub pages.
-* Consider adding an "object" command that defines a simple object
-  containing a dictionary:
-  * `$obj set var ?value?`
 * Consider generalizing the Subcommand array mechanism; standard command sets
   can be defined the same way, and loaded into the interpreter on creation.
   * A binary extension is just a crate that can so initialize the interp.
@@ -64,7 +56,7 @@ as a tool be used on its own. (Famous last words....)
 * Expression parsing.
 * A simple tcltest equivalent.
 * Pay for what you need
-  * I.e. don't require large regex, etc., libraries of all clients.
+  * I.e. don't require large regex, etc., libraries for all clients.
 * Configurable command sets
   * The embedding API should allow the client to easily control the set of
     commands included in an interpreter.  For example, a game engine might
@@ -98,9 +90,9 @@ The following commands have been implemented:
 * `break`
 * `continue`
 * `exit`
-* `expr` (implementation in progress)
+* `expr` (see liens in man page)
 * `global`
-* `if` (using scripts instead of expressions)
+* `if`
 * `info commands` (without pattern matching)
 * `info complete`
 * `info vars` (without pattern matching)
@@ -112,17 +104,17 @@ The following commands have been implemented:
 * `proc`
 * `puts` (partially; there's no support for output channels or -nonewline)
 * `return` (partially; supports only normal returns)
+* `source` (in progress)
 * `set`
 * `unset`
 
 The following commands need to get implemented next.
 
+* catch
 * error
 * for
 * info level
-* info vars (without glob matching)
 * info commands (without glob matching)
-* source
 * upvar
 * while
 
@@ -173,7 +165,6 @@ The following commands are not implemented by Molt at the present time:
 * gets
 * glob
 * history
-* if
 * incr
 * info * (most subcommands)
 * interp
@@ -200,7 +191,6 @@ The following commands are not implemented by Molt at the present time:
 * scan
 * seek
 * socket
-* source
 * split
 * string
 * subst

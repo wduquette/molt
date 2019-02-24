@@ -58,6 +58,7 @@ impl Interp {
         interp.add_command("proc", commands::cmd_proc);
         interp.add_command("puts", commands::cmd_puts);
         interp.add_command("return", commands::cmd_return);
+        interp.add_command("source", commands::cmd_source);
         interp.add_command("set", commands::cmd_set);
         interp.add_command("unset", commands::cmd_unset);
         interp

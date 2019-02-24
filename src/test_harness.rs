@@ -6,6 +6,8 @@ use crate::interp::Interp;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::fs;
+use std::path::PathBuf;
+use std::env;
 
 /// Executes the Molt test harness, given the arguments.
 ///
@@ -14,13 +16,15 @@ pub fn test_harness(interp: &mut Interp, args: &[&str]) {
     // FIRST, announce who we are.
     println!("Molt {} -- Test Harness", env!("CARGO_PKG_VERSION"));
 
-    // NEXT, get the script
+    // NEXT, get the script file name
     if args.is_empty() {
         eprintln!("missing test script");
         return;
     }
 
-    let file_name = args[0];
+    // TODO: probably want eval_file to do this automatically, and use it in "source"
+    let path = PathBuf::from(args[0]);
+    let parent = path.parent();
 
     // NEXT, initialize the test result.
     let context = Rc::new(RefCell::new(TestContext::new()));
@@ -29,8 +33,11 @@ pub fn test_harness(interp: &mut Interp, args: &[&str]) {
     interp.add_command_obj("test", Rc::new(TestCommand::new(&context)));
 
     // NEXT, execute the script.
-    match fs::read_to_string(file_name) {
+    match fs::read_to_string(args[0]) {
         Ok(script) => {
+            if parent.is_some() {
+                let _ = env::set_current_dir(parent.unwrap());
+            }
             match interp.eval(&script) {
                 Ok(_) => (),
                 Err(ResultCode::Error(msg)) => {

@@ -22,23 +22,19 @@ test assert_eq-2.2 {assert_eq command} {
 # break
 #
 # This will be tested in the context of each kind of loop.
-#
-# TODO: test return value with "catch" when that's available.
 
-test break-1.1 {break errors} {
+test break-1.1 {break command} {
     break
-} -error {invoked "break" outside of a loop}
+} -break {}
 
 #-------------------------------------------------------------------------
 # continue
 #
 # This will be tested in the context of each kind of loop.
-#
-# TODO: test return value with "catch" when that's available.
 
-test continue-1.1 {continue errors} {
+test continue-1.1 {continue command} {
     continue
-} -error {invoked "continue" outside of a loop}
+} -continue {}
 
 #-------------------------------------------------------------------------
 # exit

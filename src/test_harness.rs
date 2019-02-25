@@ -106,8 +106,15 @@ impl Command for TestCommand {
         let code = argv[4];
         let output = argv[5];
 
-        if code != "-ok" && code != "-error" {
+
+        if !(code == "-ok" || code == "-error" || code == "-return" || code == "-break" ||
+            code == "-continue")
+        {
             return molt_err!("unknown option: \"{}\"", code);
+        }
+
+        if (code == "-break" || code == "-continue") && !output.is_empty() {
+            return molt_err!("non-empty result with {}", code);
         }
 
         // NEXT, get the test context
@@ -116,7 +123,7 @@ impl Command for TestCommand {
         // NEXT, here's a test.
         ctx.num_tests += 1;
 
-        match interp.eval(script) {
+        match interp.eval_body(script) {
             Ok(out) => {
                 if code == "-ok" && out == output {
                     // println!("*** test {} passed.", name);
@@ -124,8 +131,8 @@ impl Command for TestCommand {
                 } else {
                     ctx.num_failed += 1;
                     println!("\n*** FAILED {} {}", name, description);
-                    println!("Expected <{}>", output);
-                    println!("Received <{}>", out);
+                    println!("Expected {} {{{}}}", code, output);
+                    println!("Received -ok {{{}}}>", out);
                 }
             }
             Err(ResultCode::Error(out)) => {
@@ -135,13 +142,42 @@ impl Command for TestCommand {
                 } else {
                     ctx.num_failed += 1;
                     println!("\n*** FAILED {} {}", name, description);
-                    println!("Expected <{}>", output);
-                    println!("Received <{}>", out);
+                    println!("Expected {} {{{}}}", code, output);
+                    println!("Received -ok {{{}}}>", out);
                 }
             }
-            Err(result) => {
-                ctx.num_errors += 1;
-                println!("test {} failed, unexpected result:\n{:?}", name, result);
+            Err(ResultCode::Return(out)) => {
+                if code == "-return" && out == output {
+                    // println!("*** test {} passed.", name);
+                    ctx.num_passed += 1;
+                } else {
+                    ctx.num_failed += 1;
+                    println!("\n*** FAILED {} {}", name, description);
+                    println!("Expected {} {{{}}}", code, output);
+                    println!("Received -return {{{}}}>", out);
+                }
+            }
+            Err(ResultCode::Break) => {
+                if code == "-break" {
+                    // println!("*** test {} passed.", name);
+                    ctx.num_passed += 1;
+                } else {
+                    ctx.num_failed += 1;
+                    println!("\n*** FAILED {} {}", name, description);
+                    println!("Expected {} {{{}}}", code, output);
+                    println!("Received -break {{}}>");
+                }
+            }
+            Err(ResultCode::Continue) => {
+                if code == "-continue" {
+                    // println!("*** test {} passed.", name);
+                    ctx.num_passed += 1;
+                } else {
+                    ctx.num_failed += 1;
+                    println!("\n*** FAILED {} {}", name, description);
+                    println!("Expected {} {{{}}}", code, output);
+                    println!("Received -continue {{}}>");
+                }
             }
         }
 

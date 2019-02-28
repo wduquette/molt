@@ -4,52 +4,6 @@
 # what we have.
 
 #-------------------------------------------------------------------------
-# assert_eq
-
-test assert_eq-1.1 {assert_eq errors} {
-    assert_eq
-} -error {wrong # args: should be "assert_eq received expected"}
-
-test assert_eq-2.1 {assert_eq command} {
-    assert_eq a a
-} -ok {}
-
-test assert_eq-2.2 {assert_eq command} {
-    assert_eq a b
-} -error {assertion failed: received "a", expected "b".}
-
-#-------------------------------------------------------------------------
-# break
-#
-# This will be tested in the context of each kind of loop.
-
-test break-1.1 {break command} {
-    break
-} -break {}
-
-#-------------------------------------------------------------------------
-# continue
-#
-# This will be tested in the context of each kind of loop.
-
-test continue-1.1 {continue command} {
-    continue
-} -continue {}
-
-#-------------------------------------------------------------------------
-# exit
-#
-# Test error cases only, since success would terminate the app.
-
-test exit-1.1 {exit errors} {
-    exit foo
-} -error {expected integer but got "foo"}
-
-test exit-1.2 {exit errors} {
-    exit foo bar
-} -error {wrong # args: should be "exit ?returnCode?"}
-
-#-------------------------------------------------------------------------
 # foreach
 
 test foreach-1.1 {foreach errors} {

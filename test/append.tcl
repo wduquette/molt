@@ -22,11 +22,10 @@ test append-1.4 {append command} {
 } -ok {}
 
 # Need for loop
-if 0 {
 test append-2.1 {long appends} {
     set x ""
     for {set i 0} {$i < 1000} {set i [expr $i+1]} {
-	append x "foobar "
+	    append x "foobar "
     }
     set y "foobar"
     set y "$y $y $y $y $y $y $y $y $y $y"
@@ -34,7 +33,6 @@ test append-2.1 {long appends} {
     set y "$y $y $y $y $y $y $y $y $y $y "
     expr {$x eq $y}
 } -ok 1
-}
 
 test append-3.1 {append errors} {
    append

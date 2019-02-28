@@ -1,5 +1,8 @@
 # Molt Development Journal
 
+### 2019-02-27 (Wednesday)
+*   Implemented `for`
+
 ### 2019-02-24 (Sunday)
 *   The `source` command.
     *   Checked the TCL docs and wrote a couple of test scripts.

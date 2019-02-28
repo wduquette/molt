@@ -136,6 +136,31 @@ pub fn cmd_expr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     molt_expr_string(interp, argv[1])
 }
 
+/// # for *start* *test* *next* *command*
+///
+/// A standard "for" loop.  start, next, and command are scripts; test is an expression
+///
+pub fn cmd_for(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 5, 5, "start test next command")?;
+
+    // Start
+    interp.eval_body(argv[1])?;
+
+    while molt_expr_bool(interp, argv[2])? {
+        let result = interp.eval_body(argv[4]);
+
+        match result {
+            Err(ResultCode::Error(_)) => return result,
+            Err(ResultCode::Break) => break,
+            _ => (),
+        }
+
+        interp.eval_body(argv[3])?;
+    }
+
+    molt_ok!()
+}
+
 /// # foreach *varList* *list* *body*
 ///
 /// Loops over the items the list, assigning successive items to the variables in the
@@ -292,6 +317,31 @@ pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> InterpResult {
         molt_ok!() // temp
     }
 }
+
+/// # incr *varName* ?*increment* ...?
+///
+/// Increments an integer variable by a value.
+pub fn cmd_incr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 2, 3, "varName ?increment?")?;
+
+    let increment: MoltInt = if argv.len() == 3 {
+        get_int(argv[2])?
+    } else {
+        1
+    };
+
+    let var_value = interp.get_var(argv[1]);
+
+    let new_value = (if var_value.is_ok() {
+        get_int(&var_value.unwrap())? + increment
+    } else {
+        increment
+    }).to_string();
+
+    interp.set_var(argv[1], &new_value);
+    molt_ok!("{}", new_value)
+}
+
 
 /// # info *subcommand* ?*arg*...?
 pub fn cmd_info(interp: &mut Interp, argv: &[&str]) -> InterpResult {

@@ -11,7 +11,6 @@ and user documentation.
     after.
   * Improve the `test` harness
     * Need ability to set up, clean up.
-  * Add `catch`
   * Add `error`
   * Copy the Tcl 7.6 tests, and look for errors.
 * Test expression parser thoroughly
@@ -40,9 +39,7 @@ and user documentation.
 
 The following commands need to get implemented next.
 
-* catch
 * error
-* for
 * info level
 * info commands (without glob matching)
 * upvar
@@ -52,15 +49,12 @@ The following commands are not implemented by Molt at the present time,
 but most will probably be added eventually.
 
 * array
-* catch
 * cd
 * concat
 * dict
 * error
 * eval
-* for
 * format
-* incr
 * info * (most subcommands)
 * lassign
 * linsert

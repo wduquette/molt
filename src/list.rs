@@ -90,7 +90,7 @@ fn parse_braced_item(ctx: &mut Context) -> InterpResult {
     }
 
     assert!(count > 0);
-    molt_err!("missing close-brace")
+    molt_err!("unmatched open brace in list")
 }
 
 /// Parse a quoted item.  Does *not* do backslash substitution.

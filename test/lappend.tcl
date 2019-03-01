@@ -23,7 +23,29 @@ test lappend-1.3 {lappend command} {
 test lappend-1.4 {lappend command} {
     set x {}
     lappend x \{\  abc
-    # x contains a list of two elements: "<lbrace><space>" and "abc".
-    # It should come out with both the brace and space escaped, but the brace is not escaped.
-    # Fix this before going on.
 } -ok {\{\  abc}
+
+test lappend-1.5 {lappend command} {
+    set x {}
+    lappend x \{ abc
+} -ok {\{ abc}
+
+test lappend-1.6 {lappend command} {
+    set x {1 2 3}
+    lappend x
+} -ok {1 2 3}
+
+test lappend-1.7 {lappend command} {
+    set x "a\{"
+    lappend x abc
+} -ok "a\\\{ abc"
+
+test lappend-1.8 {lappend command} {
+    set x "\\\{"
+    lappend x abc
+} -ok "\\{ abc"
+
+test lappend-1.9 {lappend command} {
+    set x " \{"
+    lappend x abc
+} -error {unmatched open brace in list}

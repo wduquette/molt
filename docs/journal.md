@@ -1,5 +1,13 @@
 # Molt Development Journal
-
+### 2019-02-28 (Thursday)
+*   Fixed errors in `for`.
+*   Fixed output errors in `test`
+*   `test` now pushes a var scope before executing the test body, and pops after, so that
+    each test body always gets a clean scope.
+*   Tried duplicating the Tcl 7.6 lappend tests.
+    *   lappend works differently in the corner cases than it used it.
+    *   I'm going to need to work with the Tcl 8 test suite instead.
+    
 ### 2019-02-27 (Wednesday)
 *   Implemented `for`
 

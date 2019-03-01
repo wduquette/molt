@@ -114,12 +114,12 @@ impl Interp {
 
     /// Pushes a variable scope on to the var_stack.
     /// Procs use this to define their local scope.
-    fn push_scope(&mut self) {
+    pub fn push_scope(&mut self) {
         self.var_stack.push();
     }
 
     /// Pops a variable scope off of the var_stack.
-    fn pop_scope(&mut self) {
+    pub fn pop_scope(&mut self) {
         self.var_stack.pop();
     }
 

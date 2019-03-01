@@ -123,7 +123,11 @@ impl Command for TestCommand {
         // NEXT, here's a test.
         ctx.num_tests += 1;
 
-        match interp.eval_body(script) {
+        interp.push_scope();
+        let result = interp.eval_body(script);
+        interp.pop_scope();
+
+        match result {
             Ok(out) => {
                 if code == "-ok" && out == output {
                     // println!("*** test {} passed.", name);
@@ -131,8 +135,8 @@ impl Command for TestCommand {
                 } else {
                     ctx.num_failed += 1;
                     println!("\n*** FAILED {} {}", name, description);
-                    println!("Expected {} {{{}}}", code, output);
-                    println!("Received -ok {{{}}}>", out);
+                    println!("Expected {} <{}>", code, output);
+                    println!("Received -ok <{}>", out);
                 }
             }
             Err(ResultCode::Error(out)) => {
@@ -142,8 +146,8 @@ impl Command for TestCommand {
                 } else {
                     ctx.num_failed += 1;
                     println!("\n*** FAILED {} {}", name, description);
-                    println!("Expected {} {{{}}}", code, output);
-                    println!("Received -ok {{{}}}>", out);
+                    println!("Expected {} <{}>", code, output);
+                    println!("Received -error <{}>", out);
                 }
             }
             Err(ResultCode::Return(out)) => {
@@ -153,8 +157,8 @@ impl Command for TestCommand {
                 } else {
                     ctx.num_failed += 1;
                     println!("\n*** FAILED {} {}", name, description);
-                    println!("Expected {} {{{}}}", code, output);
-                    println!("Received -return {{{}}}>", out);
+                    println!("Expected {} <{}>", code, output);
+                    println!("Received -return <{}>", out);
                 }
             }
             Err(ResultCode::Break) => {
@@ -164,8 +168,8 @@ impl Command for TestCommand {
                 } else {
                     ctx.num_failed += 1;
                     println!("\n*** FAILED {} {}", name, description);
-                    println!("Expected {} {{{}}}", code, output);
-                    println!("Received -break {{}}>");
+                    println!("Expected {} <{}>", code, output);
+                    println!("Received -break <>");
                 }
             }
             Err(ResultCode::Continue) => {
@@ -175,8 +179,8 @@ impl Command for TestCommand {
                 } else {
                     ctx.num_failed += 1;
                     println!("\n*** FAILED {} {}", name, description);
-                    println!("Expected {} {{{}}}", code, output);
-                    println!("Received -continue {{}}>");
+                    println!("Expected {} <{}>", code, output);
+                    println!("Received -continue <>");
                 }
             }
         }

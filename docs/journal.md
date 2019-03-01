@@ -7,7 +7,17 @@
 *   Tried duplicating the Tcl 7.6 lappend tests.
     *   lappend works differently in the corner cases than it used it.
     *   I'm going to need to work with the Tcl 8 test suite instead.
-    
+*   Added the Tcl 8.6 lappend tests one at a time.
+    *   Found three errors in list_to_string()
+        *   unmatched left-braces trigger the escape code, but it wasn't escaping them.
+        *   The error messages for unmatched braces and quotes were wrong.
+        *   All fixed.
+    *   There are many of these tests (append-7.* and following) that involve traces
+        and the `{*}` operator that I didn't bother copying.
+*   The existing `expr` and `global` tests had some failures because test bodies are no longer
+    in the global scope.
+    *   Fixed.
+
 ### 2019-02-27 (Wednesday)
 *   Implemented `for`
 

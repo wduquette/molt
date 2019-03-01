@@ -200,7 +200,7 @@ fn escape_item(hash: bool, item: &str) -> String {
         }
 
         match ch {
-            ';' | '$' | '[' | ']' | '\\' => {
+            '{' | ';' | '$' | '[' | ']' | '\\' => {
                 word.push('\\');
                 word.push(ch);
             }
@@ -211,7 +211,7 @@ fn escape_item(hash: bool, item: &str) -> String {
     word
 }
 
-#[derive(Eq,PartialEq)]
+#[derive(Eq,PartialEq,Debug)]
 enum Mode {
     AsIs,
     Brace,
@@ -275,5 +275,6 @@ mod tests {
         assert_eq!(list_to_string(&["a[b"]), "{a[b}");
         assert_eq!(list_to_string(&["a]b"]), "{a]b}");
         assert_eq!(list_to_string(&["a\\nb"]), "{a\\nb}");
+        assert_eq!(list_to_string(&["{ ", "abc"]), r#"\{\  abc"#);
     }
 }

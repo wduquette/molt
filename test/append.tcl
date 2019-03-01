@@ -1,7 +1,6 @@
 # Test Script: append command.
 
 test append-1.1 {append command} {
-    unset x
     list [append x 1 2 abc "long string"] $x
 } -ok {{12abclong string} {12abclong string}}
 
@@ -16,7 +15,6 @@ test append-1.3 {append command} {
 } -ok abcd
 
 test append-1.4 {append command} {
-    unset x
     # In standard TCL, this would be an error.
     append x
 } -ok {}

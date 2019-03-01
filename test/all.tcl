@@ -8,6 +8,7 @@ source break.tcl
 source continue.tcl
 source exit.tcl
 source expr.tcl
+source lappend.tcl
 source parser.tcl
 
 # Done last: these will be broken out into individual scripts.

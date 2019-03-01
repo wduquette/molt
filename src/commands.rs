@@ -144,18 +144,19 @@ pub fn cmd_for(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 5, 5, "start test next command")?;
 
     // Start
-    interp.eval_body(argv[1])?;
+    interp.eval(argv[1])?;
 
     while molt_expr_bool(interp, argv[2])? {
         let result = interp.eval_body(argv[4]);
 
         match result {
-            Err(ResultCode::Error(_)) => return result,
+            Ok(_) => (),
             Err(ResultCode::Break) => break,
-            _ => (),
+            Err(ResultCode::Continue) => (),
+            _ => return result,
         }
 
-        interp.eval_body(argv[3])?;
+        interp.eval(argv[3])?;
     }
 
     molt_ok!()

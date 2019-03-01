@@ -117,7 +117,7 @@ fn parse_quoted_item(ctx: &mut Context) -> InterpResult {
         }
     }
 
-    molt_err!("missing \"")
+    molt_err!("unmatched open quote in list")
 }
 
 /// Parse a bare item.  Does *not* do backslash substitution.

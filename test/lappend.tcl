@@ -1,4 +1,8 @@
 # Test Script: lappend
+#
+# These tests are based on those in Tcl 8.6 tests/append.test for lappend.
+# That file has many tests for traces and other features Molt doesn't have; see
+# tests append-7.* and following.
 
 test lappend-1.1 {lappend command} {
     list [lappend x 1 2 abc "long string"] $x
@@ -109,3 +113,46 @@ test lappend-1.21 {lappend command} {
     set x \"
     lappend x
 } -error {unmatched open quote in list}
+
+test lappend-1.22 {lappend command} {
+    set x \"
+    lappend x abc
+} -error {unmatched open quote in list}
+
+# TODO: Should be defined in lappend-2.1 -setup
+proc check {var size} {
+    set l [llength $var]
+    if {$l != $size} {
+        return "length mismatch: should have been $size, was $l"
+    }
+    for {set i 0} {$i < $size} {set i [expr $i+1]} {
+        set j [lindex $var $i]
+        if {$j ne "item $i"} {
+            return "element $i should have been \"item $i\", was \"$j\""
+        }
+    }
+    return ok
+}
+
+test lappend-2.1 {long lappends} {
+    set x ""
+    for {set i 0} {$i < 300} {incr i} {
+    	lappend x "item $i"
+    }
+    check $x 300
+} -ok ok
+
+# TODO: Need rename; should be done in cleanup.
+# rename check {}
+
+test lappend-3.1 {lappend errors} {
+    lappend
+} -error {wrong # args: should be "lappend varName ?value ...?"}
+
+if 0 {
+    # Need arrays
+    test lappend-3.2 {lappend errors} {
+        set x ""
+        lappend x(0) 44
+    } -error {can't set "x(0)": variable isn't array}
+}

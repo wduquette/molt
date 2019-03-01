@@ -76,6 +76,7 @@ test global-1.2 {global command} {
 
 # Links local to global variables
 test global-2.1 {global command} {
+    global x
     set x 1
     proc a {} {
         global x
@@ -87,6 +88,7 @@ test global-2.1 {global command} {
 
 # Can link multiple vars
 test global-2.2 {global command} {
+    global x y z
     set x 1
     set y 2
     set z 3

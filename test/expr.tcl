@@ -100,6 +100,7 @@ test expr-3.1 {logical} {
 } -ok {1 0 0 0}
 
 test expr-3.2 {logical} {
+    global a b
     set a ""
     set b ""
     # bflag should not execute.
@@ -112,6 +113,7 @@ test expr-3.3 {logical} {
 } -ok {1 1 1 0}
 
 test expr-3.4 {logical} {
+    global a b
     set a ""
     set b ""
     # bflag should not execute.
@@ -202,6 +204,7 @@ proc b {} {
 }
 
 test expr-6.2 {questy} {
+    global a b
     set a 0
     set b 0
     set result [expr {0 ? [a] : [b]}]
@@ -212,6 +215,7 @@ test expr-6.2 {questy} {
 } -ok {2 0 2}
 
 test expr-6.3 {questy} {
+    global a b
     set a 0
     set b 0
     set result [expr {1 ? [a] : [b]}]

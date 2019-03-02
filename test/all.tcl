@@ -8,6 +8,7 @@ source break.tcl
 source continue.tcl
 source exit.tcl
 source expr.tcl
+source for.tcl
 source lappend.tcl
 source parser.tcl
 

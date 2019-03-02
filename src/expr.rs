@@ -298,17 +298,29 @@ pub fn molt_expr_bool(interp: &mut Interp, string: &str) -> Result<bool, ResultC
 fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> ValueResult {
     let info = &mut ExprInfo::new(string);
 
-    let value = expr_get_value(interp, info, -1)?;
+    let result = expr_get_value(interp, info, -1);
 
-    if info.token != END {
-        return molt_err!("syntax error in expression \"{}\"", string);
+    if let Ok(value) = result {
+        if info.token != END {
+            return molt_err!("syntax error in expression \"{}\"", string);
+        }
+
+        if value.vtype == Type::Float {
+            // TODO: check for NaN, INF, and throw IEEE floating point error.
+        }
+
+        Ok(value)
+    } else {
+        match result {
+            Err(ResultCode::Break) => {
+                molt_err!("invoked \"break\" outside of a loop")
+            }
+            Err(ResultCode::Continue) => {
+                molt_err!("invoked \"continue\" outside of a loop")
+            }
+            _ => result
+        }
     }
-
-    if value.vtype == Type::Float {
-        // TODO: check for NaN, INF, and throw IEEE floating point error.
-    }
-
-    Ok(value)
 }
 
 /// Parse a "value" from the remainder of the expression in info.

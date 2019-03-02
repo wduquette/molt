@@ -156,7 +156,17 @@ pub fn cmd_for(interp: &mut Interp, argv: &[&str]) -> InterpResult {
             _ => return result,
         }
 
-        interp.eval(argv[3])?;
+        // Execute next script.  Break is allowed, but continue is not.
+        let result = interp.eval_body(argv[3]);
+
+        match result {
+            Ok(_) => (),
+            Err(ResultCode::Break) => break,
+            Err(ResultCode::Continue) => {
+                return molt_err!("invoked \"continue\" outside of a loop");
+            },
+            _ => return result,
+        }
     }
 
     molt_ok!()

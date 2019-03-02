@@ -1,4 +1,11 @@
 # Molt Development Journal
+
+### 2019-03-01 (Friday)
+*   Wrote test suite for `for` command.
+    *   Fixed bugs:
+        *   `expr` should not propagate "continue" and "break".
+        *   `break` is allowed in the "next" script, but "continue" isn't.
+        
 ### 2019-02-28 (Thursday)
 *   Fixed errors in `for`.
 *   Fixed output errors in `test`

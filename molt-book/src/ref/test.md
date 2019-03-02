@@ -1,29 +1,54 @@
-# test *name* *description* *body* *option* *result*
+# test *name* *description* *args ...*
 
-**Available with `molt test` only!**
+**Available in [**molt test**](../cmdline/test.md) scripts only!**
 
 The `test` command is used to test Molt commands, whether built-in or coded
-in molt.  It executes its *body* as a Molt script, and compares the text
-of the result to the given *result* value.  The *option* indicates the
-expected result code: `-ok`, `-error`, `-result`, `-break`, or `-continue`.
-For `-break` and `-continue`, the *result* value must be the empty string.
+in Molt.  It executes a Molt script, and compares the result against an
+expected value, which may be an `-ok` result or an `-error` message.
 
-The *body* has its own local variable scope; use
-[**global**](./global.md) to reference global variables.
+The *name* and *description* are used to identify the test in the output.  The
+*name* can be any string, but the convention is to use the format
+"*baseName*-*x*.*y*", e.g., `mycommand-1.1`.  In the future, `molt test`
+will allow the user to filter the set of tests on this name string.
 
-The *name* is used to identify the test in the output.  Any string can be
-used, but the convention is to use the format "*baseName*-*x*.*y*", e.g.,
-`mycommand-1.1`.  Standard TCL's `tcltest(n)` framework takes advantage of
-this convention to allow the developer to run subsets of tests, using
-"glob"-style matching, e.g., run all tests that match `mycommand-2.*`.  
-Molt doesn't currently provide this feature, but likely will in the future.
+The test is executed in its own local variable scope; variables used by the
+test will be cleaned up automatically at the end of the test.  The
+[**global**](./global.md) command may be used to reference global variables; however,
+changes to these must be cleaned up explicitly.
 
-See also [`molt test`](../cmdline/test.md).
+The `test` command has two forms, a brief form and an extended form with more options.
+
+## test *name* *description* *body* -ok|-error *expectedValue*
+
+In the brief form, the *body* is the test script itself; and it is expected to return
+a normal result or an error message.  Either way, *expectedValue* is the expected value.
+
+* The test **passes** if the *body* returns the right kind of result with the expected value.
+* The test **fails** if the *body* returns the right kind of result (e.g., `-ok`) with
+some other value.
+* The test is in **error** if the *body* returns the wrong kind of result, (e.g., an
+  error was returned when a normal result was expected).
+
+## test *name* *description* *option value* ?*option value ...*?
+
+In the extended form, the details of the test are specified using options:
+
+* **-setup**: indicates a setup script, which will be executed before the body of the
+  test.  The test is flagged as an **error** if the setup script returns anything
+  but a normal result.
+
+* **-body**: indicates the test's *body*, which is interpreted as in the brief form.
+
+* **-cleanup**: indicates a cleanup script, which will be executed after the body of the
+  test.  The test is flagged as an **error** if the setup script returns anything but
+  a normal result.
+
+* **-ok | -error**: indicates the expected value, as in the brief form.
 
 ## Examples
 
-The following tests an imaginary `square` command that returns the square
-of a number.
+The following tests are for an imaginary `square` command that returns the square
+of a number.  They use the brief form.
 
 ```Tcl
 test square-1.1 {square errors} {
@@ -35,12 +60,28 @@ test square-2.1 {square command} {
 } -ok {9}
 ```
 
+The following test shows the extended form:
+
+```Tcl
+test newproc-1.1 {new proc} -setup {
+    # Define a proc for use in the test
+    proc myproc {} { return "called myproc" }
+} -body {
+    # Call the proc
+    myproc
+} -cleanup {
+    # Clean up the proc
+    rename myproc ""
+} -error {called myproc}
+```
+
+
 ## TCL Notes
 
 This command is a simplified version of the `test` command defined by
 Standard TCL's `tcltest(n)` framework.  The intention is to increase the
 similarity over time.
 
-This command has an enhancement over TCL's `test` command: the test body has
+This command has an enhancement over TCL's `test` command: the test has
 its own local variable scope, just as a [**proc**](./proc.md) does.  The body
 must use the [**global**](./global.md) command to access global variables.

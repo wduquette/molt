@@ -31,24 +31,21 @@ $ cargo run test test/all.tcl
 
 ## TODO Items
 
-* The "molt test" test harness.
-  * Improve the `test` harness
-    * Need ability to set up, clean up.
-  * Add `error` command
-  * Add complete tests for the existing Tcl commands.
-* Test expression parser thoroughly
-  * Add tests for "eq", "ne", "in", "ni"
-  * Implement remaining math functions
+* Add `rename` command (and use it in -cleanup clauses in test suite)
+* Add `error` command
+* Add complete tests for the existing Tcl commands.
+    * Test expression parser thoroughly
+      * Add tests for "eq", "ne", "in", "ni"
+      * Implement remaining math functions
 * Implement interp evaluation depth checking.
 * Use Interp::complete() in the shell, to build up multiline commands.
 * Continue to add commands from the "next" list, below.
 * Flesh out Rust tests and Rust API docs in the code base.
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
-* Provide convenience methods for
 * Define molt extension architecture
   * E.g., the ability to add extensions to Molt as Rust crates.
-  * Add costly features to core molt (e.g., regexp, glob) as Rust features.
+* Add costly features to core molt (e.g., regexp, glob) as Rust features.
 * Make molt::get_int() parse the same varieties as Tcl_GetInt() does.
 * On-going:
     * Document Molt's TCL dialect using mdbook, and publish to GitHub pages.

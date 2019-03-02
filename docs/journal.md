@@ -7,6 +7,12 @@
         *   `molt-shell`: Library crate, the REPL and test harness.
         *   `molt-app`: The command-line application, giving access to the REPL and test
             harness.
+    *   Done, and it works.
+        *   The main.rs in `molt-app` is dirt simple, which is appropriate as it's intended
+            to serve as an example.
+        *   `molt-shell` provides the features needed by `molt-app` that shouldn't be
+            in `molt` itself.
+            *   In particular, `molt` itself no longer has any external dependencies.
 
 ### 2019-03-01 (Friday)
 *   Wrote test suite for `for` command.

@@ -1,0 +1,7 @@
+[book]
+authors = ["Will Duquette"]
+multilingual = false
+src = "src"
+title = "The Molt Book"
+[output.html]
+theme = "src/theme"

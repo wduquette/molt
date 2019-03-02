@@ -5,8 +5,9 @@
 //!
 //! Details: TODO
 
-mod script;
-mod shell;
 
-pub use script::*;
+mod shell;
+mod test_harness;
+
 pub use shell::*;
+pub use test_harness::*;

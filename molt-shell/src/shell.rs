@@ -58,7 +58,7 @@ pub fn repl(interp: &mut Interp, prompt: &str) {
 ///
 /// The Molt variable `arg0` will be set to the name of the script file, `args[0]` value.
 /// The Molt variable `argv` will be set to the remainder of the `args` array as a Molt list.
-pub fn script(interp: &mut Interp, args: &[&str]) {
+pub fn script(interp: &mut Interp, args: &[String]) {
     let arg0 = &args[0];
     let argv = &args[1..];
     match fs::read_to_string(&args[0]) {
@@ -76,7 +76,7 @@ pub fn script(interp: &mut Interp, args: &[&str]) {
 ///
 /// The Molt variable `arg0` will be set to the `arg0` value.
 /// The Molt variable `argv` will be set to the `argv` array as a Molt list.
-fn execute_script(interp: &mut Interp, script: String, arg0: &str, argv: &[&str]) {
+fn execute_script(interp: &mut Interp, script: String, arg0: &str, argv: &[String]) {
     let argv = molt::list_to_string(argv);
 
     interp.set_var("arg0", arg0);

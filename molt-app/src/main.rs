@@ -4,7 +4,6 @@ use std::env;
 fn main() {
     // FIRST, get the command line arguments.
     let args: Vec<String> = env::args().collect();
-    let args: Vec<&str> = molt::vec_string_to_str(&args);
 
     // NEXT, create and initialize the interpreter.
     let mut interp = Interp::new();
@@ -23,7 +22,7 @@ fn main() {
                 }
             }
             "test" => {
-                molt::test_harness(&mut interp, &args[2..]);
+                molt_shell::test_harness(&mut interp, &args[2..]);
             }
             "help" => {
                 print_help();

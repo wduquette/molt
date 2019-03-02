@@ -23,7 +23,6 @@
 //! See the Molt Book (or the Molt test suite) for examples of test scripts.
 
 use molt::molt_ok;
-use molt::molt_err;
 use molt::Interp;
 use molt::InterpResult;
 use molt::ResultCode;
@@ -104,6 +103,69 @@ impl TestContext {
     }
 }
 
+#[derive(Eq,PartialEq,Debug)]
+enum Code {
+    Ok,
+    Error
+}
+
+impl Code {
+    fn to_string(&self) -> String {
+        match self {
+            Code::Ok => "-ok".into(),
+            Code::Error => "-error".into(),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct TestInfo {
+    name: String,
+    description: String,
+    setup: String,
+    body: String,
+    cleanup: String,
+    code: Code,
+    expect: String,
+}
+
+impl TestInfo {
+    fn new(name: &str, description: &str) -> Self {
+        Self {
+            name: name.into(),
+            description: description.into(),
+            setup: String::new(),
+            body: String::new(),
+            cleanup: String::new(),
+            code: Code::Ok,
+            expect: String::new(),
+        }
+    }
+
+    fn print_failure(&self, got_code: &str, received: &str) {
+        println!("\n*** FAILED {} {}", self.name, self.description);
+        println!("Expected {} <{}>", self.code.to_string(), self.expect);
+        println!("Received {} <{}>", got_code, received);
+    }
+
+    fn print_error(&self, result: &InterpResult) {
+        println!("\n*** ERROR {} {}", self.name, self.description);
+        println!("Expected {} <{}>", self.code.to_string(), self.expect);
+        match result {
+            Ok(val) => println!("Received -ok <{}>", val),
+            Err(ResultCode::Error(msg)) => println!("Received -error <{}>", msg),
+            Err(ResultCode::Return(val)) => println!("Received -return <{}>", val),
+            Err(ResultCode::Break) => println!("Received -break <>"),
+            Err(ResultCode::Continue) => println!("Received -continue <>"),
+        }
+    }
+
+    fn print_helper_error(&self, part: &str, msg: &str) {
+        println!("\n*** ERROR (in {}) {} {}", part, self.name, self.description);
+        println!("    {}", msg);
+    }
+}
+
 /// # test *name* *script* -ok|-error *result*
 ///
 /// Executes the script expecting either a successful response or an error.
@@ -120,98 +182,150 @@ impl TestCommand {
             ctx: Rc::clone(ctx),
         }
     }
+
+    fn fancy_test(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
+        molt::check_args(1, argv, 4, 0, "name description option value ?option value...?")?;
+
+        // FIRST, get the test context
+        let mut ctx = self.ctx.borrow_mut();
+
+        // NEXT, get the tes tinfo
+        let mut info = TestInfo::new(argv[1], argv[2]);
+        let mut iter = argv[3..].iter();
+        loop {
+            let opt = iter.next();
+            if opt.is_none() {
+                break;
+            }
+            let opt = opt.unwrap();
+
+            let val = iter.next();
+            if val.is_none() {
+                ctx.num_errors += 1;
+                info.print_helper_error("test command",
+                    &format!("missing value for {}", opt));
+                return molt_ok!();
+            }
+            let val = val.unwrap();
+
+            match *opt {
+                "-setup" => info.setup = val.to_string(),
+                "-body" => info.body = val.to_string(),
+                "-cleanup" => info.cleanup = val.to_string(),
+                "-ok" => {
+                    info.code = Code::Ok;
+                    info.expect = val.to_string();
+                }
+                "-error" => {
+                    info.code = Code::Error;
+                    info.expect = val.to_string();
+                }
+                _ => {
+                    ctx.num_errors += 1;
+                    info.print_helper_error("test command",
+                        &format!("invalid option: \"{}\"", val));
+                    return molt_ok!();
+                }
+            }
+        }
+
+        self.run_test(interp, &mut ctx, &info);
+
+        molt_ok!()
+    }
+
+    fn simple_test(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
+        molt::check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
+
+        // FIRST, get the test context
+        let mut ctx = self.ctx.borrow_mut();
+
+        // NEXT, get the test info
+        let mut info = TestInfo::new(argv[1], argv[2]);
+        info.body = argv[3].into();
+        info.expect = argv[5].into();
+
+        let code = argv[4];
+
+        info.code = if code == "-ok" {
+            Code::Ok
+        } else if code == "-error" {
+            Code::Error
+        } else {
+            ctx.num_errors += 1;
+            info.print_helper_error("test command",
+                &format!("invalid option: \"{}\"", code));
+
+            return molt_ok!();
+        };
+
+        self.run_test(interp, &mut ctx, &info);
+        molt_ok!()
+    }
+
+    fn run_test(&self, interp: &mut Interp, ctx: &mut TestContext, info: &TestInfo) {
+        // NEXT, here's a test.
+        ctx.num_tests += 1;
+
+        // NEXT, push a variable scope; -setup, -body, and -cleanup will share it.
+        interp.push_scope();
+
+        // Setup
+        if let Err(ResultCode::Error(msg)) = interp.eval(&info.setup) {
+            info.print_helper_error("-setup", &msg);
+        }
+
+        // Body
+        let result = interp.eval_body(&info.body);
+
+        // Cleanup
+        if let Err(ResultCode::Error(msg)) = interp.eval(&info.cleanup) {
+            info.print_helper_error("-cleanup", &msg);
+        }
+
+        // NEXT, pop the scope.
+        interp.pop_scope();
+
+        match &result {
+            Ok(out) => {
+                if info.code == Code::Ok {
+                    if *out == info.expect {
+                        ctx.num_passed += 1;
+                    } else {
+                        ctx.num_failed += 1;
+                        info.print_failure("-ok", &out);
+                    }
+                    return;
+                }
+            }
+            Err(ResultCode::Error(out)) => {
+                if info.code == Code::Error {
+                    if *out == info.expect {
+                        ctx.num_passed += 1;
+                    } else {
+                        ctx.num_failed += 1;
+                        info.print_failure("-error", &out);
+                    }
+                    return;
+                }
+            }
+            _ => ()
+        }
+        ctx.num_errors += 1;
+        info.print_error(&result);
+    }
 }
 
 impl Command for TestCommand {
     fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
-        molt::check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
+        // FIRST, check the minimum command line.
+        molt::check_args(1, argv, 4, 0, "name description args...")?;
 
-        // FIRST, get the arguments
-        let name = argv[1];
-        let description = argv[2];
-        let script = argv[3];
-        let code = argv[4];
-        let output = argv[5];
-
-
-        if !(code == "-ok" || code == "-error" || code == "-return" || code == "-break" ||
-            code == "-continue")
-        {
-            return molt_err!("unknown option: \"{}\"", code);
+        // NEXT, see which kind of command it is.
+        if argv[3].starts_with('-') {
+            self.fancy_test(interp, argv)
+        } else {
+            self.simple_test(interp, argv)
         }
-
-        if (code == "-break" || code == "-continue") && !output.is_empty() {
-            return molt_err!("non-empty result with {}", code);
-        }
-
-        // NEXT, get the test context
-        let mut ctx = self.ctx.borrow_mut();
-
-        // NEXT, here's a test.
-        ctx.num_tests += 1;
-
-        interp.push_scope();
-        let result = interp.eval_body(script);
-        interp.pop_scope();
-
-        match result {
-            Ok(out) => {
-                if code == "-ok" && out == output {
-                    // println!("*** test {} passed.", name);
-                    ctx.num_passed += 1;
-                } else {
-                    ctx.num_failed += 1;
-                    println!("\n*** FAILED {} {}", name, description);
-                    println!("Expected {} <{}>", code, output);
-                    println!("Received -ok <{}>", out);
-                }
-            }
-            Err(ResultCode::Error(out)) => {
-                if code == "-error" && out == output {
-                    // println!("*** test {} passed.", name);
-                    ctx.num_passed += 1;
-                } else {
-                    ctx.num_failed += 1;
-                    println!("\n*** FAILED {} {}", name, description);
-                    println!("Expected {} <{}>", code, output);
-                    println!("Received -error <{}>", out);
-                }
-            }
-            Err(ResultCode::Return(out)) => {
-                if code == "-return" && out == output {
-                    // println!("*** test {} passed.", name);
-                    ctx.num_passed += 1;
-                } else {
-                    ctx.num_failed += 1;
-                    println!("\n*** FAILED {} {}", name, description);
-                    println!("Expected {} <{}>", code, output);
-                    println!("Received -return <{}>", out);
-                }
-            }
-            Err(ResultCode::Break) => {
-                if code == "-break" {
-                    // println!("*** test {} passed.", name);
-                    ctx.num_passed += 1;
-                } else {
-                    ctx.num_failed += 1;
-                    println!("\n*** FAILED {} {}", name, description);
-                    println!("Expected {} <{}>", code, output);
-                    println!("Received -break <>");
-                }
-            }
-            Err(ResultCode::Continue) => {
-                if code == "-continue" {
-                    // println!("*** test {} passed.", name);
-                    ctx.num_passed += 1;
-                } else {
-                    ctx.num_failed += 1;
-                    println!("\n*** FAILED {} {}", name, description);
-                    println!("Expected {} <{}>", code, output);
-                    println!("Received -continue <>");
-                }
-            }
-        }
-
-        molt_ok!()
     }
 }

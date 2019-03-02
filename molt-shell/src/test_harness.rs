@@ -1,8 +1,11 @@
 //! Test Harness
 
-use crate::types::*;
-use crate::check_args;
-use crate::interp::Interp;
+use molt::molt_ok;
+use molt::molt_err;
+use molt::Interp;
+use molt::InterpResult;
+use molt::ResultCode;
+use molt::Command;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::fs;
@@ -11,8 +14,7 @@ use std::env;
 
 /// Executes the Molt test harness, given the arguments.
 ///
-/// The
-pub fn test_harness(interp: &mut Interp, args: &[&str]) {
+pub fn test_harness(interp: &mut Interp, args: &[String]) {
     // FIRST, announce who we are.
     println!("Molt {} -- Test Harness", env!("CARGO_PKG_VERSION"));
 
@@ -22,8 +24,7 @@ pub fn test_harness(interp: &mut Interp, args: &[&str]) {
         return;
     }
 
-    // TODO: probably want eval_file to do this automatically, and use it in "source"
-    let path = PathBuf::from(args[0]);
+    let path = PathBuf::from(&args[0]);
     let parent = path.parent();
 
     // NEXT, initialize the test result.
@@ -33,7 +34,7 @@ pub fn test_harness(interp: &mut Interp, args: &[&str]) {
     interp.add_command_obj("test", Rc::new(TestCommand::new(&context)));
 
     // NEXT, execute the script.
-    match fs::read_to_string(args[0]) {
+    match fs::read_to_string(&args[0]) {
         Ok(script) => {
             if parent.is_some() {
                 let _ = env::set_current_dir(parent.unwrap());
@@ -97,7 +98,7 @@ impl TestCommand {
 
 impl Command for TestCommand {
     fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
-        check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
+        molt::check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
 
         // FIRST, get the arguments
         let name = argv[1];

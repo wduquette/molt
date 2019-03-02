@@ -5,7 +5,6 @@ test append-1.1 {append command} {
 } -ok {{12abclong string} {12abclong string}}
 
 test append-1.2 {append command} {
-    set x ""
     list [append x first] [append x second] [append x third] $x
 } -ok {first firstsecond firstsecondthird firstsecondthird}
 
@@ -21,7 +20,6 @@ test append-1.4 {append command} {
 
 # Need for loop
 test append-2.1 {long appends} {
-    set x ""
     for {set i 0} {$i < 1000} {set i [expr $i+1]} {
 	    append x "foobar "
     }

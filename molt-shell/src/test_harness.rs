@@ -1,4 +1,26 @@
-//! Test Harness
+//! Molt Test Harness
+//!
+//! A Molt test script is a Molt script containing tests of Molt code.  Each
+//! test is a call of the Molt `test` command provided by the
+//! `molt_shell::test_harness`.  The tests are executed in the context of the
+//! the application's `molt::Interp` (and so can test application-specific commands).
+//!
+//! The test harness keeps track of the number of tests executed, and whether they
+//! passed, failed, or returned an unexpected error.
+//!
+//! The `molt-app` tool provides access to the test harness for a standard Molt
+//! interpreter:
+//!
+//! ```bash
+//! $ molt test test/all.tcl
+//! Molt 0.1.0 -- Test Harness
+//!
+//! 171 tests, 171 passed, 0 failed, 0 errors
+//! ```
+//!
+//! If a test fails or returns an error, the test harness outputs the details.
+//!
+//! See the Molt Book (or the Molt test suite) for examples of test scripts.
 
 use molt::molt_ok;
 use molt::molt_err;
@@ -12,8 +34,12 @@ use std::fs;
 use std::path::PathBuf;
 use std::env;
 
-/// Executes the Molt test harness, given the arguments.
+/// Executes the Molt test harness, given the command-line arguments,
+/// in the context of the given interpreter.
 ///
+/// The first element of the `args` array must be the name of the test script
+/// to execute.  The remaining elements are meant to be test harness options,
+/// but are currently ignored.
 pub fn test_harness(interp: &mut Interp, args: &[String]) {
     // FIRST, announce who we are.
     println!("Molt {} -- Test Harness", env!("CARGO_PKG_VERSION"));

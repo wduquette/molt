@@ -4,8 +4,12 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::fs;
 
-/// Invokes an interactive REPL for the given `Interp`, using `rustlyline` line editing.
-/// Enter `exit` or `^C` to exit.
+/// Invokes an interactive REPL for the given interpreter, using `rustlyline` line editing.
+///
+/// The REPL will display the given prompt to the user.  Press `^C` to terminate
+/// the REPL, returning control to the caller.  Entering `exit` will usually cause the
+/// application to terminate (but the `exit` command can be removed or redefined by the
+/// application).
 pub fn repl(interp: &mut Interp, prompt: &str) {
     let mut rl = Editor::<()>::new();
 
@@ -49,15 +53,20 @@ pub fn repl(interp: &mut Interp, prompt: &str) {
     }
 }
 
-/// Executes a script from a set of command line arguments.  `args[0]` is presumed to be
-/// the name of a Molt script file, with any subsequent arguments being arguments to
-/// pass to the script.  The script will be be executed in the context of the
-/// the given `Interp`.
+/// Executes a script from a set of command line arguments.
 ///
-/// # Argument Variables
+/// `args[0]` is presumed to be the name of a Molt script file, with any subsequent
+/// arguments being arguments to pass to the script.  The script will be be executed in
+/// the context of the given interpreter.
 ///
-/// The Molt variable `arg0` will be set to the name of the script file, `args[0]` value.
-/// The Molt variable `argv` will be set to the remainder of the `args` array as a Molt list.
+/// # Molt Variables
+///
+/// The calling information will be passed to the interpreter in the form of Molt
+/// variables:
+///
+/// * The Molt variable `arg0` will be set to the `arg0` value.
+/// * The Molt variable `argv` will be set to the content of the `argv` array,
+///   formatted as a Molt list.
 pub fn script(interp: &mut Interp, args: &[String]) {
     let arg0 = &args[0];
     let argv = &args[1..];
@@ -68,14 +77,17 @@ pub fn script(interp: &mut Interp, args: &[String]) {
 }
 
 /// Executes a script read from a file, with any command-line arguments, in
-/// the context of the given `Interp`.  The `script` is the text of the
-/// script, and the `args` are the script arguments, with `args[0]` being
-/// the name of the script.
+/// the context of the given interpreter.  The `script` is the text of the
+/// script, `arg0` is the name of the script file, and `argv` contains the script
+/// arguments.
 ///
-/// # Argument Variables
+/// # Molt Variables
 ///
-/// The Molt variable `arg0` will be set to the `arg0` value.
-/// The Molt variable `argv` will be set to the `argv` array as a Molt list.
+/// The calling information will be passed to the interpreter in the form of Molt
+/// variables:
+///
+/// * The Molt variable `arg0` will be set to the `arg0` value.
+/// * The Molt variable `argv` will be set to the `argv` array as a Molt list.
 fn execute_script(interp: &mut Interp, script: String, arg0: &str, argv: &[String]) {
     let argv = molt::list_to_string(argv);
 

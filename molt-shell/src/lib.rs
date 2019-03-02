@@ -3,11 +3,17 @@
 //! This crate provides the code for adding the Molt REPL and Test Harness to a binary
 //! crate.
 //!
-//! Details: TODO
+//! In each case, begin by creating a `molt::Interp` and adding any application-specific
+//! extensions.  Then:
+//!
+//! * To invoke the REPL, use `molt_shell::repl`
+//! * To execute a script, use `molt_shell::script`
+//! * To execute the test harness on a Molt test script, use
+//!   `molt_shell::test_harness`.
 
 
 mod shell;
-mod test_harness;
+pub mod test_harness;
 
 pub use shell::*;
 pub use test_harness::*;

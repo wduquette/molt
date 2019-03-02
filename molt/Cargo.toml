@@ -5,4 +5,3 @@ authors = ["Will Duquette <will@wjduquette.com>"]
 edition = "2018"
 
 [dependencies]
-rustyline = "3.0.0"

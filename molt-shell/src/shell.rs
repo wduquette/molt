@@ -1,5 +1,5 @@
-use crate::interp::Interp;
-use crate::types::*;
+use molt::interp::Interp;
+use molt::types::*;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 

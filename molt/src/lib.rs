@@ -17,7 +17,6 @@ pub mod interp;
 mod list;
 #[macro_use]
 mod macros;
-pub mod shell;
 pub mod test_harness;
 pub mod types;
 pub mod util;

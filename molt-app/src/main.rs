@@ -18,9 +18,8 @@ fn main() {
         match subcmd {
             "shell" => {
                 if args.len() == 2 {
-                    // TODO: should be `molt::shell()`
                     println!("Molt {}", env!("CARGO_PKG_VERSION"));
-                    molt::shell::shell(&mut interp, "% ");
+                    molt_shell::shell(&mut interp, "% ");
                 } else {
                     match fs::read_to_string(&args[2]) {
                         Ok(script) => execute_script(&mut interp, script, &args),
@@ -32,14 +31,14 @@ fn main() {
                 molt::test_harness(&mut interp, &args[2..]);
             }
             "help" => {
-                molt_help();
+                print_help();
             }
             _ => {
                 eprintln!("unknown subcommand: \"{}\"", subcmd);
             }
         }
     } else {
-        molt_help();
+        print_help();
     }
 }
 
@@ -67,7 +66,7 @@ fn execute_script(interp: &mut Interp, script: String, args: &[&str]) {
     }
 }
 
-fn molt_help() {
+fn print_help() {
     println!("Molt {}", env!("CARGO_PKG_VERSION"));
     println!();
     println!("Usage: molt <subcommand> [args...]");

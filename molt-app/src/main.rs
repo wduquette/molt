@@ -1,7 +1,5 @@
-use molt::interp::Interp;
-use molt::types::ResultCode;
+use molt::Interp;
 use std::env;
-use std::fs;
 
 fn main() {
     // FIRST, get the command line arguments.
@@ -19,12 +17,9 @@ fn main() {
             "shell" => {
                 if args.len() == 2 {
                     println!("Molt {}", env!("CARGO_PKG_VERSION"));
-                    molt_shell::shell(&mut interp, "% ");
+                    molt_shell::repl(&mut interp, "% ");
                 } else {
-                    match fs::read_to_string(&args[2]) {
-                        Ok(script) => execute_script(&mut interp, script, &args),
-                        Err(e) => println!("{}", e),
-                    }
+                    molt_shell::script(&mut interp, &args[2..]);
                 }
             }
             "test" => {
@@ -39,30 +34,6 @@ fn main() {
         }
     } else {
         print_help();
-    }
-}
-
-fn execute_script(interp: &mut Interp, script: String, args: &[&str]) {
-    let arg0 = &args[2];
-    let argv = if args.len() > 3 {
-        molt::list_to_string(&args[3..])
-    } else {
-        String::new()
-    };
-
-    interp.set_var("arg0", arg0);
-    interp.set_var("argv", &argv);
-
-    match interp.eval(&script) {
-        Ok(_) => (),
-        Err(ResultCode::Error(msg)) => {
-            eprintln!("{}", msg);
-            std::process::exit(1);
-        }
-        Err(result) => {
-            eprintln!("Unexpected eval return: {:?}", result);
-            std::process::exit(1);
-        }
     }
 }
 

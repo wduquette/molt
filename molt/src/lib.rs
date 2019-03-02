@@ -2,10 +2,11 @@
 //!
 //! This module is the primary API for Molt users.
 
-use crate::types::*;
+pub use crate::types::*;
 pub use crate::list::get_list;
 pub use crate::list::list_to_string;
 pub use crate::test_harness::*;
+pub use crate::interp::Interp;
 
 #[allow(dead_code)] // Temporary
 mod char_ptr;

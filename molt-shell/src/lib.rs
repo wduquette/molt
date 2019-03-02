@@ -5,6 +5,8 @@
 //!
 //! Details: TODO
 
+mod script;
 mod shell;
 
-pub use shell::shell;
+pub use script::*;
+pub use shell::*;

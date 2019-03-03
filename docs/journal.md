@@ -1,5 +1,9 @@
 # Molt Development Journal
 
+### 2019-03-03 (Sunday)
+*   Added a bunch of issues to GitHub.
+
+
 ### 2019-03-02 (Saturday)
 *   Workspace Architecture
     *   Trying out a multi-crate workspace in workspace-arch branch.

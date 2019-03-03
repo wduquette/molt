@@ -64,6 +64,7 @@ The following commands need to get implemented next.
 * info commands (without glob matching)
 * list commands
 * rename
+* string 
 * upvar
 * while
 

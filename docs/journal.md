@@ -2,7 +2,7 @@
 
 ### 2019-03-03 (Sunday)
 *   Added a bunch of issues to GitHub.
-
+*   Added `rename` command.
 
 ### 2019-03-02 (Saturday)
 *   Workspace Architecture

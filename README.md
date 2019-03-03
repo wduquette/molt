@@ -31,7 +31,6 @@ $ cargo run test test/all.tcl
 
 ## TODO Items
 
-* Add `rename` command (and use it in -cleanup clauses in test suite)
 * Add `error` command
 * Add complete tests for the existing Tcl commands.
     * Test expression parser thoroughly
@@ -64,7 +63,7 @@ The following commands need to get implemented next.
 * info commands (without glob matching)
 * list commands
 * rename
-* string 
+* string
 * upvar
 * while
 

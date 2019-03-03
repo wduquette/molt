@@ -11,6 +11,7 @@ source expr.tcl
 source for.tcl
 source lappend.tcl
 source parser.tcl
+source rename.tcl
 
 # Done last: these will be broken out into individual scripts.
 source commands.tcl

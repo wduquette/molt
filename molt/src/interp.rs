@@ -60,6 +60,7 @@ impl Interp {
         interp.add_command("llength", commands::cmd_llength);
         interp.add_command("proc", commands::cmd_proc);
         interp.add_command("puts", commands::cmd_puts);
+        interp.add_command("rename", commands::cmd_rename);
         interp.add_command("return", commands::cmd_return);
         interp.add_command("source", commands::cmd_source);
         interp.add_command("set", commands::cmd_set);
@@ -83,6 +84,26 @@ impl Interp {
 
     pub fn add_command_obj(&mut self, name: &str, command: Rc<dyn Command>) {
         self.commands.insert(name.into(), command);
+    }
+
+    /// Determines whether the interpreter contains a command with the given
+    /// name.
+    pub fn has_command(&self, name: &str) -> bool {
+        self.commands.contains_key(name)
+    }
+
+    /// Renames the command with the new name.
+    pub fn rename_command(&mut self, old_name: &str, new_name: &str) {
+        if let Some(cmd) = self.commands.get(old_name) {
+            let cmd = Rc::clone(cmd);
+            self.commands.remove(old_name);
+            self.commands.insert(new_name.into(), cmd);
+        }
+    }
+
+    /// Removes the command with the given name.
+    pub fn remove_command(&mut self, name: &str) {
+        self.commands.remove(name);
     }
 
     /// Gets a vector of the command names.

@@ -25,6 +25,7 @@
   - [llength](./ref/llength.md)
   - [proc](./ref/proc.md)
   - [puts](./ref/puts.md)
+  - [rename](./ref/rename.md)
   - [return](./ref/return.md)
   - [set](./ref/set.md)
   - [test](./ref/test.md)

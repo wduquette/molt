@@ -22,7 +22,7 @@ test lappend-1.3 {lappend command} -setup {
 } -body {
     foo
 } -cleanup {
-    # TODO: Should cleanup foo; need [rename]
+    rename foo ""
 } -ok {new}
 
 test lappend-1.4 {lappend command} {
@@ -141,7 +141,7 @@ test lappend-2.1 {long lappends} -setup {
     }
     check $x 300
 } -cleanup {
-    # TODO: rename check to empty
+    rename check ""
 } -ok ok
 
 test lappend-3.1 {lappend errors} {

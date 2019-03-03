@@ -75,38 +75,42 @@ test global-1.2 {global command} {
 } -ok {}
 
 # Links local to global variables
-test global-2.1 {global command} {
-    global x
-    set x 1
-    proc a {} {
+test global-2.1 {global command} -setup {
+    proc setx2 {} {
         global x
         set x 2
     }
-    a
+} -body {
+    global x
+    set x 1
+    setx2
     set x
+} -cleanup {
+    rename setx2 ""
 } -ok {2}
 
 # Can link multiple vars
-test global-2.2 {global command} {
-    global x y z
-    set x 1
-    set y 2
-    set z 3
-    proc a {} {
+test global-2.2 {global command} -setup {
+    proc setxyz {} {
         global y z
         set x 4
         set y 5
         set z 6
     }
-    a
+} -body {
+    global x y z
+    set x 1
+    set y 2
+    set z 3
+    setxyz
     list $x $y $z
+} -cleanup {
+    rename setxyz ""
 } -ok {1 5 6}
 
 #-------------------------------------------------------------------------
 # if
 #
-# TODO: All of these will need to be updated once we have expression
-# parsing.
 
 test if-1.1 {if errors} {
     if
@@ -238,34 +242,46 @@ test info-2.4 {info complete command} {
     info complete "\{cmd"
 } -ok {0}
 
-test info-3.1 {info vars command} {
+test info-3.1 {info vars command} -setup {
     proc myproc {} {
         info vars
     }
+} -body {
     myproc
+} -cleanup {
+    rename myproc ""
 } -ok {}
 
-test info-3.2 {info vars command} {
+test info-3.2 {info vars command} -setup {
     proc myproc {a} {
         info vars
     }
+} -body {
     myproc a
+} -cleanup {
+    rename myproc ""
 } -ok {a}
 
-test info-3.2 {info vars command} {
+test info-3.2 {info vars command} -setup {
     proc myproc {} {
         set v 1
         info vars
     }
+} -body {
     myproc
+} -cleanup {
+    rename myproc ""
 } -ok {v}
 
-test info-3.3 {info vars command} {
+test info-3.3 {info vars command} -setup {
     proc myproc {} {
         global x
         info vars
     }
+} -body {
     myproc
+} -cleanup {
+    rename myproc ""
 } -ok {x}
 
 #-------------------------------------------------------------------------
@@ -401,31 +417,37 @@ test proc-1.3 {proc command errors} {
     proc myproc {a {b 1 extra} c} {}
 } -error {too many fields in argument specifier "b 1 extra"}
 
-test proc-2.1 {proc command} {
+test proc-2.1 {proc command} -body {
     # Defining a proc returns {}
     proc a {} {}
+} -cleanup {
+    rename a ""
 } -ok {}
 
-test proc-2.2 {proc command} {
+test proc-2.2 {proc command} -body {
     # A proc returns the value of evaluating its body
     proc a {} {
         set x 1
     }
     a
+} -cleanup {
+    rename a ""
 } -ok {1}
 
 # Setting a variable in a proc doesn't affect the global scope.
-test proc-2.3 {proc command} {
+test proc-2.3 {proc command} -body {
     set x 1
     proc a {} {
         set x 2
     }
     set y [a]
     list $x $y
+} -cleanup {
+    rename a ""
 } -ok {1 2}
 
 # Setting a variable in a proc really does set its value in the local scope
-test proc-2.4 {proc command} {
+test proc-2.4 {proc command} -body {
     set x 1
     set y 2
     proc a {} {
@@ -435,55 +457,71 @@ test proc-2.4 {proc command} {
     }
     set z [a]
     list $x $y $z
+} -cleanup {
+    rename a ""
 } -ok {1 2 {this that}}
 
-test proc-3.1 {defined proc errors} {
+test proc-3.1 {defined proc errors} -body {
     proc myproc {} {}
     myproc a
+} -cleanup {
+    rename myproc ""
 } -error {wrong # args: should be "myproc"}
 
-test proc-3.2 {defined proc errors} {
+test proc-3.2 {defined proc errors} -body {
     proc myproc {a {b 1} args} {}
     myproc
+} -cleanup {
+    rename myproc ""
 } -error {wrong # args: should be "myproc a ?b? ?arg ...?"}
 
-test proc-3.3 {defined proc errors} {
+test proc-3.3 {defined proc errors} -body {
     # Weird but allowed
     proc myproc {args {b 1} a} {}
     myproc
+} -cleanup {
+    rename myproc ""
 } -error {wrong # args: should be "myproc args ?b? a"}
 
 # Normal argument
-test proc-4.1 {defined proc} {
+test proc-4.1 {defined proc} -body {
     proc myproc {a} {
         list $a $a
     }
 
     myproc x
+} -cleanup {
+    rename myproc ""
 } -ok {x x}
 
 # Optional argument
-test proc-4.2 {defined proc} {
+test proc-4.2 {defined proc} -body {
     proc myproc {{a A}} {
         list $a
     }
 
     list [myproc x] [myproc]
+} -cleanup {
+    rename myproc ""
 } -ok {x A}
 
 # Var args
-test proc-4.3 {defined proc} {
+test proc-4.3 {defined proc} -body {
     proc myproc {a args} {
         list $a $args
     }
 
     list A [myproc 1] B [myproc 1 2] C [myproc 1 2 3]
+} -cleanup {
+    rename myproc ""
 } -ok {A {1 {}} B {1 2} C {1 {2 3}}}
 
-test proc-4.4 {defined proc} {
+test proc-4.4 {defined proc} -body {
     # Weird but allowed
     proc myproc {args {b 1} a} {list args $args b $b a $a}
     myproc 1 2 3
+} -cleanup {
+    rename myproc ""
 } -ok {args 1 b 2 a 3}
 
 #-------------------------------------------------------------------------
@@ -503,19 +541,25 @@ test return-1.1 {result errors} {
 } -error {wrong # args: should be "return ?value?"}
 
 # return the empty string
-test return-2.1 {result command} {
+test return-2.1 {result command} -setup {
     proc a {} {
         return
     }
+} -body {
     a
+} -cleanup {
+    rename a ""
 } -ok {}
 
 # return something else.
-test return-2.2 {result command} {
+test return-2.2 {result command} -setup {
     proc a {} {
         return "howdy"
     }
+} -body {
     a
+} -cleanup {
+    rename a ""
 } -ok {howdy}
 
 #-------------------------------------------------------------------------

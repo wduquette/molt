@@ -32,8 +32,8 @@ $ molt test bad_tests.tcl
 molt 0.1.0 -- Test Harness
 
 *** FAILED mytest-1.1 some proc
-Expected <this result>
-Received <that result>
+Expected -ok <this result>
+Received -ok <that result>
 
 2 tests, 1 passed, 1 failed, 0 errors
 ```

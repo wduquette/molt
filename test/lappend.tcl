@@ -9,19 +9,20 @@ test lappend-1.1 {lappend command} {
 } -ok {{1 2 abc {long string}} {1 2 abc {long string}}}
 
 test lappend-1.2 {lappend command} {
-    set x ""
     list [lappend x first] [lappend x second] [lappend x third] $x
 } -ok {first {first second} {first second third} {first second third}}
 
-test lappend-1.3 {lappend command} {
+test lappend-1.3 {lappend command} -setup {
     proc foo {} {
   	    global x
 	    set x old
 	    unset x
 	    lappend x new
     }
+} -body {
     foo
-    # Should cleanup foo
+} -cleanup {
+    # TODO: Should cleanup foo; need [rename]
 } -ok {new}
 
 test lappend-1.4 {lappend command} {
@@ -119,31 +120,29 @@ test lappend-1.22 {lappend command} {
     lappend x abc
 } -error {unmatched open quote in list}
 
-# TODO: Should be defined in lappend-2.1 -setup
-proc check {var size} {
-    set l [llength $var]
-    if {$l != $size} {
-        return "length mismatch: should have been $size, was $l"
-    }
-    for {set i 0} {$i < $size} {set i [expr $i+1]} {
-        set j [lindex $var $i]
-        if {$j ne "item $i"} {
-            return "element $i should have been \"item $i\", was \"$j\""
+test lappend-2.1 {long lappends} -setup {
+    proc check {var size} {
+        set l [llength $var]
+        if {$l != $size} {
+            return "length mismatch: should have been $size, was $l"
         }
+        for {set i 0} {$i < $size} {set i [expr $i+1]} {
+            set j [lindex $var $i]
+            if {$j ne "item $i"} {
+                return "element $i should have been \"item $i\", was \"$j\""
+            }
+        }
+        return ok
     }
-    return ok
-}
-
-test lappend-2.1 {long lappends} {
+} -body {
     set x ""
     for {set i 0} {$i < 300} {incr i} {
     	lappend x "item $i"
     }
     check $x 300
+} -cleanup {
+    # TODO: rename check to empty
 } -ok ok
-
-# TODO: Need rename; should be done in cleanup.
-# rename check {}
 
 test lappend-3.1 {lappend errors} {
     lappend

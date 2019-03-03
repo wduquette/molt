@@ -62,7 +62,6 @@ The following commands need to get implemented next.
 * list commands
 * string
 * upvar
-* while
 
 The following commands are not implemented by Molt at the present time,
 but most will probably be added eventually.
@@ -96,4 +95,3 @@ but most will probably be added eventually.
 * try
 * uplevel
 * upvar
-* while

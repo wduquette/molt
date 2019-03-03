@@ -66,6 +66,7 @@ impl Interp {
         interp.add_command("source", commands::cmd_source);
         interp.add_command("set", commands::cmd_set);
         interp.add_command("unset", commands::cmd_unset);
+        interp.add_command("while", commands::cmd_while);
         interp
     }
 

@@ -618,3 +618,24 @@ pub fn cmd_unset(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
     molt_ok!()
 }
+
+/// # while *test* *command*
+///
+/// A standard "while" loop.  *test* is a boolean expression; *command* is a script to
+/// execute so long as the expression is true.
+pub fn cmd_while(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 3, 3, "test command")?;
+
+    while molt_expr_bool(interp, argv[1])? {
+        let result = interp.eval_body(argv[2]);
+
+        match result {
+            Ok(_) => (),
+            Err(ResultCode::Break) => break,
+            Err(ResultCode::Continue) => (),
+            _ => return result,
+        }
+    }
+
+    molt_ok!()
+}

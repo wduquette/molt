@@ -8,6 +8,8 @@
     *   Added man page.
 *   Added minimal `error` command.
     *   And test and man page.
+*   Added `while` command.
+    *   And test and man page.
 
 ### 2019-03-02 (Saturday)
 *   Workspace Architecture

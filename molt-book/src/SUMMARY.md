@@ -31,6 +31,7 @@
   - [set](./ref/set.md)
   - [test](./ref/test.md)
   - [unset](./ref/unset.md)
+  - [while](./ref/while.md)
 - [Extending and Embedding](./embed/overview.md)
   - [Defining Commands](./embed/commands.md)
   - [Evaluating Molt Code](./embed/eval.md)

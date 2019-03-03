@@ -3,6 +3,9 @@
 ### 2019-03-03 (Sunday)
 *   Added a bunch of issues to GitHub.
 *   Added `rename` command.
+    *   Added tests.
+    *   Revised existing tests to cleanup temporary procs.
+    *   Added man page.
 
 ### 2019-03-02 (Saturday)
 *   Workspace Architecture

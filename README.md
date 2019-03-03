@@ -17,13 +17,13 @@ $ cd .../molt
 $ cargo build
 ```
 
-*   To run the interactive shell
+* To run the interactive shell
 
 ```
 $ cargo run shell
 ```
 
-*   To run the language test suite
+* To run the language test suite
 
 ```
 $ cargo run test test/all.tcl
@@ -31,7 +31,6 @@ $ cargo run test test/all.tcl
 
 ## TODO Items
 
-* Add `error` command
 * Add complete tests for the existing Tcl commands.
     * Test expression parser thoroughly
       * Add tests for "eq", "ne", "in", "ni"
@@ -57,12 +56,10 @@ The following commands need to get implemented next.
 
 * cd, pwd
 * concat
-* error
 * eval
 * info level
 * info commands (without glob matching)
 * list commands
-* rename
 * string
 * upvar
 * while
@@ -74,7 +71,6 @@ but most will probably be added eventually.
 * cd
 * concat
 * dict
-* error
 * eval
 * format
 * info * (most subcommands)
@@ -91,7 +87,6 @@ but most will probably be added eventually.
 * pwd
 * regexp
 * regsub
-* rename
 * split
 * string
 * subst

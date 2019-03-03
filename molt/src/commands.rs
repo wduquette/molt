@@ -105,6 +105,19 @@ pub fn cmd_continue(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
     Err(ResultCode::Continue)
 }
 
+/// error *message*
+///
+/// Returns an error with the given message.
+///
+/// ## TCL Liens
+///
+/// * In Standard TCL, `error` can optionally set the stack trace and an error code.
+pub fn cmd_error(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    check_args(1, argv, 2, 2, "message")?;
+
+    molt_err!(argv[1])
+}
+
 /// # exit ?*returnCode*?
 ///
 /// Terminates the application by calling `std::process::exit()`.

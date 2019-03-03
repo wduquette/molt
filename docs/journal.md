@@ -6,6 +6,8 @@
     *   Added tests.
     *   Revised existing tests to cleanup temporary procs.
     *   Added man page.
+*   Added minimal `error` command.
+    *   And test and man page.
 
 ### 2019-03-02 (Saturday)
 *   Workspace Architecture

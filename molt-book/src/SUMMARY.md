@@ -11,6 +11,7 @@
   - [break](./ref/break.md)
   - [catch](./ref/catch.md)
   - [continue](./ref/continue.md)
+  - [error](./ref/error.md)
   - [exit](./ref/exit.md)
   - [expr](./ref/expr.md)
   - [for](./ref/for.md)

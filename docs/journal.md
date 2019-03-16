@@ -1,5 +1,12 @@
 # Molt Development Journal
 
+### 2019-03-16 (Saturday)
+*   VarStack and StackFrames
+    *   It occurs to me that the VarStack is exactly the set of
+        stack frames, as regards `upvar`, `uplevel`, and `info level`,
+        but not as regards the stack trace.
+    *   The Standard TCL stack trace is far more detailed.
+
 ### 2019-03-03 (Sunday)
 *   Added a bunch of issues to GitHub.
 *   Added `rename` command.

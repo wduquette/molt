@@ -31,14 +31,18 @@ $ cargo run test test/all.tcl
 
 ## TODO Items
 
+* Issues from wduquette/molt.
+  * #14: Evaluation stack depth checking
+  * #15: molt_shell::repl should support continuation lines
+  * #17: molt_shell should document how to write app code.
+* Revise main parser to use CharPtr.
 * Add complete tests for the existing Tcl commands.
     * Test expression parser thoroughly
       * Add tests for "eq", "ne", "in", "ni"
       * Implement remaining math functions
-* Implement interp evaluation depth checking.
-* Use Interp::complete() in the shell, to build up multiline commands.
 * Continue to add commands from the "next" list, below.
 * Flesh out Rust tests and Rust API docs in the code base.
+  * Follow API design guide from the RUST nursery.
   * Design public API using `pub use` in `lib.rs`, so the examples read
     properly from the user's point of view.
 * Define molt extension architecture

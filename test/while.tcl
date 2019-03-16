@@ -18,6 +18,7 @@ test while-2.2 {while executes 0 times if test is always false} {
     while {false} {
         set i inside
     }
+    set i
 } -ok outside
 
 test while-3.1 {while with return} -setup {

@@ -59,12 +59,12 @@ So:
 
 Some `Interp` methods can be improved.
 
-| Old Name                | New Name        |
-| ----------------------- | --------------- |
-| `add_command_proc`      | `add_proc`      |
-| `get_command_names`     | `command_names` |
-| `get_var`               | `var`           |
-| `get_visible_var_names` | `vars_in_scope` |
+| Old Name                | New Name                   |
+| ----------------------- | -------------------------- |
+| `add_command_proc`      | `add_proc`                 |
+| `get_command_names`     | `command_names`            |
+| `get_var`               | `var`                      |
+| `get_visible_var_names` | `vars_in_scope`            |
 
 Also, the module's `subst_backslashes` function should be an
 `Interp` method, to be parallel with the other `subst_*` methods

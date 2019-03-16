@@ -56,7 +56,7 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) {
     let context = Rc::new(RefCell::new(TestContext::new()));
 
     // NEXT, install the test commands into the interpreter.
-    interp.add_command_obj("test", Rc::new(TestCommand::new(&context)));
+    interp.add_command_object("test", Rc::new(TestCommand::new(&context)));
 
     // NEXT, execute the script.
     match fs::read_to_string(&args[0]) {

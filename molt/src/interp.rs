@@ -1,4 +1,9 @@
-//! The Interpreter
+//! The Molt Interpreter
+//!
+//! The `Interp` class is the primary API for embedding Molt into a Rust application.
+//!
+//! TODO
+
 use crate::list::list_to_string;
 use crate::list::get_list;
 use crate::commands;
@@ -30,15 +35,26 @@ pub struct Interp {
 }
 
 impl Interp {
-    /// Create a new interpreter, pre-populated with the standard commands.
-    /// TODO: Probably want to create it empty and provide command sets.
-    pub fn new() -> Self {
-        let mut interp = Self {
+    //--------------------------------------------------------------------------------------------
+    // Constructors
+
+    /// Creates a new Molt interpreter with no commands defined.  Use this when crafting
+    /// command languages that shouldn't include the normal TCL commands, or as a base
+    /// for adding specific command sets.
+    pub fn empty() -> Self {
+        Self {
             max_nesting_depth: 255,
             commands: HashMap::new(),
             var_stack: VarStack::new(),
             num_levels: 0,
-        };
+        }
+    }
+
+    /// Creates a new Molt interpreter, pre-populated with the standard Molt commands.
+    /// Use `info commands` to retrieve the full list.
+    /// TODO: Define command sets
+    pub fn new() -> Self {
+        let mut interp = Interp::empty();
 
         interp.add_command("append", commands::cmd_append);
         interp.add_command("assert_eq", commands::cmd_assert_eq);
@@ -70,21 +86,41 @@ impl Interp {
         interp
     }
 
+    //--------------------------------------------------------------------------------------------
+    // Interpreter Configuration
+
+    // TODO
+
+    //--------------------------------------------------------------------------------------------
+    // Command Definition and Handling
+
+    /// Adds a command defined by a `CommandFunc` to the interpreter.
+    ///
+    /// This is the normal way to add commands to
+    /// the interpreter.  If the command requires context other than the interpreter itself,
+    /// define a struct that implements `Command` and use `add_command_object`.
     pub fn add_command(&mut self, name: &str, func: CommandFunc) {
         let command = Rc::new(CommandFuncWrapper::new(func));
-        self.add_command_obj(name, command);
+        self.add_command_object(name, command);
     }
 
+    /// Adds a procedure to the interpreter.
+    ///
+    /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
+    /// as for the `proc` command and the `commands::cmd_proc` function.
     pub fn add_command_proc(&mut self, name: &str, args: Vec<String>, body: &str) {
         let command = Rc::new(CommandProc {
             args: args,
             body: body.to_string(),
         });
 
-        self.add_command_obj(name, command);
+        self.add_command_object(name, command);
     }
 
-    pub fn add_command_obj(&mut self, name: &str, command: Rc<dyn Command>) {
+    /// Adds a command to the interpreter using a `Command` trait object.
+    ///
+    /// Use this when defining a command that requires application context.
+    pub fn add_command_object(&mut self, name: &str, command: Rc<dyn Command>) {
         self.commands.insert(name.into(), command);
     }
 
@@ -114,6 +150,9 @@ impl Interp {
 
         vec
     }
+
+    //--------------------------------------------------------------------------------------------
+    // Variable Handling
 
     pub fn get_var(&self, name: &str) -> InterpResult {
         match self.var_stack.get(name) {
@@ -156,6 +195,9 @@ impl Interp {
         assert!(level <= self.var_stack.top(), "Invalid scope level");
         self.var_stack.upvar(level, name);
     }
+
+    //--------------------------------------------------------------------------------------------
+    // Script and Expression Evaluation
 
     /// Evaluates a script one command at a time, returning the
     /// value of the last command in the script, the value of an explicit
@@ -205,6 +247,12 @@ impl Interp {
 
         self.eval_context(&mut ctx).is_ok()
     }
+
+    //--------------------------------------------------------------------------------------------
+    // The Molt Parser
+    //
+    // TODO: Can this be easily moved to another module?  It needs access to the
+    // Interp struct's fields.
 
     /// Low-level script evaluator; evaluates the next script in the
     /// context.

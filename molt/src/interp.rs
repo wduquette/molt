@@ -130,7 +130,12 @@ impl Interp {
         self.commands.contains_key(name)
     }
 
-    /// Renames the command with the new name.
+    /// Renames the command.
+    ///
+    /// **Note:** This does not update procedures that reference the command under the old
+    /// name.  This is intentional: it is a common TCL programming technique to wrap an
+    /// existing command by renaming it and defining a new command with the old name that
+    /// calls the original command at its new name.
     pub fn rename_command(&mut self, old_name: &str, new_name: &str) {
         if let Some(cmd) = self.commands.get(old_name) {
             let cmd = Rc::clone(cmd);
@@ -144,8 +149,10 @@ impl Interp {
         self.commands.remove(name);
     }
 
-    /// Gets a vector of the command names.
-    pub fn get_command_names(&self) -> Vec<String> {
+    /// Gets a vector of the names of the existing commands.
+    ///
+    /// TODO: This should be a MoltList.
+    pub fn command_names(&self) -> Vec<String> {
         let vec: Vec<String> = self.commands.keys().cloned().collect();
 
         vec

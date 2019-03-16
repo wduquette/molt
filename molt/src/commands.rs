@@ -383,7 +383,7 @@ const INFO_SUBCOMMANDS: [Subcommand; 3] = [
 
 /// # info commands ?*pattern*?
 pub fn cmd_info_commands(interp: &mut Interp, _argv: &[&str]) -> InterpResult {
-    molt_ok!("{}", list_to_string(&interp.get_command_names()))
+    molt_ok!("{}", list_to_string(&interp.command_names()))
 }
 
 /// # info complete *command*

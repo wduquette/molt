@@ -1,35 +1,47 @@
-//! Variable Scope
+//! Variable Scope Stack
 //!
-//! A VarScope holds the variables for a scope in the call stack
+//! A scope contains the variables for a given level in the call stack.  New scopes are pushed
+//! onto the stack by procedure on entry and popped on exit.  Variables in the current scope
+//! can be mapped to variables in lower scopes (e.g., scope #0, the `global` scope) using
+//! the `upvar` method.
 //!
-//! Issue: we need to be able to map a variable in a higher level to a variable in
-//! another level (i.e., the global scope).  I think the answer is to use a RefCell, an
-//! immutable reference to a mutable string.  We'll see.
+//! Scopes are numbered starting at `0`, the `global` scope.  Scopes with lower indices than
+//! the current are said to be higher in the stack, following Standard TCL practice (e.g.,
+//! `upvar`, `uplevel`).
 
 use std::collections::HashMap;
 
+/// A variable in a `Scope`.  If the variable is defined in the `Scope`, it has a
+/// `Value`; if it is a reference to a variable in a higher scope (e.g., a global) then
+/// the `Level` gives the referenced scope.
 enum Var {
     Value(String),
     Level(usize)
 }
 
+/// A scope: a level in the `ScopeStack`.  It contains a hash table of `Var`'s by name.
 #[derive(Default)]
 struct Scope {
+    /// Vars in this scope by name.
     map: HashMap<String,Var>
 }
 
 impl Scope {
+    /// Create a new empty scope.
     pub fn new() -> Self {
         Scope { map: HashMap::new() }
     }
 }
 
+/// The scope stack: a stack of variable scopes corresponding to the Molt `proc`
+/// call stack.
 #[derive(Default)]
 pub struct ScopeStack {
     stack: Vec<Scope>,
 }
 
 impl ScopeStack {
+    /// Create a scope stack containing only scope `0`, the global scope.
     pub fn new() -> Self {
         let mut vs = Self {
             stack: Vec::new(),
@@ -49,13 +61,15 @@ impl ScopeStack {
         value.into()
     }
 
+    /// Unsets a variable in the current scope, i.e., removes it from the scope.
+    /// If the variable is a reference to another scope, the variable is removed from that
+    /// scope as well.
     pub fn unset(&mut self, name: &str) {
         let top = self.stack.len() - 1;
-        // self.stack[top].map.remove(name);
         self.unset_at(top, name);
     }
 
-    /// Gets the value of the named variable in the current scope.
+    /// Gets the value of the named variable in the current scope, if present.
     pub fn get(&self, name: &str) -> Option<String> {
         let top = self.stack.len() - 1;
 
@@ -72,7 +86,7 @@ impl ScopeStack {
     }
 
     /// Set a variable to a value at a given level in the stack.  If the variable at that level
-    /// is linked to a previous level, sets it at that level instead.
+    /// is linked to a higher level, sets it at that level instead.
     fn set_at(&mut self, level:usize, name: &str, value: &str) {
         match self.stack[level].map.get(name) {
             Some(Var::Level(at)) => {
@@ -85,7 +99,7 @@ impl ScopeStack {
     }
 
     /// Unset a variable at a given level in the stack.  If the variable at that level
-    /// is linked to a previous level, follows the chain down, unsetting as it goes.
+    /// is linked to a higher level, follows the chain down, unsetting as it goes.
     fn unset_at(&mut self, level: usize, name: &str) {
         // FIRST, if the variable at this level links to a lower level, follow the chain.
         if let Some(Var::Level(at)) = self.stack[level].map.get(name) {
@@ -97,29 +111,40 @@ impl ScopeStack {
     }
 
     /// Links a variable in the current scope to variable at the given level, counting
-    /// from 0, the global scope.
+    /// from `0`, the global scope.
+    ///
+    /// **Note:** does not try to create the variable at the referenced scope level, if it
+    /// does not exist; the variable will be created on the first `set`, if any.  This is
+    /// consistent with standard TCL behavior.
     pub fn upvar(&mut self, level: usize, name: &str) {
-        assert!(level < self.top(), "Can't upvar to current stack level");
-        let top = self.top();
+        assert!(level < self.current(), "Can't upvar to current stack level");
+        let top = self.current();
         self.stack[top].map.insert(name.into(), Var::Level(level));
     }
 
-    pub fn top(&self) -> usize {
+    /// Returns the index of the current stack level, counting from 0, the global scope.
+    /// The current stack level has the highest index, but is said to be the lowest stack
+    /// level.
+    pub fn current(&self) -> usize {
         self.stack.len() - 1
     }
 
-    /// Push a new scope onto the stack.
+    /// Pushes a new scope onto the stack.  The scope contains no variables by default, though
+    /// the procedure that is pushing it onto the stack will often add some.
     pub fn push(&mut self) {
         self.stack.push(Scope::new());
     }
 
-    /// Pop the top scope from the stack. Panics if we're at the global scope.
+    /// Pops the current scope from the stack. Panics if we're at the global scope; this implies an
+    /// coding error at the Rust level.
     pub fn pop(&mut self) {
         self.stack.pop();
         assert!(!self.stack.is_empty(), "Popped global scope!");
     }
 
-    pub fn get_visible_names(&self) -> Vec<String> {
+    /// Gets the names of the variables defined in the current scope.
+    /// TODO: Should return a MoltList.
+    pub fn vars_in_scope(&self) -> Vec<String> {
         let top = self.stack.len() - 1;
         let vec: Vec<String> = self.stack[top].map.keys().cloned().collect();
 
@@ -167,17 +192,17 @@ mod tests {
     }
 
     #[test]
-    fn test_top() {
+    fn test_current() {
         let mut vs = ScopeStack::new();
-        assert_eq!(vs.top(), 0);
+        assert_eq!(vs.current(), 0);
         vs.push();
-        assert_eq!(vs.top(), 1);
+        assert_eq!(vs.current(), 1);
         vs.push();
-        assert_eq!(vs.top(), 2);
+        assert_eq!(vs.current(), 2);
         vs.pop();
-        assert_eq!(vs.top(), 1);
+        assert_eq!(vs.current(), 1);
         vs.pop();
-        assert_eq!(vs.top(), 0);
+        assert_eq!(vs.current(), 0);
     }
 
     #[test]

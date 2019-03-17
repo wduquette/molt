@@ -183,7 +183,7 @@ impl Interp {
     /// Gets a vector of the visible var names.
     /// TODO: Should be a MoltList.
     pub fn vars_in_scope(&self) -> Vec<String> {
-        self.scopes.get_visible_names()
+        self.scopes.vars_in_scope()
     }
 
     /// Pushes a variable scope on to the scope stack.
@@ -199,12 +199,12 @@ impl Interp {
 
     /// Return the current scope level
     pub fn scope_level(&self) -> usize {
-        self.scopes.top()
+        self.scopes.current()
     }
 
     /// Links the variable name in the current scope to the given scope.
     pub fn upvar(&mut self, level: usize, name: &str) {
-        assert!(level <= self.scopes.top(), "Invalid scope level");
+        assert!(level <= self.scopes.current(), "Invalid scope level");
         self.scopes.upvar(level, name);
     }
 

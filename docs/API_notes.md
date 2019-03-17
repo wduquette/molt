@@ -15,8 +15,6 @@ Notes on Molt's Rust API, from reading the Rust API guidelines.
 * This allows adding methods.  E.g., vec_string_to_str can be
   MoltList::as_vec_str(&self).
 
-### molt::util should be pub(for crate).
-
 ## Argument Parsing Functions
 
 Functions used by command definitions to check and convert arguments should

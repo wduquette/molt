@@ -19,7 +19,7 @@ mod list;
 mod macros;
 pub mod scope;
 pub mod types;
-pub mod util;
+pub(crate) mod util;
 
 /// Checks to see whether a command's argument list is of a reasonable size.
 /// Returns an error if not.  The arglist must have at least min entries, and can have up

@@ -17,12 +17,6 @@ Notes on Molt's Rust API, from reading the Rust API guidelines.
 
 ### molt::util should be pub(for crate).
 
-### VarStack
-
-* Should probably be `ScopeStack`.
-* `Scope` has no public methods; should be private.
-* `get_visible_names()` should be `vars_in_scope()`
-
 ## Argument Parsing Functions
 
 Functions used by command definitions to check and convert arguments should
@@ -56,15 +50,6 @@ So:
 | `list_to_string`  | `list_result` |
 
 ## Interp Methods
-
-Some `Interp` methods can be improved.
-
-| Old Name                | New Name                   |
-| ----------------------- | -------------------------- |
-| `add_command_proc`      | `add_proc`                 |
-| `get_command_names`     | `command_names`            |
-| `get_var`               | `var`                      |
-| `get_visible_var_names` | `vars_in_scope`            |
 
 Also, the module's `subst_backslashes` function should be an
 `Interp` method, to be parallel with the other `subst_*` methods

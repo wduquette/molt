@@ -10,7 +10,7 @@ use crate::commands;
 use crate::context::Context;
 use crate::molt_ok;
 use crate::molt_err;
-use crate::var_stack::VarStack;
+use crate::scope::ScopeStack;
 use crate::types::Command;
 use crate::types::CommandFunc;
 use crate::types::*;
@@ -28,7 +28,7 @@ pub struct Interp {
     commands: HashMap<String, Rc<dyn Command>>,
 
     // Variable Table
-    var_stack: VarStack,
+    scopes: ScopeStack,
 
     // Current number of eval levels.
     num_levels: usize,
@@ -45,7 +45,7 @@ impl Interp {
         Self {
             max_nesting_depth: 255,
             commands: HashMap::new(),
-            var_stack: VarStack::new(),
+            scopes: ScopeStack::new(),
             num_levels: 0,
         }
     }
@@ -108,7 +108,7 @@ impl Interp {
     ///
     /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
     /// as for the `proc` command and the `commands::cmd_proc` function.
-    pub fn add_command_proc(&mut self, name: &str, args: Vec<String>, body: &str) {
+    pub fn add_proc(&mut self, name: &str, args: Vec<String>, body: &str) {
         let command = Rc::new(CommandProc {
             args: args,
             body: body.to_string(),
@@ -161,46 +161,51 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Variable Handling
 
-    pub fn get_var(&self, name: &str) -> InterpResult {
-        match self.var_stack.get(name) {
+    /// Retrieves the value of the named variable in the current scope, if any.
+    pub fn var(&self, name: &str) -> InterpResult {
+        match self.scopes.get(name) {
             Some(v) => molt_ok!(v.clone()),
             None => molt_err!("can't read \"{}\": no such variable", name),
         }
     }
 
+    /// Sets the value of the named variable in the current scope, creating the variable
+    /// if necessary.
     pub fn set_var(&mut self, name: &str, value: &str) {
-        self.var_stack.set(name, value);
+        self.scopes.set(name, value);
     }
 
+    /// Unsets the value of the named variable in the current scope
     pub fn unset_var(&mut self, name: &str) {
-        self.var_stack.unset(name);
+        self.scopes.unset(name);
     }
 
     /// Gets a vector of the visible var names.
-    pub fn get_visible_var_names(&self) -> Vec<String> {
-        self.var_stack.get_visible_names()
+    /// TODO: Should be a MoltList.
+    pub fn vars_in_scope(&self) -> Vec<String> {
+        self.scopes.get_visible_names()
     }
 
-    /// Pushes a variable scope on to the var_stack.
+    /// Pushes a variable scope on to the scope stack.
     /// Procs use this to define their local scope.
     pub fn push_scope(&mut self) {
-        self.var_stack.push();
+        self.scopes.push();
     }
 
-    /// Pops a variable scope off of the var_stack.
+    /// Pops a variable scope off of the scope stack.
     pub fn pop_scope(&mut self) {
-        self.var_stack.pop();
+        self.scopes.pop();
     }
 
     /// Return the current scope level
     pub fn scope_level(&self) -> usize {
-        self.var_stack.top()
+        self.scopes.top()
     }
 
     /// Links the variable name in the current scope to the given scope.
     pub fn upvar(&mut self, level: usize, name: &str) {
-        assert!(level <= self.var_stack.top(), "Invalid scope level");
-        self.var_stack.upvar(level, name);
+        assert!(level <= self.scopes.top(), "Invalid scope level");
+        self.scopes.upvar(level, name);
     }
 
     //--------------------------------------------------------------------------------------------
@@ -486,7 +491,7 @@ impl Interp {
             varname.push_str(&self.parse_braced_varname(ctx)?);
         }
 
-        Ok(self.get_var(&varname)?)
+        Ok(self.var(&varname)?)
     }
 
     fn parse_braced_varname(&self, ctx: &mut Context) -> InterpResult {

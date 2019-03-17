@@ -14,7 +14,7 @@ enum Var {
 }
 
 #[derive(Default)]
-pub struct Scope {
+struct Scope {
     map: HashMap<String,Var>
 }
 
@@ -25,11 +25,11 @@ impl Scope {
 }
 
 #[derive(Default)]
-pub struct VarStack {
+pub struct ScopeStack {
     stack: Vec<Scope>,
 }
 
-impl VarStack {
+impl ScopeStack {
     pub fn new() -> Self {
         let mut vs = Self {
             stack: Vec::new(),
@@ -133,13 +133,13 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let vs = VarStack::new();
+        let vs = ScopeStack::new();
         assert_eq!(vs.stack.len(), 1);
     }
 
     #[test]
     fn test_push() {
-        let mut vs = VarStack::new();
+        let mut vs = ScopeStack::new();
         vs.push();
         assert_eq!(vs.stack.len(), 2);
         vs.push();
@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_pop() {
-        let mut vs = VarStack::new();
+        let mut vs = ScopeStack::new();
         vs.push();
         vs.push();
         assert_eq!(vs.stack.len(), 3);
@@ -161,14 +161,14 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_pop_global_scope() {
-        let mut vs = VarStack::new();
+        let mut vs = ScopeStack::new();
         assert_eq!(vs.stack.len(), 1);
         vs.pop();
     }
 
     #[test]
     fn test_top() {
-        let mut vs = VarStack::new();
+        let mut vs = ScopeStack::new();
         assert_eq!(vs.top(), 0);
         vs.push();
         assert_eq!(vs.top(), 1);
@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_set_get() {
-        let mut vs = VarStack::new();
+        let mut vs = ScopeStack::new();
 
         vs.set("a", "1");
         assert_eq!(vs.get("a"), Some("1".into()));
@@ -195,7 +195,7 @@ mod tests {
 
     #[test]
     fn test_set_levels() {
-        let mut vs = VarStack::new();
+        let mut vs = ScopeStack::new();
 
         vs.set("a", "1");
         vs.set("b", "2");
@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     fn test_set_get_upvar() {
-        let mut vs = VarStack::new();
+        let mut vs = ScopeStack::new();
 
         vs.set("a", "1");
         vs.set("b", "2");
@@ -242,7 +242,7 @@ mod tests {
 
     #[test]
     fn test_unset() {
-        let mut vs = VarStack::new();
+        let mut vs = ScopeStack::new();
 
         vs.set("a", "1");
         assert_eq!(vs.get("a"), Some("1".into()));
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn test_unset_levels() {
-        let mut vs = VarStack::new();
+        let mut vs = ScopeStack::new();
 
         vs.set("a", "1");
         vs.set("b", "2");
@@ -270,7 +270,7 @@ mod tests {
 
     #[test]
     fn test_unset_upvar() {
-        let mut vs = VarStack::new();
+        let mut vs = ScopeStack::new();
 
         // Set a value at level 0
         vs.set("a", "1");

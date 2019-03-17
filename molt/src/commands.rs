@@ -16,7 +16,7 @@ use std::fs;
 pub fn cmd_append(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 2, 0, "varName ?value value ...?")?;
 
-    let var_result = interp.get_var(argv[1]);
+    let var_result = interp.var(argv[1]);
 
     let mut new_value = if var_result.is_ok() {
         var_result.unwrap()
@@ -354,7 +354,7 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
         1
     };
 
-    let var_value = interp.get_var(argv[1]);
+    let var_value = interp.var(argv[1]);
 
     let new_value = (if var_value.is_ok() {
         get_int(&var_value.unwrap())? + increment
@@ -399,8 +399,9 @@ pub fn cmd_info_complete(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 }
 
 /// # info vars ?*pattern*?
+/// TODO: Add glob matching as a feature, and provide optional pattern argument.
 pub fn cmd_info_vars(interp: &mut Interp, _argv: &[&str]) -> InterpResult {
-    molt_ok!(list_to_string(&interp.get_visible_var_names()))
+    molt_ok!(list_to_string(&interp.vars_in_scope()))
 }
 
 /// # join *list* ?*joinString*?
@@ -426,7 +427,7 @@ pub fn cmd_join(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 pub fn cmd_lappend(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 2, 0, "varName ?value ...?")?;
 
-    let var_result = interp.get_var(argv[1]);
+    let var_result = interp.var(argv[1]);
 
     let mut list: Vec<String> = if var_result.is_ok() {
         get_list(&var_result.unwrap())?
@@ -506,7 +507,7 @@ pub fn cmd_proc(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     }
 
     // NEXT, add the command.
-    interp.add_command_proc(name, args, body);
+    interp.add_proc(name, args, body);
 
     molt_ok!()
 }
@@ -589,7 +590,7 @@ pub fn cmd_set(interp: &mut Interp, argv: &[&str]) -> InterpResult {
         value = argv[2].into();
         interp.set_var(argv[1], argv[2]);
     } else {
-        value = interp.get_var(argv[1])?;
+        value = interp.var(argv[1])?;
     }
 
     molt_ok!(value)

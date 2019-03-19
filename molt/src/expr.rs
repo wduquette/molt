@@ -1286,6 +1286,7 @@ fn expr_as_string(value: Value) -> Value {
     }
 }
 
+// Distinguished between decimal integers and floating-point values
 fn expr_looks_like_int<'a>(ptr: &CharPtr<'a>) -> bool {
     // FIRST, skip whitespace
     let mut p = ptr.clone();
@@ -1295,12 +1296,12 @@ fn expr_looks_like_int<'a>(ptr: &CharPtr<'a>) -> bool {
         p.skip();
     }
 
-    if !p.is_digit() {
+    if !p.is_digit(10) {
         return false;
     }
     p.skip();
 
-    while p.is_digit() {
+    while p.is_digit(10) {
         p.skip();
     }
 

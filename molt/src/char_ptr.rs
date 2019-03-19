@@ -78,10 +78,10 @@ impl<'a> CharPtr<'a> {
     }
 
     #[allow(clippy::wrong_self_convention)]
-    pub fn is_digit(&mut self) -> bool {
+    pub fn is_digit(&mut self, radix: u32) -> bool {
         // &mut is needed because peek() can mutate the iterator
         if let Some(pc) = self.chars.peek() {
-            pc.is_digit(10)
+            pc.is_digit(radix)
         } else {
             false
         }
@@ -174,11 +174,18 @@ mod tests {
     #[test]
     fn test_char_ptr_is_digit() {
         let mut p = CharPtr::new("1a");
-        assert!(p.is_digit());
+        assert!(p.is_digit(10));
         p.skip();
-        assert!(!p.is_digit());
+        assert!(!p.is_digit(10));
         p.skip();
-        assert!(!p.is_digit());
+        assert!(!p.is_digit(10));
+
+        let mut p = CharPtr::new("1a");
+        assert!(p.is_digit(16));
+        p.skip();
+        assert!(p.is_digit(16));
+        p.skip();
+        assert!(!p.is_digit(16));
     }
 
     #[test]

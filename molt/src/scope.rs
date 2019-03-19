@@ -8,6 +8,9 @@
 //! Scopes are numbered starting at `0`, the `global` scope.  Scopes with lower indices than
 //! the current are said to be higher in the stack, following Standard TCL practice (e.g.,
 //! `upvar`, `uplevel`).
+//!
+//! Molt clients do not interact with this mechanism directly, but via the
+//! `Interp` (or the Molt language itself).
 
 use std::collections::HashMap;
 
@@ -36,29 +39,37 @@ impl Scope {
 /// The scope stack: a stack of variable scopes corresponding to the Molt `proc`
 /// call stack.
 #[derive(Default)]
-pub struct ScopeStack {
+pub(crate) struct ScopeStack {
     stack: Vec<Scope>,
 }
 
 impl ScopeStack {
-    /// Create a scope stack containing only scope `0`, the global scope.
+    /// Creates a scope stack containing only scope `0`, the global scope.
     pub fn new() -> Self {
-        let mut vs = Self {
+        let mut ss = Self {
             stack: Vec::new(),
         };
 
-        vs.stack.push(Scope::new());
+        ss.stack.push(Scope::new());
 
-        vs
+        ss
     }
 
     /// Sets a variable to a value in the current scope.  If the variable is linked to
-    /// another scope, the value is set there instead.
+    /// another scope, the value is set there instead.  The variable is created if it does
+    /// not already exist.
     pub fn set(&mut self, name: &str, value: &str) -> String {
         let top = self.stack.len() - 1;
 
         self.set_at(top, name, value);
         value.into()
+    }
+
+    /// Gets the value of the named variable in the current scope, if present.
+    pub fn get(&self, name: &str) -> Option<String> {
+        let top = self.stack.len() - 1;
+
+        self.get_at(top, name)
     }
 
     /// Unsets a variable in the current scope, i.e., removes it from the scope.
@@ -67,13 +78,6 @@ impl ScopeStack {
     pub fn unset(&mut self, name: &str) {
         let top = self.stack.len() - 1;
         self.unset_at(top, name);
-    }
-
-    /// Gets the value of the named variable in the current scope, if present.
-    pub fn get(&self, name: &str) -> Option<String> {
-        let top = self.stack.len() - 1;
-
-        self.get_at(top, name)
     }
 
     /// Gets the value at the given level, recursing up the stack as needed.
@@ -158,157 +162,198 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let vs = ScopeStack::new();
-        assert_eq!(vs.stack.len(), 1);
+        let ss = ScopeStack::new();
+        assert_eq!(ss.stack.len(), 1);
+        assert_eq!(ss.current(), 0);
     }
 
     #[test]
+    fn test_set_get_basic() {
+        let mut ss = ScopeStack::new();
+
+        ss.set("a", "1");
+        assert_eq!(ss.get("a"), Some("1".into()));
+
+        ss.set("b", "2");
+        assert_eq!(ss.get("b"), Some("2".into()));
+
+        assert_eq!(ss.get("c"), None);
+    }
+
+    #[test]
+    fn test_unset_basic() {
+        let mut ss = ScopeStack::new();
+
+        ss.set("a", "1");
+        assert_eq!(ss.get("a"), Some("1".into()));
+        ss.unset("a");
+        assert_eq!(ss.get("a"), None);
+    }
+
+
+    #[test]
     fn test_push() {
-        let mut vs = ScopeStack::new();
-        vs.push();
-        assert_eq!(vs.stack.len(), 2);
-        vs.push();
-        assert_eq!(vs.stack.len(), 3);
+        let mut ss = ScopeStack::new();
+        ss.push();
+        assert_eq!(ss.stack.len(), 2);
+        ss.push();
+        assert_eq!(ss.stack.len(), 3);
     }
 
     #[test]
     fn test_pop() {
-        let mut vs = ScopeStack::new();
-        vs.push();
-        vs.push();
-        assert_eq!(vs.stack.len(), 3);
-        vs.pop();
-        assert_eq!(vs.stack.len(), 2);
-        vs.pop();
-        assert_eq!(vs.stack.len(), 1);
+        let mut ss = ScopeStack::new();
+        ss.push();
+        ss.push();
+        assert_eq!(ss.stack.len(), 3);
+        ss.pop();
+        assert_eq!(ss.stack.len(), 2);
+        ss.pop();
+        assert_eq!(ss.stack.len(), 1);
     }
 
     #[test]
     #[should_panic]
     fn test_pop_global_scope() {
-        let mut vs = ScopeStack::new();
-        assert_eq!(vs.stack.len(), 1);
-        vs.pop();
+        let mut ss = ScopeStack::new();
+        assert_eq!(ss.stack.len(), 1);
+        ss.pop();
     }
 
     #[test]
     fn test_current() {
-        let mut vs = ScopeStack::new();
-        assert_eq!(vs.current(), 0);
-        vs.push();
-        assert_eq!(vs.current(), 1);
-        vs.push();
-        assert_eq!(vs.current(), 2);
-        vs.pop();
-        assert_eq!(vs.current(), 1);
-        vs.pop();
-        assert_eq!(vs.current(), 0);
-    }
-
-    #[test]
-    fn test_set_get() {
-        let mut vs = ScopeStack::new();
-
-        vs.set("a", "1");
-        assert_eq!(vs.get("a"), Some("1".into()));
-
-        vs.set("b", "2");
-        assert_eq!(vs.get("b"), Some("2".into()));
-
-        assert_eq!(vs.get("c"), None);
+        let mut ss = ScopeStack::new();
+        assert_eq!(ss.current(), 0);
+        ss.push();
+        assert_eq!(ss.current(), 1);
+        ss.push();
+        assert_eq!(ss.current(), 2);
+        ss.pop();
+        assert_eq!(ss.current(), 1);
+        ss.pop();
+        assert_eq!(ss.current(), 0);
     }
 
     #[test]
     fn test_set_levels() {
-        let mut vs = ScopeStack::new();
+        let mut ss = ScopeStack::new();
 
-        vs.set("a", "1");
-        vs.set("b", "2");
+        ss.set("a", "1");
+        ss.set("b", "2");
 
-        vs.push();
-        assert_eq!(vs.get("a"), None);
-        assert_eq!(vs.get("b"), None);
-        assert_eq!(vs.get("c"), None);
+        ss.push();
+        assert_eq!(ss.get("a"), None);
+        assert_eq!(ss.get("b"), None);
+        assert_eq!(ss.get("c"), None);
 
-        vs.set("a", "3");
-        vs.set("b", "4");
-        vs.set("c", "5");
-        assert_eq!(vs.get("a"), Some("3".into()));
-        assert_eq!(vs.get("b"), Some("4".into()));
-        assert_eq!(vs.get("c"), Some("5".into()));
+        ss.set("a", "3");
+        ss.set("b", "4");
+        ss.set("c", "5");
+        assert_eq!(ss.get("a"), Some("3".into()));
+        assert_eq!(ss.get("b"), Some("4".into()));
+        assert_eq!(ss.get("c"), Some("5".into()));
 
-        vs.pop();
-        assert_eq!(vs.get("a"), Some("1".into()));
-        assert_eq!(vs.get("b"), Some("2".into()));
-        assert_eq!(vs.get("c"), None);
+        ss.pop();
+        assert_eq!(ss.get("a"), Some("1".into()));
+        assert_eq!(ss.get("b"), Some("2".into()));
+        assert_eq!(ss.get("c"), None);
     }
 
     #[test]
     fn test_set_get_upvar() {
-        let mut vs = ScopeStack::new();
+        let mut ss = ScopeStack::new();
 
-        vs.set("a", "1");
-        vs.set("b", "2");
+        ss.set("a", "1");
+        ss.set("b", "2");
 
-        vs.push();
-        vs.upvar(0, "a");
-        assert_eq!(vs.get("a"), Some("1".into()));
-        assert_eq!(vs.get("b"), None);
+        ss.push();
+        ss.upvar(0, "a");
+        assert_eq!(ss.get("a"), Some("1".into()));
+        assert_eq!(ss.get("b"), None);
 
-        vs.set("a", "3");
-        vs.set("b", "4");
-        assert_eq!(vs.get("a"), Some("3".into()));
-        assert_eq!(vs.get("b"), Some("4".into()));
+        ss.set("a", "3");
+        ss.set("b", "4");
+        assert_eq!(ss.get("a"), Some("3".into()));
+        assert_eq!(ss.get("b"), Some("4".into()));
 
-        vs.pop();
-        assert_eq!(vs.get("a"), Some("3".into()));
-        assert_eq!(vs.get("b"), Some("2".into()));
-    }
-
-    #[test]
-    fn test_unset() {
-        let mut vs = ScopeStack::new();
-
-        vs.set("a", "1");
-        assert_eq!(vs.get("a"), Some("1".into()));
-        vs.unset("a");
-        assert_eq!(vs.get("a"), None);
+        ss.pop();
+        assert_eq!(ss.get("a"), Some("3".into()));
+        assert_eq!(ss.get("b"), Some("2".into()));
     }
 
     #[test]
     fn test_unset_levels() {
-        let mut vs = ScopeStack::new();
+        let mut ss = ScopeStack::new();
 
-        vs.set("a", "1");
-        vs.set("b", "2");
+        ss.set("a", "1");
+        ss.set("b", "2");
 
-        vs.push();
-        vs.set("a", "3");
+        ss.push();
+        ss.set("a", "3");
 
-        vs.unset("a");  // Was set in this scope
-        vs.unset("b");  // Was not set in this scope
+        ss.unset("a");  // Was set in this scope
+        ss.unset("b");  // Was not set in this scope
 
-        vs.pop();
-        assert_eq!(vs.get("a"), Some("1".into()));
-        assert_eq!(vs.get("b"), Some("2".into()));
+        ss.pop();
+        assert_eq!(ss.get("a"), Some("1".into()));
+        assert_eq!(ss.get("b"), Some("2".into()));
     }
 
     #[test]
     fn test_unset_upvar() {
-        let mut vs = ScopeStack::new();
+        let mut ss = ScopeStack::new();
 
         // Set a value at level 0
-        vs.set("a", "1");
-        vs.push();
+        ss.set("a", "1");
+        ss.push();
 
         // Link a@1 to a@0
-        vs.upvar(0, "a");
+        ss.upvar(0, "a");
 
         // Unset it; it should be unset in both scopes.
-        vs.unset("a");
+        ss.unset("a");
 
-        assert_eq!(vs.get("a"), None);
-        vs.pop();
-        assert_eq!(vs.get("a"), None);
+        assert_eq!(ss.get("a"), None);
+        ss.pop();
+        assert_eq!(ss.get("a"), None);
     }
+
+    #[test]
+    fn test_vars_in_scope() {
+        let mut ss = ScopeStack::new();
+        // No vars initially
+        assert_eq!(ss.vars_in_scope().len(), 0);
+
+        // Add two vars to current scope
+        ss.set("a", "1");
+        ss.set("b", "2");
+        assert_eq!(ss.vars_in_scope().len(), 2);
+        assert!(ss.vars_in_scope().contains(&"a".into()));
+        assert!(ss.vars_in_scope().contains(&"b".into()));
+
+        // Push a scope; no vars initially
+        ss.push();
+        assert_eq!(ss.vars_in_scope().len(), 0);
+
+        // Add a var
+        ss.set("c", "3");
+        assert_eq!(ss.vars_in_scope().len(), 1);
+        assert!(ss.vars_in_scope().contains(&"c".into()));
+
+        // Upvar a var
+        ss.upvar(0, "a");
+        assert_eq!(ss.vars_in_scope().len(), 2);
+        assert!(ss.vars_in_scope().contains(&"a".into()));
+
+        // Pop a scope
+        ss.pop();
+        assert_eq!(ss.vars_in_scope().len(), 2);
+        assert!(!ss.vars_in_scope().contains(&"c".into()));
+
+        // Unset a var
+        ss.unset("b");
+        assert_eq!(ss.vars_in_scope().len(), 1);
+        assert!(!ss.vars_in_scope().contains(&"b".into()));
+    }
+
 }

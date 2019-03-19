@@ -2,6 +2,8 @@
 //!
 //! This module is the primary API for Molt users.
 
+#![doc(html_root_url = "https://docs.rs/molt/0.1.0")]
+
 pub use crate::types::*;
 pub use crate::list::get_list;
 pub use crate::list::list_to_string;
@@ -17,9 +19,9 @@ pub mod interp;
 mod list;
 #[macro_use]
 mod macros;
-pub mod scope;
+mod scope;
 pub mod types;
-pub(crate) mod util;
+mod util;
 
 /// Checks to see whether a command's argument list is of a reasonable size.
 /// Returns an error if not.  The arglist must have at least min entries, and can have up

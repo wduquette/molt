@@ -287,7 +287,7 @@ pub fn molt_expr_bool(interp: &mut Interp, string: &str) -> Result<bool, ResultC
     match value.vtype {
         Type::Int => Ok(value.int != 0),
         Type::Float => Ok(value.flt != 0.0),
-        Type::String => get_boolean(&value.str),
+        Type::String => interp.get_bool(&value.str),
     }
 }
 

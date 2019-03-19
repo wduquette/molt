@@ -26,7 +26,6 @@ Use `get_<type>` naming, for consistency with Standard TCL style.
 
 | Function      | Method       |
 | ------------- | ------------ |
-| `check_args`  | `check_args` |
 | `get_boolean` | `get_bool`   |
 | `get_float`   | `get_float`  |
 | `get_int`     | `get_int`    |
@@ -52,6 +51,10 @@ So:
 Also, the module's `subst_backslashes` function should be an
 `Interp` method, to be parallel with the other `subst_*` methods
 we need.
+
+## Expression Evaluation
+
+The `Interp` should provide expression evaluation methods for use by client code.
 
 ## Other Notes
 

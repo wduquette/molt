@@ -198,6 +198,32 @@ impl Interp {
         }
     }
 
+    /// Converts an string argument into a `MoltFloat`, returning an error on failure.
+    /// A command function will call this to convert an argument into a number,
+    /// using "?" to propagate errors to the interpreter.
+    ///
+    /// Molt accepts any string acceptable to `str::parse<f64>` as a valid floating
+    /// point string.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::Interp;
+    /// # use molt::types::*;
+    /// # fn dummy() -> Result<MoltFloat,ResultCode> {
+    /// # let interp = Interp::new();
+    /// let arg = "1e2";
+    /// let val = interp.get_float(arg)?;
+    /// # Ok(val)
+    /// # }
+    /// ```
+    pub fn get_float(&self, arg: &str) -> Result<MoltFloat, ResultCode> {
+        match arg.parse::<MoltFloat>() {
+            Ok(val) => Ok(val),
+            Err(_) => molt_err!("expected floating-point number but got \"{}\"", arg),
+        }
+    }
+
 
     //--------------------------------------------------------------------------------------------
     // Variable Handling
@@ -795,4 +821,17 @@ mod tests {
         assert_eq!(interp.get_bool("nonesuch"),
             molt_err!("expected boolean but got \"nonesuch\""));
     }
+
+    #[test]
+    fn test_get_float() {
+        let interp = Interp::new();
+
+        assert_eq!(interp.get_float("1"), Ok(1.0));
+        assert_eq!(interp.get_float("-1"), Ok(-1.0));
+        assert_eq!(interp.get_float("+1"), Ok(1.0));
+        assert_eq!(interp.get_float("1e3"), Ok(1000.0));
+        assert_eq!(interp.get_float("a"),
+            molt_err!("expected floating-point number but got \"a\""));
+    }
+
 }

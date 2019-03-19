@@ -73,27 +73,6 @@ pub fn get_int(arg: &str) -> Result<MoltInt, ResultCode> {
     }
 }
 
-/// Converts an argument into a Molt float, returning an error on failure.
-/// A command function will call this to convert an argument into a number,
-/// using "?" to propagate errors to the interpreter.
-///
-/// # Example
-///
-/// ```
-/// # use molt::types::*;
-/// # fn dummy() -> Result<MoltFloat,ResultCode> {
-/// let arg = "1e2";
-/// let val = molt::get_float(arg)?;
-/// # Ok(val)
-/// # }
-/// ```
-pub fn get_float(arg: &str) -> Result<MoltFloat, ResultCode> {
-    match arg.parse::<MoltFloat>() {
-        Ok(val) => Ok(val),
-        Err(_) => molt_err!("expected floating-point number but got \"{}\"", arg),
-    }
-}
-
 /// Looks up a subcommand of an ensemble command by name in a table,
 /// returning the usual error if it can't be found.
 ///
@@ -172,15 +151,6 @@ mod tests {
         assert_eq!(get_int("-1"), Ok(-1));
         assert_eq!(get_int("+1"), Ok(1));
         assert_eq!(get_int("a"), molt_err!("expected integer but got \"a\""));
-    }
-
-    #[test]
-    fn test_get_float() {
-        assert_eq!(get_float("1"), Ok(1.0));
-        assert_eq!(get_float("-1"), Ok(-1.0));
-        assert_eq!(get_float("+1"), Ok(1.0));
-        assert_eq!(get_float("1e3"), Ok(1000.0));
-        assert_eq!(get_float("a"), molt_err!("expected floating-point number but got \"a\""));
     }
 
     // Helpers

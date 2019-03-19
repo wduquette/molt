@@ -2,8 +2,12 @@
 
 use crate::interp::Interp;
 
-/// Molt Numeric Types
+// Molt Numeric Types
+
+/// The standard integer type for Molt code.
 pub type MoltInt   = i64;
+
+/// The standard floating point type for Molt code.
 pub type MoltFloat = f64;
 
 /// The result of calling a function during Molt script evaluation, other than

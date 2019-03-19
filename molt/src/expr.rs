@@ -865,7 +865,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
         } else if let Some(token) = util::read_float(&mut p) {
             info.token = VALUE;
             info.expr = p;
-            return Ok(Value::float(get_float(&token)?));
+            return Ok(Value::float(interp.get_float(&token)?));
         }
     }
 
@@ -1215,7 +1215,7 @@ fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc,ResultCode> {
 /// Value based on the string.  The value will be floating-point or integer if possible,
 /// or else it will just be a copy of the string.  Returns an error on failed numeric
 /// conversions.
-fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
+fn expr_parse_string(interp: &mut Interp, string: &str) -> ValueResult {
     if !string.is_empty() {
         let mut p = CharPtr::new(string);
 
@@ -1247,7 +1247,7 @@ fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
                 p.skip_while(|c| c.is_whitespace());
 
                 if p.is_none() {
-                    let flt = get_float(&token)?;
+                    let flt = interp.get_float(&token)?;
                     return Ok(Value::float(flt));
                 }
             }

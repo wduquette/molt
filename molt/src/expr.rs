@@ -765,7 +765,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 };
             }
             IN => {
-                let list = get_list(&value2.str)?;
+                let list = interp.get_list(&value2.str)?;
                 value = if list.contains(&value.str) {
                     Value::int(1)
                 } else {
@@ -773,7 +773,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 };
             }
             NI => {
-                let list = get_list(&value2.str)?;
+                let list = interp.get_list(&value2.str)?;
                 value = if list.contains(&value.str) {
                     Value::int(0)
                 } else {

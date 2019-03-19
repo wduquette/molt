@@ -5,7 +5,6 @@
 #![doc(html_root_url = "https://docs.rs/molt/0.1.0")]
 
 pub use crate::types::*;
-pub use crate::list::get_list;
 pub use crate::list::list_to_string;
 pub use crate::interp::Interp;
 

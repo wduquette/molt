@@ -11,7 +11,7 @@ use crate::interp::subst_backslashes;
 
 /// Parses a list-formatted string into a vector, throwing
 /// a Molt error if the list cannot be parsed as a list.
-pub fn get_list(str: &str) -> Result<Vec<String>, ResultCode> {
+pub(crate) fn get_list(str: &str) -> Result<Vec<String>, ResultCode> {
     let mut ctx = Context::new(str);
 
     parse_list(&mut ctx)

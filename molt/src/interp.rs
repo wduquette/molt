@@ -5,7 +5,6 @@
 //! TODO
 
 use crate::list::list_to_string;
-use crate::list::get_list;
 use crate::commands;
 use crate::context::Context;
 use crate::molt_ok;
@@ -264,6 +263,32 @@ impl Interp {
             Ok(int) => Ok(minus * int),
             Err(_) => molt_err!("expected integer but got \"{}\"", arg),
         }
+    }
+
+    /// Converts a string argument into a Molt list, represented as a `Vec<String>`,
+    /// returning an error on failure. A command function will call this to convert
+    /// an argument into a list, using "?" to propagate errors to the interpreter.
+    ///
+    /// TCL list syntax is too complex to discuss here, but basically consists
+    /// of whitespace-delimited items, with normal TCL quoting for items containing
+    /// whitespace.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::Interp;
+    /// # use molt::types::*;
+    /// # fn dummy() -> Result<Vec<String>,ResultCode> {
+    /// # let interp = Interp::new();
+    /// let arg = "a {b c} d";
+    /// let list = interp.get_list(arg)?;
+    /// assert_eq!(list.len(), 3);
+    /// assert_eq!(list[1], "b c".to_string());
+    /// # Ok(list)
+    /// # }
+    /// ```
+    pub fn get_list(&self, str: &str) -> Result<Vec<String>, ResultCode> {
+        crate::list::get_list(str)
     }
 
 
@@ -654,7 +679,7 @@ impl Command for CommandProc {
         for (speci, spec) in self.args.iter().enumerate() {
             // FIRST, get the parameter as a vector.  It should be a list of
             // one or two elements.
-            let vec = get_list(&spec)?;  // Should never fail
+            let vec = interp.get_list(&spec)?;  // Should never fail
             assert!(vec.len() == 1 || vec.len() == 2);
 
             // NEXT, if this is the args parameter, give the remaining args,
@@ -686,13 +711,13 @@ impl Command for CommandProc {
                 interp.set_var(&vec[0], &vec[1]);
             } else {
                 // We don't; we're missing a required argument.
-                return wrong_num_args_for_proc(argv[0], &self.args);
+                return wrong_num_args_for_proc(interp, argv[0], &self.args);
             }
         }
 
         // NEXT, do we have any arguments left over?
         if argi != argv.len() {
-            return wrong_num_args_for_proc(argv[0], &self.args);
+            return wrong_num_args_for_proc(interp, argv[0], &self.args);
         }
 
         // NEXT, evaluate the proc's body, getting the result.
@@ -708,7 +733,7 @@ impl Command for CommandProc {
     }
 }
 
-fn wrong_num_args_for_proc(name: &str, args: &[String]) -> InterpResult {
+fn wrong_num_args_for_proc(interp: &Interp, name: &str, args: &[String]) -> InterpResult {
     let mut msg = String::new();
     msg.push_str("wrong # args: should be \"");
     msg.push_str(name);
@@ -722,7 +747,7 @@ fn wrong_num_args_for_proc(name: &str, args: &[String]) -> InterpResult {
             break;
         }
 
-        let vec = get_list(arg).expect("error in proc arglist validation!");
+        let vec = interp.get_list(arg).expect("error in proc arglist validation!");
 
         if vec.len() == 1 {
             msg.push_str(&vec[0]);
@@ -893,4 +918,21 @@ mod tests {
         assert_eq!(interp.get_int("0xABGG"),
             molt_err!("expected integer but got \"0xABGG\""));
     }
+
+    #[test]
+    fn test_get_list() {
+        // NOTE: List syntax is tested in list.rs; this simply verifies that
+        // Interp provides an interface to it.
+        let interp = Interp::new();
+
+        let vec = interp.get_list("a b c").unwrap();
+        assert_eq!(vec.len(), 3);
+        assert_eq!(vec[0], "a".to_string());
+        assert_eq!(vec[1], "b".to_string());
+        assert_eq!(vec[2], "c".to_string());
+
+        let result = interp.get_list("a {b c");
+        assert!(result.is_err());
+    }
+
 }

@@ -198,8 +198,8 @@ pub fn cmd_for(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 pub fn cmd_foreach(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 4, 4, "varList list body")?;
 
-    let var_list = get_list(argv[1])?;
-    let list = get_list(argv[2])?;
+    let var_list = interp.get_list(argv[1])?;
+    let list = interp.get_list(argv[2])?;
     let body = argv[3];
 
     let mut i = 0;
@@ -407,10 +407,10 @@ pub fn cmd_info_vars(interp: &mut Interp, _argv: &[&str]) -> InterpResult {
 /// # join *list* ?*joinString*?
 ///
 /// Joins the elements of a list with a string.  The join string defaults to " ".
-pub fn cmd_join(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_join(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 2, 3, "list ?joinString?")?;
 
-    let list = get_list(argv[1])?;
+    let list = interp.get_list(argv[1])?;
 
     let join_string = if argv.len() == 3 {
         argv[2]
@@ -430,7 +430,7 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     let var_result = interp.var(argv[1]);
 
     let mut list: Vec<String> = if var_result.is_ok() {
-        get_list(&var_result.unwrap())?
+        interp.get_list(&var_result.unwrap())?
     } else {
         Vec::new()
     };
@@ -455,7 +455,7 @@ pub fn cmd_lindex(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     let mut value = argv[1].to_string();
 
     for index_string in &argv[2..] {
-        let list = get_list(&value)?;
+        let list = interp.get_list(&value)?;
         let index = interp.get_int(index_string)?;
 
         value = if index < 0 || index as usize >= list.len() {
@@ -479,10 +479,10 @@ pub fn cmd_list(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// # llength *list*
 ///
 /// Returns the length of the list.
-pub fn cmd_llength(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_llength(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 2, 2, "list")?;
 
-    let list = get_list(argv[1])?;
+    let list = interp.get_list(argv[1])?;
 
     molt_ok!(list.len().to_string())
 }
@@ -492,12 +492,12 @@ pub fn cmd_proc(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
     // FIRST, get the arguments
     let name = argv[1];
-    let args = get_list(argv[2])?;
+    let args = interp.get_list(argv[2])?;
     let body = argv[3];
 
     // NEXT, validate the argument specs
     for arg in &args {
-        let vec = get_list(&arg)?;
+        let vec = interp.get_list(&arg)?;
 
         if vec.is_empty() {
             return molt_err!("argument with no name");

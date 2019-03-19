@@ -48,7 +48,6 @@ $ cargo run test test/all.tcl
 * Define molt extension architecture
   * E.g., the ability to add extensions to Molt as Rust crates.
 * Add costly features to core molt (e.g., regexp, glob) as Rust features.
-* Make molt::get_int() parse the same varieties as Tcl_GetInt() does.
 * On-going:
     * Document Molt's TCL dialect using mdbook, and publish to GitHub pages.
 * Consider generalizing the Subcommand array mechanism; standard command sets
@@ -62,7 +61,7 @@ The following commands need to get implemented next.
 * concat
 * eval
 * info level
-* info commands (without glob matching)
+* info commands (with glob matching)
 * list commands
 * string
 * upvar

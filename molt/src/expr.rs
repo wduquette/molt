@@ -858,7 +858,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
         if expr_looks_like_int(&p) {
             // There's definitely an integer to parse; parse it.
             let token = util::read_int(&mut p).unwrap();
-            let int = get_int(&token)?;
+            let int = interp.get_int(&token)?;
             info.token = VALUE;
             info.expr = p;
             return Ok(Value::int(int));
@@ -1232,7 +1232,7 @@ fn expr_parse_string(interp: &mut Interp, string: &str) -> ValueResult {
             p.skip_while(|c| c.is_whitespace());
 
             if p.is_none() {
-                let int = get_int(&token)?;
+                let int = interp.get_int(&token)?;
                 return Ok(Value::int(int));
             }
         } else {

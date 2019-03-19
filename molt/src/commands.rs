@@ -123,13 +123,13 @@ pub fn cmd_error(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// Terminates the application by calling `std::process::exit()`.
 /// If given, _returnCode_ must be an integer return code; if absent, it
 /// defaults to 0.
-pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_exit(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 1, 2, "?returnCode?")?;
 
     let return_code: MoltInt = if argv.len() == 1 {
         0
     } else {
-        get_int(argv[1])?
+        interp.get_int(argv[1])?
     };
 
     std::process::exit(return_code as i32)
@@ -349,7 +349,7 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 2, 3, "varName ?increment?")?;
 
     let increment: MoltInt = if argv.len() == 3 {
-        get_int(argv[2])?
+        interp.get_int(argv[2])?
     } else {
         1
     };
@@ -357,7 +357,7 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     let var_value = interp.var(argv[1]);
 
     let new_value = (if var_value.is_ok() {
-        get_int(&var_value.unwrap())? + increment
+        interp.get_int(&var_value.unwrap())? + increment
     } else {
         increment
     }).to_string();
@@ -449,14 +449,14 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// # lindex *list* ?*index* ...?
 ///
 /// Returns an element from the list, indexing into nested lists.
-pub fn cmd_lindex(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_lindex(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     check_args(1, argv, 2, 0, "list ?index ...?")?;
 
     let mut value = argv[1].to_string();
 
     for index_string in &argv[2..] {
         let list = get_list(&value)?;
-        let index = get_int(index_string)?;
+        let index = interp.get_int(index_string)?;
 
         value = if index < 0 || index as usize >= list.len() {
             "".to_string()

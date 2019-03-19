@@ -50,29 +50,6 @@ pub fn check_args(
     }
 }
 
-/// Converts an argument into a Molt integer, returning an error on failure.
-/// A command function will call this to convert an argument into an integer,
-/// using "?" to propagate errors to the interpreter.
-///
-/// TODO: support hex as well.  Util util::read_int at the same time.
-///
-/// # Example
-///
-/// ```
-/// # use molt::types::*;
-/// # fn dummy() -> Result<MoltInt,ResultCode> {
-/// let arg = "1";
-/// let int = molt::get_int(arg)?;
-/// # Ok(int)
-/// # }
-/// ```
-pub fn get_int(arg: &str) -> Result<MoltInt, ResultCode> {
-    match arg.parse::<MoltInt>() {
-        Ok(int) => Ok(int),
-        Err(_) => molt_err!("expected integer but got \"{}\"", arg),
-    }
-}
-
 /// Looks up a subcommand of an ensemble command by name in a table,
 /// returning the usual error if it can't be found.
 ///
@@ -142,15 +119,6 @@ mod tests {
             &check_args(1, vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
             "wrong # args: should be \"mycmd arg1\"",
         );
-    }
-
-
-    #[test]
-    fn test_get_int() {
-        assert_eq!(get_int("1"), Ok(1));
-        assert_eq!(get_int("-1"), Ok(-1));
-        assert_eq!(get_int("+1"), Ok(1));
-        assert_eq!(get_int("a"), molt_err!("expected integer but got \"a\""));
     }
 
     // Helpers

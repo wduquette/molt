@@ -11,13 +11,13 @@ use crate::interp::subst_backslashes;
 
 /// Parses a list-formatted string into a vector, throwing
 /// a Molt error if the list cannot be parsed as a list.
-pub(crate) fn get_list(str: &str) -> Result<Vec<String>, ResultCode> {
+pub(crate) fn get_list(str: &str) -> Result<MoltList, ResultCode> {
     let mut ctx = Context::new(str);
 
     parse_list(&mut ctx)
 }
 
-fn parse_list(ctx: &mut Context) -> Result<Vec<String>, ResultCode> {
+fn parse_list(ctx: &mut Context) -> Result<MoltList, ResultCode> {
     // FIRST, skip any list whitespace.
     ctx.skip_list_white();
 
@@ -146,7 +146,7 @@ fn parse_bare_item(ctx: &mut Context) -> InterpResult {
 /// Converts a list, represented as a slice of &str, into a string, doing
 /// all necessary quoting and escaping.
 pub fn list_to_string<T: AsRef<str>>(list: &[T]) -> String {
-    let mut vec: Vec<String> = Vec::new();
+    let mut vec: MoltList = Vec::new();
 
     // TODO: Use this
     let mut hash = !list.is_empty() && list[0].as_ref().starts_with('#');

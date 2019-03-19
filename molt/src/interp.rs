@@ -107,7 +107,7 @@ impl Interp {
     ///
     /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
     /// as for the `proc` command and the `commands::cmd_proc` function.
-    pub fn add_proc(&mut self, name: &str, args: Vec<String>, body: &str) {
+    pub fn add_proc(&mut self, name: &str, args: MoltList, body: &str) {
         let command = Rc::new(CommandProc {
             args: args,
             body: body.to_string(),
@@ -150,9 +150,8 @@ impl Interp {
 
     /// Gets a vector of the names of the existing commands.
     ///
-    /// TODO: This should be a MoltList.
-    pub fn command_names(&self) -> Vec<String> {
-        let vec: Vec<String> = self.commands.keys().cloned().collect();
+    pub fn command_names(&self) -> MoltList {
+        let vec: MoltList = self.commands.keys().cloned().collect();
 
         vec
     }
@@ -265,7 +264,7 @@ impl Interp {
         }
     }
 
-    /// Converts a string argument into a Molt list, represented as a `Vec<String>`,
+    /// Converts a string argument into a `MoltList`,
     /// returning an error on failure. A command function will call this to convert
     /// an argument into a list, using "?" to propagate errors to the interpreter.
     ///
@@ -278,7 +277,7 @@ impl Interp {
     /// ```
     /// # use molt::Interp;
     /// # use molt::types::*;
-    /// # fn dummy() -> Result<Vec<String>,ResultCode> {
+    /// # fn dummy() -> Result<MoltList,ResultCode> {
     /// # let interp = Interp::new();
     /// let arg = "a {b c} d";
     /// let list = interp.get_list(arg)?;
@@ -287,7 +286,7 @@ impl Interp {
     /// # Ok(list)
     /// # }
     /// ```
-    pub fn get_list(&self, str: &str) -> Result<Vec<String>, ResultCode> {
+    pub fn get_list(&self, str: &str) -> Result<MoltList, ResultCode> {
         crate::list::get_list(str)
     }
 
@@ -315,8 +314,7 @@ impl Interp {
     }
 
     /// Gets a vector of the visible var names.
-    /// TODO: Should be a MoltList.
-    pub fn vars_in_scope(&self) -> Vec<String> {
+    pub fn vars_in_scope(&self) -> MoltList {
         self.scopes.vars_in_scope()
     }
 
@@ -664,7 +662,7 @@ impl Command for CommandFuncWrapper {
 
 // Context structure for a proc.
 struct CommandProc {
-    args: Vec<String>,
+    args: MoltList,
     body: String
 }
 

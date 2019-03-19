@@ -10,6 +10,9 @@ pub type MoltInt   = i64;
 /// The standard floating point type for Molt code.
 pub type MoltFloat = f64;
 
+/// The standard list type for Molt code.
+pub type MoltList = Vec<String>;
+
 /// The result of calling a function during Molt script evaluation, other than
 /// `Ok(str)`.
 #[derive(Eq, PartialEq, Clone, Debug)]

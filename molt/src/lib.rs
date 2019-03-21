@@ -81,12 +81,6 @@ pub fn get_subcommand<'a>(subs: &'a [Subcommand], sub: &str) -> Result<&'a Subco
     molt_err!("unknown or ambiguous subcommand \"{}\": must be {}", sub, &names)
 }
 
-/// Converts a `Vec<String>` to a `Vec<&str>`.
-pub fn vec_string_to_str(slice: &[String]) -> Vec<&str> {
-    let result: Vec<&str> = slice.iter().map(|x| &**x).collect();
-    result
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

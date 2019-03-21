@@ -10,42 +10,6 @@ Notes on Molt's Rust API, from reading the Rust API guidelines.
 * Documentation needs to be fleshed out.
 * Internal tests need to be fleshed out in general
 
-### Define `MoltList` type using the "newtype" pattern.
-
-* This allows adding methods.  E.g., vec_string_to_str can be
-  MoltList::as_vec_str(&self).
-
-## Argument Parsing Functions
-
-Functions used by command definitions to check and convert arguments should
-generally be Interp methods.  This gives them a standard place in the API,
-and provides an opportunity to tweak the results according to the Interp
-configuration should that be necessary.
-
-Use `get_<type>` naming, for consistency with Standard TCL style.
-
-| Function      | Method       |
-| ------------- | ------------ |
-| `get_boolean` | `get_bool`   |
-| `get_float`   | `get_float`  |
-| `get_int`     | `get_int`    |
-| `get_list`    | `get_list`   |
-
-## String Representation Functions
-
-We need a standard naming scheme for methods to convert Rust values into TCL
-results (e.g., for return from a function or assignment to a variable).
-This is different than in Standard TCL, since there's no "interp.result"
-field.
-
-Suggestion: `<type>_result()`, e.g, `list_result(list: Vec<String>) -> String`.
-
-So:
-
-| Function          | Method        |
-| ----------------- | ------------- |
-| `list_to_string`  | `list_result` |
-
 ## Interp Methods
 
 Also, the module's `subst_backslashes` function should be an

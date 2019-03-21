@@ -32,16 +32,16 @@ impl ResultCode {
     }
 }
 
-pub type InterpResult = Result<String, ResultCode>;
+pub type MoltResult = Result<String, ResultCode>;
 
 /// A simple command function, used to implement a command without any attached
 /// context data.
-pub type CommandFunc = fn(&mut Interp, &[&str]) -> InterpResult;
+pub type CommandFunc = fn(&mut Interp, &[&str]) -> MoltResult;
 
 /// A trait defining a command object: a struct that implements a command (and may also
 /// have context data).
 pub trait Command {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult;
+    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult;
 }
 
 /// Used for defining subcommands of ensemble commands.

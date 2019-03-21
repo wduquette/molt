@@ -248,7 +248,7 @@ const OP_STRINGS: [&str; 36] = [
 // Public API
 
 /// Evaluates an expression and returns its value in string form.
-pub fn molt_expr_string(interp: &mut Interp, string: &str) -> InterpResult {
+pub fn molt_expr_string(interp: &mut Interp, string: &str) -> MoltResult {
     let value = expr_top_level(interp, string)?;
 
     match value.vtype {

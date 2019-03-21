@@ -24,7 +24,7 @@
 
 use molt::molt_ok;
 use molt::Interp;
-use molt::InterpResult;
+use molt::MoltResult;
 use molt::ResultCode;
 use molt::Command;
 use std::cell::RefCell;
@@ -148,7 +148,7 @@ impl TestInfo {
         println!("Received {} <{}>", got_code, received);
     }
 
-    fn print_error(&self, result: &InterpResult) {
+    fn print_error(&self, result: &MoltResult) {
         println!("\n*** ERROR {} {}", self.name, self.description);
         println!("Expected {} <{}>", self.code.to_string(), self.expect);
         match result {
@@ -183,7 +183,7 @@ impl TestCommand {
         }
     }
 
-    fn fancy_test(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    fn fancy_test(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
         molt::check_args(1, argv, 4, 0, "name description option value ?option value...?")?;
 
         // FIRST, get the test context
@@ -234,7 +234,7 @@ impl TestCommand {
         molt_ok!()
     }
 
-    fn simple_test(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    fn simple_test(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
         molt::check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
 
         // FIRST, get the test context
@@ -317,7 +317,7 @@ impl TestCommand {
 }
 
 impl Command for TestCommand {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
         // FIRST, check the minimum command line.
         molt::check_args(1, argv, 4, 0, "name description args...")?;
 

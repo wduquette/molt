@@ -1,8 +1,8 @@
 //! The Molt Interpreter
 //!
-//! The `Interp` class is the primary API for embedding Molt into a Rust application.
+//! The [`Interp`] struct is the primary API for embedding Molt into a Rust application.
 //!
-//! TODO
+//! [`Interp`]: struct.Interp.html
 
 use crate::list::list_to_string;
 use crate::commands;
@@ -17,6 +17,28 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 /// The Molt Interpreter.
+///
+/// The `Interp` struct is the primary API for
+/// embedding Molt into a Rust application.  The application creates an instance
+/// of `Interp`, configures with it the required set of application-specific
+/// and standard Molt commands, and then uses it to evaluate Molt scripts and
+/// expressions.
+///
+/// # Example
+///
+/// By default, the `Interp` comes configured with the full set of standard
+/// Molt commands.
+///
+/// ```
+/// # use molt::types::*;
+/// # use molt::interp::Interp;
+/// # fn dummy() -> MoltResult {
+/// let mut interp = Interp::new();
+/// let four = interp.eval("expr {2 + 2}")?;
+/// assert_eq!(four, "4");
+/// # Ok("".to_string())
+/// # }
+/// ```
 #[derive(Default)]
 #[allow(dead_code)] // TEMP
 pub struct Interp {
@@ -295,7 +317,7 @@ impl Interp {
     // Variable Handling
 
     /// Retrieves the value of the named variable in the current scope, if any.
-    pub fn var(&self, name: &str) -> InterpResult {
+    pub fn var(&self, name: &str) -> MoltResult {
         match self.scopes.get(name) {
             Some(v) => molt_ok!(v.clone()),
             None => molt_err!("can't read \"{}\": no such variable", name),
@@ -350,7 +372,7 @@ impl Interp {
     /// `break` and `continue` results are converted to errors.
     ///
     /// This is the method to use when evaluating an entire script.
-    pub fn eval(&mut self, script: &str) -> InterpResult {
+    pub fn eval(&mut self, script: &str) -> MoltResult {
         let mut ctx = Context::new(script);
 
         let result = self.eval_context(&mut ctx);
@@ -370,12 +392,12 @@ impl Interp {
     }
 
     /// Evaluates a script one command at a time, returning whatever
-    /// InterpResult arises.
+    /// MoltResult arises.
     ///
     /// This is the method to use when evaluating a control structure's
     /// script body; the control structure must handle the special
     /// result codes appropriately.
-    pub fn eval_body(&mut self, script: &str) -> InterpResult {
+    pub fn eval_body(&mut self, script: &str) -> MoltResult {
         let mut ctx = Context::new(script);
 
         self.eval_context(&mut ctx)
@@ -400,7 +422,7 @@ impl Interp {
 
     /// Low-level script evaluator; evaluates the next script in the
     /// context.
-    fn eval_context(&mut self, ctx: &mut Context) -> InterpResult {
+    fn eval_context(&mut self, ctx: &mut Context) -> MoltResult {
         let mut result_value = String::new();
 
         while !ctx.at_end_of_script() {
@@ -472,7 +494,7 @@ impl Interp {
     /// We're at the beginning of a word belonging to the current command.
     /// It's either a bare word, a braced string, or a quoted string--or there's
     /// an error in the input.  Whichever it is, get it.
-    fn parse_word(&mut self, ctx: &mut Context) -> InterpResult {
+    fn parse_word(&mut self, ctx: &mut Context) -> MoltResult {
         if ctx.next_is('{') {
             Ok(self.parse_braced_word(ctx)?)
         } else if ctx.next_is('"') {
@@ -483,7 +505,7 @@ impl Interp {
     }
 
     /// Parse a braced word.
-    pub(crate) fn parse_braced_word(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_braced_word(&mut self, ctx: &mut Context) -> MoltResult {
         // FIRST, we have to count braces.  Skip the first one, and count it.
         ctx.next();
         let mut count = 1;
@@ -533,7 +555,7 @@ impl Interp {
     }
 
     /// Parse a quoted word.
-    pub(crate) fn parse_quoted_word(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_quoted_word(&mut self, ctx: &mut Context) -> MoltResult {
         // FIRST, consume the the opening quote.
         ctx.next();
 
@@ -560,7 +582,7 @@ impl Interp {
     }
 
     /// Parse a bare word.
-    fn parse_bare_word(&mut self, ctx: &mut Context) -> InterpResult {
+    fn parse_bare_word(&mut self, ctx: &mut Context) -> MoltResult {
         let mut word = String::new();
 
         while !ctx.at_end_of_command() && !ctx.next_is_line_white() {
@@ -579,7 +601,7 @@ impl Interp {
         Ok(word)
     }
 
-    pub(crate) fn parse_script(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_script(&mut self, ctx: &mut Context) -> MoltResult {
         // FIRST, skip the '['
         ctx.skip_char('[');
 
@@ -601,7 +623,7 @@ impl Interp {
         result
     }
 
-    pub(crate) fn parse_variable(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_variable(&mut self, ctx: &mut Context) -> MoltResult {
         // FIRST, skip the '$'
         ctx.skip_char('$');
 
@@ -626,7 +648,7 @@ impl Interp {
         Ok(self.var(&varname)?)
     }
 
-    fn parse_braced_varname(&self, ctx: &mut Context) -> InterpResult {
+    fn parse_braced_varname(&self, ctx: &mut Context) -> MoltResult {
         let mut string = String::new();
 
         while !ctx.at_end() {
@@ -655,7 +677,7 @@ impl CommandFuncWrapper {
 }
 
 impl Command for CommandFuncWrapper {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
         (self.func)(interp, argv)
     }
 }
@@ -667,7 +689,7 @@ struct CommandProc {
 }
 
 impl Command for CommandProc {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
         // FIRST, push the proc's local scope onto the stack.
         interp.push_scope();
 
@@ -731,7 +753,7 @@ impl Command for CommandProc {
     }
 }
 
-fn wrong_num_args_for_proc(interp: &Interp, name: &str, args: &[String]) -> InterpResult {
+fn wrong_num_args_for_proc(interp: &Interp, name: &str, args: &[String]) -> MoltResult {
     let mut msg = String::new();
     msg.push_str("wrong # args: should be \"");
     msg.push_str(name);

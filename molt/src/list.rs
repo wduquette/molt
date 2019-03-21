@@ -39,7 +39,7 @@ fn parse_list(ctx: &mut Context) -> Result<MoltList, ResultCode> {
 /// We're at the beginning of an item in the list.
 /// It's either a bare word, a braced string, or a quoted string--or there's
 /// an error in the input.  Whichever it is, get it.
-fn parse_item(ctx: &mut Context) -> InterpResult {
+fn parse_item(ctx: &mut Context) -> MoltResult {
     if ctx.next_is('{') {
         Ok(parse_braced_item(ctx)?)
     } else if ctx.next_is('"') {
@@ -50,7 +50,7 @@ fn parse_item(ctx: &mut Context) -> InterpResult {
 }
 
 /// Parse a braced item.
-fn parse_braced_item(ctx: &mut Context) -> InterpResult {
+fn parse_braced_item(ctx: &mut Context) -> MoltResult {
     // FIRST, we have to count braces.  Skip the first one, and count it.
     ctx.next();
     let mut count = 1;
@@ -94,7 +94,7 @@ fn parse_braced_item(ctx: &mut Context) -> InterpResult {
 }
 
 /// Parse a quoted item.  Does *not* do backslash substitution.
-fn parse_quoted_item(ctx: &mut Context) -> InterpResult {
+fn parse_quoted_item(ctx: &mut Context) -> MoltResult {
     // FIRST, consume the the opening quote.
     ctx.next();
 
@@ -121,7 +121,7 @@ fn parse_quoted_item(ctx: &mut Context) -> InterpResult {
 }
 
 /// Parse a bare item.  Does *not* do backslash substitution.
-fn parse_bare_item(ctx: &mut Context) -> InterpResult {
+fn parse_bare_item(ctx: &mut Context) -> MoltResult {
     let mut item = String::new();
 
     while !ctx.at_end() && !ctx.next_is_list_white() {

@@ -34,7 +34,7 @@ pub fn check_args(
     min: usize,
     max: usize,
     argsig: &str,
-) -> InterpResult {
+) -> MoltResult {
     assert!(namec >= 1);
     assert!(min >= 1);
     assert!(!argv.is_empty());
@@ -116,11 +116,11 @@ mod tests {
 
     // Helpers
 
-    fn assert_err(result: &InterpResult, msg: &str) {
+    fn assert_err(result: &MoltResult, msg: &str) {
         assert_eq!(molt_err!(msg), *result);
     }
 
-    fn assert_ok(result: &InterpResult) {
+    fn assert_ok(result: &MoltResult) {
         assert!(result.is_ok(), "Result is not Ok");
     }
 }

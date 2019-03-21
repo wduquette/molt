@@ -49,38 +49,6 @@ pub fn check_args(
     }
 }
 
-/// Looks up a subcommand of an ensemble command by name in a table,
-/// returning the usual error if it can't be found.
-///
-/// Note: doesn't attempt to match partial names.
-pub fn get_subcommand<'a>(subs: &'a [Subcommand], sub: &str) -> Result<&'a Subcommand, ResultCode> {
-    for subcmd in subs {
-        if subcmd.0 == sub {
-            return Ok(subcmd);
-        }
-    }
-
-    let mut names = String::new();
-    names.push_str(subs[0].0);
-    let last = subs.len() - 1;
-
-    if subs.len() > 1 {
-        names.push_str(", ");
-    }
-
-    if subs.len() > 2 {
-        let vec: Vec<&str> = subs[1..last].iter().map(|x| x.0).collect();
-        names.push_str(&vec.join(", "));
-    }
-
-    if subs.len() > 1 {
-        names.push_str(", or ");
-        names.push_str(subs[last].0);
-    }
-
-    molt_err!("unknown or ambiguous subcommand \"{}\": must be {}", sub, &names)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

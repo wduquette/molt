@@ -370,7 +370,7 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[&str]) -> MoltResult {
 /// # info *subcommand* ?*arg*...?
 pub fn cmd_info(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
-    let subc = get_subcommand(&INFO_SUBCOMMANDS, argv[1])?;
+    let subc = Subcommand::find(&INFO_SUBCOMMANDS, argv[1])?;
 
     (subc.1)(interp, argv)
 }

@@ -1,5 +1,22 @@
 # Molt Development Journal
 
+### 2019-03-20 (Wednesday)
+*   Deleted `vec_string_to_str` function, as it's not used.
+*   Consider whether to define the Command trait using AsRef so that commands
+    can take &[String] or &[&str].  
+    *   Makes them more flexible.
+    *   We DO need to convert the commands we parse (which are currently
+        Vec<String>) into Vec<&str> before passing them to the Command handler.
+    *   Command handlers are called only by eval_context.
+    *   Maybe define them as taking &[String], since that's what they really
+        are?  Then no conversion is given.
+    *   What I really need to think about here is what MoltValue should look
+        like, since that's where I'm going.
+
+
+### 2019-03-19 (Tuesday)
+*   Began work on revising the public API.
+
 ### 2019-03-16 (Saturday)
 *   VarStack and StackFrames
     *   It occurs to me that the VarStack is exactly the set of

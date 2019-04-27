@@ -248,7 +248,7 @@ const OP_STRINGS: [&str; 36] = [
 // Public API
 
 /// Evaluates an expression and returns its value in string form.
-pub fn molt_expr_string(interp: &mut Interp, string: &str) -> InterpResult {
+pub fn molt_expr_string(interp: &mut Interp, string: &str) -> MoltResult {
     let value = expr_top_level(interp, string)?;
 
     match value.vtype {
@@ -287,7 +287,7 @@ pub fn molt_expr_bool(interp: &mut Interp, string: &str) -> Result<bool, ResultC
     match value.vtype {
         Type::Int => Ok(value.int != 0),
         Type::Float => Ok(value.flt != 0.0),
-        Type::String => get_boolean(&value.str),
+        Type::String => interp.get_bool(&value.str),
     }
 }
 
@@ -765,7 +765,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 };
             }
             IN => {
-                let list = get_list(&value2.str)?;
+                let list = interp.get_list(&value2.str)?;
                 value = if list.contains(&value.str) {
                     Value::int(1)
                 } else {
@@ -773,7 +773,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 };
             }
             NI => {
-                let list = get_list(&value2.str)?;
+                let list = interp.get_list(&value2.str)?;
                 value = if list.contains(&value.str) {
                     Value::int(0)
                 } else {
@@ -858,14 +858,14 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
         if expr_looks_like_int(&p) {
             // There's definitely an integer to parse; parse it.
             let token = util::read_int(&mut p).unwrap();
-            let int = get_int(&token)?;
+            let int = interp.get_int(&token)?;
             info.token = VALUE;
             info.expr = p;
             return Ok(Value::int(int));
         } else if let Some(token) = util::read_float(&mut p) {
             info.token = VALUE;
             info.expr = p;
-            return Ok(Value::float(get_float(&token)?));
+            return Ok(Value::float(interp.get_float(&token)?));
         }
     }
 
@@ -1215,7 +1215,7 @@ fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc,ResultCode> {
 /// Value based on the string.  The value will be floating-point or integer if possible,
 /// or else it will just be a copy of the string.  Returns an error on failed numeric
 /// conversions.
-fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
+fn expr_parse_string(interp: &mut Interp, string: &str) -> ValueResult {
     if !string.is_empty() {
         let mut p = CharPtr::new(string);
 
@@ -1232,7 +1232,7 @@ fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
             p.skip_while(|c| c.is_whitespace());
 
             if p.is_none() {
-                let int = get_int(&token)?;
+                let int = interp.get_int(&token)?;
                 return Ok(Value::int(int));
             }
         } else {
@@ -1247,7 +1247,7 @@ fn expr_parse_string(_interp: &mut Interp, string: &str) -> ValueResult {
                 p.skip_while(|c| c.is_whitespace());
 
                 if p.is_none() {
-                    let flt = get_float(&token)?;
+                    let flt = interp.get_float(&token)?;
                     return Ok(Value::float(flt));
                 }
             }
@@ -1286,6 +1286,7 @@ fn expr_as_string(value: Value) -> Value {
     }
 }
 
+// Distinguished between decimal integers and floating-point values
 fn expr_looks_like_int<'a>(ptr: &CharPtr<'a>) -> bool {
     // FIRST, skip whitespace
     let mut p = ptr.clone();
@@ -1295,12 +1296,12 @@ fn expr_looks_like_int<'a>(ptr: &CharPtr<'a>) -> bool {
         p.skip();
     }
 
-    if !p.is_digit() {
+    if !p.is_digit(10) {
         return false;
     }
     p.skip();
 
-    while p.is_digit() {
+    while p.is_digit(10) {
         p.skip();
     }
 

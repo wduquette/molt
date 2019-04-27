@@ -1,11 +1,10 @@
 //! The Molt Interpreter
 //!
-//! The `Interp` class is the primary API for embedding Molt into a Rust application.
+//! The [`Interp`] struct is the primary API for embedding Molt into a Rust application.
 //!
-//! TODO
+//! [`Interp`]: struct.Interp.html
 
 use crate::list::list_to_string;
-use crate::list::get_list;
 use crate::commands;
 use crate::context::Context;
 use crate::molt_ok;
@@ -18,6 +17,28 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 /// The Molt Interpreter.
+///
+/// The `Interp` struct is the primary API for
+/// embedding Molt into a Rust application.  The application creates an instance
+/// of `Interp`, configures with it the required set of application-specific
+/// and standard Molt commands, and then uses it to evaluate Molt scripts and
+/// expressions.
+///
+/// # Example
+///
+/// By default, the `Interp` comes configured with the full set of standard
+/// Molt commands.
+///
+/// ```
+/// # use molt::types::*;
+/// # use molt::interp::Interp;
+/// # fn dummy() -> MoltResult {
+/// let mut interp = Interp::new();
+/// let four = interp.eval("expr {2 + 2}")?;
+/// assert_eq!(four, "4");
+/// # Ok("".to_string())
+/// # }
+/// ```
 #[derive(Default)]
 #[allow(dead_code)] // TEMP
 pub struct Interp {
@@ -108,7 +129,7 @@ impl Interp {
     ///
     /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
     /// as for the `proc` command and the `commands::cmd_proc` function.
-    pub fn add_proc(&mut self, name: &str, args: Vec<String>, body: &str) {
+    pub fn add_proc(&mut self, name: &str, args: MoltList, body: &str) {
         let command = Rc::new(CommandProc {
             args: args,
             body: body.to_string(),
@@ -151,18 +172,152 @@ impl Interp {
 
     /// Gets a vector of the names of the existing commands.
     ///
-    /// TODO: This should be a MoltList.
-    pub fn command_names(&self) -> Vec<String> {
-        let vec: Vec<String> = self.commands.keys().cloned().collect();
+    pub fn command_names(&self) -> MoltList {
+        let vec: MoltList = self.commands.keys().cloned().collect();
 
         vec
     }
 
     //--------------------------------------------------------------------------------------------
+    // Argument Conversions
+    //
+    // These methods convert strings to and from Molt values in the context of the
+    // `Interp`
+
+    /// Converts a string argument into a boolean, returning an error on failure.
+    /// A command function will call this to convert an argument,
+    /// using "?" to propagate errors to the interpreter.
+    ///
+    /// Molt accepts the following strings as Boolean values:
+    ///
+    /// * **true**: `true`, `yes`, `on`, `1`
+    /// * **false**: `false`, `no`, `off`, `0`
+    ///
+    /// This method does not evaluate expressions; use TODO to evaluate boolean
+    /// expressions.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::interp::Interp;
+    /// # fn dummy() -> Result<bool,ResultCode> {
+    /// # let interp = Interp::new();
+    /// let arg = "yes";
+    /// let flag = interp.get_bool(arg)?;
+    /// assert!(flag);
+    /// # Ok(flag)
+    /// # }
+    /// ```
+    pub fn get_bool(&self, arg: &str) -> Result<bool, ResultCode> {
+        let value: &str = &arg.to_lowercase();
+        match value {
+            "1" | "true" | "yes" | "on" => Ok(true),
+            "0" | "false" | "no" | "off" => Ok(false),
+            _ => molt_err!("expected boolean but got \"{}\"", arg),
+        }
+    }
+
+    /// Converts an string argument into a `MoltFloat`, returning an error on failure.
+    /// A command function will call this to convert an argument into a number,
+    /// using "?" to propagate errors to the interpreter.
+    ///
+    /// Molt accepts any string acceptable to `str::parse<f64>` as a valid floating
+    /// point string.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::Interp;
+    /// # use molt::types::*;
+    /// # fn dummy() -> Result<MoltFloat,ResultCode> {
+    /// # let interp = Interp::new();
+    /// let arg = "1e2";
+    /// let val = interp.get_float(arg)?;
+    /// # Ok(val)
+    /// # }
+    /// ```
+    pub fn get_float(&self, arg: &str) -> Result<MoltFloat, ResultCode> {
+        match arg.parse::<MoltFloat>() {
+            Ok(val) => Ok(val),
+            Err(_) => molt_err!("expected floating-point number but got \"{}\"", arg),
+        }
+    }
+
+    /// Converts a string argument into a `MoltInt`, returning an error on failure.
+    /// A command function will call this to convert an argument into an integer,
+    /// using "?" to propagate errors to the interpreter.
+    ///
+    /// Molt accepts decimal integer strings, and hexadecimal integer strings
+    /// with a `0x` prefix.  Strings may begin with a unary "+" or "-".
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::Interp;
+    /// # use molt::types::*;
+    /// # fn dummy() -> Result<MoltInt,ResultCode> {
+    /// # let interp = Interp::new();
+    /// let arg = "1";
+    /// let int = interp.get_int(arg)?;
+    /// # Ok(int)
+    /// # }
+    /// ```
+    pub fn get_int(&self, arg: &str) -> Result<MoltInt, ResultCode> {
+        let mut arg = arg;
+        let mut minus = 1;
+
+        if arg.starts_with('+') {
+            arg = &arg[1..];
+        } else if arg.starts_with('-') {
+            minus = -1;
+            arg = &arg[1..];
+        }
+
+        let parse_result = if arg.starts_with("0x") {
+            MoltInt::from_str_radix(&arg[2..], 16)
+        } else {
+            arg.parse::<MoltInt>()
+        };
+
+        match parse_result {
+            Ok(int) => Ok(minus * int),
+            Err(_) => molt_err!("expected integer but got \"{}\"", arg),
+        }
+    }
+
+    /// Converts a string argument into a `MoltList`,
+    /// returning an error on failure. A command function will call this to convert
+    /// an argument into a list, using "?" to propagate errors to the interpreter.
+    ///
+    /// TCL list syntax is too complex to discuss here, but basically consists
+    /// of whitespace-delimited items, with normal TCL quoting for items containing
+    /// whitespace.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::Interp;
+    /// # use molt::types::*;
+    /// # fn dummy() -> Result<MoltList,ResultCode> {
+    /// # let interp = Interp::new();
+    /// let arg = "a {b c} d";
+    /// let list = interp.get_list(arg)?;
+    /// assert_eq!(list.len(), 3);
+    /// assert_eq!(list[1], "b c".to_string());
+    /// # Ok(list)
+    /// # }
+    /// ```
+    pub fn get_list(&self, str: &str) -> Result<MoltList, ResultCode> {
+        crate::list::get_list(str)
+    }
+
+
+    //--------------------------------------------------------------------------------------------
     // Variable Handling
 
     /// Retrieves the value of the named variable in the current scope, if any.
-    pub fn var(&self, name: &str) -> InterpResult {
+    pub fn var(&self, name: &str) -> MoltResult {
         match self.scopes.get(name) {
             Some(v) => molt_ok!(v.clone()),
             None => molt_err!("can't read \"{}\": no such variable", name),
@@ -181,8 +336,7 @@ impl Interp {
     }
 
     /// Gets a vector of the visible var names.
-    /// TODO: Should be a MoltList.
-    pub fn vars_in_scope(&self) -> Vec<String> {
+    pub fn vars_in_scope(&self) -> MoltList {
         self.scopes.vars_in_scope()
     }
 
@@ -218,7 +372,7 @@ impl Interp {
     /// `break` and `continue` results are converted to errors.
     ///
     /// This is the method to use when evaluating an entire script.
-    pub fn eval(&mut self, script: &str) -> InterpResult {
+    pub fn eval(&mut self, script: &str) -> MoltResult {
         let mut ctx = Context::new(script);
 
         let result = self.eval_context(&mut ctx);
@@ -238,12 +392,12 @@ impl Interp {
     }
 
     /// Evaluates a script one command at a time, returning whatever
-    /// InterpResult arises.
+    /// MoltResult arises.
     ///
     /// This is the method to use when evaluating a control structure's
     /// script body; the control structure must handle the special
     /// result codes appropriately.
-    pub fn eval_body(&mut self, script: &str) -> InterpResult {
+    pub fn eval_body(&mut self, script: &str) -> MoltResult {
         let mut ctx = Context::new(script);
 
         self.eval_context(&mut ctx)
@@ -268,7 +422,7 @@ impl Interp {
 
     /// Low-level script evaluator; evaluates the next script in the
     /// context.
-    fn eval_context(&mut self, ctx: &mut Context) -> InterpResult {
+    fn eval_context(&mut self, ctx: &mut Context) -> MoltResult {
         let mut result_value = String::new();
 
         while !ctx.at_end_of_script() {
@@ -340,7 +494,7 @@ impl Interp {
     /// We're at the beginning of a word belonging to the current command.
     /// It's either a bare word, a braced string, or a quoted string--or there's
     /// an error in the input.  Whichever it is, get it.
-    fn parse_word(&mut self, ctx: &mut Context) -> InterpResult {
+    fn parse_word(&mut self, ctx: &mut Context) -> MoltResult {
         if ctx.next_is('{') {
             Ok(self.parse_braced_word(ctx)?)
         } else if ctx.next_is('"') {
@@ -351,7 +505,7 @@ impl Interp {
     }
 
     /// Parse a braced word.
-    pub(crate) fn parse_braced_word(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_braced_word(&mut self, ctx: &mut Context) -> MoltResult {
         // FIRST, we have to count braces.  Skip the first one, and count it.
         ctx.next();
         let mut count = 1;
@@ -401,7 +555,7 @@ impl Interp {
     }
 
     /// Parse a quoted word.
-    pub(crate) fn parse_quoted_word(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_quoted_word(&mut self, ctx: &mut Context) -> MoltResult {
         // FIRST, consume the the opening quote.
         ctx.next();
 
@@ -428,7 +582,7 @@ impl Interp {
     }
 
     /// Parse a bare word.
-    fn parse_bare_word(&mut self, ctx: &mut Context) -> InterpResult {
+    fn parse_bare_word(&mut self, ctx: &mut Context) -> MoltResult {
         let mut word = String::new();
 
         while !ctx.at_end_of_command() && !ctx.next_is_line_white() {
@@ -447,7 +601,7 @@ impl Interp {
         Ok(word)
     }
 
-    pub(crate) fn parse_script(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_script(&mut self, ctx: &mut Context) -> MoltResult {
         // FIRST, skip the '['
         ctx.skip_char('[');
 
@@ -469,7 +623,7 @@ impl Interp {
         result
     }
 
-    pub(crate) fn parse_variable(&mut self, ctx: &mut Context) -> InterpResult {
+    pub(crate) fn parse_variable(&mut self, ctx: &mut Context) -> MoltResult {
         // FIRST, skip the '$'
         ctx.skip_char('$');
 
@@ -494,7 +648,7 @@ impl Interp {
         Ok(self.var(&varname)?)
     }
 
-    fn parse_braced_varname(&self, ctx: &mut Context) -> InterpResult {
+    fn parse_braced_varname(&self, ctx: &mut Context) -> MoltResult {
         let mut string = String::new();
 
         while !ctx.at_end() {
@@ -523,19 +677,19 @@ impl CommandFuncWrapper {
 }
 
 impl Command for CommandFuncWrapper {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
         (self.func)(interp, argv)
     }
 }
 
 // Context structure for a proc.
 struct CommandProc {
-    args: Vec<String>,
+    args: MoltList,
     body: String
 }
 
 impl Command for CommandProc {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> InterpResult {
+    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
         // FIRST, push the proc's local scope onto the stack.
         interp.push_scope();
 
@@ -545,7 +699,7 @@ impl Command for CommandProc {
         for (speci, spec) in self.args.iter().enumerate() {
             // FIRST, get the parameter as a vector.  It should be a list of
             // one or two elements.
-            let vec = get_list(&spec)?;  // Should never fail
+            let vec = interp.get_list(&spec)?;  // Should never fail
             assert!(vec.len() == 1 || vec.len() == 2);
 
             // NEXT, if this is the args parameter, give the remaining args,
@@ -577,13 +731,13 @@ impl Command for CommandProc {
                 interp.set_var(&vec[0], &vec[1]);
             } else {
                 // We don't; we're missing a required argument.
-                return wrong_num_args_for_proc(argv[0], &self.args);
+                return wrong_num_args_for_proc(interp, argv[0], &self.args);
             }
         }
 
         // NEXT, do we have any arguments left over?
         if argi != argv.len() {
-            return wrong_num_args_for_proc(argv[0], &self.args);
+            return wrong_num_args_for_proc(interp, argv[0], &self.args);
         }
 
         // NEXT, evaluate the proc's body, getting the result.
@@ -599,7 +753,7 @@ impl Command for CommandProc {
     }
 }
 
-fn wrong_num_args_for_proc(name: &str, args: &[String]) -> InterpResult {
+fn wrong_num_args_for_proc(interp: &Interp, name: &str, args: &[String]) -> MoltResult {
     let mut msg = String::new();
     msg.push_str("wrong # args: should be \"");
     msg.push_str(name);
@@ -613,7 +767,7 @@ fn wrong_num_args_for_proc(name: &str, args: &[String]) -> InterpResult {
             break;
         }
 
-        let vec = get_list(arg).expect("error in proc arglist validation!");
+        let vec = interp.get_list(arg).expect("error in proc arglist validation!");
 
         if vec.len() == 1 {
             msg.push_str(&vec[0]);
@@ -727,4 +881,78 @@ fn subst_backslash(ctx: &mut Context, word: &mut String) {
             _ => word.push(c),
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_bool() {
+        let interp = Interp::new();
+
+        assert_eq!(Ok(true), interp.get_bool("1"));
+        assert_eq!(Ok(true), interp.get_bool("true"));
+        assert_eq!(Ok(true), interp.get_bool("yes"));
+        assert_eq!(Ok(true), interp.get_bool("on"));
+        assert_eq!(Ok(true), interp.get_bool("TRUE"));
+        assert_eq!(Ok(true), interp.get_bool("YES"));
+        assert_eq!(Ok(true), interp.get_bool("ON"));
+        assert_eq!(Ok(false), interp.get_bool("0"));
+        assert_eq!(Ok(false), interp.get_bool("false"));
+        assert_eq!(Ok(false), interp.get_bool("no"));
+        assert_eq!(Ok(false), interp.get_bool("off"));
+        assert_eq!(Ok(false), interp.get_bool("FALSE"));
+        assert_eq!(Ok(false), interp.get_bool("NO"));
+        assert_eq!(Ok(false), interp.get_bool("OFF"));
+        assert_eq!(interp.get_bool("nonesuch"),
+            molt_err!("expected boolean but got \"nonesuch\""));
+    }
+
+    #[test]
+    fn test_get_float() {
+        let interp = Interp::new();
+
+        assert_eq!(interp.get_float("1"), Ok(1.0));
+        assert_eq!(interp.get_float("-1"), Ok(-1.0));
+        assert_eq!(interp.get_float("+1"), Ok(1.0));
+        assert_eq!(interp.get_float("1e3"), Ok(1000.0));
+        assert_eq!(interp.get_float("a"),
+            molt_err!("expected floating-point number but got \"a\""));
+    }
+
+    #[test]
+    fn test_get_int() {
+        let interp = Interp::new();
+
+        assert_eq!(interp.get_int("1"), Ok(1));
+        assert_eq!(interp.get_int("-1"), Ok(-1));
+        assert_eq!(interp.get_int("+1"), Ok(1));
+        assert_eq!(interp.get_int("0xFF"), Ok(255));
+        assert_eq!(interp.get_int("+0xFF"), Ok(255));
+        assert_eq!(interp.get_int("-0xFF"), Ok(-255));
+
+        assert_eq!(interp.get_int(""), molt_err!("expected integer but got \"\""));
+        assert_eq!(interp.get_int("a"), molt_err!("expected integer but got \"a\""));
+        assert_eq!(interp.get_int("0x"), molt_err!("expected integer but got \"0x\""));
+        assert_eq!(interp.get_int("0xABGG"),
+            molt_err!("expected integer but got \"0xABGG\""));
+    }
+
+    #[test]
+    fn test_get_list() {
+        // NOTE: List syntax is tested in list.rs; this simply verifies that
+        // Interp provides an interface to it.
+        let interp = Interp::new();
+
+        let vec = interp.get_list("a b c").unwrap();
+        assert_eq!(vec.len(), 3);
+        assert_eq!(vec[0], "a".to_string());
+        assert_eq!(vec[1], "b".to_string());
+        assert_eq!(vec[2], "c".to_string());
+
+        let result = interp.get_list("a {b c");
+        assert!(result.is_err());
+    }
+
 }

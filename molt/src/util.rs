@@ -16,7 +16,6 @@ use crate::char_ptr::CharPtr;
 /// ## Notes
 ///
 /// * The resulting string has the form of an integer, but might be out of the valid range.
-/// * Hex numbers are not yet supported. TODO: Add hex parsing as well.
 
 pub fn read_int(ptr: &mut CharPtr) -> Option<String> {
     let mut p = ptr.clone();
@@ -28,8 +27,23 @@ pub fn read_int(ptr: &mut CharPtr) -> Option<String> {
         result.push(p.next().unwrap());
     }
 
+    // NEXT, skip a "0x".
+    let mut radix = 10;
+
+    if p.is('0') {
+        result.push(p.next().unwrap());
+
+        if p.is('x') {
+            result.push(p.next().unwrap());
+            radix = 16;
+        } else {
+            missing_digits = false;
+        }
+
+    }
+
     // NEXT, read the digits
-    while p.is_digit() {
+    while p.is_digit(radix) {
         missing_digits = false;
         result.push(p.next().unwrap());
     }
@@ -69,7 +83,7 @@ pub fn read_float(ptr: &mut CharPtr) -> Option<String> {
     }
 
     // NEXT, get any integer digits
-    while p.is_digit() {
+    while p.is_digit(10) {
         missing_mantissa = false;
         result.push(p.next().unwrap());
     }
@@ -78,7 +92,7 @@ pub fn read_float(ptr: &mut CharPtr) -> Option<String> {
     if p.is('.') {
         result.push(p.next().unwrap());
 
-        while p.is_digit() {
+        while p.is_digit(10) {
             missing_mantissa = false;
             result.push(p.next().unwrap());
         }
@@ -93,7 +107,7 @@ pub fn read_float(ptr: &mut CharPtr) -> Option<String> {
             result.push(p.next().unwrap());
         }
 
-        while p.is_digit() {
+        while p.is_digit(10) {
             missing_exponent = false;
             result.push(p.next().unwrap());
         }

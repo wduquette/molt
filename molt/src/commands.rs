@@ -13,7 +13,7 @@ use std::fs;
 ///
 /// Appends any number of values to a variable's value, which need not
 /// initially exist.
-pub fn cmd_append(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_append(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 0, "varName ?value value ...?")?;
 
     let var_result = interp.var(argv[1]);
@@ -37,7 +37,7 @@ pub fn cmd_append(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 ///
 /// Returns an error if received doesn't equal the expected value.
 /// Primarily for use in examples.
-pub fn cmd_assert_eq(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_assert_eq(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 3, 3, "received expected")?;
 
     if argv[1] == argv[2] {
@@ -50,7 +50,7 @@ pub fn cmd_assert_eq(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// # break
 ///
 /// Terminates the inmost loop.
-pub fn cmd_break(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_break(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 1, 1, "")?;
 
     Err(ResultCode::Break)
@@ -61,7 +61,7 @@ pub fn cmd_break(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// Executes a script, returning the result code.  If the resultVarName is given, the result
 /// of executing the script is returned in it.  The result code is returned as an integer,
 /// 0=Ok, 1=Error, 2=Return, 3=Break, 4=Continue.
-pub fn cmd_catch(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_catch(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 3, "script ?resultVarName")?;
 
     let result = interp.eval_body(argv[1]);
@@ -99,7 +99,7 @@ pub fn cmd_catch(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// # continue
 ///
 /// Continues with the next iteration of the inmost loop.
-pub fn cmd_continue(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_continue(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 1, 1, "")?;
 
     Err(ResultCode::Continue)
@@ -112,7 +112,7 @@ pub fn cmd_continue(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// ## TCL Liens
 ///
 /// * In Standard TCL, `error` can optionally set the stack trace and an error code.
-pub fn cmd_error(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_error(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 2, "message")?;
 
     molt_err!(argv[1])
@@ -123,13 +123,13 @@ pub fn cmd_error(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// Terminates the application by calling `std::process::exit()`.
 /// If given, _returnCode_ must be an integer return code; if absent, it
 /// defaults to 0.
-pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_exit(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 1, 2, "?returnCode?")?;
 
     let return_code: MoltInt = if argv.len() == 1 {
         0
     } else {
-        get_int(argv[1])?
+        interp.get_int(argv[1])?
     };
 
     std::process::exit(return_code as i32)
@@ -143,7 +143,7 @@ pub fn cmd_exit(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 ///
 /// See the Molt Book.
 
-pub fn cmd_expr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_expr(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 2, "expr")?;
 
     molt_expr_string(interp, argv[1])
@@ -153,7 +153,7 @@ pub fn cmd_expr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 ///
 /// A standard "for" loop.  start, next, and command are scripts; test is an expression
 ///
-pub fn cmd_for(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_for(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 5, 5, "start test next command")?;
 
     // Start
@@ -195,11 +195,11 @@ pub fn cmd_for(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// ## TCL Liens
 ///
 /// * In Standard TCL, `foreach` can loop over several lists at the same time.
-pub fn cmd_foreach(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_foreach(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 4, 4, "varList list body")?;
 
-    let var_list = get_list(argv[1])?;
-    let list = get_list(argv[2])?;
+    let var_list = interp.get_list(argv[1])?;
+    let list = interp.get_list(argv[2])?;
     let body = argv[3];
 
     let mut i = 0;
@@ -232,7 +232,7 @@ pub fn cmd_foreach(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 ///
 /// Appends any number of values to a variable's value, which need not
 /// initially exist.
-pub fn cmd_global(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_global(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     // Accepts any number of arguments
 
     // FIRST, if we're at the global scope this is a no-op.
@@ -262,7 +262,7 @@ enum IfWants {
 ///
 /// * Because we don't yet have an expression parser, the *expr* arguments are evaluated as
 ///   scripts that must return a boolean value.
-pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     let mut argi = 1;
     let mut wants = IfWants::Expr;
 
@@ -345,11 +345,11 @@ pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// # incr *varName* ?*increment* ...?
 ///
 /// Increments an integer variable by a value.
-pub fn cmd_incr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_incr(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 3, "varName ?increment?")?;
 
     let increment: MoltInt = if argv.len() == 3 {
-        get_int(argv[2])?
+        interp.get_int(argv[2])?
     } else {
         1
     };
@@ -357,7 +357,7 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
     let var_value = interp.var(argv[1]);
 
     let new_value = (if var_value.is_ok() {
-        get_int(&var_value.unwrap())? + increment
+        interp.get_int(&var_value.unwrap())? + increment
     } else {
         increment
     }).to_string();
@@ -368,9 +368,9 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
 
 /// # info *subcommand* ?*arg*...?
-pub fn cmd_info(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_info(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
-    let subc = get_subcommand(&INFO_SUBCOMMANDS, argv[1])?;
+    let subc = Subcommand::find(&INFO_SUBCOMMANDS, argv[1])?;
 
     (subc.1)(interp, argv)
 }
@@ -382,12 +382,12 @@ const INFO_SUBCOMMANDS: [Subcommand; 3] = [
 ];
 
 /// # info commands ?*pattern*?
-pub fn cmd_info_commands(interp: &mut Interp, _argv: &[&str]) -> InterpResult {
+pub fn cmd_info_commands(interp: &mut Interp, _argv: &[&str]) -> MoltResult {
     molt_ok!("{}", list_to_string(&interp.command_names()))
 }
 
 /// # info complete *command*
-pub fn cmd_info_complete(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_info_complete(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(2, argv, 3, 3, "command")?;
 
     // TODO: Add way of returning a boolean result.
@@ -400,17 +400,17 @@ pub fn cmd_info_complete(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 
 /// # info vars ?*pattern*?
 /// TODO: Add glob matching as a feature, and provide optional pattern argument.
-pub fn cmd_info_vars(interp: &mut Interp, _argv: &[&str]) -> InterpResult {
+pub fn cmd_info_vars(interp: &mut Interp, _argv: &[&str]) -> MoltResult {
     molt_ok!(list_to_string(&interp.vars_in_scope()))
 }
 
 /// # join *list* ?*joinString*?
 ///
 /// Joins the elements of a list with a string.  The join string defaults to " ".
-pub fn cmd_join(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_join(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 3, "list ?joinString?")?;
 
-    let list = get_list(argv[1])?;
+    let list = interp.get_list(argv[1])?;
 
     let join_string = if argv.len() == 3 {
         argv[2]
@@ -424,13 +424,13 @@ pub fn cmd_join(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 ///
 /// Appends any number of values to a variable's list value, which need not
 /// initially exist.
-pub fn cmd_lappend(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_lappend(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 0, "varName ?value ...?")?;
 
     let var_result = interp.var(argv[1]);
 
     let mut list: Vec<String> = if var_result.is_ok() {
-        get_list(&var_result.unwrap())?
+        interp.get_list(&var_result.unwrap())?
     } else {
         Vec::new()
     };
@@ -449,14 +449,14 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// # lindex *list* ?*index* ...?
 ///
 /// Returns an element from the list, indexing into nested lists.
-pub fn cmd_lindex(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_lindex(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 0, "list ?index ...?")?;
 
     let mut value = argv[1].to_string();
 
     for index_string in &argv[2..] {
-        let list = get_list(&value)?;
-        let index = get_int(index_string)?;
+        let list = interp.get_list(&value)?;
+        let index = interp.get_int(index_string)?;
 
         value = if index < 0 || index as usize >= list.len() {
             "".to_string()
@@ -471,7 +471,7 @@ pub fn cmd_lindex(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// # list ?*arg*...?
 ///
 /// Converts its arguments into a canonical list.
-pub fn cmd_list(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_list(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
     // No arg check needed; can take any number.
     molt_ok!(list_to_string(&argv[1..]))
 }
@@ -479,25 +479,25 @@ pub fn cmd_list(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// # llength *list*
 ///
 /// Returns the length of the list.
-pub fn cmd_llength(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_llength(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 2, "list")?;
 
-    let list = get_list(argv[1])?;
+    let list = interp.get_list(argv[1])?;
 
     molt_ok!(list.len().to_string())
 }
 
-pub fn cmd_proc(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_proc(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 4, 4, "name args body")?;
 
     // FIRST, get the arguments
     let name = argv[1];
-    let args = get_list(argv[2])?;
+    let args = interp.get_list(argv[2])?;
     let body = argv[3];
 
     // NEXT, validate the argument specs
     for arg in &args {
-        let vec = get_list(&arg)?;
+        let vec = interp.get_list(&arg)?;
 
         if vec.is_empty() {
             return molt_err!("argument with no name");
@@ -520,7 +520,7 @@ pub fn cmd_proc(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 ///
 /// * Does not support `-nonewline`
 /// * Does not support `channelId`
-pub fn cmd_puts(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_puts(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 2, "string")?;
 
     println!("{}", argv[1]);
@@ -531,7 +531,7 @@ pub fn cmd_puts(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 ///
 /// Renames the command called *oldName* to have the *newName*.  If the
 /// *newName* is "", the command is destroyed.
-pub fn cmd_rename(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_rename(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 3, 3, "oldName newName")?;
 
     // FIRST, get the arguments
@@ -560,7 +560,7 @@ pub fn cmd_rename(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// ## TCL Liens
 ///
 /// * Doesn't support all of TCL's fancy return machinery.
-pub fn cmd_return(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_return(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 1, 2, "?value?")?;
 
     let value = if argv.len() == 1 {
@@ -581,7 +581,7 @@ pub fn cmd_return(_interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// ## TCL Liens
 ///
 /// * Does not support arrays
-pub fn cmd_set(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_set(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 3, "varName ?newValue?")?;
 
     let value;
@@ -599,7 +599,7 @@ pub fn cmd_set(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 /// # source *filename*
 ///
 /// Sources the file, returning the result.
-pub fn cmd_source(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_source(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 2, "filename")?;
 
     match fs::read_to_string(argv[1]) {
@@ -612,7 +612,7 @@ pub fn cmd_source(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 ///
 /// Removes the variable from the interpreter.  This is a no op if
 /// there is no such variable.
-pub fn cmd_unset(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_unset(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 2, "varName")?;
 
     interp.unset_var(argv[1]);
@@ -624,7 +624,7 @@ pub fn cmd_unset(interp: &mut Interp, argv: &[&str]) -> InterpResult {
 ///
 /// A standard "while" loop.  *test* is a boolean expression; *command* is a script to
 /// execute so long as the expression is true.
-pub fn cmd_while(interp: &mut Interp, argv: &[&str]) -> InterpResult {
+pub fn cmd_while(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 3, 3, "test command")?;
 
     while molt_expr_bool(interp, argv[1])? {

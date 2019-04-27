@@ -2,7 +2,7 @@
 ///
 /// This module contains macros for use by command authors.
 
-/// Returns an `Ok` `InterpResult`.
+/// Returns an `Ok` `MoltResult`.
 ///
 /// If called with no arguments, returns an empty string as the `Ok` result.
 /// If called with one argument, returns the argument as the `Ok` result.
@@ -21,7 +21,7 @@ macro_rules! molt_ok {
     )
 }
 
-/// Returns an `Error` `InterpResult`.  The error message is formatted
+/// Returns an `Error` `MoltResult`.  The error message is formatted
 /// as with `format!()`.
 #[macro_export]
 macro_rules! molt_err {

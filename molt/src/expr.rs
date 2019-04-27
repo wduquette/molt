@@ -52,7 +52,7 @@ impl Value {
     fn int(int: MoltInt) -> Self {
         Self {
             vtype: Type::Int,
-            int: int,
+            int,
             flt: 0.0,
             str: String::new(),
         }
@@ -62,7 +62,7 @@ impl Value {
         Self {
             vtype: Type::Float,
             int: 0,
-            flt: flt,
+            flt,
             str: String::new(),
         }
     }

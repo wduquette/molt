@@ -131,7 +131,7 @@ impl Interp {
     /// as for the `proc` command and the `commands::cmd_proc` function.
     pub fn add_proc(&mut self, name: &str, args: MoltList, body: &str) {
         let command = Rc::new(CommandProc {
-            args: args,
+            args,
             body: body.to_string(),
         });
 

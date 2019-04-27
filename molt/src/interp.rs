@@ -415,6 +415,45 @@ impl Interp {
     }
 
     //--------------------------------------------------------------------------------------------
+    // Explicit Substitutions
+    //
+    // These methods substitute backslashes, variables, and commands into a string.
+
+    /// Performs standard TCL backslash substitution in the string, returning a new string.
+    ///
+    /// The following substitions are performed:
+    ///
+    /// | Sequence   | Substitution                                                 |
+    /// | ---------- | ------------------------------------------------------------ |
+    /// | \a         | ASCII 7: Audible Alarm                                       |
+    /// | \b         | ASCII 8: Backspace                                           |
+    /// | \f         | ASCII 12: Form Feed                                          |
+    /// | \n         | New Line                                                     |
+    /// | \r         | Carriage Return                                              |
+    /// | \t         | Tab                                                          |
+    /// | \v         | ASCII 11: Vertical Tab                                       |
+    /// | \ooo       | Character _ooo_, where _o_ is an octal digit.                |
+    /// | \xhh       | Character _hh_, where _h_ is a hex digit.                    |
+    /// | \uhhhh     | Character _hhhh_, where _hhhh_ is 1 to 4 hex digits.         |
+    /// | \Uhhhhhhhh | Character _hhhhhhhh_, where _hhhhhhhh_ is 1 to 8 hex digits. |
+    ///
+    /// Any other character preceded by a backslash is replaced with itself.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::interp::Interp;
+    /// let interp = Interp::new();
+    /// assert_eq!("+\x07-\n-\r-p+", interp.subst_backslashes("+\\a-\\n-\\r-\\x70+"));
+    /// ```
+
+
+    pub fn subst_backslashes(&self, str: &str) -> String {
+        subst_backslashes(str)
+    }
+
+    //--------------------------------------------------------------------------------------------
     // The Molt Parser
     //
     // TODO: Can this be easily moved to another module?  It needs access to the
@@ -782,8 +821,8 @@ fn wrong_num_args_for_proc(interp: &Interp, name: &str, args: &[String]) -> Molt
     molt_err!(&msg)
 }
 
-/// Substitutes backslashes in the string, returning a new string.
-pub fn subst_backslashes(str: &str) -> String {
+/// Performs standard TCL backslash substitution in the string, returning a new string.
+pub(crate) fn subst_backslashes(str: &str) -> String {
     let mut item = String::new();
     let mut ctx = Context::new(str);
 
@@ -955,4 +994,32 @@ mod tests {
         assert!(result.is_err());
     }
 
+    #[test]
+    fn test_subst_backslashes() {
+        // This function tests the function by testing the Interp method
+        let interp = Interp::new();
+
+        assert_eq!("abc", interp.subst_backslashes("abc"));
+        assert_eq!("1\x072", interp.subst_backslashes("1\\a2"));
+        assert_eq!("1\x082", interp.subst_backslashes("1\\b2"));
+        assert_eq!("1\x0c2", interp.subst_backslashes("1\\f2"));
+        assert_eq!("1\n2", interp.subst_backslashes("1\\n2"));
+        assert_eq!("1\r2", interp.subst_backslashes("1\\r2"));
+        assert_eq!("1\t2", interp.subst_backslashes("1\\t2"));
+        assert_eq!("1\x0b2", interp.subst_backslashes("1\\v2"));
+        assert_eq!("1\x072", interp.subst_backslashes("1\\0072"));
+        assert_eq!("XpY", interp.subst_backslashes("X\x70Y"));
+        assert_eq!("X\x07Y", interp.subst_backslashes("X\\u7Y"));
+        assert_eq!("XwY", interp.subst_backslashes("X\\u77Y"));
+        assert_eq!("XwY", interp.subst_backslashes("X\\u077Y"));
+        assert_eq!("XwY", interp.subst_backslashes("X\\u0077Y"));
+        assert_eq!("X\x07Y", interp.subst_backslashes("X\\U7Y"));
+        assert_eq!("XwY", interp.subst_backslashes("X\\U77Y"));
+        assert_eq!("XwY", interp.subst_backslashes("X\\U077Y"));
+        assert_eq!("XwY", interp.subst_backslashes("X\\U0077Y"));
+        assert_eq!("XwY", interp.subst_backslashes("X\\U00077Y"));
+        assert_eq!("XwY", interp.subst_backslashes("X\\U000077Y"));
+        assert_eq!("XwY", interp.subst_backslashes("X\\U0000077Y"));
+        assert_eq!("XwY", interp.subst_backslashes("X\\U00000077Y"));
+    }
 }

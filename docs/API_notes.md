@@ -10,12 +10,6 @@ Notes on Molt's Rust API, from reading the Rust API guidelines.
 * Documentation needs to be fleshed out.
 * Internal tests need to be fleshed out in general
 
-## Interp Methods
-
-Also, the module's `subst_backslashes` function should be an
-`Interp` method, to be parallel with the other `subst_*` methods
-we need.
-
 ## Expression Evaluation
 
 The `Interp` should provide expression evaluation methods for use by client code.

@@ -1,5 +1,13 @@
 # Molt Development Journal
 
+### 2019-04-27 (Saturday)
+*   Updated to latest Rust.
+*   Merged last month's API work.  Still a lot left to do.
+*   Defined Interp::subst_backslashes() method
+    *   Retained the existing subst_backslashes() function as a `pub(crate)`, as it's
+        convenient for list parser not to require the interp handle.
+    *   The method delegates to the function.
+
 ### 2019-03-20 (Wednesday)
 *   Deleted `vec_string_to_str` function, as it's not used.
 *   Consider whether to define the Command trait using AsRef so that commands

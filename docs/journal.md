@@ -7,6 +7,7 @@
     *   Retained the existing subst_backslashes() function as a `pub(crate)`, as it's
         convenient for list parser not to require the interp handle.
     *   The method delegates to the function.
+    *   Added doc comment and test.
 
 ### 2019-03-20 (Wednesday)
 *   Deleted `vec_string_to_str` function, as it's not used.

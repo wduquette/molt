@@ -404,9 +404,20 @@ impl Interp {
     }
 
     /// Determines whether or not the script is syntactically complete,
-    /// e.g., has no unmatched quotes, brackets, or braces.  Used by
-    /// REPLs to determine whether or not to ask for another line of
+    /// e.g., has no unmatched quotes, brackets, or braces.
+    ///
+    /// REPLs use this to determine whether or not to ask for another line of
     /// input.
+    ///
+    /// # Example
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::interp::Interp;
+    /// let mut interp = Interp::new();
+    /// assert!(interp.complete("set a [expr {1+1}]"));
+    /// assert!(!interp.complete("set a [expr {1+1"));
+    /// ```
+
     pub fn complete(&mut self, script: &str) -> bool {
         let mut ctx = Context::new(script);
         ctx.set_no_eval(true);
@@ -925,6 +936,19 @@ fn subst_backslash(ctx: &mut Context, word: &mut String) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_complete() {
+        // This function tests the function by testing the Interp method
+        let mut interp = Interp::new();
+
+        assert!(interp.complete("abc"));
+        assert!(interp.complete("a {bc} [def] \"ghi\" xyz"));
+
+        assert!(!interp.complete("a {bc"));
+        assert!(!interp.complete("a [bc"));
+        assert!(!interp.complete("a \"bc"));
+    }
 
     #[test]
     fn test_get_bool() {

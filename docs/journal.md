@@ -9,6 +9,45 @@
     *   The method delegates to the function.
     *   Added doc comment and test.
 
+### 2019-03-21 (Thursday)
+*   Added some more Rustdoc to interp.rs.
+*   Added lots of Rustdoc to types.rs.
+*   MoltValue Thoughts
+    *   A MoltValue should have at least one of:
+        *   An optional string rep
+        *   An optional internal rep.
+        *   It must be possible to register new internal representation types.
+            (MoltTypes)
+    *   A MoltType:
+        *   Should be an efficient internal representation for some kind of
+            data (list, dict)
+        *   Should be able to retrieve itself from a MoltValue that contains
+            an internal rep of its type and provide it to Rust code.
+            *   E.g.,
+        *   Should be able to produce its own string representation.
+        *   Should be able to parse its own string representation
+```rust
+    impl MoltType for MoltList {
+        pub fn from(val: MoltValue) -> Result<MoltList,ResultCode> {...}
+        pub fn parse(string: &str) -> Result<MoltList,ResultCode> {...}
+        pub fn to_string(&self) -> String {...}
+    }
+```
+    *   Questions:
+        *   How does the `MoltValue` contain the instance of the MoltType?
+            *   As `Option<dyn MoltType>`?  I.e., MoltList implements MoltType.
+        *   How does the `from` method safely determine whether the `MoltValue`
+            contains a MoltList?  
+            *   Is there something like instanceof?
+            *   Looks like the "Any" trait is what I'm looking for.  See
+                module std::any.
+    *   Using std::any:
+        *   Define trait MoltType, which has the methods needed to convert
+            a value to and from a string.
+        *   MoltValue has a String and a dyn Any + MoltType + Clone.
+        *   As an Any, it can be converted back to the type I want, getting
+            Some or None.
+
 ### 2019-03-20 (Wednesday)
 *   Deleted `vec_string_to_str` function, as it's not used.
 *   Consider whether to define the Command trait using AsRef so that commands

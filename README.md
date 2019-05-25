@@ -32,6 +32,9 @@ $ cargo run test test/all.tcl
 ## TODO Items
 
 * Issues from wduquette/molt.
+  * #27: Integer division is broken when the divisor is negative.
+  * #24: Integer overflow
+    * Still need to fix / and %.
   * #15: molt_shell::repl should support continuation lines
   * #17: molt_shell should document how to write app code.
 * Add complete tests for the existing Tcl commands.

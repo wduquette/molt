@@ -94,7 +94,8 @@ impl ScopeStack {
     fn set_at(&mut self, level:usize, name: &str, value: &str) {
         match self.stack[level].map.get(name) {
             Some(Var::Level(at)) => {
-                self.set_at(*at, name, value);
+                let true_level = *at;
+                self.set_at(true_level, name, value);
             }
             _ => {
                 self.stack[level].map.insert(name.into(), Var::Value(value.into()));
@@ -107,7 +108,8 @@ impl ScopeStack {
     fn unset_at(&mut self, level: usize, name: &str) {
         // FIRST, if the variable at this level links to a lower level, follow the chain.
         if let Some(Var::Level(at)) = self.stack[level].map.get(name) {
-            self.unset_at(*at, name);
+            let true_level = *at;
+            self.unset_at(true_level, name);
         }
 
         // NEXT, remove the link at this level.

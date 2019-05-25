@@ -12,6 +12,7 @@
     *   To my surprise, there's no Tcl-level interface to set the max
         nesting level in either Tcl 7.6 or 8.6.  I thought there was.
 *   Added Interp::recursion_limit, set_recursion_limit.
+*   Fixed new rustc warnings in scope.rs.
 
 ### 2019-04-27 (Saturday)
 *   Updated to latest Rust.

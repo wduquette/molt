@@ -64,7 +64,7 @@ impl Interp {
     /// for adding specific command sets.
     pub fn empty() -> Self {
         Self {
-            max_nesting_depth: 255,
+            max_nesting_depth: 1000,
             commands: HashMap::new(),
             scopes: ScopeStack::new(),
             num_levels: 0,

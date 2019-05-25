@@ -158,7 +158,7 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::cyclomatic_complexity)]
+    #[allow(clippy::cognitive_complexity)]
     fn test_util_read_float() {
         let mut p = CharPtr::new("abc");
         assert_eq!(None, read_float(&mut p));

@@ -328,7 +328,7 @@ fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> ValueResult {
 /// with precedence less than or equal to `prec` as the end of the
 /// expression.
 #[allow(clippy::collapsible_if)]
-#[allow(clippy::cyclomatic_complexity)]
+#[allow(clippy::cognitive_complexity)]
 #[allow(clippy::float_cmp)]
 fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) -> ValueResult {
     // There are two phases to this procedure.  First, pick off an initial value.

@@ -98,6 +98,7 @@ test expr-2.15 {product overflow} {
 } -error {integer overflow}
 
 test expr-2.16 {negative divisors} {
+    puts "In expr-2.16"
     # Current fails; see issue #27.
     expr {1/-2}
 } -ok {0}

@@ -637,31 +637,43 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                         return molt_err!("divide by zero");
                     }
 
-                    // TCL guarantees that the remainder always has the same sign as the
-                    // divisor and a smaller absolute value.
-                    let mut divisor = value2.int;
+                    // WHD: The following is a straightforward translation of the TCl 7.6 code,
+                    // but it gives the wrong answer when the divisor is negative, e.g.,
+                    // expr {1/-2} => -1 instead of 0.
+                    //
+                    // // TCL guarantees that the remainder always has the same sign as the
+                    // // divisor and a smaller absolute value.
+                    // let mut divisor = dbg!(value2.int);
+                    //
+                    // let negative = if divisor < 0 {
+                    //     divisor = dbg!(-divisor);
+                    //     value.int = -value.int;
+                    //     true
+                    // } else {
+                    //     false
+                    // };
+                    //
+                    // let mut quot = dbg!(value.int / divisor);
+                    // let mut rem = dbg!(value.int % divisor);
+                    //
+                    // if rem < 0 {
+                    //     rem += divisor;
+                    //     quot -= 1; // WHD: This line doesn't do what's wanted.
+                    // }
+                    // if negative {
+                    //     rem = -rem;
+                    // }
+                    //
+                    // value.int = if operator == DIVIDE { quot } else { rem };
 
-                    let negative = if divisor < 0 {
-                        divisor = -divisor;
-                        value.int = -value.int;
-                        true
+                    // Instead, let's just be obvious, then check the error cases in
+                    // the TCL 7.6 test suite.
+                    if operator == DIVIDE {
+                        value.int /= value2.int;
                     } else {
-                        false
-                    };
-
-                    // TODO: Used checked_div, check_rem.
-                    let mut quot = value.int / divisor;
-                    let mut rem = value.int % divisor;
-
-                    if rem < 0 {
-                        rem += divisor;
-                        quot -= 1;
-                    }
-                    if negative {
-                        rem = -rem;
+                        value.int %= value2.int;
                     }
 
-                    value.int = if operator == DIVIDE { quot } else { rem };
                 } else {
                     assert!(operator == DIVIDE);
                     if value2.flt == 0.0 {

@@ -82,6 +82,33 @@ test expr-2.12 {arithmetic} {
     expr {2.2 % 0.0}
 } -error {can't use floating-point value as operand of "%"}
 
+test expr-2.13 {sum overflow} {
+    # Trouble to double std::i64::MAX
+    expr {9223372036854775807 + 9223372036854775807}
+} -error {integer overflow}
+
+test expr-2.14 {difference overflow} {
+    # Trouble to double std::i64::MAX
+    expr {-9223372036854775807 - 9223372036854775807}
+} -error {integer overflow}
+
+test expr-2.15 {product overflow} {
+    # Trouble to double std::i64::MAX
+    expr {2 * 9223372036854775807}
+} -error {integer overflow}
+
+test expr-2.16 {negative divisors} {
+    # Current fails; see issue #27.
+    expr {1/-2}
+} -ok {0}
+
+# test expr-2.16 {quotient overflow} {
+    # Per Google, overflow can occur on signed integer division when for -1/std::i64::MIN.
+    # Per Issue #26, you can't currently use std::i64::MIN as an argument at the TCL level.
+    # Per Issue #27, integer division for M/N is broken when abs(M) < abs(N) and N < 0.
+    # expr {-1 / (-9223372036854775807 - 1)}
+# } -error {integer overflow}
+
 # expr-3.*: Logical Operators
 proc aflag {flag} {
     global a

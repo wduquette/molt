@@ -621,7 +621,12 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
         match operator {
             MULT => {
                 if value.vtype == Type::Int {
-                    value.int *= value2.int;
+                    // value.int *= value2.int
+                    if let Some(int) = value.int.checked_mul(value2.int) {
+                        value.int = int;
+                    } else {
+                        return molt_err!("integer overflow");
+                    }
                 } else {
                     value.flt *= value2.flt;
                 }
@@ -644,6 +649,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                         false
                     };
 
+                    // TODO: Used checked_div, check_rem.
                     let mut quot = value.int / divisor;
                     let mut rem = value.int % divisor;
 
@@ -659,6 +665,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 } else {
                     assert!(operator == DIVIDE);
                     if value2.flt == 0.0 {
+                        // TODO: return Inf or -Inf
                         return molt_err!("divide by zero");
                     }
                     value.flt /= value2.flt;
@@ -666,19 +673,30 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             }
             PLUS => {
                 if value.vtype == Type::Int {
-                    value.int += value2.int;
+                    // value.int += value2.int;
+                    if let Some(int) = value.int.checked_add(value2.int) {
+                        value.int = int;
+                    } else {
+                        return molt_err!("integer overflow");
+                    }
                 } else {
                     value.flt += value2.flt;
                 }
             }
             MINUS => {
                 if value.vtype == Type::Int {
-                    value.int -= value2.int;
+                    // value.int -= value2.int;
+                    if let Some(int) = value.int.checked_sub(value2.int) {
+                        value.int = int;
+                    } else {
+                        return molt_err!("integer overflow");
+                    }
                 } else {
                     value.flt -= value2.flt;
                 }
             }
             LEFT_SHIFT => {
+                // TODO: Use checked_shl
                 value.int <<= value2.int;
             }
             RIGHT_SHIFT => {
@@ -686,6 +704,8 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 // right shifts propagate the sign bit even on machines
                 // where ">>" won't do it by default.
                 // WHD: Not sure if this is an issue in Rust.
+
+                // TODO: Use checked_shr
                 if value.int < 0 {
                     value.int = !((!value.int) >> value2.int)
                 } else {

@@ -644,18 +644,18 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 
                     // TCL guarantees that the remainder always has the same sign as the
                     // divisor and a smaller absolute value.
-                    let mut divisor = dbg!(value2.int);
+                    let mut divisor = value2.int;
 
                     let negative = if divisor < 0 {
-                        divisor = dbg!(-divisor);
+                        divisor = -divisor;
                         value.int = -value.int;
                         true
                     } else {
                         false
                     };
 
-                    let mut quot = dbg!(value.int / divisor);
-                    let mut rem = dbg!(value.int % divisor);
+                    let mut quot = value.int / divisor;
+                    let mut rem = value.int % divisor;
 
                     if rem < 0 {
                         rem += divisor;

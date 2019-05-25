@@ -32,7 +32,8 @@ $ cargo run test test/all.tcl
 ## TODO Items
 
 * Issues from wduquette/molt.
-  * #27: Integer division is broken when the divisor is negative.
+  * Figure out what should happen with integer division, so we get the same answers as
+    TCL 8.6.
   * #24: Integer overflow
     * Still need to fix / and %.
   * #15: molt_shell::repl should support continuation lines

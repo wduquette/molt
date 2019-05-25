@@ -7,6 +7,10 @@
     *   All existing tests pass.
     *   Added test to interp.rs to show that we catch an infinite loop.
     *   Added `molt test`, interp.tcl.
+    *   Updated default max nesting limit to 1000 from 255, which is the
+        Tcl 7.6/8.6 default.
+    *   To my surprise, there's no Tcl-level interface to set the max
+        nesting level in either Tcl 7.6 or 8.6.  I thought there was.
 
 ### 2019-04-27 (Saturday)
 *   Updated to latest Rust.

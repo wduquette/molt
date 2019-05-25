@@ -32,10 +32,8 @@ $ cargo run test test/all.tcl
 ## TODO Items
 
 * Issues from wduquette/molt.
-  * #14: Evaluation stack depth checking
   * #15: molt_shell::repl should support continuation lines
   * #17: molt_shell should document how to write app code.
-* Revise main parser to use CharPtr.
 * Add complete tests for the existing Tcl commands.
     * Test expression parser thoroughly
       * Add tests for "eq", "ne", "in", "ni"
@@ -50,6 +48,7 @@ $ cargo run test test/all.tcl
 * Add costly features to core molt (e.g., regexp, glob) as Rust features.
   * `molt test` needs to be able to filter tests based on the available
     features.
+* Revise main parser to use CharPtr.
 * On-going:
     * Document Molt's TCL dialect using mdbook, and publish to GitHub pages.
 * Consider generalizing the Subcommand array mechanism; standard command sets

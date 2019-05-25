@@ -48,8 +48,8 @@ pub struct Interp {
     // Variable Table
     scopes: ScopeStack,
 
-    // How many nested calls to Interp::eval() do we allow?
-    max_nesting_depth: usize,
+    // Defines the recursion limit for Interp::eval().
+    recursion_limit: usize,
 
     // Current number of eval levels.
     num_levels: usize,
@@ -64,7 +64,7 @@ impl Interp {
     /// for adding specific command sets.
     pub fn empty() -> Self {
         Self {
-            max_nesting_depth: 1000,
+            recursion_limit: 1000,
             commands: HashMap::new(),
             scopes: ScopeStack::new(),
             num_levels: 0,
@@ -110,7 +110,32 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Interpreter Configuration
 
-    // TODO
+    /// Gets the interpreter's recursion limit.
+    ///
+    /// # Example
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::interp::Interp;
+    /// let mut interp = Interp::new();
+    /// assert_eq!(interp.recursion_limit(), 1000);
+    /// ```
+    pub fn recursion_limit(&self) -> usize {
+        self.recursion_limit
+    }
+
+    /// Sets the interpreter's recursion limit.  The default is 1000.
+    ///
+    /// # Example
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::interp::Interp;
+    /// let mut interp = Interp::new();
+    /// interp.set_recursion_limit(100);
+    /// assert_eq!(interp.recursion_limit(), 100);
+    /// ```
+    pub fn set_recursion_limit(&mut self, limit: usize) {
+        self.recursion_limit = limit;
+    }
 
     //--------------------------------------------------------------------------------------------
     // Command Definition and Handling
@@ -376,7 +401,7 @@ impl Interp {
         // FIRST, check the number of nesting levels
         self.num_levels += 1;
 
-        if self.num_levels > self.max_nesting_depth {
+        if self.num_levels > self.recursion_limit {
             self.num_levels -= 1;
             return molt_err!("too many nested calls to Interp::eval (infinite loop?)");
         }
@@ -951,8 +976,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_max_nesting() {
+    fn test_recursion_limit() {
         let mut interp = Interp::new();
+
+        assert_eq!(interp.recursion_limit(), 1000);
+        interp.set_recursion_limit(100);
+        assert_eq!(interp.recursion_limit(), 100);
+
         assert!(interp.eval("proc myproc {} { myproc }").is_ok());
         assert_eq!(interp.eval("myproc"),
             molt_err!("too many nested calls to Interp::eval (infinite loop?)"));

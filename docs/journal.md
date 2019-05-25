@@ -1,5 +1,13 @@
 # Molt Development Journal
 
+### 2019-05-25 (Saturday)
+*   Updated to latest Rust.
+*   Fix issue #14: Evaluation stack depth checking
+    *   Added nesting level tracking to Interp::eval().
+    *   All existing tests pass.
+    *   Added test to interp.rs to show that we catch an infinite loop.
+    *   Added `molt test`, interp.tcl.
+
 ### 2019-04-27 (Saturday)
 *   Updated to latest Rust.
 *   Merged last month's API work.  Still a lot left to do.

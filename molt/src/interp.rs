@@ -42,14 +42,14 @@ use std::rc::Rc;
 #[derive(Default)]
 #[allow(dead_code)] // TEMP
 pub struct Interp {
-    // How many nested calls to Interp::eval() do we allow?
-    max_nesting_depth: usize,
-
     // Command Table
     commands: HashMap<String, Rc<dyn Command>>,
 
     // Variable Table
     scopes: ScopeStack,
+
+    // How many nested calls to Interp::eval() do we allow?
+    max_nesting_depth: usize,
 
     // Current number of eval levels.
     num_levels: usize,
@@ -373,10 +373,23 @@ impl Interp {
     ///
     /// This is the method to use when evaluating an entire script.
     pub fn eval(&mut self, script: &str) -> MoltResult {
+        // FIRST, check the number of nesting levels
+        self.num_levels += 1;
+
+        if self.num_levels > self.max_nesting_depth {
+            self.num_levels -= 1;
+            return molt_err!("too many nested calls to Interp::eval (infinite loop?)");
+        }
+
+        // NEXT, evaluate the script and translate the result to Ok or Error
         let mut ctx = Context::new(script);
 
         let result = self.eval_context(&mut ctx);
 
+        // NEXT, decrement the number of nesting levels.
+        self.num_levels -= 1;
+
+        // NEXT, translate and return the result.
         match result {
             Err(ResultCode::Return(value)) => {
                 molt_ok!(value)
@@ -936,6 +949,14 @@ fn subst_backslash(ctx: &mut Context, word: &mut String) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_max_nesting() {
+        let mut interp = Interp::new();
+        assert!(interp.eval("proc myproc {} { myproc }").is_ok());
+        assert_eq!(interp.eval("myproc"),
+            molt_err!("too many nested calls to Interp::eval (infinite loop?)"));
+    }
 
     #[test]
     fn test_complete() {

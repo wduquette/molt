@@ -48,6 +48,8 @@ $ cargo run test test/all.tcl
 * Define molt extension architecture
   * E.g., the ability to add extensions to Molt as Rust crates.
 * Add costly features to core molt (e.g., regexp, glob) as Rust features.
+  * `molt test` needs to be able to filter tests based on the available
+    features.
 * On-going:
     * Document Molt's TCL dialect using mdbook, and publish to GitHub pages.
 * Consider generalizing the Subcommand array mechanism; standard command sets

@@ -10,6 +10,7 @@ source error.tcl
 source exit.tcl
 source expr.tcl
 source for.tcl
+source interp.tcl
 source lappend.tcl
 source parser.tcl
 source rename.tcl

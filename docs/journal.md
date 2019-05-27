@@ -5,12 +5,29 @@
     *   I tried Rust's euclidean division gives the same result as the
         normal division for this problem; it isn't Rust's version of the
         TCL way.
+    *   Here's what I get for a series of problems.
 
-| Language | 12 / -10 | 12 % -10 |
-|----------|----------|----------|
-| TCL 7.6  | -2       | -8       |
-| TCL 8.6  | -2       | -8       |
-| Rust     | -1       | 2        |
+| Operation | TCL 7.6 | TCL 8.6 | Molt | Rust |
+|-----------|---------|---------|------|------|
+| 12 / 10   |  1      |  1      |  1   |  1   |
+| 12 % 10   |  2      |  2      |  2   |  2   |
+| -12 / 10  | -2      | -2      | -1   | -1   |
+| -12 % 10  |  8      |  8      | -2   | -2   |
+| 12 / -10  | -2      | -2      | -2   | -1   |
+| 12 % -10  | -8      | -8      | -8   |  2   |
+| -12 / -10 |  1      |  1      |  2   |  1   |
+| -12 % -10 | -2      | -2      |  8   | -2   |
+
+    *   Apparently C reliably rounds down if the numerator is negative and the denominator is
+        positive, whereas Rust always rounds to zero.
+        *   Since the Tcl 7.6 code does nothing special in that case, we get the Rust behavior,
+            not the C behavior.
+    *   Sent a note to Kevin Kenny about this: by principle of least surprise, should Molt
+        support Rust behavior (so that the application and its script get the same answer)
+        or TCL behavior?
+        *   Rust behavior is dead easy; and the results show that Rust isn't simply doing what
+            the platform does, but is doing what Rust does.
+        *   I'd have to add some logic to make the Molt version look like TCL.
 
 ### 2019-05-25 (Saturday)
 *   Updated to latest Rust.

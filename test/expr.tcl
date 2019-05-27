@@ -98,10 +98,33 @@ test expr-2.15 {product overflow} {
 } -error {integer overflow}
 
 test expr-2.16 {negative divisors} {
-    puts "In expr-2.16"
-    # Current fails; see issue #27.
     expr {1/-2}
 } -ok {0}
+
+test expr-2.17 {div/rem consistency} {
+    # Per KBK, where a and b are integers and b != 0, / and % must
+    # be defined so that:
+    #
+    # b*(a/b) + (a%b) == a
+
+    set total 0;
+    set good 0;
+
+    # Verify for various combinations around zero.
+    for {set a -20} {$a <= 20} {incr a} {
+        for {set b -20} {$b <= 20} {incr b} {
+            if {$b != 0} {
+                incr total
+
+                if {$b*($a/$b) + ($a%$b) == $a} {
+                    incr good
+                }
+            }
+        }
+    }
+
+    expr {$total == $good}
+} -ok {1}
 
 # test expr-2.16 {quotient overflow} {
     # Per Google, overflow can occur on signed integer division when for -1/std::i64::MIN.

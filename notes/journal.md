@@ -28,6 +28,9 @@
         *   Rust behavior is dead easy; and the results show that Rust isn't simply doing what
             the platform does, but is doing what Rust does.
         *   I'd have to add some logic to make the Molt version look like TCL.
+*   Per Kevin Kenny, Fortran, C, and many other languages have now standardized on rounding to
+    zero; and the floating point standard says that floats are to be rounded toward zero in
+    similar circumstances.  So it's reasonable to do that in Molt.
 *   Stack Traces
     *   Where is there stack-trace code in TCL 7.6?
         *   See the end of Tcl_Eval()

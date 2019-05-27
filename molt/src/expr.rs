@@ -631,48 +631,37 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     value.flt *= value2.flt;
                 }
             }
-            DIVIDE | MOD => {
+            DIVIDE => {
                 if value.vtype == Type::Int {
                     if value2.int == 0 {
                         return molt_err!("divide by zero");
                     }
 
-                    // WHD: The following is a straightforward translation of the TCL 7.6 code,
-                    // but it gives the wrong answer when the divisor is negative, e.g.,
-                    // expr {1/-2} => -1 instead of 0.  However TCL 8.6 gives the same weird
-                    // answer.  ????
-
-                    // TCL guarantees that the remainder always has the same sign as the
-                    // divisor and a smaller absolute value.
-                    let mut divisor = value2.int;
-
-                    let negative = if divisor < 0 {
-                        divisor = -divisor;
-                        value.int = -value.int;
-                        true
+                    if let Some(int) = value.int.checked_div(value2.int) {
+                        value.int = int;
                     } else {
-                        false
-                    };
-
-                    let mut quot = value.int / divisor;
-                    let mut rem = value.int % divisor;
-
-                    if rem < 0 {
-                        rem += divisor;
-                        quot -= 1;
+                        return molt_err!("integer overflow");
                     }
-                    if negative {
-                        rem = -rem;
-                    }
-
-                    value.int = if operator == DIVIDE { quot } else { rem };
                 } else {
-                    assert!(operator == DIVIDE);
                     if value2.flt == 0.0 {
-                        // TODO: return Inf or -Inf
+                        // TODO: return Inf or -Inf?  Waiting for response from KBK
                         return molt_err!("divide by zero");
                     }
                     value.flt /= value2.flt;
+                }
+
+            }
+            MOD => {
+                assert!(value.vtype == Type::Int);
+
+                if value2.int == 0 {
+                    return molt_err!("divide by zero");
+                }
+
+                if let Some(int) = value.int.checked_rem(value2.int) {
+                    value.int = int;
+                } else {
+                    return molt_err!("integer overflow");
                 }
             }
             PLUS => {

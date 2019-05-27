@@ -47,6 +47,7 @@
         *   Or, perhaps, `ResultCode::Error(String,ErrorInfo)`
         *   We really need to do that anyway if we want to support the full TCL 8 return syntax.
             *   But need dicts first for all that?
+    *   Found all uses of AddErrorInfo in TCL 7.6; see stack_trace.md.
 
 ### 2019-05-25 (Saturday)
 *   Updated to latest Rust.

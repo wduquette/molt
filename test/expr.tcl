@@ -126,12 +126,21 @@ test expr-2.17 {div/rem consistency} {
     expr {$total == $good}
 } -ok {1}
 
-# test expr-2.16 {quotient overflow} {
-    # Per Google, overflow can occur on signed integer division when for -1/std::i64::MIN.
+# This needs to be tested, but it isn't clear
+test expr-2.18 {quotient overflow} {
+    # Per Google, overflow can occur on signed integer division when -1/std::i64::MIN.
     # Per Issue #26, you can't currently use std::i64::MIN as an argument at the TCL level.
-    # Per Issue #27, integer division for M/N is broken when abs(M) < abs(N) and N < 0.
-    # expr {-1 / (-9223372036854775807 - 1)}
-# } -error {integer overflow}
+    # (std::i64::MIN = -9223372036854775808)
+
+    # This expression, however, does not trigger an overflow.
+    expr {1 / (-9223372036854775807 - 1)}
+} -ok {0} ;# Arguably, should be '-error "integer overflow"'
+
+# Integer overflow on remainder needs to be tested, but it isn't clear how.
+test expr-2.19 {remainder overflow} {
+    # This expression, however, does not trigger an overflow.
+    expr {1 % (-9223372036854775807 - 1)}
+} -ok {1} ;# Arguably, should be '-error "integer overflow"'
 
 # expr-3.*: Logical Operators
 proc aflag {flag} {

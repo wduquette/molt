@@ -76,20 +76,29 @@ an integer.
 
 ## TCL Liens
 
-In standard TCL `expr` takes any number of arguments, which it concatenates into a
-single expression for evaluation.  For performance reasons, though, it is almost always
-best to provide an expression as a single braced string.  Consequently, Molt's `expr`
-takes a single argument.
+**Expr Command Syntax:** In standard TCL `expr` takes any number of arguments, which it
+concatenates into a single expression for evaluation.  This means that variable and command
+interpolation is done twice, once by the TCL parser and once by `expr`, which hurts
+performance and can also be a source of subtle and confusing errors.  Consequently it is
+almost always best to provide the expression as a single braced string, and so Molt's `expr`
+takes a single argument.  This is unlikely to change.
 
-Molt's expression parsing is meant to be consistent with TCL 7.6, with the addition of the
-`eq`, `ne`, `in`, and `ni` operators.
+**Expression Syntax:** Molt's expression parsing is meant to be consistent with TCL 7.6, with the
+addition of the TCL 8.x `eq`, `ne`, `in`, and `ni` operators.
 
 * Molt does not yet support the full range of math functions supported by TCL 7.6.
 * Molt does not yet do precise float-to-string-to-float conversions, per TCL 8.6.  See  
   "String Representation of Floating Point Numbers" on the Tcler's Wiki expr page.
-* Molt's handling of arithmetic errors is still naive.
+* Molt's handling of floating point arithmetic errors is still naive.
 
-The following TCL 8.6 features are not on the road map at present.
+**Integer Division:** Integer division in Molt rounds down towards zero, following the example
+of Rust, Python, C99, and many other languages.  Standard TCL rounds toward negative
+infinity, a decision that dates to a time when the C standard did not define the correct
+behavior and C compilers varied.  It seems reasonable that an extension language should do
+something as basic as this in the same way as the host language.
+
+**Possible Futures:** The following TCL 8.6 features are not on the road map at present,
+but might be added in the future.
 
 * Bignums
 * The exponential operator, `**`

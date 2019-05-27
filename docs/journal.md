@@ -1,5 +1,17 @@
 # Molt Development Journal
 
+### 2019-05-27 (Monday)
+*   Integer Division results:
+    *   I tried Rust's euclidean division gives the same result as the
+        normal division for this problem; it isn't Rust's version of the
+        TCL way.
+
+| Language | 12 / -10 | 12 % -10 |
+|----------|----------|----------|
+| TCL 7.6  | -2       | -8       |
+| TCL 8.6  | -2       | -8       |
+| Rust     | -1       | 2        |
+
 ### 2019-05-25 (Saturday)
 *   Updated to latest Rust.
 *   Fix issue #14: Evaluation stack depth checking

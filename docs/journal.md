@@ -28,6 +28,25 @@
         *   Rust behavior is dead easy; and the results show that Rust isn't simply doing what
             the platform does, but is doing what Rust does.
         *   I'd have to add some logic to make the Molt version look like TCL.
+*   Stack Traces
+    *   Where is there stack-trace code in TCL 7.6?
+        *   See the end of Tcl_Eval()
+            *   On error, it calls Tcl_AddErrorInfo with a line of data, one of the following,
+                where "{command}" is the command being executed, possibly elided.
+                *   `\n    while executing\n"{command}"` (if this function detects an error)
+                *   `\n    invoked from within\n"{command}"` (if a called function returned an error)
+        *   The error info is saved in the interp; it's really an extension of the result.
+        *   It's only saved while processing genuine error returns.  The logic is
+            straightforward:
+            *   If you detect an error, AddErrorInfo, then return the error
+            *   If you receive an error, add your own AddErrorInfo and return the error.
+        *   Tcl_AddErrorInfo is defined in tclBasic.c, and used in many different places.
+    *   For Rust, it would make more sense to replace `ResultCode::Error(String)` with   
+        `ResultCode::Error(ErrorInfo), where ErrorInfo is a struct that can accumulate the error
+        trace information.
+        *   Or, perhaps, `ResultCode::Error(String,ErrorInfo)`
+        *   We really need to do that anyway if we want to support the full TCL 8 return syntax.
+            *   But need dicts first for all that?
 
 ### 2019-05-25 (Saturday)
 *   Updated to latest Rust.

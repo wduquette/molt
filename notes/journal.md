@@ -1,5 +1,23 @@
 # Molt Development Journal
 
+### 2019-06-01 (Saturday)
+*   Handling floating point errors:
+    *   Per KBK, the floating point subsystem just handles floating point overflow and
+        underflow.
+        *   On underflow, values are "denormalized" and then go to 0.
+            *   "denormalized": I presume this means that you trade mantissa bits for exponent
+                bits.
+        *   On overflow, you get Infinity, -Infinity.
+        *   On other errors you get NaN.
+        *   Rust has methods to check for all of these.
+    *   In the current expr, I could:
+        *   Extend my parsing/formatting to allow Inf, -Inf, and throw errors on NaN.
+        *   -OR- throw errors on all three.
+        *   The latter makes the most sense.
+    *   I can do better after I've got some kind of MoltValue in place so that floats remain
+        floats.
+*   Working on a MoltValue prototype in the "value" repo.
+
 ### 2019-05-27 (Monday)
 *   Integer Division results:
     *   I tried Rust's euclidean division gives the same result as the

@@ -103,3 +103,12 @@ but most will probably be added eventually.
 * try
 * uplevel
 * upvar
+
+## Acknowledgements
+
+I've gotten help from many people in this endeavour; here's a (necessarily partial) list.
+
+* Jonathan Castello, for general Rust info
+* Kevin Kenny, for help with TCL numerics
+* Don Porter, for help with TCL parsing
+* Krishna Sannasi, for help getting MoltValues to work with arbitrary user data types

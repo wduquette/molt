@@ -7,6 +7,7 @@
 pub use crate::types::*;
 pub use crate::list::list_to_string;
 pub use crate::interp::Interp;
+pub use crate::value::MoltValue;
 
 #[allow(dead_code)] // Temporary
 mod char_ptr;
@@ -20,6 +21,7 @@ mod list;
 mod macros;
 mod scope;
 pub mod types;
+pub mod value;
 mod util;
 
 /// Checks to see whether a command's argument list is of a reasonable size.

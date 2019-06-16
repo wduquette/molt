@@ -31,11 +31,14 @@ $ cargo run test test/all.tcl
 
 ## TODO Items
 
+* Integrate the new MoltValue type into Molt:
+  * Variables have MoltValues instead of strings.
+  * MoltList elements are MoltValues instead of strings.
+  * Command argument lists contain MoltValues rather than strings.
+  * ResultCode::Return and ResultCode::Error use MoltValue for the return value.
+  * `expr` does computations in terms of MoltValues.
+    * Or at least gets its inputs from and writes its output to MoltValues.
 * Issues from wduquette/molt.
-  * Figure out what should happen with integer division, so we get the same answers as
-    TCL 8.6.
-  * #24: Integer overflow
-    * Still need to fix / and %.
   * #15: molt_shell::repl should support continuation lines
   * #17: molt_shell should document how to write app code.
 * Add complete tests for the existing Tcl commands.

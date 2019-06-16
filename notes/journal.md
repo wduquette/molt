@@ -1,5 +1,9 @@
 # Molt Development Journal
 
+### 2019-06-15 (Saturday)
+*   Copied the new MoltValue type from the wduquette/value repo to this code base.
+    *   It isn't yet used for anything, but it's now available for integration.
+
 ### 2019-06-01 (Saturday)
 *   Handling floating point errors:
     *   Per KBK, the floating point subsystem just handles floating point overflow and

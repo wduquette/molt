@@ -32,6 +32,13 @@ $ cargo run test test/all.tcl
 ## TODO Items
 
 * Integrate the new MoltValue type into Molt:
+  * DONE: MoltValue::as_int uses ResultCode and parses as for Interp::parse_int.
+  * DONE: MoltValue::as_float uses ResultCode.
+  * DONE: Add Datum::Bool, MoltValue::from_bool, MoltValue::as_bool, parsing as for Interp::get_bool.
+  * MoltValue::as_list uses ResultCode, and parses as for Interp::get_list.
+  * MoltValue uses the list formatter for MoltList values.
+  * MoltValue::as_copy uses ResultCode.
+  * MoltValue::as_other uses ResultCode.
   * Variables have MoltValues instead of strings.
   * MoltList elements are MoltValues instead of strings.
   * Command argument lists contain MoltValues rather than strings.

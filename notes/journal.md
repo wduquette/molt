@@ -1,5 +1,12 @@
 # Molt Development Journal
 
+### 2019-06-16 (Sunday)
+*   Fixed up the MoltValue::as_int and MoltValue::as_float methods
+    *   as_int parses using the Interp::parse_int algorithm.
+    *   Both methods use ResultCode.
+*   Added MoltValue::from_bool and MoltValue::as_bool, using ResultCode and the
+    Interp::get_int algorithm for parsing.
+
 ### 2019-06-15 (Saturday)
 *   Copied the new MoltValue type from the wduquette/value repo to this code base.
     *   It isn't yet used for anything, but it's now available for integration.

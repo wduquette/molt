@@ -148,6 +148,58 @@ impl MoltValue {
 
         new_string
     }
+    
+    /// Creates a new `MoltValue` whose data representation is a `bool`.
+    ///
+    /// # Example
+    ///
+    /// TODO
+    pub fn from_bool(flag: bool) -> MoltValue {
+        MoltValue {
+            string_rep: RefCell::new(None),
+            data_rep: RefCell::new(Datum::Bool(flag)),
+        }
+    }
+
+    /// Tries to return the `MoltValue` as a `bool`, parsing the
+    /// value's string representation if necessary.
+    ///
+    /// # Example
+    ///
+    /// TODO
+    pub fn as_bool(&self) -> Result<bool, ResultCode> { 
+        let mut data_ref = self.data_rep.borrow_mut();
+        let mut string_ref = self.string_rep.borrow_mut();
+
+        // FIRST, if we have a boolean then just return it.
+        if let Datum::Bool(flag) = *data_ref {
+            return Ok(flag);
+        }
+
+        // NEXT, if we don't have a string_rep, get one from the current
+        // data_rep.
+        if (*string_ref).is_none() {
+            *string_ref = Some(Rc::new(data_ref.to_string()));
+        }
+
+        // NEXT, Try to parse the string_rep as an integer
+        let str = (&*string_ref).as_ref().unwrap(); 
+        let flag = MoltValue::parse_bool(&*str)?; 
+        *data_ref = Datum::Bool(flag);
+        Ok(flag)
+    }
+
+    // Parses a string as a boolean using the standard TCL syntax.
+    // Returns a standard Molt error result.
+    fn parse_bool(arg: &str) -> Result<bool, ResultCode> {
+        let value: &str = &arg.to_lowercase();
+        match value {
+            "1" | "true" | "yes" | "on" => Ok(true),
+            "0" | "false" | "no" | "off" => Ok(false),
+            _ => molt_err!("expected boolean but got \"{}\"", arg),
+        }
+    }
+
 
     /// Creates a new `MoltValue` whose data representation is a `MoltInt`.
     ///
@@ -173,7 +225,7 @@ impl MoltValue {
 
         // FIRST, if we have an integer then just return it.
         if let Datum::Int(int) = *data_ref {
-            return dbg!(Ok(int));
+            return Ok(int);
         }
 
         // NEXT, if we don't have a string_rep, get one from the current
@@ -460,6 +512,9 @@ impl<T: Any + Display + Debug> MoltAny for T {
 // The data representation for MoltValues.
 #[derive(Clone, Debug)]
 enum Datum {
+    /// A Boolean
+    Bool(bool),
+
     /// A Molt integer
     Int(MoltInt),
 
@@ -479,6 +534,7 @@ enum Datum {
 impl Display for Datum {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
+            Datum::Bool(flag) => write!(f, "{}", if *flag { 1 } else { 0 }),
             Datum::Int(int) => write!(f, "{}", int),
             Datum::Flt(flt) => write!(f, "{}", flt),
             Datum::List(_) => write!(f, "*FAKE LIST*"),
@@ -510,6 +566,38 @@ mod tests {
 
         let val2 = val.clone();
         assert_eq!(*val.as_string(), *val2.to_string());
+    }
+
+    #[test]
+    fn from_as_bool() {
+        let val = MoltValue::from_bool(true);
+        assert_eq!(*val.to_string(), "1".to_string());
+
+        let val = MoltValue::from_bool(false);
+        assert_eq!(*val.to_string(), "0".to_string());
+
+        let val = MoltValue::from_string("true".to_string());
+        assert_eq!(val.as_bool(), Ok(true));
+    }
+
+    #[test]
+    fn parse_bool() {
+        assert_eq!(Ok(true), MoltValue::parse_bool("1"));
+        assert_eq!(Ok(true), MoltValue::parse_bool("true"));
+        assert_eq!(Ok(true), MoltValue::parse_bool("yes"));
+        assert_eq!(Ok(true), MoltValue::parse_bool("on"));
+        assert_eq!(Ok(true), MoltValue::parse_bool("TRUE"));
+        assert_eq!(Ok(true), MoltValue::parse_bool("YES"));
+        assert_eq!(Ok(true), MoltValue::parse_bool("ON"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("0"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("false"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("no"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("off"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("FALSE"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("NO"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("OFF"));
+        assert_eq!(MoltValue::parse_bool("nonesuch"),
+            molt_err!("expected boolean but got \"nonesuch\""));
     }
 
     #[test]

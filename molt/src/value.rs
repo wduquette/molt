@@ -189,6 +189,8 @@ impl MoltValue {
         Ok(int)
     }
 
+    // Parses a string as an integer using the standard TCL syntax (except octal :-)
+    // Returns a standard Molt error result.
     fn parse_int(arg: &str) -> Result<MoltInt, ResultCode> {
         let mut arg = arg;
         let mut minus = 1;
@@ -227,12 +229,10 @@ impl MoltValue {
     /// Tries to return the `MoltValue` as a `MoltFloat`, parsing the
     /// value's string representation if necessary.
     ///
-    /// TODO: Need to return Molt-compatible Err's.
-    ///
     /// # Example
     ///
     /// TODO
-    pub fn as_float(&self) -> Result<MoltFloat, String> {
+    pub fn as_float(&self) -> Result<MoltFloat, ResultCode> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -248,18 +248,20 @@ impl MoltValue {
         }
 
         // NEXT, Try to parse the string_rep as a float
-        if let Some(str) = &*string_ref {
-            // TODO: Currently uses the standard Rust parser.  That may
-            // be OK, but I need to check.
-            if let Ok(flt) = str.parse::<MoltFloat>() {
+        // TODO: Currently uses the standard Rust parser.  That may
+        // be OK, but I need to check.
+        let str = (&*string_ref).as_ref().unwrap(); 
+        let result = str.parse::<MoltFloat>();
+
+        match result {
+            Ok(flt) => {
                 *data_ref = Datum::Flt(flt);
-                return Ok(flt);
+                Ok(flt)
+            },
+            Err(_) => {
+                molt_err!("expected floating-point number but got \"{}\"", str)
             }
         }
-
-        // NEXT, we can't interpret it as an integer; return an error.
-        // TODO: need to use the right error message.
-        Err("Not a float".to_string())
     }
 
     /// Creates a new `MoltValue` whose data representation is a `MoltList`.
@@ -569,7 +571,8 @@ mod tests {
         assert_eq!(val.as_float(), Ok(5.0));
 
         let val = MoltValue::from_string("abc".to_string());
-        assert_eq!(val.as_float(), Err("Not a float".to_string()));
+        assert_eq!(val.as_float(), 
+            molt_err!("expected floating-point number but got \"abc\""));
     }
 
     #[test]

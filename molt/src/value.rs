@@ -86,6 +86,7 @@ use std::str::FromStr;
 use crate::types::MoltList;
 use crate::types::MoltInt;
 use crate::types::MoltFloat;
+use crate::types::ResultCode;
 
 //-----------------------------------------------------------------------------
 // Public Data Types
@@ -163,12 +164,10 @@ impl MoltValue {
     /// Tries to return the `MoltValue` as a `MoltInt`, parsing the
     /// value's string representation if necessary.
     ///
-    /// TODO: Need to return Molt-compatible Err's.
-    ///
     /// # Example
     ///
     /// TODO
-    pub fn as_int(&self) -> Result<MoltInt, String> {
+    pub fn as_int(&self) -> Result<MoltInt, ResultCode> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -184,18 +183,33 @@ impl MoltValue {
         }
 
         // NEXT, Try to parse the string_rep as an integer
-        if let Some(str) = &*string_ref {
-            // TODO: Uses standard Rust integer parsing.  Need to use the
-            // TCL algorithm; see Interp::get_int.
-            if let Ok(int) = str.parse::<MoltInt>() {
-                *data_ref = Datum::Int(int);
-                return Ok(int);
-            }
+        let str = (&*string_ref).as_ref().unwrap(); 
+        let int = MoltValue::parse_int(&*str)?; 
+        *data_ref = Datum::Int(int);
+        Ok(int)
+    }
+
+    fn parse_int(arg: &str) -> Result<MoltInt, ResultCode> {
+        let mut arg = arg;
+        let mut minus = 1;
+
+        if arg.starts_with('+') {
+            arg = &arg[1..];
+        } else if arg.starts_with('-') {
+            minus = -1;
+            arg = &arg[1..];
         }
 
-        // NEXT, we can't interpret it as an integer; return an error.
-        // TODO: Use the correct error message.
-        Err("Not an integer".to_string())
+        let parse_result = if arg.starts_with("0x") {
+            MoltInt::from_str_radix(&arg[2..], 16)
+        } else {
+            arg.parse::<MoltInt>()
+        };
+
+        match parse_result {
+            Ok(int) => Ok(minus * int),
+            Err(_) => molt_err!("expected integer but got \"{}\"", arg),
+        }
     }
 
     /// Creates a new `MoltValue` whose data representation is a `MoltFloat`.
@@ -487,6 +501,7 @@ mod tests {
         assert_eq!(*val.to_string(), *val2.to_string());
     }
 
+    #[test]
     fn as_string() {
         let val = MoltValue::from_string("abc".to_string());
         assert_eq!(*val.as_string(), "abc".to_string());
@@ -516,19 +531,38 @@ mod tests {
         assert_eq!(val.as_float(), Ok(7.0));
 
         let val = MoltValue::from_string("abc".to_string());
-        assert_eq!(val.as_int(), Err("Not an integer".to_string()));
+        // assert_eq!(val.as_int(), Err("Not an integer".to_string()));
+        assert_eq!(val.as_int(), molt_err!("expected integer but got \"abc\""));
+    }
+
+    #[test]
+    fn parse_int() {
+        assert_eq!(MoltValue::parse_int("1"), Ok(1));
+        assert_eq!(MoltValue::parse_int("-1"), Ok(-1));
+        assert_eq!(MoltValue::parse_int("+1"), Ok(1));
+        assert_eq!(MoltValue::parse_int("0xFF"), Ok(255));
+        assert_eq!(MoltValue::parse_int("+0xFF"), Ok(255));
+        assert_eq!(MoltValue::parse_int("-0xFF"), Ok(-255));
+
+        assert_eq!(MoltValue::parse_int(""), molt_err!("expected integer but got \"\""));
+        assert_eq!(MoltValue::parse_int("a"), molt_err!("expected integer but got \"a\""));
+        assert_eq!(MoltValue::parse_int("0x"), molt_err!("expected integer but got \"0x\""));
+        assert_eq!(MoltValue::parse_int("0xABGG"),
+            molt_err!("expected integer but got \"0xABGG\""));
     }
 
     #[test]
     fn from_as_float() {
         let val = MoltValue::from_float(12.5);
         assert_eq!(*val.to_string(), "12.5".to_string());
-        assert_eq!(val.as_int(), Err("Not an integer".to_string()));
+        assert_eq!(val.as_int(), molt_err!("expected integer but got \"12.5\""));
+        // assert_eq!(val.as_int(), Err("Not an integer".to_string()));
         assert_eq!(val.as_float(), Ok(12.5));
 
         let val = MoltValue::from_string("7.8".to_string());
         assert_eq!(*val.to_string(), "7.8".to_string());
-        assert_eq!(val.as_int(), Err("Not an integer".to_string()));
+        assert_eq!(val.as_int(), molt_err!("expected integer but got \"7.8\""));
+        // assert_eq!(val.as_int(), Err("Not an integer".to_string()));
         assert_eq!(val.as_float(), Ok(7.8));
 
         let val = MoltValue::from_int(5);

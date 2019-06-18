@@ -83,6 +83,8 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::rc::Rc;
 use std::str::FromStr;
+use crate::list::get_list;
+use crate::list::list_to_string;
 use crate::types::MoltList;
 use crate::types::MoltInt;
 use crate::types::MoltFloat;
@@ -337,16 +339,27 @@ impl MoltValue {
     /// # Example
     ///
     /// TODO
-    pub fn as_list(&self) -> Result<Rc<MoltList>, String> {
-        let data_ref = self.data_rep.borrow_mut();
+    pub fn as_list(&self) -> Result<Rc<MoltList>, ResultCode> {
+        let mut string_ref = self.string_rep.borrow_mut();
+        let mut data_ref = self.data_rep.borrow_mut();
 
+        // FIRST, if we have the desired type, return it.
         if let Datum::List(list) = &*data_ref {
-            Ok(list.clone())
-        // } else if let Some(_str) = &self.string_rep {
-        //     panic!("list string_rep not defined!");
-        } else {
-            Err("Not a list".to_string())
+            return Ok(list.clone());
         }
+
+        // NEXT, if we don't have a string_rep, get one from the current
+        // data rep.
+        if (*string_ref).is_none() {
+            *string_ref = Some(Rc::new(data_ref.to_string()));
+        }
+
+        // NEXT, try to parse the string_rep as a list.
+        let str = (&*string_ref).as_ref().unwrap(); 
+        let list = Rc::new(get_list(str)?);
+        *data_ref = Datum::List(list.clone());
+
+        Ok(list)
     }
 
     /// Creates a new `MoltValue` containing the given value of some user type.
@@ -537,7 +550,7 @@ impl Display for Datum {
             Datum::Bool(flag) => write!(f, "{}", if *flag { 1 } else { 0 }),
             Datum::Int(int) => write!(f, "{}", int),
             Datum::Flt(flt) => write!(f, "{}", flt),
-            Datum::List(_) => write!(f, "*FAKE LIST*"),
+            Datum::List(list) => write!(f, "{}", list_to_string(list)),
             Datum::Other(other) => write!(f, "{}", other),
             Datum::None => write!(f, ""),
         }
@@ -665,23 +678,22 @@ mod tests {
 
     #[test]
     fn from_as_list() {
-        // TODO: Add this back in once we've converted MoltList to 
-        // be Vec<MoltValue>.
+        // NOTE: we aren't testing list formatting and parsing here; that's done in list.rs.
+        // We *are* testing that MoltValue will use the list.rs code to convert strings to lists
+        // and back again.
+        let listval = MoltValue::from_list(vec!["abc".to_string(), "def".to_string()]);
+        assert_eq!(*listval.as_string(), "abc def".to_string());
 
-        // let a = MoltValue::from_string("abc".to_string());
-        // let b = MoltValue::from_float(12.5);
-        // let listval = MoltValue::from_list(vec![a.clone(), b.clone()]);
+        let listval = MoltValue::from_string("qrs xyz".to_string());
+        let result = listval.as_list();
 
-        // // Get it back as Rc<MoltList>
-        // let result = listval.as_list();
+        assert!(result.is_ok());
 
-        // assert!(result.is_ok());
-
-        // if let Ok(rclist) = result {
-        //     assert_eq!(rclist.len(), 2);
-        //     assert_eq!(rclist[0].to_string(), a.to_string());
-        //     assert_eq!(rclist[1].to_string(), b.to_string());
-        // }
+        if let Ok(rclist) = result {
+            assert_eq!(rclist.len(), 2);
+            assert_eq!(rclist[0].to_string(), "qrs".to_string());
+            assert_eq!(rclist[1].to_string(), "xyz".to_string());
+        }
     }
 
     #[test]

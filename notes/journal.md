@@ -1,5 +1,11 @@
 # Molt Development Journal
 
+### 2019-06-17 (Monday)
+*   Fleshed out the MoltValue::from_list and MoltValue::as_list methods, and added list formatting
+    to Datum's Display implementation.
+*   Added examples to the doc comments for the MoltValue from_str, from_string, as_string, from_bool,
+    as_bool, from_int, as_int, from_float, and as_float methods.
+
 ### 2019-06-16 (Sunday)
 *   Fixed up the MoltValue::as_int and MoltValue::as_float methods
     *   as_int parses using the Interp::parse_int algorithm.

@@ -6,7 +6,20 @@
 //! data value can be any TCL data value: a number, a list, or any
 //! arbitrary type (that meets certain requirements).
 //!
-//! In TCL "everything is a string"; thus, every `Value` has a string
+//! In TCL, "everything is a string".  A `Value` can be a number, a boolean, a list, an instance
+//! of an external type, or just an arbitrary string, but every value has a
+//! _string representation_, and it can be any other data type with a compatible _string rep_.
+//! for example, the string "5" can be a string, the integer 5, or a list of one element, "5".
+//!
+//! # Comparisons
+//!
+//! If two `Value`'s are compared for equality in Rust, Rust compares their string reps.
+//! In TCL expressions the `==` and `!=` operators do numeric comparisons, and the
+//! `eq` and `ne` do string rep comparisons.
+//!
+//! # Internal Representation
+//!
+//! "Everything is a string"; thus, every `Value` has a string
 //! representation, or _string rep_.  But for efficiency with numbers, lists,
 //! and user-defined binary data structures, the Value also caches a
 //! data representation, or _data rep_.
@@ -105,6 +118,15 @@ impl Display for Value {
         write!(f, "{}", self.as_string())
     }
 }
+
+impl PartialEq for Value {
+    // Two Values are equal if their string representations are equal.
+    fn eq(&self, other: &Self) -> bool {
+        *self.as_string() == *other.as_string()
+    }
+}
+
+impl Eq for Value {}
 
 impl Value {
     /// Creates a new `Value` from the given string slice.
@@ -684,6 +706,16 @@ mod tests {
 
         let val2 = val.clone();
         assert_eq!(*val.as_string(), *val2.to_string());
+    }
+
+    #[test]
+    fn compare() {
+        let val = Value::new("123");
+        let val2 = Value::from_int(123);
+        let val3 = Value::from_int(456);
+
+        assert_eq!(val, val2);
+        assert_ne!(val, val3);
     }
 
     #[test]

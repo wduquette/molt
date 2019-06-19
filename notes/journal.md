@@ -2,6 +2,10 @@
 
 ### 2019-06-18 (Tuesday)
 *   Converted scope.rs to use MoltValue.
+*   Renamed expr::Value (an internal type) to expr::Datum.
+*   Renamed value::MoltValue to value::Value.
+*   Tried to make ResultCode::Error(String) be ResultCode::Error(Value).
+    *   Problem: ResultCode current implements Eq and PartialEq.  Value doesn't.
 
 ### 2019-06-17 (Monday)
 *   Fleshed out the MoltValue::from_list and MoltValue::as_list methods, and added list formatting

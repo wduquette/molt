@@ -1,6 +1,7 @@
 //! Public Type Declarations
 
 use crate::interp::Interp;
+use crate::value::Value;
 
 // Molt Numeric Types
 
@@ -29,21 +30,16 @@ pub type MoltFloat = f64;
 /// that will maintain a string representation, an internal representation, or both,
 /// for the sake of efficiency.  At that time `MoltList` will be changed to (something like)
 /// `Vec<MoltValue>`...or, possibly, to a struct that contains such a vector.
-pub type MoltList = Vec<String>;
+pub type MoltList = Vec<Value>;
 
 /// Molt's standard `Result<T,E>` type.
 ///
 /// This is the most common result value returned by Molt code.  The
-/// `Ok` type is `String`, the standard Molt value type; the `Err` type is
+/// `Ok` type is `Value`, the standard Molt value type; the `Err` type is
 /// [`ResultCode`], which encompasses the four exceptional Molt return values.
 ///
-/// # Future Work
-///
-/// * Eventually the normal `String` result will be replaced by a `MoltValue` type
-///   for efficiency.
-///
 /// [`ResultCode`]: enum.ResultCode.html
-pub type MoltResult = Result<String, ResultCode>;
+pub type MoltResult = Result<Value, ResultCode>;
 
 /// Exceptional results of evaluating a Molt script.
 ///
@@ -51,11 +47,11 @@ pub type MoltResult = Result<String, ResultCode>;
 /// [`MoltResult`], or it can return one of a number of exceptional results, which
 /// will bubble up the call stack in the usual way until caught.
 ///
-/// * `Error(String)`: This code indicates a Molt error; the string is the error message
+/// * `Error(Value)`: This code indicates a Molt error; the `Value` is the error message
 ///   for display to the user.
 ///
-/// * `Return(String)`: This code indicates that a Molt procedured called the
-///   `return` command.  The string is the returned value, or the empty string if
+/// * `Return(Value)`: This code indicates that a Molt procedure called the
+///   `return` command.  The `Value` is the returned value, or the empty string if
 ///   no value was returned.  This result will bubble up until it reaches the top-level
 ///   of the procedure, which will then return the value as a normal `Ok` result.  If
 ///   it is received when evaluating an arbitrary script, i.e., if `return` is called outside
@@ -88,8 +84,8 @@ pub type MoltResult = Result<String, ResultCode>;
 /// [`MoltResult`]: type.MoltResult.html
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub enum ResultCode {
-    Error(String),
-    Return(String),
+    Error(Value),
+    Return(Value),
     Break,
     Continue,
 }

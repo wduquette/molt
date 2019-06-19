@@ -779,7 +779,8 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             }
             IN => {
                 let list = interp.get_list(&value2.str)?;
-                value = if list.contains(&value.str) {
+                // TODO: Need a better MoltList contains() method.
+                value = if list.contains(&Value::new(&value.str)) {
                     Datum::int(1)
                 } else {
                     Datum::int(0)
@@ -787,7 +788,8 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             }
             NI => {
                 let list = interp.get_list(&value2.str)?;
-                value = if list.contains(&value.str) {
+                // TODO: Need a better MoltList contains() method.
+                value = if list.contains(&Value::new(&value.str)) {
                     Datum::int(0)
                 } else {
                     Datum::int(1)
@@ -896,7 +898,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
-                expr_parse_string(interp, &var_val)
+                expr_parse_string(interp, &*var_val.as_string())
             }
         }
         Some('[') => {
@@ -908,7 +910,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
-                expr_parse_string(interp, &script_val)
+                expr_parse_string(interp, &*script_val.as_string())
             }
         }
         Some('"') => {
@@ -920,7 +922,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
-                expr_parse_string(interp, &val)
+                expr_parse_string(interp, &*val.as_string())
             }
         }
         Some('{') => {
@@ -932,7 +934,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
-                expr_parse_string(interp, &val)
+                expr_parse_string(interp, &*val.as_string())
             }
         }
         Some('(') => {

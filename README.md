@@ -58,6 +58,7 @@ $ cargo run test test/all.tcl
   * ResultCode::Return and ResultCode::Error use MoltValue for the return value.
   * `expr` does computations in terms of MoltValues.
     * Or at least gets its inputs from and writes its output to MoltValues.
+  * list! macro, produces list from strings.
   * Consider whether to replace MoltValue's two RefCell's with one.
 * Issues from wduquette/molt.
   * #15: molt_shell::repl should support continuation lines

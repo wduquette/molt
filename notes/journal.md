@@ -6,6 +6,11 @@
 *   Renamed value::MoltValue to value::Value.
 *   Tried to make ResultCode::Error(String) be ResultCode::Error(Value).
     *   Problem: ResultCode current implements Eq and PartialEq.  Value doesn't.
+*   Implemented Eq and PartialEq (comparing the string_reps).
+*   Updated all types in types.rs to use Value where appropriate.
+*   Updated list.rs accordingly.
+*   Updated expr.rs accordingly.
+*   Still lots of work in interp.rs and commands.rs to go.
 
 ### 2019-06-17 (Monday)
 *   Fleshed out the MoltValue::from_list and MoltValue::as_list methods, and added list formatting

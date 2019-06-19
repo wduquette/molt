@@ -677,7 +677,7 @@ impl Display for Datum {
             Datum::Bool(flag) => write!(f, "{}", if *flag { 1 } else { 0 }),
             Datum::Int(int) => write!(f, "{}", int),
             Datum::Flt(flt) => write!(f, "{}", flt),
-            Datum::List(list) => write!(f, "{}", list_to_string(list)),
+            Datum::List(list) => write!(f, "{}", list_to_string(&*list)),
             Datum::Other(other) => write!(f, "{}", other),
             Datum::None => write!(f, ""),
         }
@@ -818,7 +818,7 @@ mod tests {
         // NOTE: we aren't testing list formatting and parsing here; that's done in list.rs.
         // We *are* testing that Value will use the list.rs code to convert strings to lists
         // and back again.
-        let listval = Value::from_list(vec!["abc".to_string(), "def".to_string()]);
+        let listval = Value::from_list(vec![Value::new("abc"), Value::new("def")]);
         assert_eq!(*listval.as_string(), "abc def".to_string());
 
         let listval = Value::from_string("qrs xyz".to_string());

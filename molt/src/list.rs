@@ -1,8 +1,8 @@
 //! TCL List Parsing and Formatting
 
 use crate::molt_err;
-use crate::molt_ok;
 use crate::types::*;
+use crate::value::Value;
 use crate::context::Context;
 use crate::interp::subst_backslashes;
 
@@ -43,9 +43,9 @@ fn parse_item(ctx: &mut Context) -> MoltResult {
     if ctx.next_is('{') {
         Ok(parse_braced_item(ctx)?)
     } else if ctx.next_is('"') {
-        Ok(subst_backslashes(&parse_quoted_item(ctx)?))
+        Ok(parse_quoted_item(ctx)?)
     } else {
-        Ok(subst_backslashes(&parse_bare_item(ctx)?))
+        Ok(parse_bare_item(ctx)?)
     }
 }
 
@@ -82,7 +82,7 @@ fn parse_braced_item(ctx: &mut Context) -> MoltResult {
             // see more more whitespace, or we should be at the end of the list
             // Otherwise, there are incorrect characters following the close-brace.
             if ctx.at_end() || ctx.next_is_list_white() {
-                return Ok(item);
+                return Ok(Value::from_string(item));
             } else {
                 return molt_err!("extra characters after close-brace");
             }
@@ -113,7 +113,7 @@ fn parse_quoted_item(ctx: &mut Context) -> MoltResult {
             item.push(ctx.next().unwrap());
         } else {
             ctx.skip_char('"');
-            return Ok(item);
+            return Ok(Value::from_string(subst_backslashes(&item)));
         }
     }
 
@@ -137,7 +137,7 @@ fn parse_bare_item(ctx: &mut Context) -> MoltResult {
         }
     }
 
-    molt_ok!(item)
+    Ok(Value::from_string(subst_backslashes(&item)))
 }
 
 //--------------------------------------------------------------------------
@@ -145,28 +145,27 @@ fn parse_bare_item(ctx: &mut Context) -> MoltResult {
 
 /// Converts a list, represented as a slice of &str, into a string, doing
 /// all necessary quoting and escaping.
-pub fn list_to_string<T: AsRef<str>>(list: &[T]) -> String {
-    let mut vec: MoltList = Vec::new();
+pub fn list_to_string(list: &MoltList) -> String {
+    let mut vec: Vec<String> = Vec::new();
 
-    // TODO: Use this
-    let mut hash = !list.is_empty() && list[0].as_ref().starts_with('#');
+    let mut hash = !list.is_empty() && list[0].as_string().starts_with('#');
 
-    for item_value in list {
-        let item = item_value.as_ref();
-        match get_mode(item) {
+    for item in list {
+        let item = *item.as_string();
+        match get_mode(&item) {
             Mode::AsIs => {
                 if hash {
-                    vec.push(brace_item(item));
+                    vec.push(brace_item(&item));
                     hash = false;
                 } else {
-                    vec.push(item.to_string())
+                    vec.push(item)
                 }
             }
             Mode::Brace => {
-                vec.push(brace_item(item));
+                vec.push(brace_item(&item));
             }
             Mode::Escape => {
-                vec.push(escape_item(hash, item));
+                vec.push(escape_item(hash, &item));
                 hash = false;
             }
         }
@@ -265,16 +264,16 @@ mod tests {
 
     #[test]
     fn test_list_to_string() {
-        assert_eq!(list_to_string(&["a"]), "a");
-        assert_eq!(list_to_string(&["a", "b"]), "a b");
-        assert_eq!(list_to_string(&["a", "b", "c"]), "a b c");
-        assert_eq!(list_to_string(&["a", " ", "c"]), "a { } c");
-        assert_eq!(list_to_string(&["a", "", "c"]), "a {} c");
-        assert_eq!(list_to_string(&["a;b"]), "{a;b}");
-        assert_eq!(list_to_string(&["a$b"]), "{a$b}");
-        assert_eq!(list_to_string(&["a[b"]), "{a[b}");
-        assert_eq!(list_to_string(&["a]b"]), "{a]b}");
-        assert_eq!(list_to_string(&["a\\nb"]), "{a\\nb}");
-        assert_eq!(list_to_string(&["{ ", "abc"]), r#"\{\  abc"#);
+        assert_eq!(list_to_string(&vec![Value::new("a")]), "a");
+        assert_eq!(list_to_string(&vec![Value::new("a"), Value::new("b")]), "a b");
+        assert_eq!(list_to_string(&vec![Value::new("a"), Value::new("b"), Value::new("c")]), "a b c");
+        assert_eq!(list_to_string(&vec![Value::new("a"), Value::new(" "), Value::new("c")]), "a { } c");
+        assert_eq!(list_to_string(&vec![Value::new("a"), Value::new(""), Value::new("c")]), "a {} c");
+        assert_eq!(list_to_string(&vec![Value::new("a;b")]), "{a;b}");
+        assert_eq!(list_to_string(&vec![Value::new("a$b")]), "{a$b}");
+        assert_eq!(list_to_string(&vec![Value::new("a[b")]), "{a[b}");
+        assert_eq!(list_to_string(&vec![Value::new("a]b")]), "{a]b}");
+        assert_eq!(list_to_string(&vec![Value::new("a\\nb")]), "{a\\nb}");
+        assert_eq!(list_to_string(&vec![Value::new("{ "), Value::new("abc")]), r#"\{\  abc"#);
     }
 }

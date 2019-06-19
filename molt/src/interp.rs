@@ -343,6 +343,8 @@ impl Interp {
     // Variable Handling
 
     /// Retrieves the value of the named variable in the current scope, if any.
+    /// TODO: Somehow this converts the MoltValue from the variable into a string automatically.
+    /// Maybe it's molt_ok! doing that?
     pub fn var(&self, name: &str) -> MoltResult {
         match self.scopes.get(name) {
             Some(v) => molt_ok!(v.clone()),

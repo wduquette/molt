@@ -10,9 +10,9 @@ use crate::interp::Interp;
 
 
 //------------------------------------------------------------------------------------------------
-// Value Representation
+// Datum Representation
 
-type ValueResult = Result<Value,ResultCode>;
+type DatumResult = Result<Datum,ResultCode>;
 
 /// The value type.
 #[derive(Debug,PartialEq,Eq,Copy,Clone)]
@@ -32,14 +32,14 @@ enum Type {
 /// I could have used a union to save space, but we don't keep large numbers of these
 /// around.
 #[derive(Debug)]
-struct Value {
+struct Datum {
     vtype: Type,
     int: MoltInt,
     flt: MoltFloat,
     str: String,
 }
 
-impl Value {
+impl Datum {
     fn none() -> Self {
         Self {
             vtype: Type::String,
@@ -81,7 +81,7 @@ impl Value {
         match self.vtype {
             Type::Int => self.int != 0,
             _ => {
-                panic!("Value::is_true called for non-integer");
+                panic!("Datum::is_true called for non-integer");
             }
         }
     }
@@ -101,7 +101,7 @@ enum ArgType {
     Number, // Either Type::Int or Type::Float is OK
 }
 
-type MathFunc = fn(args: &[Value; MAX_MATH_ARGS]) -> ValueResult;
+type MathFunc = fn(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult;
 
 struct BuiltinFunc {
     name: &'static str,
@@ -295,7 +295,7 @@ pub fn molt_expr_bool(interp: &mut Interp, string: &str) -> Result<bool, ResultC
 // Expression Internals
 
 /// Provides top-level functionality shared by molt_expr_string, molt_expr_int, etc.
-fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> ValueResult {
+fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> DatumResult {
     let info = &mut ExprInfo::new(string);
 
     let result = expr_get_value(interp, info, -1);
@@ -330,12 +330,12 @@ fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> ValueResult {
 #[allow(clippy::collapsible_if)]
 #[allow(clippy::cognitive_complexity)]
 #[allow(clippy::float_cmp)]
-fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) -> ValueResult {
+fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) -> DatumResult {
     // There are two phases to this procedure.  First, pick off an initial value.
     // Then, parse (binary operator, value) pairs until done.
     let mut got_op = false;
     let mut value = expr_lex(interp, info)?;
-    let mut value2: Value;
+    let mut value2: Datum;
     let mut operator: i32;
 
     if info.token == OPEN_PAREN {
@@ -392,9 +392,9 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                             }
                             Type::Float => {
                                 if value.flt == 0.0 {
-                                    value = Value::int(1);
+                                    value = Datum::int(1);
                                 } else {
-                                    value = Value::int(0);
+                                    value = Datum::int(0);
                                 }
                             }
                             _ => {
@@ -456,16 +456,16 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             match value.vtype {
                 Type::Float => {
                     if value.flt == 0.0 {
-                        value = Value::int(0);
+                        value = Datum::int(0);
                     } else {
-                        value = Value::int(1);
+                        value = Datum::int(1);
                     }
                 }
                 Type::String => {
                     if info.no_eval == 0 {
                         return illegal_type(value.vtype, operator);
                     }
-                    value = Value::int(0);
+                    value = Datum::int(0);
                 }
                 _ => {}
             }
@@ -478,7 +478,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 info.no_eval -= 1;
 
                 if operator == OR {
-                    value = Value::int(1);
+                    value = Datum::int(1);
                 }
 
                 // Go on to the next operator.
@@ -575,11 +575,11 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     }
                 } else if value.vtype == Type::Float {
                     if value2.vtype == Type::Int {
-                        value2 = Value::float(value2.int as MoltFloat);
+                        value2 = Datum::float(value2.int as MoltFloat);
                     }
                 } else if value2.vtype == Type::Float {
                     if value.vtype == Type::Int {
-                        value = Value::float(value.int as MoltFloat);
+                        value = Datum::float(value.int as MoltFloat);
                     }
                 }
             }
@@ -712,7 +712,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     Type::String => value.str < value2.str,
                 };
 
-                value = if flag { Value::int(1) } else { Value::int(0) };
+                value = if flag { Datum::int(1) } else { Datum::int(0) };
             }
             GREATER => {
                 let flag = match value.vtype {
@@ -721,7 +721,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     Type::String => value.str > value2.str,
                 };
 
-                value = if flag { Value::int(1) } else { Value::int(0) };
+                value = if flag { Datum::int(1) } else { Datum::int(0) };
             }
             LEQ => {
                 let flag = match value.vtype {
@@ -730,7 +730,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     Type::String => value.str <= value2.str,
                 };
 
-                value = if flag { Value::int(1) } else { Value::int(0) };
+                value = if flag { Datum::int(1) } else { Datum::int(0) };
             }
             GEQ => {
                 let flag = match value.vtype {
@@ -739,7 +739,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     Type::String => value.str >= value2.str,
                 };
 
-                value = if flag { Value::int(1) } else { Value::int(0) };
+                value = if flag { Datum::int(1) } else { Datum::int(0) };
             }
             EQUAL => {
                 // NOTE: comparing floats using == is dangerous; but Tcl leaves that to the
@@ -750,7 +750,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     Type::String => value.str == value2.str,
                 };
 
-                value = if flag { Value::int(1) } else { Value::int(0) };
+                value = if flag { Datum::int(1) } else { Datum::int(0) };
             }
             NEQ => {
                 // NOTE: comparing floats using == is dangerous; but Tcl leaves that to the
@@ -761,36 +761,36 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     Type::String => value.str != value2.str,
                 };
 
-                value = if flag { Value::int(1) } else { Value::int(0) };
+                value = if flag { Datum::int(1) } else { Datum::int(0) };
             }
             STRING_EQ => {
                 value = if value.str == value2.str {
-                    Value::int(1)
+                    Datum::int(1)
                 } else {
-                    Value::int(0)
+                    Datum::int(0)
                 };
             }
             STRING_NE => {
                 value = if value.str != value2.str {
-                    Value::int(1)
+                    Datum::int(1)
                 } else {
-                    Value::int(0)
+                    Datum::int(0)
                 };
             }
             IN => {
                 let list = interp.get_list(&value2.str)?;
                 value = if list.contains(&value.str) {
-                    Value::int(1)
+                    Datum::int(1)
                 } else {
-                    Value::int(0)
+                    Datum::int(0)
                 };
             }
             NI => {
                 let list = interp.get_list(&value2.str)?;
                 value = if list.contains(&value.str) {
-                    Value::int(0)
+                    Datum::int(0)
                 } else {
-                    Value::int(1)
+                    Datum::int(1)
                 };
             }
             BIT_AND => {
@@ -848,9 +848,9 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 /// Returns an error result if an error occurs while doing lexical analysis or
 /// executing an embedded command.  On success, info.token is set to the last token type,
 /// and info is updated to point to the next token.  If the token is VALUE, the returned
-/// Value contains it.
+/// Datum contains it.
 
-fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
+fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
     // FIRST, skip white space.
     let mut p = info.expr.clone();
 
@@ -859,7 +859,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
     if p.is_none() {
         info.token = END;
         info.expr = p;
-        return Ok(Value::none());
+        return Ok(Datum::none());
     }
 
     // First try to parse the token as an integer or floating-point number.
@@ -874,11 +874,11 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             let int = interp.get_int(&token)?;
             info.token = VALUE;
             info.expr = p;
-            return Ok(Value::int(int));
+            return Ok(Datum::int(int));
         } else if let Some(token) = util::read_float(&mut p) {
             info.token = VALUE;
             info.expr = p;
-            return Ok(Value::float(interp.get_float(&token)?));
+            return Ok(Datum::float(interp.get_float(&token)?));
         }
     }
 
@@ -894,7 +894,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             info.token = VALUE;
             info.expr = CharPtr::from_peekable(ctx.to_peekable());
             if info.no_eval > 0 {
-                Ok(Value::none())
+                Ok(Datum::none())
             } else {
                 expr_parse_string(interp, &var_val)
             }
@@ -906,7 +906,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             info.token = VALUE;
             info.expr = CharPtr::from_peekable(ctx.to_peekable());
             if info.no_eval > 0 {
-                Ok(Value::none())
+                Ok(Datum::none())
             } else {
                 expr_parse_string(interp, &script_val)
             }
@@ -918,7 +918,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             info.token = VALUE;
             info.expr = CharPtr::from_peekable(ctx.to_peekable());
             if info.no_eval > 0 {
-                Ok(Value::none())
+                Ok(Datum::none())
             } else {
                 expr_parse_string(interp, &val)
             }
@@ -930,50 +930,50 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             info.token = VALUE;
             info.expr = CharPtr::from_peekable(ctx.to_peekable());
             if info.no_eval > 0 {
-                Ok(Value::none())
+                Ok(Datum::none())
             } else {
                 expr_parse_string(interp, &val)
             }
         }
         Some('(') => {
             info.token = OPEN_PAREN;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some(')') => {
             info.token = CLOSE_PAREN;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some(',') => {
             info.token = COMMA;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some('*') => {
             info.token = MULT;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some('/') => {
             info.token = DIVIDE;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some('%') => {
             info.token = MOD;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some('+') => {
             info.token = PLUS;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some('-') => {
             info.token = MINUS;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some('?') => {
             info.token = QUESTY;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some(':') => {
             info.token = COLON;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some('<') => {
             p.skip();
@@ -982,17 +982,17 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
                     info.token = LEFT_SHIFT;
                     p.skip();
                     info.expr = p;
-                    Ok(Value::none())
+                    Ok(Datum::none())
                 }
                 Some('=') => {
                     info.token = LEQ;
                     p.skip();
                     info.expr = p;
-                    Ok(Value::none())
+                    Ok(Datum::none())
                 }
                 _ => {
                     info.token = LESS;
-                    Ok(Value::none())
+                    Ok(Datum::none())
                 }
             }
         }
@@ -1003,17 +1003,17 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
                     info.token = RIGHT_SHIFT;
                     p.skip();
                     info.expr = p;
-                    Ok(Value::none())
+                    Ok(Datum::none())
                 }
                 Some('=') => {
                     info.token = GEQ;
                     p.skip();
                     info.expr = p;
-                    Ok(Value::none())
+                    Ok(Datum::none())
                 }
                 _ => {
                     info.token = GREATER;
-                    Ok(Value::none())
+                    Ok(Datum::none())
                 }
             }
         }
@@ -1026,7 +1026,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             } else {
                 info.token = UNKNOWN;
             }
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some('!') => {
             p.skip();
@@ -1037,7 +1037,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             } else {
                 info.token = NOT;
             }
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some('&') => {
             p.skip();
@@ -1048,11 +1048,11 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             } else {
                 info.token = BIT_AND;
             }
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some('^') => {
             info.token = BIT_XOR;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some('|') => {
             p.skip();
@@ -1063,11 +1063,11 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
             } else {
                 info.token = BIT_OR;
             }
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some('~') => {
             info.token = BIT_NOT;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
         Some(_) => {
             if p.has(|c| c.is_alphabetic()) {
@@ -1082,32 +1082,32 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
                     "true" | "yes" | "on" => {
                         info.expr = p;
                         info.token = VALUE;
-                        Ok(Value::int(1))
+                        Ok(Datum::int(1))
                     }
                     "false" | "no" | "off" => {
                         info.expr = p;
                         info.token = VALUE;
-                        Ok(Value::int(0))
+                        Ok(Datum::int(0))
                     }
                     "eq" => {
                         info.expr = p;
                         info.token = STRING_EQ;
-                        Ok(Value::none())
+                        Ok(Datum::none())
                     }
                     "ne" => {
                         info.expr = p;
                         info.token = STRING_NE;
-                        Ok(Value::none())
+                        Ok(Datum::none())
                     }
                     "in" => {
                         info.expr = p;
                         info.token = IN;
-                        Ok(Value::none())
+                        Ok(Datum::none())
                     }
                     "ni" => {
                         info.expr = p;
                         info.token = NI;
-                        Ok(Value::none())
+                        Ok(Datum::none())
                     }
                     _ => {
                         info.expr = p;
@@ -1118,21 +1118,21 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> ValueResult {
                 p.skip();
                 info.expr = p;
                 info.token = UNKNOWN;
-                Ok(Value::none())
+                Ok(Datum::none())
             }
         }
         None => {
             p.skip();
             info.expr = p;
             info.token = UNKNOWN;
-            Ok(Value::none())
+            Ok(Datum::none())
         }
     }
 }
 
 /// Parses math functions, returning the evaluated value.
 #[allow(clippy::needless_range_loop)]
-fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> ValueResult {
+fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> DatumResult {
     // FIRST, is this actually a function?
     // TODO: this does a linear search of the FUNC_TABLE.  Ultimately, it should probably
     // be a hash lookup.  And if we want to allow users to add functions, it should be
@@ -1147,7 +1147,7 @@ fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> 
     }
 
     // NEXT, scan off the arguments for the function, if there are any.
-    let mut args: [Value; MAX_MATH_ARGS] = [Value::none(), Value::none()];
+    let mut args: [Datum; MAX_MATH_ARGS] = [Datum::none(), Datum::none()];
 
     if bfunc.num_args == 0 {
         let _ = expr_lex(interp, info)?;
@@ -1166,14 +1166,14 @@ fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> 
             // Copy the value to the argument record, converting it if necessary.
             if arg.vtype == Type::Int {
                 if bfunc.arg_types[i] == ArgType::Float {
-                    args[i] = Value::float(arg.int as MoltFloat);
+                    args[i] = Datum::float(arg.int as MoltFloat);
                 } else {
                     args[i] = arg;
                 }
             } else {  // Type::Float
                 if bfunc.arg_types[i] == ArgType::Int {
                     // TODO: Need to handle overflow?
-                    args[i] = Value::int(arg.flt as MoltInt);
+                    args[i] = Datum::int(arg.flt as MoltInt);
                 } else {
                     args[i] = arg;
                 }
@@ -1204,7 +1204,7 @@ fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> 
 
     // NEXT, if we aren't evaluating, return an empty value.
     if info.no_eval > 0 {
-        return Ok(Value::none());
+        return Ok(Datum::none());
     }
 
     // NEXT, invoke the math function.
@@ -1225,10 +1225,10 @@ fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc,ResultCode> {
 }
 
 /// Given a string (such as one coming from command or variable substitution) make a
-/// Value based on the string.  The value will be floating-point or integer if possible,
+/// Datum based on the string.  The value will be floating-point or integer if possible,
 /// or else it will just be a copy of the string.  Returns an error on failed numeric
 /// conversions.
-fn expr_parse_string(interp: &mut Interp, string: &str) -> ValueResult {
+fn expr_parse_string(interp: &mut Interp, string: &str) -> DatumResult {
     if !string.is_empty() {
         let mut p = CharPtr::new(string);
 
@@ -1246,7 +1246,7 @@ fn expr_parse_string(interp: &mut Interp, string: &str) -> ValueResult {
 
             if p.is_none() {
                 let int = interp.get_int(&token)?;
-                return Ok(Value::int(int));
+                return Ok(Datum::int(int));
             }
         } else {
             // FIRST, see if it's a double. Skip leading whitespace.
@@ -1261,13 +1261,13 @@ fn expr_parse_string(interp: &mut Interp, string: &str) -> ValueResult {
 
                 if p.is_none() {
                     let flt = interp.get_float(&token)?;
-                    return Ok(Value::float(flt));
+                    return Ok(Datum::float(flt));
                 }
             }
         }
     }
 
-    Ok(Value::string(string))
+    Ok(Datum::string(string))
 }
 
 /// Converts a value from int or double representation to a string, if it wasn't
@@ -1275,9 +1275,9 @@ fn expr_parse_string(interp: &mut Interp, string: &str) -> ValueResult {
 ///
 /// **Note:** In the TCL code, the interp is used for the floating point precision.
 /// At some point I might add that.
-/// Also, should probably make this return a new Value directly, instead of modifying
+/// Also, should probably make this return a new Datum directly, instead of modifying
 /// the old one.
-fn expr_make_string(_interp: &mut Interp, value: &mut Value) {
+fn expr_make_string(_interp: &mut Interp, value: &mut Datum) {
     match value.vtype {
         Type::Int => {
             value.vtype=Type::String;
@@ -1291,10 +1291,10 @@ fn expr_make_string(_interp: &mut Interp, value: &mut Value) {
     }
 }
 
-fn expr_as_string(value: Value) -> Value {
+fn expr_as_string(value: Datum) -> Datum {
     match value.vtype {
-        Type::Int => Value::string(&format!("{}", value.int)),
-        Type::Float => Value::string(&format!("{}", value.flt)),
+        Type::Int => Datum::string(&format!("{}", value.int)),
+        Type::Float => Datum::string(&format!("{}", value.flt)),
         _ => value,
     }
 }
@@ -1321,7 +1321,7 @@ fn expr_looks_like_int<'a>(ptr: &CharPtr<'a>) -> bool {
     !p.is('.') && !p.is('e') && !p.is('E')
 }
 
-impl Value {
+impl Datum {
     fn is_numeric(&self) -> bool {
         match self.vtype {
             Type::Int => true,
@@ -1332,63 +1332,63 @@ impl Value {
 }
 
 #[allow(clippy::collapsible_if)]
-fn expr_abs_func(args: &[Value; MAX_MATH_ARGS]) -> ValueResult {
+fn expr_abs_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
     let arg = &args[0];
     if arg.vtype == Type::Float {
         if arg.flt < 0.0 {
-            Ok(Value::float(-arg.flt))
+            Ok(Datum::float(-arg.flt))
         } else {
-            Ok(Value::float(arg.flt))
+            Ok(Datum::float(arg.flt))
         }
     } else {
         // TODO: need to handle integer overflow here.
         if arg.int < 0 {
-            Ok(Value::int(-arg.int))
+            Ok(Datum::int(-arg.int))
         } else {
-            Ok(Value::int(arg.int))
+            Ok(Datum::int(arg.int))
         }
     }
 }
 
-fn expr_double_func(args: &[Value; MAX_MATH_ARGS]) -> ValueResult {
+fn expr_double_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
     let arg = &args[0];
     if arg.vtype == Type::Float {
-        Ok(Value::float(arg.flt))
+        Ok(Datum::float(arg.flt))
     } else {
-        Ok(Value::float(arg.int as MoltFloat))
+        Ok(Datum::float(arg.int as MoltFloat))
     }
 }
 
-fn expr_int_func(args: &[Value; MAX_MATH_ARGS]) -> ValueResult {
+fn expr_int_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
     let arg = &args[0];
     if arg.vtype == Type::Int {
-        Ok(Value::int(arg.int))
+        Ok(Datum::int(arg.int))
     } else {
         // TODO: need to handle integer overflow here.
-        Ok(Value::int(arg.flt as MoltInt))
+        Ok(Datum::int(arg.flt as MoltInt))
     }
 }
 
-fn expr_round_func(args: &[Value; MAX_MATH_ARGS]) -> ValueResult {
+fn expr_round_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
     // TODO: need to handle integer overflow here.
     let arg = &args[0];
     if arg.vtype == Type::Int {
-        Ok(Value::int(arg.int))
+        Ok(Datum::int(arg.int))
     } else if arg.flt < 0.0 {
-        Ok(Value::int((arg.flt - 0.5) as MoltInt))
+        Ok(Datum::int((arg.flt - 0.5) as MoltInt))
     } else {
-        Ok(Value::int((arg.flt + 0.5) as MoltInt))
+        Ok(Datum::int((arg.flt + 0.5) as MoltInt))
     }
 }
 
 
 // Return standard syntax error
-fn syntax_error(info: &mut ExprInfo) -> ValueResult {
+fn syntax_error(info: &mut ExprInfo) -> DatumResult {
     molt_err!("syntax error in expression \"{}\"", info.original_expr)
 }
 
 // Return standard illegal type error
-fn illegal_type(bad_type: Type, op: i32) -> ValueResult {
+fn illegal_type(bad_type: Type, op: i32) -> DatumResult {
     let type_str = if bad_type == Type::Float {
         "floating-point value"
     } else {
@@ -1412,7 +1412,7 @@ mod tests {
     // case, we are simply converting simple floating-point values to and from strings, and
     // verifying that we got the number we expected, so this is probably OK.
     #[allow(clippy::float_cmp)]
-    fn veq(val1: &Value, val2: &Value) -> bool {
+    fn veq(val1: &Datum, val2: &Datum) -> bool {
         if val1.vtype != val2.vtype {
             return false;
         }
@@ -1451,17 +1451,17 @@ mod tests {
     fn test_expr_make_string() {
         let mut interp = Interp::new();
 
-        let mut value = Value::int(123);
+        let mut value = Datum::int(123);
         expr_make_string(&mut interp, &mut value);
-        assert!(veq(&value, &Value::string("123")));
+        assert!(veq(&value, &Datum::string("123")));
 
-        let mut value = Value::float(1.1);
+        let mut value = Datum::float(1.1);
         expr_make_string(&mut interp, &mut value);
-        assert!(veq(&value, &Value::string("1.1")));
+        assert!(veq(&value, &Datum::string("1.1")));
 
-        let mut value = Value::string("abc");
+        let mut value = Datum::string("abc");
         expr_make_string(&mut interp, &mut value);
-        assert!(veq(&value, &Value::string("abc")));
+        assert!(veq(&value, &Datum::string("abc")));
     }
 
     #[test]
@@ -1470,27 +1470,27 @@ mod tests {
 
         let result = expr_parse_string(&mut interp, "");
         assert!(result.is_ok());
-        assert!(veq(&result.unwrap(), &Value::string("")));
+        assert!(veq(&result.unwrap(), &Datum::string("")));
 
         let result = expr_parse_string(&mut interp, "abc");
         assert!(result.is_ok());
-        assert!(veq(&result.unwrap(), &Value::string("abc")));
+        assert!(veq(&result.unwrap(), &Datum::string("abc")));
 
         let result = expr_parse_string(&mut interp, " 123abc");
         assert!(result.is_ok());
-        assert!(veq(&result.unwrap(), &Value::string(" 123abc")));
+        assert!(veq(&result.unwrap(), &Datum::string(" 123abc")));
 
         let result = expr_parse_string(&mut interp, " 123.0abc");
         assert!(result.is_ok());
-        assert!(veq(&result.unwrap(), &Value::string(" 123.0abc")));
+        assert!(veq(&result.unwrap(), &Datum::string(" 123.0abc")));
 
         let result = expr_parse_string(&mut interp, " 123   ");
         assert!(result.is_ok());
-        assert!(veq(&result.unwrap(), &Value::int(123)));
+        assert!(veq(&result.unwrap(), &Datum::int(123)));
 
         let result = expr_parse_string(&mut interp, " 1.0   ");
         assert!(result.is_ok());
-        assert!(veq(&result.unwrap(), &Value::float(1.0)));
+        assert!(veq(&result.unwrap(), &Datum::float(1.0)));
 
         let result = expr_parse_string(&mut interp, "1234567890123456789012345678901234567890");
         assert!(result.is_err());

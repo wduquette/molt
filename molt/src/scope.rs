@@ -13,13 +13,13 @@
 //! `Interp` (or the Molt language itself).
 
 use std::collections::HashMap;
-use crate::value::MoltValue;
+use crate::value::Value;
 
 /// A variable in a `Scope`.  If the variable is defined in the `Scope`, it has a
 /// `Value`; if it is a reference to a variable in a higher scope (e.g., a global) then
 /// the `Level` gives the referenced scope.
 enum Var {
-    Value(MoltValue),
+    Value(Value),
     Level(usize)
 }
 
@@ -59,7 +59,7 @@ impl ScopeStack {
     /// Sets a variable to a value in the current scope.  If the variable is linked to
     /// another scope, the value is set there instead.  The variable is created if it does
     /// not already exist.
-    pub fn set(&mut self, name: &str, value: MoltValue) -> MoltValue {
+    pub fn set(&mut self, name: &str, value: Value) -> Value {
         let top = self.stack.len() - 1;
 
         self.set_at(top, name, value.clone());
@@ -67,7 +67,7 @@ impl ScopeStack {
     }
 
     /// Gets the value of the named variable in the current scope, if present.
-    pub fn get(&self, name: &str) -> Option<MoltValue> {
+    pub fn get(&self, name: &str) -> Option<Value> {
         let top = self.stack.len() - 1;
 
         self.get_at(top, name)
@@ -82,7 +82,7 @@ impl ScopeStack {
     }
 
     /// Gets the value at the given level, recursing up the stack as needed.
-    fn get_at(&self, level: usize, name: &str) -> Option<MoltValue> {
+    fn get_at(&self, level: usize, name: &str) -> Option<Value> {
         match self.stack[level].map.get(name) {
             Some(Var::Value(value)) => Some(value.clone()),
             Some(Var::Level(at)) => self.get_at(*at, name),
@@ -92,7 +92,7 @@ impl ScopeStack {
 
     /// Set a variable to a value at a given level in the stack.  If the variable at that level
     /// is linked to a higher level, sets it at that level instead.
-    fn set_at(&mut self, level:usize, name: &str, value: MoltValue) {
+    fn set_at(&mut self, level:usize, name: &str, value: Value) {
         match self.stack[level].map.get(name) {
             Some(Var::Level(at)) => {
                 let true_level = *at;
@@ -174,12 +174,12 @@ mod tests {
     fn test_set_get_basic() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", MoltValue::new("1"));
+        ss.set("a", Value::new("1"));
         let out = ss.get("a");
         assert!(out.is_some());
         assert_eq!(&*out.unwrap().as_string(), "1");
 
-        ss.set("b", MoltValue::new("2"));
+        ss.set("b", Value::new("2"));
         let out = ss.get("b");
         assert!(out.is_some());
         assert_eq!(&*out.unwrap().as_string(), "2");
@@ -191,7 +191,7 @@ mod tests {
     fn test_unset_basic() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", MoltValue::new("1"));
+        ss.set("a", Value::new("1"));
         assert!(ss.get("a").is_some());
         ss.unset("a");
         assert!(ss.get("a").is_none());
@@ -245,17 +245,17 @@ mod tests {
     fn test_set_levels() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", MoltValue::new("1"));
-        ss.set("b", MoltValue::new("2"));
+        ss.set("a", Value::new("1"));
+        ss.set("b", Value::new("2"));
 
         ss.push();
         assert!(ss.get("a").is_none());
         assert!(ss.get("b").is_none());
         assert!(ss.get("c").is_none());
 
-        ss.set("a", MoltValue::new("3"));
-        ss.set("b", MoltValue::new("4"));
-        ss.set("c", MoltValue::new("5"));
+        ss.set("a", Value::new("3"));
+        ss.set("b", Value::new("4"));
+        ss.set("c", Value::new("5"));
         assert_eq!(&*ss.get("a").unwrap().as_string(), "3");
         assert_eq!(&*ss.get("b").unwrap().as_string(), "4");
         assert_eq!(&*ss.get("c").unwrap().as_string(), "5");
@@ -270,16 +270,16 @@ mod tests {
     fn test_set_get_upvar() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", MoltValue::new("1"));
-        ss.set("b", MoltValue::new("2"));
+        ss.set("a", Value::new("1"));
+        ss.set("b", Value::new("2"));
 
         ss.push();
         ss.upvar(0, "a");
         assert_eq!(&*ss.get("a").unwrap().as_string(), "1");
         assert!(ss.get("b").is_none());
 
-        ss.set("a", MoltValue::new("3"));
-        ss.set("b", MoltValue::new("4"));
+        ss.set("a", Value::new("3"));
+        ss.set("b", Value::new("4"));
         assert_eq!(&*ss.get("a").unwrap().as_string(), "3");
         assert_eq!(&*ss.get("b").unwrap().as_string(), "4");
 
@@ -292,11 +292,11 @@ mod tests {
     fn test_unset_levels() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", MoltValue::new("1"));
-        ss.set("b", MoltValue::new("2"));
+        ss.set("a", Value::new("1"));
+        ss.set("b", Value::new("2"));
 
         ss.push();
-        ss.set("a", MoltValue::new("3"));
+        ss.set("a", Value::new("3"));
 
         ss.unset("a");  // Was set in this scope
         ss.unset("b");  // Was not set in this scope
@@ -311,7 +311,7 @@ mod tests {
         let mut ss = ScopeStack::new();
 
         // Set a value at level 0
-        ss.set("a", MoltValue::new("1"));
+        ss.set("a", Value::new("1"));
         assert!(ss.get("a").is_some());
         ss.push();
         assert!(ss.get("a").is_none());
@@ -335,8 +335,8 @@ mod tests {
         assert_eq!(ss.vars_in_scope().len(), 0);
 
         // Add two vars to current scope
-        ss.set("a", MoltValue::new("1"));
-        ss.set("b", MoltValue::new("2"));
+        ss.set("a", Value::new("1"));
+        ss.set("b", Value::new("2"));
         assert_eq!(ss.vars_in_scope().len(), 2);
         assert!(ss.vars_in_scope().contains(&"a".into()));
         assert!(ss.vars_in_scope().contains(&"b".into()));
@@ -346,7 +346,7 @@ mod tests {
         assert_eq!(ss.vars_in_scope().len(), 0);
 
         // Add a var
-        ss.set("c", MoltValue::new("3"));
+        ss.set("c", Value::new("3"));
         assert_eq!(ss.vars_in_scope().len(), 1);
         assert!(ss.vars_in_scope().contains(&"c".into()));
 

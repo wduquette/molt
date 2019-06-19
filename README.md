@@ -32,12 +32,33 @@ $ cargo run test test/all.tcl
 ## TODO Items
 
 * Integrate the new MoltValue type into Molt:
+  * DONE: MoltValue::as_int uses ResultCode and parses as for Interp::parse_int.
+  * DONE: MoltValue::as_float uses ResultCode.
+  * DONE: Add Datum::Bool, MoltValue::from_bool, MoltValue::as_bool, parsing as for Interp::get_bool.
+  * DONE: MoltValue::as_list uses ResultCode, and parses as for Interp::get_list.
+  * DONE: MoltValue uses the list formatter for MoltList values.
+  * Add examples to the doc comments for:
+    * DONE: MoltValue::from_str
+    * DONE: MoltValue::from_string
+    * DONE: MoltValue::as_string
+    * DONE: MoltValue::from_bool
+    * DONE: MoltValue::as_bool
+    * DONE: MoltValue::from_int
+    * DONE: MoltValue::as_int
+    * DONE: MoltValue::from_float
+    * DONE: MoltValue::as_float
+    * MoltValue::from_list
+    * MoltValue::to_list
+    * MoltValue::from_other
+    * MoltValue::as_other
+    * MoltValue::as_copy
   * Variables have MoltValues instead of strings.
   * MoltList elements are MoltValues instead of strings.
   * Command argument lists contain MoltValues rather than strings.
   * ResultCode::Return and ResultCode::Error use MoltValue for the return value.
   * `expr` does computations in terms of MoltValues.
     * Or at least gets its inputs from and writes its output to MoltValues.
+  * Consider whether to replace MoltValue's two RefCell's with one.
 * Issues from wduquette/molt.
   * #15: molt_shell::repl should support continuation lines
   * #17: molt_shell should document how to write app code.

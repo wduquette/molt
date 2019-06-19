@@ -83,6 +83,8 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::rc::Rc;
 use std::str::FromStr;
+use crate::list::get_list;
+use crate::list::list_to_string;
 use crate::types::MoltList;
 use crate::types::MoltInt;
 use crate::types::MoltFloat;
@@ -105,33 +107,58 @@ impl Display for MoltValue {
 }
 
 impl MoltValue {
-    /// Creates a new `MoltValue` from the given string.
+    /// Creates a new `MoltValue` from the given string slice.
     ///
-    /// **Note:** this method takes a `String` rather than a `&str` because the
-    /// intent is for the `MoltValue` to take ownership and create a reference-counted
-    /// immutable string from the input.  If the method took `&str` instead, it
-    /// would have to clone its input in order to save it, which would very often
-    /// result in cloning newly-created strings.
-    ///
+    /// Prefer [`from_string`](#method.from_string) if you have a newly created
+    /// string for the `MoltValue` to take ownership of.
     /// # Example
     ///
-    /// TODO
+    /// ```
+    /// use molt::MoltValue;
+    /// let value = MoltValue::from_str("My String Slice");
+    /// assert_eq!(&*value.as_string(), "My String Slice");
+    /// ```
+    pub fn from_str(str: &str) -> MoltValue {
+        MoltValue {
+            string_rep: RefCell::new(Some(Rc::new(str.to_string()))),
+            data_rep: RefCell::new(Datum::None),
+        }
+    }
+
+    /// Creates a new `MoltValue` from the given String.
+    ///
+    /// Prefer [`from_str`](#method.from_string) if you have a string slice
+    /// you'd otherwise have to create a new string from.
+    /// 
+    /// # Example
+    ///
+    /// ```
+    /// use molt::MoltValue;
+    /// let string = String::from("My New String");
+    /// let value = MoltValue::from_string(string);
+    /// assert_eq!(&*value.as_string(), "My New String");
+    /// ```
     pub fn from_string(str: String) -> MoltValue {
         MoltValue {
             string_rep: RefCell::new(Some(Rc::new(str))),
             data_rep: RefCell::new(Datum::None),
         }
     }
+
     /// Returns the value's string representation as a reference-counted
     /// string.
     ///
-    /// **Note**: this is the standard way of retrieving a `MoltValue`'s
+    /// **Note**: This is the standard way of retrieving a `MoltValue`'s
     /// string rep, as unlike `to_string` it doesn't create a new `String`.
     ///
-    /// # Example
+    /// # Example 
     ///
-    /// TODO
-    fn as_string(&self) -> Rc<String> {
+    /// ```
+    /// use molt::MoltValue;
+    /// let value = MoltValue::from_int(123);
+    /// assert_eq!(&*value.as_string(), "123");
+    /// ```
+    pub fn as_string(&self) -> Rc<String> {
         // FIRST, if there's already a string, return it.
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -148,12 +175,95 @@ impl MoltValue {
 
         new_string
     }
+    
+    /// Creates a new `MoltValue` whose data representation is a `bool`.  The value's
+    /// string representation will be "1" or "0".
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::MoltValue;
+    /// let value = MoltValue::from_bool(true);
+    /// assert_eq!(&*value.as_string(), "1");
+    /// 
+    /// let value = MoltValue::from_bool(false);
+    /// assert_eq!(&*value.as_string(), "0");
+    /// ```
+    pub fn from_bool(flag: bool) -> MoltValue {
+        MoltValue {
+            string_rep: RefCell::new(None),
+            data_rep: RefCell::new(Datum::Bool(flag)),
+        }
+    }
+
+    /// Tries to return the `MoltValue` as a `bool`, parsing the
+    /// value's string representation if necessary.
+    /// 
+    /// # Boolean Strings
+    /// 
+    /// The following string values can be interpreted as boolean values, regardless of case: `true`,
+    /// `false`, `on`, `off`, `yes`, `no`, `1`, `0`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::MoltValue;
+    /// use molt::types::ResultCode;
+    /// # fn dummy() -> Result<bool,ResultCode> {
+    /// let value = MoltValue::from_bool(true);
+    /// let flag = value.as_bool()?;
+    /// assert!(flag);
+    /// 
+    /// let value = MoltValue::from_str("no");
+    /// let flag = value.as_bool()?;
+    /// assert!(!flag);
+    /// # Ok(true)
+    /// # }
+    /// ```
+    pub fn as_bool(&self) -> Result<bool, ResultCode> { 
+        let mut data_ref = self.data_rep.borrow_mut();
+        let mut string_ref = self.string_rep.borrow_mut();
+
+        // FIRST, if we have a boolean then just return it.
+        if let Datum::Bool(flag) = *data_ref {
+            return Ok(flag);
+        }
+
+        // NEXT, if we don't have a string_rep, get one from the current
+        // data_rep.
+        if (*string_ref).is_none() {
+            *string_ref = Some(Rc::new(data_ref.to_string()));
+        }
+
+        // NEXT, Try to parse the string_rep as an integer
+        let str = (&*string_ref).as_ref().unwrap(); 
+        let flag = MoltValue::parse_bool(&*str)?; 
+        *data_ref = Datum::Bool(flag);
+        Ok(flag)
+    }
+
+    // Parses a string as a boolean using the standard TCL syntax.
+    // Returns a standard Molt error result.
+    fn parse_bool(arg: &str) -> Result<bool, ResultCode> {
+        let value: &str = &arg.to_lowercase();
+        match value {
+            "1" | "true" | "yes" | "on" => Ok(true),
+            "0" | "false" | "no" | "off" => Ok(false),
+            _ => molt_err!("expected boolean but got \"{}\"", arg),
+        }
+    }
+
 
     /// Creates a new `MoltValue` whose data representation is a `MoltInt`.
     ///
     /// # Example
     ///
-    /// TODO
+    /// ```
+    /// use molt::MoltValue;
+    /// 
+    /// let value = MoltValue::from_int(123);
+    /// assert_eq!(&*value.as_string(), "123");
+    /// ```
     pub fn from_int(int: MoltInt) -> MoltValue {
         MoltValue {
             string_rep: RefCell::new(None),
@@ -163,17 +273,38 @@ impl MoltValue {
 
     /// Tries to return the `MoltValue` as a `MoltInt`, parsing the
     /// value's string representation if necessary.
+    /// 
+    /// # Integer Syntax
+    /// 
+    /// Molt accepts decimal integer strings, and hexadecimal integer strings
+    /// with a `0x` prefix.  Strings may begin with a unary "+" or "-".  Hex
+    /// digits may be in upper or lower case.
     ///
     /// # Example
     ///
-    /// TODO
+    /// ```
+    /// use molt::MoltValue;
+    /// use molt::types::MoltInt;
+    /// use molt::types::ResultCode;
+    /// # fn dummy() -> Result<MoltInt,ResultCode> {
+    /// 
+    /// let value = MoltValue::from_int(123);
+    /// let int = value.as_int()?;
+    /// assert_eq!(int, 123);
+    /// 
+    /// let value = MoltValue::from_str("OxFF");
+    /// let int = value.as_int()?;
+    /// assert_eq!(int, 255);
+    /// # Ok(1)
+    /// # }
+    /// ```
     pub fn as_int(&self) -> Result<MoltInt, ResultCode> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
         // FIRST, if we have an integer then just return it.
         if let Datum::Int(int) = *data_ref {
-            return dbg!(Ok(int));
+            return Ok(int);
         }
 
         // NEXT, if we don't have a string_rep, get one from the current
@@ -189,6 +320,8 @@ impl MoltValue {
         Ok(int)
     }
 
+    // Parses a string as an integer using the standard TCL syntax (except octal :-)
+    // Returns a standard Molt error result.
     fn parse_int(arg: &str) -> Result<MoltInt, ResultCode> {
         let mut arg = arg;
         let mut minus = 1;
@@ -214,9 +347,22 @@ impl MoltValue {
 
     /// Creates a new `MoltValue` whose data representation is a `MoltFloat`.
     ///
+    /// # String Representation
+    /// 
+    /// The string representation of the value will be however Rust's `format!` macro
+    /// formats floating point numbers by default.  **Note**: this isn't quite what we
+    /// want; Standard TCL goes to great lengths to ensure that the formatted string
+    /// will yield exactly the same floating point number when it is parsed.  Rust
+    /// will format the number `5.0` as `5`, turning it into a integer if parsed naively. So
+    /// there is more work to be done here.
     /// # Example
     ///
-    /// TODO
+    /// ```
+    /// use molt::MoltValue;
+    /// 
+    /// let value = MoltValue::from_float(12.34);
+    /// assert_eq!(&*value.as_string(), "12.34");
+    /// ```
     pub fn from_float(flt: MoltFloat) -> MoltValue {
         MoltValue {
             string_rep: RefCell::new(None),
@@ -227,12 +373,29 @@ impl MoltValue {
     /// Tries to return the `MoltValue` as a `MoltFloat`, parsing the
     /// value's string representation if necessary.
     ///
-    /// TODO: Need to return Molt-compatible Err's.
+    /// # Floating-Point Syntax
+    /// 
+    /// Molt accepts the same floating-point strings as Rust's standard numeric parser.
     ///
     /// # Example
     ///
-    /// TODO
-    pub fn as_float(&self) -> Result<MoltFloat, String> {
+    /// ```
+    /// use molt::MoltValue;
+    /// use molt::types::MoltFloat;
+    /// use molt::types::ResultCode;
+    /// # fn dummy() -> Result<MoltFloat,ResultCode> {
+    /// 
+    /// let value = MoltValue::from_float(12.34);
+    /// let flt = value.as_float()?;
+    /// assert_eq!(flt, 12.34);
+    /// 
+    /// let value = MoltValue::from_str("23.45");
+    /// let flt = value.as_float()?;
+    /// assert_eq!(flt, 23.45);
+    /// # Ok(1.0)
+    /// # }
+    /// ```
+    pub fn as_float(&self) -> Result<MoltFloat, ResultCode> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -248,18 +411,20 @@ impl MoltValue {
         }
 
         // NEXT, Try to parse the string_rep as a float
-        if let Some(str) = &*string_ref {
-            // TODO: Currently uses the standard Rust parser.  That may
-            // be OK, but I need to check.
-            if let Ok(flt) = str.parse::<MoltFloat>() {
+        // TODO: Currently uses the standard Rust parser.  That may
+        // be OK, but I need to check.
+        let str = (&*string_ref).as_ref().unwrap(); 
+        let result = str.parse::<MoltFloat>();
+
+        match result {
+            Ok(flt) => {
                 *data_ref = Datum::Flt(flt);
-                return Ok(flt);
+                Ok(flt)
+            },
+            Err(_) => {
+                molt_err!("expected floating-point number but got \"{}\"", str)
             }
         }
-
-        // NEXT, we can't interpret it as an integer; return an error.
-        // TODO: need to use the right error message.
-        Err("Not a float".to_string())
     }
 
     /// Creates a new `MoltValue` whose data representation is a `MoltList`.
@@ -283,16 +448,27 @@ impl MoltValue {
     /// # Example
     ///
     /// TODO
-    pub fn as_list(&self) -> Result<Rc<MoltList>, String> {
-        let data_ref = self.data_rep.borrow_mut();
+    pub fn as_list(&self) -> Result<Rc<MoltList>, ResultCode> {
+        let mut string_ref = self.string_rep.borrow_mut();
+        let mut data_ref = self.data_rep.borrow_mut();
 
+        // FIRST, if we have the desired type, return it.
         if let Datum::List(list) = &*data_ref {
-            Ok(list.clone())
-        // } else if let Some(_str) = &self.string_rep {
-        //     panic!("list string_rep not defined!");
-        } else {
-            Err("Not a list".to_string())
+            return Ok(list.clone());
         }
+
+        // NEXT, if we don't have a string_rep, get one from the current
+        // data rep.
+        if (*string_ref).is_none() {
+            *string_ref = Some(Rc::new(data_ref.to_string()));
+        }
+
+        // NEXT, try to parse the string_rep as a list.
+        let str = (&*string_ref).as_ref().unwrap(); 
+        let list = Rc::new(get_list(str)?);
+        *data_ref = Datum::List(list.clone());
+
+        Ok(list)
     }
 
     /// Creates a new `MoltValue` containing the given value of some user type.
@@ -458,6 +634,9 @@ impl<T: Any + Display + Debug> MoltAny for T {
 // The data representation for MoltValues.
 #[derive(Clone, Debug)]
 enum Datum {
+    /// A Boolean
+    Bool(bool),
+
     /// A Molt integer
     Int(MoltInt),
 
@@ -477,9 +656,10 @@ enum Datum {
 impl Display for Datum {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
+            Datum::Bool(flag) => write!(f, "{}", if *flag { 1 } else { 0 }),
             Datum::Int(int) => write!(f, "{}", int),
             Datum::Flt(flt) => write!(f, "{}", flt),
-            Datum::List(_) => write!(f, "*FAKE LIST*"),
+            Datum::List(list) => write!(f, "{}", list_to_string(list)),
             Datum::Other(other) => write!(f, "{}", other),
             Datum::None => write!(f, ""),
         }
@@ -508,6 +688,38 @@ mod tests {
 
         let val2 = val.clone();
         assert_eq!(*val.as_string(), *val2.to_string());
+    }
+
+    #[test]
+    fn from_as_bool() {
+        let val = MoltValue::from_bool(true);
+        assert_eq!(*val.to_string(), "1".to_string());
+
+        let val = MoltValue::from_bool(false);
+        assert_eq!(*val.to_string(), "0".to_string());
+
+        let val = MoltValue::from_string("true".to_string());
+        assert_eq!(val.as_bool(), Ok(true));
+    }
+
+    #[test]
+    fn parse_bool() {
+        assert_eq!(Ok(true), MoltValue::parse_bool("1"));
+        assert_eq!(Ok(true), MoltValue::parse_bool("true"));
+        assert_eq!(Ok(true), MoltValue::parse_bool("yes"));
+        assert_eq!(Ok(true), MoltValue::parse_bool("on"));
+        assert_eq!(Ok(true), MoltValue::parse_bool("TRUE"));
+        assert_eq!(Ok(true), MoltValue::parse_bool("YES"));
+        assert_eq!(Ok(true), MoltValue::parse_bool("ON"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("0"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("false"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("no"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("off"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("FALSE"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("NO"));
+        assert_eq!(Ok(false), MoltValue::parse_bool("OFF"));
+        assert_eq!(MoltValue::parse_bool("nonesuch"),
+            molt_err!("expected boolean but got \"nonesuch\""));
     }
 
     #[test]
@@ -569,28 +781,28 @@ mod tests {
         assert_eq!(val.as_float(), Ok(5.0));
 
         let val = MoltValue::from_string("abc".to_string());
-        assert_eq!(val.as_float(), Err("Not a float".to_string()));
+        assert_eq!(val.as_float(), 
+            molt_err!("expected floating-point number but got \"abc\""));
     }
 
     #[test]
     fn from_as_list() {
-        // TODO: Add this back in once we've converted MoltList to 
-        // be Vec<MoltValue>.
+        // NOTE: we aren't testing list formatting and parsing here; that's done in list.rs.
+        // We *are* testing that MoltValue will use the list.rs code to convert strings to lists
+        // and back again.
+        let listval = MoltValue::from_list(vec!["abc".to_string(), "def".to_string()]);
+        assert_eq!(*listval.as_string(), "abc def".to_string());
 
-        // let a = MoltValue::from_string("abc".to_string());
-        // let b = MoltValue::from_float(12.5);
-        // let listval = MoltValue::from_list(vec![a.clone(), b.clone()]);
+        let listval = MoltValue::from_string("qrs xyz".to_string());
+        let result = listval.as_list();
 
-        // // Get it back as Rc<MoltList>
-        // let result = listval.as_list();
+        assert!(result.is_ok());
 
-        // assert!(result.is_ok());
-
-        // if let Ok(rclist) = result {
-        //     assert_eq!(rclist.len(), 2);
-        //     assert_eq!(rclist[0].to_string(), a.to_string());
-        //     assert_eq!(rclist[1].to_string(), b.to_string());
-        // }
+        if let Ok(rclist) = result {
+            assert_eq!(rclist.len(), 2);
+            assert_eq!(rclist[0].to_string(), "qrs".to_string());
+            assert_eq!(rclist[1].to_string(), "xyz".to_string());
+        }
     }
 
     #[test]

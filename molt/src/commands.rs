@@ -19,7 +19,7 @@ pub fn cmd_append(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     let var_result = interp.var(argv[1]);
 
     let mut new_value = if var_result.is_ok() {
-        var_result.unwrap()
+        var_result.unwrap().to_string()
     } else {
         String::new()
     };
@@ -71,15 +71,15 @@ pub fn cmd_catch(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     match result {
         Ok(val) => {
             code = 0;
-            value = val;
+            value = val.to_string();
         }
         Err(ResultCode::Error(val)) => {
             code = 1;
-            value = val;
+            value = val.to_string();
         }
         Err(ResultCode::Return(val)) => {
             code = 2;
-            value = val;
+            value = val.to_string();
         }
         Err(ResultCode::Break) => {
             code = 3;
@@ -93,7 +93,7 @@ pub fn cmd_catch(interp: &mut Interp, argv: &[&str]) -> MoltResult {
         interp.set_var(argv[2], &value);
     }
 
-    Ok(code.to_string())
+    Ok(Value::from_int(code))
 }
 
 /// # continue
@@ -207,10 +207,10 @@ pub fn cmd_foreach(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     while i < list.len() {
         for var_name in &var_list {
             if i < list.len() {
-                interp.set_var(&var_name, &list[i]);
+                interp.set_var(&*var_name.as_string(), &list[i].as_string());
                 i += 1;
             } else {
-                interp.set_var(&var_name, "");
+                interp.set_var(&*var_name.as_string(), "");
             }
         }
 
@@ -357,7 +357,7 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     let var_value = interp.var(argv[1]);
 
     let new_value = (if var_value.is_ok() {
-        interp.get_int(&var_value.unwrap())? + increment
+        var_value.unwrap().as_int()? + increment
     } else {
         increment
     }).to_string();
@@ -410,40 +410,44 @@ pub fn cmd_info_vars(interp: &mut Interp, _argv: &[&str]) -> MoltResult {
 pub fn cmd_join(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 3, "list ?joinString?")?;
 
-    let list = interp.get_list(argv[1])?;
-
-    let join_string = if argv.len() == 3 {
-        argv[2]
-    } else {
-        " "
-    };
-
-    molt_ok!(list.join(join_string))
+    molt_err!("FUBAR")
+    //
+    // let list = interp.get_list(argv[1])?;
+    //
+    // let join_string = if argv.len() == 3 {
+    //     argv[2]
+    // } else {
+    //     " "
+    // };
+    //
+    // molt_ok!(list.join(join_string))
 }
+
 /// # lappend *varName* ?*value* ...?
 ///
 /// Appends any number of values to a variable's list value, which need not
 /// initially exist.
 pub fn cmd_lappend(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 0, "varName ?value ...?")?;
+    molt_err!("FUBAR")
 
-    let var_result = interp.var(argv[1]);
-
-    let mut list: Vec<String> = if var_result.is_ok() {
-        interp.get_list(&var_result.unwrap())?
-    } else {
-        Vec::new()
-    };
-
-    for value in &argv[2..] {
-        list.push(value.to_string());
-    }
-
-    let new_value = list_to_string(&list);
-
-    interp.set_var(argv[1], &new_value);
-
-    molt_ok!("{}", new_value)
+    // let var_result = interp.var(argv[1]);
+    //
+    // let mut list: Vec<String> = if var_result.is_ok() {
+    //     interp.get_list(&var_result.unwrap())?
+    // } else {
+    //     Vec::new()
+    // };
+    //
+    // for value in &argv[2..] {
+    //     list.push(value.to_string());
+    // }
+    //
+    // let new_value = list_to_string(&list);
+    //
+    // interp.set_var(argv[1], &new_value);
+    //
+    // molt_ok!("{}", new_value)
 }
 
 /// # lindex *list* ?*index* ...?
@@ -451,29 +455,31 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[&str]) -> MoltResult {
 /// Returns an element from the list, indexing into nested lists.
 pub fn cmd_lindex(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 0, "list ?index ...?")?;
+    molt_err!("FUBAR")
 
-    let mut value = argv[1].to_string();
-
-    for index_string in &argv[2..] {
-        let list = interp.get_list(&value)?;
-        let index = interp.get_int(index_string)?;
-
-        value = if index < 0 || index as usize >= list.len() {
-            "".to_string()
-        }  else {
-            list[index as usize].to_string()
-        };
-    }
-
-    molt_ok!(value)
+    // let mut value = argv[1].to_string();
+    //
+    // for index_string in &argv[2..] {
+    //     let list = interp.get_list(&value)?;
+    //     let index = interp.get_int(index_string)?;
+    //
+    //     value = if index < 0 || index as usize >= list.len() {
+    //         "".to_string()
+    //     }  else {
+    //         list[index as usize].to_string()
+    //     };
+    // }
+    //
+    // molt_ok!(value)
 }
 
 /// # list ?*arg*...?
 ///
 /// Converts its arguments into a canonical list.
 pub fn cmd_list(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    // No arg check needed; can take any number.
-    molt_ok!(list_to_string(&argv[1..]))
+    molt_err!("FUBAR")
+    // // No arg check needed; can take any number.
+    // molt_ok!(list_to_string(&argv[1..]))
 }
 
 /// # llength *list*
@@ -481,35 +487,37 @@ pub fn cmd_list(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
 /// Returns the length of the list.
 pub fn cmd_llength(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 2, 2, "list")?;
-
-    let list = interp.get_list(argv[1])?;
-
-    molt_ok!(list.len().to_string())
+    molt_err!("FUBAR")
+    //
+    // let list = interp.get_list(argv[1])?;
+    //
+    // molt_ok!(list.len().to_string())
 }
 
 pub fn cmd_proc(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     check_args(1, argv, 4, 4, "name args body")?;
-
-    // FIRST, get the arguments
-    let name = argv[1];
-    let args = interp.get_list(argv[2])?;
-    let body = argv[3];
-
-    // NEXT, validate the argument specs
-    for arg in &args {
-        let vec = interp.get_list(&arg)?;
-
-        if vec.is_empty() {
-            return molt_err!("argument with no name");
-        } else if vec.len() > 2 {
-            return molt_err!("too many fields in argument specifier \"{}\"", arg);
-        }
-    }
-
-    // NEXT, add the command.
-    interp.add_proc(name, args, body);
-
-    molt_ok!()
+    molt_err!("FUBAR")
+    //
+    // // FIRST, get the arguments
+    // let name = argv[1];
+    // let args = interp.get_list(argv[2])?;
+    // let body = argv[3];
+    //
+    // // NEXT, validate the argument specs
+    // for arg in &args {
+    //     let vec = interp.get_list(&arg)?;
+    //
+    //     if vec.is_empty() {
+    //         return molt_err!("argument with no name");
+    //     } else if vec.len() > 2 {
+    //         return molt_err!("too many fields in argument specifier \"{}\"", arg);
+    //     }
+    // }
+    //
+    // // NEXT, add the command.
+    // interp.add_proc(name, args, body);
+    //
+    // molt_ok!()
 }
 
 /// # puts *string*
@@ -569,7 +577,7 @@ pub fn cmd_return(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
         argv[1]
     };
 
-    Err(ResultCode::Return(value.into()))
+    Err(ResultCode::Return(Value::new(value)))
 }
 
 /// # set *varName* ?*newValue*?
@@ -590,7 +598,7 @@ pub fn cmd_set(interp: &mut Interp, argv: &[&str]) -> MoltResult {
         value = argv[2].into();
         interp.set_var(argv[1], argv[2]);
     } else {
-        value = interp.var(argv[1])?;
+        value = interp.var(argv[1])?.to_string();
     }
 
     molt_ok!(value)

@@ -1,5 +1,8 @@
 # Molt Development Journal
 
+### 2019-06-18 (Tuesday)
+*   Converted scope.rs to use MoltValue.
+
 ### 2019-06-17 (Monday)
 *   Fleshed out the MoltValue::from_list and MoltValue::as_list methods, and added list formatting
     to Datum's Display implementation.

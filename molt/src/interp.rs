@@ -13,6 +13,7 @@ use crate::scope::ScopeStack;
 use crate::types::Command;
 use crate::types::CommandFunc;
 use crate::types::*;
+use crate::value::MoltValue;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -352,7 +353,8 @@ impl Interp {
     /// Sets the value of the named variable in the current scope, creating the variable
     /// if necessary.
     pub fn set_var(&mut self, name: &str, value: &str) {
-        self.scopes.set(name, value);
+        // TODO: Temporary fix while integrating MoltValue.
+        self.scopes.set(name, MoltValue::new(value));
     }
 
     /// Unsets the value of the named variable in the current scope

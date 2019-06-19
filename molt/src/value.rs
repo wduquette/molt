@@ -442,9 +442,6 @@ impl Value {
     /// Tries to return the `Value` as a `MoltList`, parsing the
     /// value's string representation if necessary.
     ///
-    /// TODO: Need to return Molt-compatible Err's.
-    /// TODO: Need to add list parsing.
-    ///
     /// # Example
     ///
     /// TODO
@@ -473,9 +470,8 @@ impl Value {
 
     /// Creates a new `Value` containing the given value of some user type.
     ///
-    /// The type must implement `Display`, `Debug`, and `FromStr`, and the
-    /// `Display` output must be compatible with the `FromStr` parser (and with
-    /// TCL syntax).  The value will be reference counted.
+    /// See [the module level documentation](index.html) for details on
+    /// how to define an external type for use with Molt.
     pub fn from_other<T: 'static>(value: T) -> Value
     where
         T: Display + Debug,
@@ -874,5 +870,4 @@ mod tests {
             }
         }
     }
-
 }

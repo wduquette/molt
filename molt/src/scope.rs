@@ -14,6 +14,7 @@
 
 use std::collections::HashMap;
 use crate::value::Value;
+use crate::types::MoltList;
 
 /// A variable in a `Scope`.  If the variable is defined in the `Scope`, it has a
 /// `Value`; if it is a reference to a variable in a higher scope (e.g., a global) then
@@ -151,11 +152,12 @@ impl ScopeStack {
 
     /// Gets the names of the variables defined in the current scope.
     /// TODO: Should return a MoltList.
-    pub fn vars_in_scope(&self) -> Vec<String> {
+    pub fn vars_in_scope(&self) -> MoltList {
         let top = self.stack.len() - 1;
-        let vec: Vec<String> = self.stack[top].map.keys().cloned().collect();
-
-        vec
+        // let vec: MoltList = self.stack[top].map.keys().cloned().map(|x| Value::new(&x)).collect();
+        //
+        // vec
+        self.stack[top].map.keys().cloned().map(|x| Value::new(&x)).collect()
     }
 }
 
@@ -338,8 +340,8 @@ mod tests {
         ss.set("a", Value::new("1"));
         ss.set("b", Value::new("2"));
         assert_eq!(ss.vars_in_scope().len(), 2);
-        assert!(ss.vars_in_scope().contains(&"a".into()));
-        assert!(ss.vars_in_scope().contains(&"b".into()));
+        assert!(ss.vars_in_scope().contains(&Value::new("a")));
+        assert!(ss.vars_in_scope().contains(&Value::new("b")));
 
         // Push a scope; no vars initially
         ss.push();
@@ -348,22 +350,22 @@ mod tests {
         // Add a var
         ss.set("c", Value::new("3"));
         assert_eq!(ss.vars_in_scope().len(), 1);
-        assert!(ss.vars_in_scope().contains(&"c".into()));
+        assert!(ss.vars_in_scope().contains(&Value::new("c")));
 
         // Upvar a var
         ss.upvar(0, "a");
         assert_eq!(ss.vars_in_scope().len(), 2);
-        assert!(ss.vars_in_scope().contains(&"a".into()));
+        assert!(ss.vars_in_scope().contains(&Value::new("a")));
 
         // Pop a scope
         ss.pop();
         assert_eq!(ss.vars_in_scope().len(), 2);
-        assert!(!ss.vars_in_scope().contains(&"c".into()));
+        assert!(ss.vars_in_scope().contains(&Value::new("c")));
 
         // Unset a var
         ss.unset("b");
         assert_eq!(ss.vars_in_scope().len(), 1);
-        assert!(!ss.vars_in_scope().contains(&"b".into()));
+        assert!(ss.vars_in_scope().contains(&Value::new("b")));
     }
 
 }

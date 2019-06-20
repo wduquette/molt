@@ -199,7 +199,7 @@ impl Interp {
     /// Gets a vector of the names of the existing commands.
     ///
     pub fn command_names(&self) -> MoltList {
-        let vec: MoltList = self.commands.keys().cloned().collect();
+        let vec: MoltList = self.commands.keys().cloned().map(|x| Value::new(&x)).collect();
 
         vec
     }
@@ -515,7 +515,7 @@ impl Interp {
     /// Low-level script evaluator; evaluates the next script in the
     /// context.
     fn eval_context(&mut self, ctx: &mut Context) -> MoltResult {
-        let mut result_value = String::new();
+        let mut result_value = Value::new("");
 
         while !ctx.at_end_of_script() {
             let vec = self.parse_command(ctx)?;
@@ -547,6 +547,9 @@ impl Interp {
         Ok(result_value)
     }
 
+    // TODO: Ultimately, this should return a Vec<Value>.
+    // But then, all of the commands will need to take a Vec<Value>.
+    // Write a wrapper that handles that, so we can convert them a little at a time.
     fn parse_command(&mut self, ctx: &mut Context) -> Result<Vec<String>, ResultCode> {
         // FIRST, deal with whitespace and comments between "here" and the next command.
         while !ctx.at_end_of_script() {
@@ -566,10 +569,10 @@ impl Interp {
         // NOTE: parse_word() can always assume that it's at the beginning of a word.
         while !ctx.at_end_of_command() {
             // FIRST, get the next word; there has to be one, or there's an input error.
-            let word = self.parse_word(ctx)?;
+            let word = self.parse_word(ctx)?.as_string();
 
             // NEXT, save the word we found.
-            words.push(word);
+            words.push(*word);
 
             // NEXT, skip any whitespace.
             ctx.skip_line_white();
@@ -657,16 +660,16 @@ impl Interp {
         while !ctx.at_end() {
             // Note: the while condition ensures that there's a character.
             if ctx.next_is('[') {
-                word.push_str(&self.parse_script(ctx)?);
+                word.push_str(&*self.parse_script(ctx)?.as_string());
             } else if ctx.next_is('$') {
-                word.push_str(&self.parse_variable(ctx)?);
+                word.push_str(&*self.parse_variable(ctx)?.as_string());
             } else if ctx.next_is('\\') {
                 subst_backslash(ctx, &mut word);
             } else if !ctx.next_is('"') {
                 word.push(ctx.next().unwrap());
             } else {
                 ctx.skip_char('"');
-                return Ok(word);
+                return Ok(Value::from_string(word));
             }
         }
 
@@ -680,9 +683,9 @@ impl Interp {
         while !ctx.at_end_of_command() && !ctx.next_is_line_white() {
             // Note: the while condition ensures that there's a character.
             if ctx.next_is('[') {
-                word.push_str(&self.parse_script(ctx)?);
+                word.push_str(&*self.parse_script(ctx)?.as_string());
             } else if ctx.next_is('$') {
-                word.push_str(&self.parse_variable(ctx)?);
+                word.push_str(&*self.parse_variable(ctx)?.as_string());
             } else if ctx.next_is('\\') {
                 subst_backslash(ctx, &mut word);
             } else {
@@ -690,7 +693,7 @@ impl Interp {
             }
         }
 
-        Ok(word)
+        Ok(Value::from_string(word))
     }
 
     pub(crate) fn parse_script(&mut self, ctx: &mut Context) -> MoltResult {
@@ -722,7 +725,7 @@ impl Interp {
         // NEXT, make sure this is really a variable reference.  If it isn't
         // just return a "$".
         if !ctx.next_is_varname_char() && !ctx.next_is('{') {
-            return Ok("$".into());
+            return Ok(Value::new("$"));
         }
 
         // NEXT, get the variable name
@@ -734,7 +737,7 @@ impl Interp {
             }
         } else if ctx.next_is('{') {
             ctx.skip_char('{');
-            varname.push_str(&self.parse_braced_varname(ctx)?);
+            varname.push_str(&*self.parse_braced_varname(ctx)?.as_string());
         }
 
         Ok(self.var(&varname)?)
@@ -747,7 +750,7 @@ impl Interp {
             let c = ctx.next().unwrap();
 
             if c == '}' {
-                return Ok(string);
+                return Ok(Value::from_string(string));
             } else {
                 string.push(c);
             }
@@ -862,10 +865,10 @@ fn wrong_num_args_for_proc(interp: &Interp, name: &str, args: &[String]) -> Molt
         let vec = interp.get_list(arg).expect("error in proc arglist validation!");
 
         if vec.len() == 1 {
-            msg.push_str(&vec[0]);
+            msg.push_str(&*vec[0].as_string());
         } else {
             msg.push('?');
-            msg.push_str(&vec[0]);
+            msg.push_str(&*vec[0].as_string());
             msg.push('?');
         }
     }
@@ -1065,9 +1068,9 @@ mod tests {
 
         let vec = interp.get_list("a b c").unwrap();
         assert_eq!(vec.len(), 3);
-        assert_eq!(vec[0], "a".to_string());
-        assert_eq!(vec[1], "b".to_string());
-        assert_eq!(vec[2], "c".to_string());
+        assert_eq!(vec[0], Value::new("a"));
+        assert_eq!(vec[1], Value::new("b"));
+        assert_eq!(vec[2], Value::new("c"));
 
         let result = interp.get_list("a {b c");
         assert!(result.is_err());

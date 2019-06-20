@@ -1,5 +1,10 @@
 # Molt Development Journal
 
+### 2019-06-19 (Wednesday)
+*   Continued updating the code so it compiles.
+    *   There are a bunch of internal "parse_*" routines in interp.rs that
+        return `MoltResult` but should probably return `Result<String,ResultCode>`.
+
 ### 2019-06-18 (Tuesday)
 *   Converted scope.rs to use MoltValue.
 *   Renamed expr::Value (an internal type) to expr::Datum.

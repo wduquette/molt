@@ -360,12 +360,12 @@ mod tests {
         // Pop a scope
         ss.pop();
         assert_eq!(ss.vars_in_scope().len(), 2);
-        assert!(ss.vars_in_scope().contains(&Value::new("c")));
+        assert!(!ss.vars_in_scope().contains(&Value::new("c")));
 
         // Unset a var
         ss.unset("b");
         assert_eq!(ss.vars_in_scope().len(), 1);
-        assert!(ss.vars_in_scope().contains(&Value::new("b")));
+        assert!(!ss.vars_in_scope().contains(&Value::new("b")));
     }
 
 }

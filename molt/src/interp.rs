@@ -995,7 +995,7 @@ mod tests {
         interp.set_recursion_limit(100);
         assert_eq!(interp.recursion_limit(), 100);
 
-        assert!(interp.eval("proc myproc {} { myproc }").is_ok());
+        assert!(dbg!(interp.eval("proc myproc {} { myproc }")).is_ok());
         assert_eq!(interp.eval("myproc"),
             molt_err!("too many nested calls to Interp::eval (infinite loop?)"));
     }

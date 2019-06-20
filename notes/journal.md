@@ -1,9 +1,18 @@
 # Molt Development Journal
 
+Things to remember to do soon:
+
+*   Implement Debug for Value.  Should output a pair, `Value[string_rep,data_rep]`, or
+    something like that.
+*   There are a bunch of internal "parse_*" routines in interp.rs that
+    return `MoltResult` but should probably return `Result<String,ResultCode>`.
+*   MoltList should be a newtype with helper methods.
+
 ### 2019-06-19 (Wednesday)
-*   Continued updating the code so it compiles.
-    *   There are a bunch of internal "parse_*" routines in interp.rs that
-        return `MoltResult` but should probably return `Result<String,ResultCode>`.
+*   Finished updating the molt:: code so it compiles.
+*   One test failure, interp::tests::test_recursion_limit, because the "proc" command is
+    currently FUBAR.
+
 
 ### 2019-06-18 (Tuesday)
 *   Converted scope.rs to use MoltValue.

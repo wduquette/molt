@@ -569,10 +569,11 @@ impl Interp {
         // NOTE: parse_word() can always assume that it's at the beginning of a word.
         while !ctx.at_end_of_command() {
             // FIRST, get the next word; there has to be one, or there's an input error.
-            let word = self.parse_word(ctx)?.as_string();
+            // TODO: parse_word should probably return Result<String,ResultCode>
+            let word = self.parse_word(ctx)?.to_string();
 
             // NEXT, save the word we found.
-            words.push(*word);
+            words.push(word);
 
             // NEXT, skip any whitespace.
             ctx.skip_line_white();
@@ -791,18 +792,22 @@ impl Command for CommandProc {
         // NEXT, process the proc's argument list.
         let mut argi = 1; // Skip the proc's name
 
+        // TODO: Ugly; need better tools.
+        let str_args: Vec<String> = self.args.iter().map(|v| v.to_string()).collect();
+
         for (speci, spec) in self.args.iter().enumerate() {
             // FIRST, get the parameter as a vector.  It should be a list of
             // one or two elements.
-            let vec = interp.get_list(&spec)?;  // Should never fail
+            let vec = &*spec.as_list()?;  // Should never fail
             assert!(vec.len() == 1 || vec.len() == 2);
 
             // NEXT, if this is the args parameter, give the remaining args,
             // if any.  Note that "args" has special meaning only if it's the
             // final arg spec in the list.
-            if vec[0] == "args" && speci == self.args.len() - 1 {
+            if &*vec[0].as_string() == "args" && speci == self.args.len() - 1 {
                 let args = if argi < argv.len() {
-                    list_to_string(&argv[argi..])
+                    let lst = argv[argi..].iter().map(|s| Value::new(s)).collect();
+                    list_to_string(&lst)
                 } else {
                     "".into()
                 };
@@ -816,23 +821,23 @@ impl Command for CommandProc {
             // NEXT, do we have a matching argument?
              if argi < argv.len() {
                 // Pair them up
-                interp.set_var(&vec[0], argv[argi]);
+                interp.set_var(&*vec[0].as_string(), argv[argi]);
                 argi += 1;
                 continue;
             }
 
             // NEXT, do we have a default value?
             if vec.len() == 2 {
-                interp.set_var(&vec[0], &vec[1]);
+                interp.set_var(&*vec[0].as_string(), &*vec[1].as_string());
             } else {
                 // We don't; we're missing a required argument.
-                return wrong_num_args_for_proc(interp, argv[0], &self.args);
+                return wrong_num_args_for_proc(interp, argv[0], &str_args);
             }
         }
 
         // NEXT, do we have any arguments left over?
         if argi != argv.len() {
-            return wrong_num_args_for_proc(interp, argv[0], &self.args);
+            return wrong_num_args_for_proc(interp, argv[0], &str_args);
         }
 
         // NEXT, evaluate the proc's body, getting the result.

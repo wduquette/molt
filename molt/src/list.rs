@@ -151,7 +151,7 @@ pub fn list_to_string(list: &MoltList) -> String {
     let mut hash = !list.is_empty() && list[0].as_string().starts_with('#');
 
     for item in list {
-        let item = *item.as_string();
+        let item = item.to_string();
         match get_mode(&item) {
             Mode::AsIs => {
                 if hash {

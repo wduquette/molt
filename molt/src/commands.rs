@@ -106,8 +106,8 @@ pub fn cmd_catch(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 /// # continue
 ///
 /// Continues with the next iteration of the inmost loop.
-pub fn cmd_continue(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 1, 1, "")?;
+pub fn cmd_continue(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 1, 1, "")?;
 
     Err(ResultCode::Continue)
 }

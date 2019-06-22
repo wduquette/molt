@@ -83,7 +83,7 @@ impl Interp {
         interp.add_command("assert_eq", commands::cmd_assert_eq);
         interp.add_command("break", commands::cmd_break);
         interp.add_command("catch", commands::cmd_catch);
-        interp.add_str_command("continue", commands::cmd_continue);
+        interp.add_command("continue", commands::cmd_continue);
         interp.add_str_command("error", commands::cmd_error);
         interp.add_str_command("exit", commands::cmd_exit);
         interp.add_str_command("expr", commands::cmd_expr);

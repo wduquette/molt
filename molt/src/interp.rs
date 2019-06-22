@@ -199,7 +199,7 @@ impl Interp {
     /// Gets a vector of the names of the existing commands.
     ///
     pub fn command_names(&self) -> MoltList {
-        let vec: MoltList = self.commands.keys().cloned().map(|x| Value::new(&x)).collect();
+        let vec: MoltList = self.commands.keys().cloned().map(|x| Value::from(&x)).collect();
 
         vec
     }
@@ -356,7 +356,7 @@ impl Interp {
     /// if necessary.
     pub fn set_var(&mut self, name: &str, value: &str) {
         // TODO: Temporary fix while integrating MoltValue.
-        self.scopes.set(name, Value::new(value));
+        self.scopes.set(name, Value::from(value));
     }
 
     /// Unsets the value of the named variable in the current scope
@@ -515,7 +515,7 @@ impl Interp {
     /// Low-level script evaluator; evaluates the next script in the
     /// context.
     fn eval_context(&mut self, ctx: &mut Context) -> MoltResult {
-        let mut result_value = Value::new("");
+        let mut result_value = Value::empty();
 
         while !ctx.at_end_of_script() {
             let vec = self.parse_command(ctx)?;
@@ -670,7 +670,7 @@ impl Interp {
                 word.push(ctx.next().unwrap());
             } else {
                 ctx.skip_char('"');
-                return Ok(Value::from_string(word));
+                return Ok(Value::from(word));
             }
         }
 
@@ -694,7 +694,7 @@ impl Interp {
             }
         }
 
-        Ok(Value::from_string(word))
+        Ok(Value::from(word))
     }
 
     pub(crate) fn parse_script(&mut self, ctx: &mut Context) -> MoltResult {
@@ -726,7 +726,7 @@ impl Interp {
         // NEXT, make sure this is really a variable reference.  If it isn't
         // just return a "$".
         if !ctx.next_is_varname_char() && !ctx.next_is('{') {
-            return Ok(Value::new("$"));
+            return Ok(Value::from("$"));
         }
 
         // NEXT, get the variable name
@@ -751,7 +751,7 @@ impl Interp {
             let c = ctx.next().unwrap();
 
             if c == '}' {
-                return Ok(Value::from_string(string));
+                return Ok(Value::from(string));
             } else {
                 string.push(c);
             }
@@ -806,7 +806,7 @@ impl Command for CommandProc {
             // final arg spec in the list.
             if &*vec[0].as_string() == "args" && speci == self.args.len() - 1 {
                 let args = if argi < argv.len() {
-                    let lst = argv[argi..].iter().map(|s| Value::new(s)).collect();
+                    let lst = argv[argi..].iter().map(|s| Value::from(*s)).collect();
                     list_to_string(&lst)
                 } else {
                     "".into()
@@ -1073,9 +1073,9 @@ mod tests {
 
         let vec = interp.get_list("a b c").unwrap();
         assert_eq!(vec.len(), 3);
-        assert_eq!(vec[0], Value::new("a"));
-        assert_eq!(vec[1], Value::new("b"));
-        assert_eq!(vec[2], Value::new("c"));
+        assert_eq!(vec[0], Value::from("a"));
+        assert_eq!(vec[1], Value::from("b"));
+        assert_eq!(vec[2], Value::from("c"));
 
         let result = interp.get_list("a {b c");
         assert!(result.is_err());

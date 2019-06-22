@@ -157,7 +157,7 @@ impl ScopeStack {
         // let vec: MoltList = self.stack[top].map.keys().cloned().map(|x| Value::new(&x)).collect();
         //
         // vec
-        self.stack[top].map.keys().cloned().map(|x| Value::new(&x)).collect()
+        self.stack[top].map.keys().cloned().map(|x| Value::from(&x)).collect()
     }
 }
 
@@ -176,12 +176,12 @@ mod tests {
     fn test_set_get_basic() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", Value::new("1"));
+        ss.set("a", Value::from("1"));
         let out = ss.get("a");
         assert!(out.is_some());
         assert_eq!(&*out.unwrap().as_string(), "1");
 
-        ss.set("b", Value::new("2"));
+        ss.set("b", Value::from("2"));
         let out = ss.get("b");
         assert!(out.is_some());
         assert_eq!(&*out.unwrap().as_string(), "2");
@@ -193,7 +193,7 @@ mod tests {
     fn test_unset_basic() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", Value::new("1"));
+        ss.set("a", Value::from("1"));
         assert!(ss.get("a").is_some());
         ss.unset("a");
         assert!(ss.get("a").is_none());
@@ -247,17 +247,17 @@ mod tests {
     fn test_set_levels() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", Value::new("1"));
-        ss.set("b", Value::new("2"));
+        ss.set("a", Value::from("1"));
+        ss.set("b", Value::from("2"));
 
         ss.push();
         assert!(ss.get("a").is_none());
         assert!(ss.get("b").is_none());
         assert!(ss.get("c").is_none());
 
-        ss.set("a", Value::new("3"));
-        ss.set("b", Value::new("4"));
-        ss.set("c", Value::new("5"));
+        ss.set("a", Value::from("3"));
+        ss.set("b", Value::from("4"));
+        ss.set("c", Value::from("5"));
         assert_eq!(&*ss.get("a").unwrap().as_string(), "3");
         assert_eq!(&*ss.get("b").unwrap().as_string(), "4");
         assert_eq!(&*ss.get("c").unwrap().as_string(), "5");
@@ -272,16 +272,16 @@ mod tests {
     fn test_set_get_upvar() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", Value::new("1"));
-        ss.set("b", Value::new("2"));
+        ss.set("a", Value::from("1"));
+        ss.set("b", Value::from("2"));
 
         ss.push();
         ss.upvar(0, "a");
         assert_eq!(&*ss.get("a").unwrap().as_string(), "1");
         assert!(ss.get("b").is_none());
 
-        ss.set("a", Value::new("3"));
-        ss.set("b", Value::new("4"));
+        ss.set("a", Value::from("3"));
+        ss.set("b", Value::from("4"));
         assert_eq!(&*ss.get("a").unwrap().as_string(), "3");
         assert_eq!(&*ss.get("b").unwrap().as_string(), "4");
 
@@ -294,11 +294,11 @@ mod tests {
     fn test_unset_levels() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", Value::new("1"));
-        ss.set("b", Value::new("2"));
+        ss.set("a", Value::from("1"));
+        ss.set("b", Value::from("2"));
 
         ss.push();
-        ss.set("a", Value::new("3"));
+        ss.set("a", Value::from("3"));
 
         ss.unset("a");  // Was set in this scope
         ss.unset("b");  // Was not set in this scope
@@ -313,7 +313,7 @@ mod tests {
         let mut ss = ScopeStack::new();
 
         // Set a value at level 0
-        ss.set("a", Value::new("1"));
+        ss.set("a", Value::from("1"));
         assert!(ss.get("a").is_some());
         ss.push();
         assert!(ss.get("a").is_none());
@@ -337,35 +337,34 @@ mod tests {
         assert_eq!(ss.vars_in_scope().len(), 0);
 
         // Add two vars to current scope
-        ss.set("a", Value::new("1"));
-        ss.set("b", Value::new("2"));
+        ss.set("a", Value::from("1"));
+        ss.set("b", Value::from("2"));
         assert_eq!(ss.vars_in_scope().len(), 2);
-        assert!(ss.vars_in_scope().contains(&Value::new("a")));
-        assert!(ss.vars_in_scope().contains(&Value::new("b")));
+        assert!(ss.vars_in_scope().contains(&Value::from("a")));
+        assert!(ss.vars_in_scope().contains(&Value::from("b")));
 
         // Push a scope; no vars initially
         ss.push();
         assert_eq!(ss.vars_in_scope().len(), 0);
 
         // Add a var
-        ss.set("c", Value::new("3"));
+        ss.set("c", Value::from("3"));
         assert_eq!(ss.vars_in_scope().len(), 1);
-        assert!(ss.vars_in_scope().contains(&Value::new("c")));
+        assert!(ss.vars_in_scope().contains(&Value::from("c")));
 
         // Upvar a var
         ss.upvar(0, "a");
         assert_eq!(ss.vars_in_scope().len(), 2);
-        assert!(ss.vars_in_scope().contains(&Value::new("a")));
+        assert!(ss.vars_in_scope().contains(&Value::from("a")));
 
         // Pop a scope
         ss.pop();
         assert_eq!(ss.vars_in_scope().len(), 2);
-        assert!(!ss.vars_in_scope().contains(&Value::new("c")));
+        assert!(!ss.vars_in_scope().contains(&Value::from("c")));
 
         // Unset a var
         ss.unset("b");
         assert_eq!(ss.vars_in_scope().len(), 1);
-        assert!(!ss.vars_in_scope().contains(&Value::new("b")));
+        assert!(!ss.vars_in_scope().contains(&Value::from("b")));
     }
-
 }

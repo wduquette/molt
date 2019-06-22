@@ -128,23 +128,151 @@ impl PartialEq for Value {
 
 impl Eq for Value {}
 
-impl Value {
-    /// Creates a new `Value` from the given string slice.
+impl From<String> for Value {
+    /// Creates a new `Value` from the given String.
     ///
-    /// Prefer [`from_string`](#method.from_string) if you have a newly created
-    /// string for the `Value` to take ownership of.
     /// # Example
     ///
     /// ```
     /// use molt::Value;
-    /// let value = Value::new("My String Slice");
+    /// let string = String::from("My New String");
+    /// let value = Value::from(string);
+    /// assert_eq!(&*value.as_string(), "My New String");
+    /// ```
+    fn from(str: String) -> Self {
+        Self {
+            string_rep: RefCell::new(Some(Rc::new(str))),
+            data_rep: RefCell::new(Datum::None),
+        }
+    }
+}
+
+impl From<&str> for Value {
+    /// Creates a new `Value` from the given string slice.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Value;
+    /// let value = Value::from("My String Slice");
     /// assert_eq!(&*value.as_string(), "My String Slice");
     /// ```
-    pub fn new(str: &str) -> Value {
-        Value {
+    fn from(str: &str) -> Self {
+        Self {
             string_rep: RefCell::new(Some(Rc::new(str.to_string()))),
             data_rep: RefCell::new(Datum::None),
         }
+    }
+}
+
+// TODO: Not clear why this is needed when we've `impl From<&str>`, but it makes the
+// molt_err! macro happy.
+impl From<&String> for Value {
+    /// Creates a new `Value` from the given string reference.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Value;
+    /// let value = Value::from("My String Slice");
+    /// assert_eq!(&*value.as_string(), "My String Slice");
+    /// ```
+    fn from(str: &String) -> Self {
+        Self {
+            string_rep: RefCell::new(Some(Rc::new(str.to_string()))),
+            data_rep: RefCell::new(Datum::None),
+        }
+    }
+}
+
+impl From<bool> for Value {
+    /// Creates a new `Value` whose data representation is a `bool`.  The value's
+    /// string representation will be "1" or "0".
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Value;
+    /// let value = Value::from(true);
+    /// assert_eq!(&*value.as_string(), "1");
+    ///
+    /// let value = Value::from(false);
+    /// assert_eq!(&*value.as_string(), "0");
+    /// ```
+    fn from(flag: bool) -> Self {
+        Self {
+            string_rep: RefCell::new(None),
+            data_rep: RefCell::new(Datum::Bool(flag)),
+        }
+    }
+}
+
+impl From<MoltInt> for Value {
+    /// Creates a new `Value` whose data representation is a `MoltInt`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Value;
+    ///
+    /// let value = Value::from(123);
+    /// assert_eq!(&*value.as_string(), "123");
+    /// ```
+    fn from(int: MoltInt) -> Self {
+        Self {
+            string_rep: RefCell::new(None),
+            data_rep: RefCell::new(Datum::Int(int)),
+        }
+    }
+}
+
+impl From<MoltFloat> for Value {
+    /// Creates a new `Value` whose data representation is a `MoltFloat`.
+    ///
+    /// # String Representation
+    ///
+    /// The string representation of the value will be however Rust's `format!` macro
+    /// formats floating point numbers by default.  **Note**: this isn't quite what we
+    /// want; Standard TCL goes to great lengths to ensure that the formatted string
+    /// will yield exactly the same floating point number when it is parsed.  Rust
+    /// will format the number `5.0` as `5`, turning it into a integer if parsed naively. So
+    /// there is more work to be done here.
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Value;
+    ///
+    /// let value = Value::from(12.34);
+    /// assert_eq!(&*value.as_string(), "12.34");
+    /// ```
+    fn from(flt: MoltFloat) -> Self {
+        Self {
+            string_rep: RefCell::new(None),
+            data_rep: RefCell::new(Datum::Flt(flt)),
+        }
+    }
+}
+
+impl From<MoltList> for Value {
+    /// Creates a new `Value` whose data representation is a `MoltList`.
+    ///
+    /// # Example
+    ///
+    /// TODO
+    fn from(list: MoltList) -> Self {
+        Self {
+            string_rep: RefCell::new(None),
+            data_rep: RefCell::new(Datum::List(Rc::new(list))),
+        }
+    }
+}
+
+
+impl Value {
+    /// Returns the empty `Value`, a value whose string representation is the empty
+    /// string.
+    pub fn empty() -> Value {
+        Value::from("")
     }
 
     /// Creates a new `Value` from the given String.
@@ -177,7 +305,7 @@ impl Value {
     ///
     /// ```
     /// use molt::Value;
-    /// let value = Value::from_int(123);
+    /// let value = Value::from(123);
     /// assert_eq!(&*value.as_string(), "123");
     /// ```
     pub fn as_string(&self) -> Rc<String> {
@@ -198,26 +326,6 @@ impl Value {
         new_string
     }
 
-    /// Creates a new `Value` whose data representation is a `bool`.  The value's
-    /// string representation will be "1" or "0".
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::Value;
-    /// let value = Value::from_bool(true);
-    /// assert_eq!(&*value.as_string(), "1");
-    ///
-    /// let value = Value::from_bool(false);
-    /// assert_eq!(&*value.as_string(), "0");
-    /// ```
-    pub fn from_bool(flag: bool) -> Value {
-        Value {
-            string_rep: RefCell::new(None),
-            data_rep: RefCell::new(Datum::Bool(flag)),
-        }
-    }
-
     /// Tries to return the `Value` as a `bool`, parsing the
     /// value's string representation if necessary.
     ///
@@ -236,7 +344,7 @@ impl Value {
     /// let flag = value.as_bool()?;
     /// assert!(flag);
     ///
-    /// let value = Value::new("no");
+    /// let value = Value::from("no");
     /// let flag = value.as_bool()?;
     /// assert!(!flag);
     /// # Ok(true)
@@ -275,24 +383,6 @@ impl Value {
         }
     }
 
-
-    /// Creates a new `Value` whose data representation is a `MoltInt`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::Value;
-    ///
-    /// let value = Value::from_int(123);
-    /// assert_eq!(&*value.as_string(), "123");
-    /// ```
-    pub fn from_int(int: MoltInt) -> Value {
-        Value {
-            string_rep: RefCell::new(None),
-            data_rep: RefCell::new(Datum::Int(int)),
-        }
-    }
-
     /// Tries to return the `Value` as a `MoltInt`, parsing the
     /// value's string representation if necessary.
     ///
@@ -310,11 +400,11 @@ impl Value {
     /// use molt::types::ResultCode;
     /// # fn dummy() -> Result<MoltInt,ResultCode> {
     ///
-    /// let value = Value::from_int(123);
+    /// let value = Value::from(123);
     /// let int = value.as_int()?;
     /// assert_eq!(int, 123);
     ///
-    /// let value = Value::new("OxFF");
+    /// let value = Value::from("OxFF");
     /// let int = value.as_int()?;
     /// assert_eq!(int, 255);
     /// # Ok(1)
@@ -367,31 +457,6 @@ impl Value {
         }
     }
 
-    /// Creates a new `Value` whose data representation is a `MoltFloat`.
-    ///
-    /// # String Representation
-    ///
-    /// The string representation of the value will be however Rust's `format!` macro
-    /// formats floating point numbers by default.  **Note**: this isn't quite what we
-    /// want; Standard TCL goes to great lengths to ensure that the formatted string
-    /// will yield exactly the same floating point number when it is parsed.  Rust
-    /// will format the number `5.0` as `5`, turning it into a integer if parsed naively. So
-    /// there is more work to be done here.
-    /// # Example
-    ///
-    /// ```
-    /// use molt::Value;
-    ///
-    /// let value = Value::from_float(12.34);
-    /// assert_eq!(&*value.as_string(), "12.34");
-    /// ```
-    pub fn from_float(flt: MoltFloat) -> Value {
-        Value {
-            string_rep: RefCell::new(None),
-            data_rep: RefCell::new(Datum::Flt(flt)),
-        }
-    }
-
     /// Tries to return the `Value` as a `MoltFloat`, parsing the
     /// value's string representation if necessary.
     ///
@@ -407,11 +472,11 @@ impl Value {
     /// use molt::types::ResultCode;
     /// # fn dummy() -> Result<MoltFloat,ResultCode> {
     ///
-    /// let value = Value::from_float(12.34);
+    /// let value = Value::from(12.34);
     /// let flt = value.as_float()?;
     /// assert_eq!(flt, 12.34);
     ///
-    /// let value = Value::new("23.45");
+    /// let value = Value::from("23.45");
     /// let flt = value.as_float()?;
     /// assert_eq!(flt, 23.45);
     /// # Ok(1.0)
@@ -446,18 +511,6 @@ impl Value {
             Err(_) => {
                 molt_err!("expected floating-point number but got \"{}\"", str)
             }
-        }
-    }
-
-    /// Creates a new `Value` whose data representation is a `MoltList`.
-    ///
-    /// # Example
-    ///
-    /// TODO
-    pub fn from_list(list: MoltList) -> Value {
-        Value {
-            string_rep: RefCell::new(None),
-            data_rep: RefCell::new(Datum::List(Rc::new(list))),
         }
     }
 
@@ -691,17 +744,38 @@ mod tests {
     use std::str::FromStr;
 
     #[test]
-    fn to_string() {
-        let val = Value::from_string("abc".to_string());
-        assert_eq!(*val.to_string(), "abc".to_string());
+    fn from_string() {
+        // Using From<String>
+        let val = Value::from("xyz".to_string());
+        assert_eq!(&*val.to_string(), "xyz");
 
+        // Using Into
+        let val: Value = String::from("Fred").into();
+        assert_eq!(&*val.to_string(), "Fred");
+    }
+
+    #[test]
+    fn from_str_ref() {
+        // Using From<&str>
+        let val = Value::from("xyz");
+        assert_eq!(&*val.to_string(), "xyz");
+
+        // Using Into
+        let val: Value = "Fred".into();
+        assert_eq!(&*val.to_string(), "Fred");
+    }
+
+    #[test]
+    fn clone_string() {
+        // Values with just string reps can be cloned and have equal string reps.
+        let val = Value::from("abc");
         let val2 = val.clone();
         assert_eq!(*val.to_string(), *val2.to_string());
     }
 
     #[test]
     fn as_string() {
-        let val = Value::from_string("abc".to_string());
+        let val = Value::from("abc");
         assert_eq!(*val.as_string(), "abc".to_string());
 
         let val2 = val.clone();
@@ -710,28 +784,34 @@ mod tests {
 
     #[test]
     fn compare() {
-        let val = Value::new("123");
-        let val2 = Value::from_int(123);
-        let val3 = Value::from_int(456);
+        let val = Value::from("123");
+        let val2 = Value::from(123);
+        let val3 = Value::from(456);
 
         assert_eq!(val, val2);
         assert_ne!(val, val3);
     }
 
     #[test]
-    fn from_as_bool() {
-        let val = Value::from_bool(true);
-        assert_eq!(*val.to_string(), "1".to_string());
+    fn from_bool() {
+        // Using From<bool>
+        let val = Value::from(true);
+        assert_eq!(&*val.to_string(), "1");
 
-        let val = Value::from_bool(false);
-        assert_eq!(*val.to_string(), "0".to_string());
+        let val = Value::from(false);
+        assert_eq!(&*val.to_string(), "0");
+    }
 
-        let val = Value::from_string("true".to_string());
+    #[test]
+    fn as_bool() {
+        // Can convert string to bool.
+        let val = Value::from("true");
         assert_eq!(val.as_bool(), Ok(true));
     }
 
     #[test]
     fn parse_bool() {
+        // Test the underlying boolean value parser.
         assert_eq!(Ok(true), Value::parse_bool("1"));
         assert_eq!(Ok(true), Value::parse_bool("true"));
         assert_eq!(Ok(true), Value::parse_bool("yes"));
@@ -752,31 +832,31 @@ mod tests {
 
     #[test]
     fn from_as_int() {
-        let val = Value::from_int(5);
-        assert_eq!(*val.to_string(), "5".to_string());
+        let val = Value::from(5);
+        assert_eq!(&*val.as_string(), "5");
         assert_eq!(val.as_int(), Ok(5));
         assert_eq!(val.as_float(), Ok(5.0));
 
-        let val = Value::from_string("7".to_string());
-        assert_eq!(*val.to_string(), "7".to_string());
+        let val = Value::from("7");
+        assert_eq!(&*val.as_string(), "7");
         assert_eq!(val.as_int(), Ok(7));
         assert_eq!(val.as_float(), Ok(7.0));
 
         // TODO: Note, 7.0 might not get converted to "7" long term.
         // In Standard TCL, its string_rep would be "7.0".  Need to address
         // MoltFloat formatting/parsing.
-        let val = Value::from_float(7.0);
-        assert_eq!(*val.to_string(), "7".to_string());
+        let val = Value::from(7.0);
+        assert_eq!(&*val.as_string(), "7");
         assert_eq!(val.as_int(), Ok(7));
         assert_eq!(val.as_float(), Ok(7.0));
 
-        let val = Value::from_string("abc".to_string());
-        // assert_eq!(val.as_int(), Err("Not an integer".to_string()));
+        let val = Value::from("abc");
         assert_eq!(val.as_int(), molt_err!("expected integer but got \"abc\""));
     }
 
     #[test]
     fn parse_int() {
+        // Test the internal integer parser
         assert_eq!(Value::parse_int("1"), Ok(1));
         assert_eq!(Value::parse_int("-1"), Ok(-1));
         assert_eq!(Value::parse_int("+1"), Ok(1));
@@ -793,22 +873,20 @@ mod tests {
 
     #[test]
     fn from_as_float() {
-        let val = Value::from_float(12.5);
-        assert_eq!(*val.to_string(), "12.5".to_string());
+        let val = Value::from(12.5);
+        assert_eq!(&*val.as_string(), "12.5");
         assert_eq!(val.as_int(), molt_err!("expected integer but got \"12.5\""));
-        // assert_eq!(val.as_int(), Err("Not an integer".to_string()));
         assert_eq!(val.as_float(), Ok(12.5));
 
-        let val = Value::from_string("7.8".to_string());
-        assert_eq!(*val.to_string(), "7.8".to_string());
+        let val = Value::from("7.8");
+        assert_eq!(&*val.as_string(), "7.8");
         assert_eq!(val.as_int(), molt_err!("expected integer but got \"7.8\""));
-        // assert_eq!(val.as_int(), Err("Not an integer".to_string()));
         assert_eq!(val.as_float(), Ok(7.8));
 
-        let val = Value::from_int(5);
+        let val = Value::from(5);
         assert_eq!(val.as_float(), Ok(5.0));
 
-        let val = Value::from_string("abc".to_string());
+        let val = Value::from("abc");
         assert_eq!(val.as_float(),
             molt_err!("expected floating-point number but got \"abc\""));
     }
@@ -818,10 +896,10 @@ mod tests {
         // NOTE: we aren't testing list formatting and parsing here; that's done in list.rs.
         // We *are* testing that Value will use the list.rs code to convert strings to lists
         // and back again.
-        let listval = Value::from_list(vec![Value::new("abc"), Value::new("def")]);
-        assert_eq!(*listval.as_string(), "abc def".to_string());
+        let listval = Value::from(vec![Value::from("abc"), Value::from("def")]);
+        assert_eq!(&*listval.as_string(), "abc def");
 
-        let listval = Value::from_string("qrs xyz".to_string());
+        let listval = Value::from("qrs xyz");
         let result = listval.as_list();
 
         assert!(result.is_ok());
@@ -843,7 +921,7 @@ mod tests {
         assert_eq!(*out, Flavor::SALTY);
 
         // Give a String, get an Rc<Flavor> back.
-        let myval = Value::from_string("sweet".to_string());
+        let myval = Value::from("sweet");
         let result = myval.as_other::<Flavor>();
         assert!(result.is_some());
         let out = result.unwrap();

@@ -11,13 +11,13 @@
 #[macro_export]
 macro_rules! molt_ok {
     () => (
-        Ok(Value::new(""))
+        Ok(Value::empty())
     );
     ($arg:expr) => (
-        Ok(Value::from_string($arg.to_string()))
+        Ok(Value::from($arg))
     );
     ($($arg:tt)*) => (
-        Ok(Value::from_string(format!($($arg)*)))
+        Ok(Value::from(format!($($arg)*)))
     )
 }
 
@@ -26,9 +26,9 @@ macro_rules! molt_ok {
 #[macro_export]
 macro_rules! molt_err {
     ($arg:expr) => (
-        Err(ResultCode::Error(Value::from_string($arg.to_string())))
+        Err(ResultCode::Error(Value::from($arg)))
     );
     ($($arg:tt)*) => (
-        Err(ResultCode::Error(Value::from_string(format!($($arg)*))))
+        Err(ResultCode::Error(Value::from(format!($($arg)*))))
     )
 }

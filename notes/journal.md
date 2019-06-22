@@ -5,14 +5,19 @@ Things to remember to do soon:
 *   Implement Debug for Value.  Should output a pair, `Value[string_rep,data_rep]`, or
     something like that.
 *   There are a bunch of internal "parse_*" routines in interp.rs that
-    return `MoltResult` but should probably return `Result<String,ResultCode>`.
-*   MoltList should be a newtype with helper methods.
+    return `MoltResult` but should possibly return `Result<String,ResultCode>`.
+*   MoltList should maybe be a newtype with helper methods.
+
+### 2019-06-22 (Saturday)
+*   Began implementing From<T> for the Value input types.
+    *   String, &str, bool, int, float.
+    *   Works a treat; both `Value::from(x)` and `let val: Value = x.into()` work as expected.
 
 ### 2019-06-19 (Wednesday)
 *   Finished updating the molt:: code so it compiles.
+    *   Bodies of many commands are compiled out at present.
 *   One test failure, interp::tests::test_recursion_limit, because the "proc" command is
     currently FUBAR.
-
 
 ### 2019-06-18 (Tuesday)
 *   Converted scope.rs to use MoltValue.

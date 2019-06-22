@@ -93,7 +93,7 @@ pub fn cmd_catch(interp: &mut Interp, argv: &[&str]) -> MoltResult {
         interp.set_var(argv[2], &value);
     }
 
-    Ok(Value::from_int(code))
+    Ok(Value::from(code))
 }
 
 /// # continue
@@ -577,7 +577,7 @@ pub fn cmd_return(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
         argv[1]
     };
 
-    Err(ResultCode::Return(Value::new(value)))
+    Err(ResultCode::Return(Value::from(value)))
 }
 
 /// # set *varName* ?*newValue*?

@@ -11,7 +11,8 @@ use std::fs;
 
 /// # append *varName* ?*value* ...?
 ///
-/// See molt-book for semantics.
+/// Appends one or more strings to a variable.
+/// See molt-book for full semantics.
 pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 0, "varName ?value value ...?")?;
 
@@ -40,8 +41,8 @@ pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
 /// assert_eq received, expected
 ///
-/// Returns an error if received doesn't equal the expected value.
-/// Primarily for use in examples.
+/// Asserts that two values have identical string representations.
+/// See molt-book for full semantics.
 pub fn cmd_assert_eq(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 3, 3, "received expected")?;
 
@@ -54,9 +55,10 @@ pub fn cmd_assert_eq(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
 /// # break
 ///
-/// Terminates the inmost loop.
-pub fn cmd_break(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 1, 1, "")?;
+/// Breaks a loops.
+/// See molt-book for full semantics.
+pub fn cmd_break(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 1, 1, "")?;
 
     Err(ResultCode::Break)
 }
@@ -66,25 +68,25 @@ pub fn cmd_break(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
 /// Executes a script, returning the result code.  If the resultVarName is given, the result
 /// of executing the script is returned in it.  The result code is returned as an integer,
 /// 0=Ok, 1=Error, 2=Return, 3=Break, 4=Continue.
-pub fn cmd_catch(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 2, 3, "script ?resultVarName")?;
+pub fn cmd_catch(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 3, "script ?resultVarName")?;
 
-    let result = interp.eval_body(argv[1]);
+    let result = interp.eval_body(&*argv[1].as_string());
     let code: MoltInt;
-    let mut value = String::new();
+    let mut value = Value::empty();
 
     match result {
         Ok(val) => {
             code = 0;
-            value = val.to_string();
+            value = val;
         }
         Err(ResultCode::Error(val)) => {
             code = 1;
-            value = val.to_string();
+            value = val;
         }
         Err(ResultCode::Return(val)) => {
             code = 2;
-            value = val.to_string();
+            value = val;
         }
         Err(ResultCode::Break) => {
             code = 3;
@@ -95,7 +97,7 @@ pub fn cmd_catch(interp: &mut Interp, argv: &[&str]) -> MoltResult {
     }
 
     if argv.len() == 3 {
-        interp.set_var(argv[2], &value);
+        interp.set_var2(&*argv[2].as_string(), value);
     }
 
     Ok(Value::from(code))

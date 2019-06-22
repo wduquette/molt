@@ -239,13 +239,14 @@ pub fn cmd_foreach(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 ///
 /// Appends any number of values to a variable's value, which need not
 /// initially exist.
-pub fn cmd_global(interp: &mut Interp, argv: &[&str]) -> MoltResult {
+pub fn cmd_global(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     // Accepts any number of arguments
 
     // FIRST, if we're at the global scope this is a no-op.
     if interp.scope_level() > 0 {
         for name in &argv[1..] {
-            interp.upvar(0, name);
+            // TODO: Should upvar take the name as a Value?
+            interp.upvar(0, &*name.as_string());
         }
     }
     molt_ok!()
@@ -352,25 +353,25 @@ pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> MoltResult {
 /// # incr *varName* ?*increment* ...?
 ///
 /// Increments an integer variable by a value.
-pub fn cmd_incr(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 2, 3, "varName ?increment?")?;
+pub fn cmd_incr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 3, "varName ?increment?")?;
 
     let increment: MoltInt = if argv.len() == 3 {
-        interp.get_int(argv[2])?
+        argv[2].as_int()?
     } else {
         1
     };
 
-    let var_value = interp.var(argv[1]);
+    let var_name = &*argv[1].as_string();
+    let var_value = interp.var(var_name);
 
-    let new_value = (if var_value.is_ok() {
+    let new_value = if var_value.is_ok() {
         var_value.unwrap().as_int()? + increment
     } else {
         increment
-    }).to_string();
+    };
 
-    interp.set_var(argv[1], &new_value);
-    molt_ok!("{}", new_value)
+    molt_ok!(interp.set_var2(var_name, new_value.into()))
 }
 
 

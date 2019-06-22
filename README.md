@@ -39,13 +39,18 @@ $ cargo run test test/all.tcl
     *   Or at least gets its inputs from and writes its output to MoltValues.
     *   Ponder the MoltList API, and consider how to make it cleaner
         *   list! macro to build lists from things that implement `Into<Value>`?
-    *   Consider whether to replace MoltValue's two RefCell's with one.
+    *   Consider whether to replace Value's two RefCell's with one.
+    *   Consider whether var names should be stored as Values.
+    *   Consider whether molt::MoltFloat, molt::MoltInt, and molt::MoltList should be
+        molt::Float, molt::Int, and molt::List.
 * Issues from wduquette/molt.
   * #15: molt_shell::repl should support continuation lines
   * #17: molt_shell should document how to write app code.
 * Add complete tests for the existing Tcl commands.
     * "catch"
     * "foreach"
+    * "global"
+    * "incr"
     * "list"
     * Test expression parser thoroughly
       * Add tests for "eq", "ne", "in", "ni"

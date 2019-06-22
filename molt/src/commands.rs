@@ -11,26 +11,31 @@ use std::fs;
 
 /// # append *varName* ?*value* ...?
 ///
-/// Appends any number of values to a variable's value, which need not
-/// initially exist.
-pub fn cmd_append(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 2, 0, "varName ?value value ...?")?;
+/// See molt-book for semantics.
+pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 0, "varName ?value value ...?")?;
 
-    let var_result = interp.var(argv[1]);
+    // FIRST, get the value of the variable.  If the variable is undefined,
+    // start with the empty string.
 
-    let mut new_value = if var_result.is_ok() {
+    // TODO: Can we make this conversion simpler, but still as efficient?
+    let var_name = &*argv[1].as_string();
+    let var_result = interp.var(var_name);
+
+    let mut new_string = if var_result.is_ok() {
+        // Use to_string() because we need a mutable owned string.
         var_result.unwrap().to_string()
     } else {
         String::new()
     };
 
-    for value in &argv[2..] {
-        new_value.push_str(value);
+    // NEXT, append the remaining values to the string.
+    for item in &argv[2..] {
+        new_string.push_str(&*item.as_string());
     }
 
-    interp.set_var(argv[1], &new_value);
-
-    molt_ok!("{}", new_value)
+    // NEXT, save and return the new value.
+    molt_ok!(interp.set_var2(var_name, new_string.into()))
 }
 
 /// assert_eq received, expected

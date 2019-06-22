@@ -74,11 +74,12 @@ impl Interp {
 
     /// Creates a new Molt interpreter, pre-populated with the standard Molt commands.
     /// Use `info commands` to retrieve the full list.
-    /// TODO: Define command sets
+    /// TODO: Define command sets (sets of commands that go together, so that clients can
+    /// add or remove them in groups).
     pub fn new() -> Self {
         let mut interp = Interp::empty();
 
-        interp.add_str_command("append", commands::cmd_append);
+        interp.add_command("append", commands::cmd_append);
         interp.add_str_command("assert_eq", commands::cmd_assert_eq);
         interp.add_str_command("break", commands::cmd_break);
         interp.add_str_command("catch", commands::cmd_catch);
@@ -367,6 +368,16 @@ impl Interp {
     pub fn set_var(&mut self, name: &str, value: &str) {
         // TODO: Temporary fix while integrating MoltValue.
         self.scopes.set(name, Value::from(value));
+    }
+
+    /// Sets the value of the named variable in the current scope, creating the variable
+    /// if necessary.
+    ///
+    /// TODO: Ultimately, this should replace set_var.
+    pub fn set_var2(&mut self, name: &str, value: Value) -> Value {
+        self.scopes.set(name, value.clone());
+
+        value
     }
 
     /// Unsets the value of the named variable in the current scope

@@ -103,13 +103,13 @@ impl ResultCode {
 /// A trait defining a Molt command object: a struct that implements a command (and may also
 /// have context data).
 ///
-/// A simple command should be defined as a [`CommandFunc`]; define a full-fledged `Command`
+/// A simple command should be defined as a [`CommandStrFunc`]; define a full-fledged `Command`
 /// struct when the command needs access to context data other than that provided by the
 /// the interpreter itself.  For example, application-specific commands will often need
 /// access to application data, which can be provided as attributes of the `Command`
 /// struct.
 ///
-/// [`CommandFunc`]: type.CommandFunc.html
+/// [`CommandStrFunc`]: type.CommandStrFunc.html
 pub trait Command {
     /// The `Command`'s execution method: the Molt interpreter calls this method  to
     /// execute the command.  The method receives the object itself, the interpreter,
@@ -125,18 +125,18 @@ pub trait Command {
 /// command and its arguments.
 ///
 /// [`Interp`]: ../interp/struct.Interp.html
-pub type CommandFunc = fn(&mut Interp, &[&str]) -> MoltResult;
+pub type CommandStrFunc = fn(&mut Interp, &[&str]) -> MoltResult;
 
 /// Used for defining subcommands of ensemble commands.
 ///
-/// The tuple fields are the subcommand's name and [`CommandFunc`].
+/// The tuple fields are the subcommand's name and [`CommandStrFunc`].
 ///
 /// **Note:** This interface isn't yet stable; we may want to support
-/// [`Command`] instead of [`CommandFunc`].
+/// [`Command`] instead of [`CommandStrFunc`].
 ///
 /// [`Command`]: trait.Command.html
-/// [`CommandFunc`]: type.CommandFunc.html
-pub struct Subcommand(pub &'static str, pub CommandFunc);
+/// [`CommandStrFunc`]: type.CommandStrFunc.html
+pub struct Subcommand(pub &'static str, pub CommandStrFunc);
 
 impl Subcommand {
     /// Looks up a subcommand of an ensemble command by name in a table,

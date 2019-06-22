@@ -11,7 +11,7 @@ use crate::molt_ok;
 use crate::molt_err;
 use crate::scope::ScopeStack;
 use crate::types::Command;
-use crate::types::CommandFunc;
+use crate::types::CommandStrFunc;
 use crate::types::*;
 use crate::value::Value;
 use std::collections::HashMap;
@@ -78,33 +78,33 @@ impl Interp {
     pub fn new() -> Self {
         let mut interp = Interp::empty();
 
-        interp.add_command("append", commands::cmd_append);
-        interp.add_command("assert_eq", commands::cmd_assert_eq);
-        interp.add_command("break", commands::cmd_break);
-        interp.add_command("catch", commands::cmd_catch);
-        interp.add_command("continue", commands::cmd_continue);
-        interp.add_command("error", commands::cmd_error);
-        interp.add_command("exit", commands::cmd_exit);
-        interp.add_command("expr", commands::cmd_expr);
-        interp.add_command("for", commands::cmd_for);
-        interp.add_command("foreach", commands::cmd_foreach);
-        interp.add_command("global", commands::cmd_global);
-        interp.add_command("if", commands::cmd_if);
-        interp.add_command("incr", commands::cmd_incr);
-        interp.add_command("info", commands::cmd_info);
-        interp.add_command("join", commands::cmd_join);
-        interp.add_command("lappend", commands::cmd_lappend);
-        interp.add_command("lindex", commands::cmd_lindex);
-        interp.add_command("list", commands::cmd_list);
-        interp.add_command("llength", commands::cmd_llength);
-        interp.add_command("proc", commands::cmd_proc);
-        interp.add_command("puts", commands::cmd_puts);
-        interp.add_command("rename", commands::cmd_rename);
-        interp.add_command("return", commands::cmd_return);
-        interp.add_command("source", commands::cmd_source);
-        interp.add_command("set", commands::cmd_set);
-        interp.add_command("unset", commands::cmd_unset);
-        interp.add_command("while", commands::cmd_while);
+        interp.add_str_command("append", commands::cmd_append);
+        interp.add_str_command("assert_eq", commands::cmd_assert_eq);
+        interp.add_str_command("break", commands::cmd_break);
+        interp.add_str_command("catch", commands::cmd_catch);
+        interp.add_str_command("continue", commands::cmd_continue);
+        interp.add_str_command("error", commands::cmd_error);
+        interp.add_str_command("exit", commands::cmd_exit);
+        interp.add_str_command("expr", commands::cmd_expr);
+        interp.add_str_command("for", commands::cmd_for);
+        interp.add_str_command("foreach", commands::cmd_foreach);
+        interp.add_str_command("global", commands::cmd_global);
+        interp.add_str_command("if", commands::cmd_if);
+        interp.add_str_command("incr", commands::cmd_incr);
+        interp.add_str_command("info", commands::cmd_info);
+        interp.add_str_command("join", commands::cmd_join);
+        interp.add_str_command("lappend", commands::cmd_lappend);
+        interp.add_str_command("lindex", commands::cmd_lindex);
+        interp.add_str_command("list", commands::cmd_list);
+        interp.add_str_command("llength", commands::cmd_llength);
+        interp.add_str_command("proc", commands::cmd_proc);
+        interp.add_str_command("puts", commands::cmd_puts);
+        interp.add_str_command("rename", commands::cmd_rename);
+        interp.add_str_command("return", commands::cmd_return);
+        interp.add_str_command("source", commands::cmd_source);
+        interp.add_str_command("set", commands::cmd_set);
+        interp.add_str_command("unset", commands::cmd_unset);
+        interp.add_str_command("while", commands::cmd_while);
         interp
     }
 
@@ -141,13 +141,13 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Command Definition and Handling
 
-    /// Adds a command defined by a `CommandFunc` to the interpreter.
+    /// Adds a command defined by a `CommandStrFunc` to the interpreter.
     ///
     /// This is the normal way to add commands to
     /// the interpreter.  If the command requires context other than the interpreter itself,
     /// define a struct that implements `Command` and use `add_command_object`.
-    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
-        let command = Rc::new(CommandFuncWrapper::new(func));
+    pub fn add_str_command(&mut self, name: &str, func: CommandStrFunc) {
+        let command = Rc::new(CommandStrFuncWrapper::new(func));
         self.add_command_object(name, command);
     }
 
@@ -762,17 +762,17 @@ impl Interp {
 }
 
 /// A struct that wraps a command function and implements the Command trait.
-struct CommandFuncWrapper {
-    func: CommandFunc,
+struct CommandStrFuncWrapper {
+    func: CommandStrFunc,
 }
 
-impl CommandFuncWrapper {
-    fn new(func: CommandFunc) -> Self {
+impl CommandStrFuncWrapper {
+    fn new(func: CommandStrFunc) -> Self {
         Self { func }
     }
 }
 
-impl Command for CommandFuncWrapper {
+impl Command for CommandStrFuncWrapper {
     fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
         (self.func)(interp, argv)
     }

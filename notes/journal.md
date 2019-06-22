@@ -2,11 +2,19 @@
 
 Things to remember to do soon:
 
+*   Consider implementing `TryInto<T>` for the standard data reps.
+    *   Can't implement `TryFrom<T>` because I don't own the data reps.  If I define
+        MoltList as a newtype, I could define `TryFrom<Value>` for MoltList.
 *   Implement Debug for Value.  Should output a pair, `Value[string_rep,data_rep]`, or
     something like that.
+    *   The derived Debug displays everything, but reveals internals.
+    *   Non-trivial: both string_reps and data_reps can be quite large.  Need to ponder
+        just what I want.  The above suggests one line, which isn't it.
 *   There are a bunch of internal "parse_*" routines in interp.rs that
     return `MoltResult` but should possibly return `Result<String,ResultCode>`.
 *   MoltList should maybe be a newtype with helper methods.
+    *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
+        e.g., `From<&Vec<Value>>`
 
 ### 2019-06-22 (Saturday)
 *   Implemented From<T> for the standard Value data representations.
@@ -22,6 +30,9 @@ Things to remember to do soon:
     *   Added `Value::empty()`, which is equivalent to `Value::from("")`.
         *   Could possibly make it a constant?
     *   Removed `Value::new` and all of the `Value::from_*` functions.
+*   Next: redefine CommandFunc to take `&[Value]` instead of `&[&str]`.
+    *   But first replace CommandFunc with CommandStrFunc.
+    
 
 ### 2019-06-19 (Wednesday)
 *   Finished updating the molt:: code so it compiles.

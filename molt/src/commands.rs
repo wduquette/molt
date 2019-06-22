@@ -202,22 +202,22 @@ pub fn cmd_for(interp: &mut Interp, argv: &[&str]) -> MoltResult {
 /// ## TCL Liens
 ///
 /// * In Standard TCL, `foreach` can loop over several lists at the same time.
-pub fn cmd_foreach(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 4, 4, "varList list body")?;
+pub fn cmd_foreach(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 4, 4, "varList list body")?;
 
-    let var_list = interp.get_list(argv[1])?;
-    let list = interp.get_list(argv[2])?;
-    let body = argv[3];
+    let var_list = &*argv[1].as_list()?;
+    let list = &*argv[2].as_list()?;
+    let body = &*argv[3].as_string();
 
     let mut i = 0;
 
     while i < list.len() {
-        for var_name in &var_list {
+        for var_name in var_list {
             if i < list.len() {
-                interp.set_var(&*var_name.as_string(), &list[i].as_string());
+                interp.set_var2(&*var_name.as_string(), list[i].clone());
                 i += 1;
             } else {
-                interp.set_var(&*var_name.as_string(), "");
+                interp.set_var2(&*var_name.as_string(), Value::empty());
             }
         }
 

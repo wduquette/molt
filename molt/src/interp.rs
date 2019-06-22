@@ -88,7 +88,7 @@ impl Interp {
         interp.add_command("exit", commands::cmd_exit);
         interp.add_str_command("expr", commands::cmd_expr);
         interp.add_str_command("for", commands::cmd_for);
-        interp.add_str_command("foreach", commands::cmd_foreach);
+        interp.add_command("foreach", commands::cmd_foreach);
         interp.add_str_command("global", commands::cmd_global);
         interp.add_str_command("if", commands::cmd_if);
         interp.add_str_command("incr", commands::cmd_incr);

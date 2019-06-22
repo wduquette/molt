@@ -45,6 +45,7 @@ $ cargo run test test/all.tcl
   * #17: molt_shell should document how to write app code.
 * Add complete tests for the existing Tcl commands.
     * "catch"
+    * "foreach"
     * "list"
     * Test expression parser thoroughly
       * Add tests for "eq", "ne", "in", "ni"

@@ -143,9 +143,9 @@ fn parse_bare_item(ctx: &mut Context) -> MoltResult {
 //--------------------------------------------------------------------------
 // List Formatting
 
-/// Converts a list, represented as a slice of &str, into a string, doing
+/// Converts a list, represented as a vector of `Value`s, into a string, doing
 /// all necessary quoting and escaping.
-pub fn list_to_string(list: &MoltList) -> String {
+pub fn list_to_string(list: &[Value]) -> String {
     let mut vec: Vec<String> = Vec::new();
 
     let mut hash = !list.is_empty() && list[0].as_string().starts_with('#');

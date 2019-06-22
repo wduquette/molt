@@ -96,7 +96,7 @@ impl Interp {
         interp.add_str_command("join", commands::cmd_join);
         interp.add_str_command("lappend", commands::cmd_lappend);
         interp.add_str_command("lindex", commands::cmd_lindex);
-        interp.add_str_command("list", commands::cmd_list);
+        interp.add_command("list", commands::cmd_list);
         interp.add_str_command("llength", commands::cmd_llength);
         interp.add_str_command("proc", commands::cmd_proc);
         interp.add_command("puts", commands::cmd_puts);
@@ -846,7 +846,7 @@ impl Command for CommandProc {
             // final arg spec in the list.
             if &*vec[0].as_string() == "args" && speci == self.args.len() - 1 {
                 let args = if argi < argv.len() {
-                    let lst = argv[argi..].iter().map(|s| Value::from(*s)).collect();
+                    let lst: MoltList = argv[argi..].iter().map(|s| Value::from(*s)).collect();
                     list_to_string(&lst)
                 } else {
                     "".into()

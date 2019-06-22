@@ -101,7 +101,7 @@ impl Interp {
         interp.add_str_command("proc", commands::cmd_proc);
         interp.add_command("puts", commands::cmd_puts);
         interp.add_str_command("rename", commands::cmd_rename);
-        interp.add_str_command("return", commands::cmd_return);
+        interp.add_command("return", commands::cmd_return);
         interp.add_str_command("source", commands::cmd_source);
         interp.add_str_command("set", commands::cmd_set);
         interp.add_str_command("unset", commands::cmd_unset);

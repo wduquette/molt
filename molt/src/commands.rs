@@ -576,16 +576,16 @@ pub fn cmd_rename(interp: &mut Interp, argv: &[&str]) -> MoltResult {
 /// ## TCL Liens
 ///
 /// * Doesn't support all of TCL's fancy return machinery.
-pub fn cmd_return(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 1, 2, "?value?")?;
+pub fn cmd_return(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 1, 2, "?value?")?;
 
     let value = if argv.len() == 1 {
-        ""
+        Value::empty()
     } else {
-        argv[1]
+        argv[1].clone()
     };
 
-    Err(ResultCode::Return(Value::from(value)))
+    Err(ResultCode::Return(value))
 }
 
 /// # set *varName* ?*newValue*?

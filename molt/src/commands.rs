@@ -415,20 +415,22 @@ pub fn cmd_info_vars(interp: &mut Interp, _argv: &[&str]) -> MoltResult {
 /// # join *list* ?*joinString*?
 ///
 /// Joins the elements of a list with a string.  The join string defaults to " ".
-pub fn cmd_join(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 2, 3, "list ?joinString?")?;
+pub fn cmd_join(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 3, "list ?joinString?")?;
 
-    molt_err!("FUBAR")
-    //
-    // let list = interp.get_list(argv[1])?;
-    //
-    // let join_string = if argv.len() == 3 {
-    //     argv[2]
-    // } else {
-    //     " "
-    // };
-    //
-    // molt_ok!(list.join(join_string))
+
+    let list = &argv[1].as_list()?;
+
+    let join_string = if argv.len() == 3 {
+        argv[2].to_string()
+    } else {
+        " ".to_string()
+    };
+
+    // TODO: Need to implement a standard join() method for MoltLists.
+    let list: Vec<String> = list.iter().map(|v| v.to_string()).collect();
+
+    molt_ok!(list.join(&join_string))
 }
 
 /// # lappend *varName* ?*value* ...?

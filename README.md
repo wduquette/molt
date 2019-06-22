@@ -51,6 +51,7 @@ $ cargo run test test/all.tcl
     * "foreach"
     * "global"
     * "incr"
+    * "join"
     * "list"
     * Test expression parser thoroughly
       * Add tests for "eq", "ne", "in", "ni"

@@ -627,10 +627,10 @@ pub fn cmd_source(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 ///
 /// Removes the variable from the interpreter.  This is a no op if
 /// there is no such variable.
-pub fn cmd_unset(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 2, 2, "varName")?;
+pub fn cmd_unset(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 2, "varName")?;
 
-    interp.unset_var(argv[1]);
+    interp.unset_var(&*argv[1].as_string());
 
     molt_ok!()
 }

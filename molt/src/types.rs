@@ -103,13 +103,15 @@ impl ResultCode {
 /// A trait defining a Molt command object: a struct that implements a command (and may also
 /// have context data).
 ///
-/// A simple command should be defined as a [`CommandStrFunc`]; define a full-fledged `Command`
+/// A simple command should be defined as a [`CommandFunc`]; define a full-fledged `Command`
 /// struct when the command needs access to context data other than that provided by the
 /// the interpreter itself.  For example, application-specific commands will often need
 /// access to application data, which can be provided as attributes of the `Command`
 /// struct.
 ///
-/// [`CommandStrFunc`]: type.CommandStrFunc.html
+/// TODO: Revise this so that `argv: &[Value]`.
+///
+/// [`CommandFunc`]: type.CommandFunc.html
 pub trait Command {
     /// The `Command`'s execution method: the Molt interpreter calls this method  to
     /// execute the command.  The method receives the object itself, the interpreter,
@@ -117,6 +119,14 @@ pub trait Command {
     fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult;
 }
 
+/// A simple command function, used to implement a command without any attached
+/// context data (other than the [`Interp`] itself).
+///
+/// The command function receives the interpreter and an array representing the
+/// command and its arguments.
+///
+/// [`Interp`]: ../interp/struct.Interp.html
+pub type CommandFunc = fn(&mut Interp, &[Value]) -> MoltResult;
 
 /// A simple command function, used to implement a command without any attached
 /// context data (other than the [`Interp`] itself).
@@ -131,8 +141,8 @@ pub type CommandStrFunc = fn(&mut Interp, &[&str]) -> MoltResult;
 ///
 /// The tuple fields are the subcommand's name and [`CommandStrFunc`].
 ///
-/// **Note:** This interface isn't yet stable; we may want to support
-/// [`Command`] instead of [`CommandStrFunc`].
+/// TODO: This interface isn't yet stable; we don't want to support `CommandStrFunc`
+/// and might want to support [`Command`] instead of [`CommandFunc`].
 ///
 /// [`Command`]: trait.Command.html
 /// [`CommandStrFunc`]: type.CommandStrFunc.html

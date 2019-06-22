@@ -151,6 +151,16 @@ impl Interp {
         self.add_command_object(name, command);
     }
 
+    /// Adds a command defined by a `CommandFunc` to the interpreter.
+    ///
+    /// This is the normal way to add commands to
+    /// the interpreter.  If the command requires context other than the interpreter itself,
+    /// define a struct that implements `Command` and use `add_command_object`.
+    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
+        let command = Rc::new(CommandFuncWrapper::new(func));
+        self.add_command_object(name, command);
+    }
+
     /// Adds a procedure to the interpreter.
     ///
     /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
@@ -761,7 +771,7 @@ impl Interp {
     }
 }
 
-/// A struct that wraps a command function and implements the Command trait.
+/// A struct that wraps a CommandStrFunc function and implements the Command trait.
 struct CommandStrFuncWrapper {
     func: CommandStrFunc,
 }
@@ -775,6 +785,25 @@ impl CommandStrFuncWrapper {
 impl Command for CommandStrFuncWrapper {
     fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
         (self.func)(interp, argv)
+    }
+}
+
+/// A struct that wraps a CommandFunc and implements the Command trait.
+struct CommandFuncWrapper {
+    func: CommandFunc,
+}
+
+impl CommandFuncWrapper {
+    fn new(func: CommandFunc) -> Self {
+        Self { func }
+    }
+}
+
+impl Command for CommandFuncWrapper {
+    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
+        // TODO: When Command switches to `argv: &[Value]` this won't be needed.
+        let argv: MoltList = argv.iter().map(|s| Value::from(*s)).collect();
+        (self.func)(interp, &argv)
     }
 }
 

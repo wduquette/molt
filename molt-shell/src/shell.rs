@@ -1,5 +1,7 @@
 use molt::Interp;
 use molt::ResultCode;
+use molt::Value;
+use molt::MoltList;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::fs;
@@ -24,7 +26,7 @@ pub fn repl(interp: &mut Interp, prompt: &str) {
                             rl.add_history_entry(line);
 
                             // Don't output empty values.
-                            if !value.is_empty() {
+                            if !value.as_string().is_empty() {
                                 println!("{}", value);
                             }
                         }
@@ -89,7 +91,10 @@ pub fn script(interp: &mut Interp, args: &[String]) {
 /// * The Molt variable `arg0` will be set to the `arg0` value.
 /// * The Molt variable `argv` will be set to the `argv` array as a Molt list.
 fn execute_script(interp: &mut Interp, script: String, arg0: &str, argv: &[String]) {
-    let argv = molt::list_to_string(argv);
+    // TODO: Quick stopgap.  But really we want to save the argv as a MoltList.
+    // It probably would work right now, actually.
+    let argv: MoltList = argv.iter().map(Value::from).collect();
+    let argv = molt::list_to_string(&argv);
 
     interp.set_var("arg0", arg0);
     interp.set_var("argv", &argv);

@@ -9,7 +9,7 @@ fn main() {
     // NEXT, create and initialize the interpreter.
     let mut interp = Interp::new();
 
-    interp.add_command("doit", cmd_doit);
+    interp.add_str_command("doit", cmd_doit);
 
     // NEXT, if there's at least one then it's a subcommand.
     if args.len() > 1 {
@@ -40,7 +40,8 @@ fn main() {
 }
 
 fn cmd_doit(_interp: &mut Interp, _argv: &[&str]) -> MoltResult {
-    Ok(format!("max={}, min={}", std::i64::MAX, std::i64::MIN))
+    // TODO: Should use molt_ok!().
+    Ok(format!("max={}, min={}", std::i64::MAX, std::i64::MIN).into())
 }
 
 fn print_help() {

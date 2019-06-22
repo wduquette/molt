@@ -30,9 +30,18 @@ Things to remember to do soon:
     *   Added `Value::empty()`, which is equivalent to `Value::from("")`.
         *   Could possibly make it a constant?
     *   Removed `Value::new` and all of the `Value::from_*` functions.
-*   Next: redefine CommandFunc to take `&[Value]` instead of `&[&str]`.
-    *   But first replace CommandFunc with CommandStrFunc.
-    
+*   Next: revise the standard commands.
+    *   Make them take `argv: &[Value]` instead of `argv: &[&str]`.
+    *   Move CommandFunc to CommandStrFunc and check_args to check_str_args, and define
+        new versions that do the right thing.
+        *   That way we can revise the commands one by one.
+    *   Minimally update molt-shell and molt-app so that they can build, so that I can
+        use them and begin to run the test suite.
+    *   As part of this, continue to work the API.
+        *   Figure out the MoltList API
+        *   Maybe implement `TryInto<T>` for the standard data rep types.
+*   Implemented `puts` as a new-style CommandFunc, and it works.
+    *   Woohoo!
 
 ### 2019-06-19 (Wednesday)
 *   Finished updating the molt:: code so it compiles.

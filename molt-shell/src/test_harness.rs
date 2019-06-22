@@ -27,6 +27,7 @@ use molt::Interp;
 use molt::MoltResult;
 use molt::ResultCode;
 use molt::Command;
+use molt::Value;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::fs;
@@ -184,7 +185,7 @@ impl TestCommand {
     }
 
     fn fancy_test(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
-        molt::check_args(1, argv, 4, 0, "name description option value ?option value...?")?;
+        molt::check_str_args(1, argv, 4, 0, "name description option value ?option value...?")?;
 
         // FIRST, get the test context
         let mut ctx = self.ctx.borrow_mut();
@@ -235,7 +236,7 @@ impl TestCommand {
     }
 
     fn simple_test(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
-        molt::check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
+        molt::check_str_args(1, argv, 6, 6, "name description script -ok|-error result")?;
 
         // FIRST, get the test context
         let mut ctx = self.ctx.borrow_mut();
@@ -272,7 +273,7 @@ impl TestCommand {
 
         // Setup
         if let Err(ResultCode::Error(msg)) = interp.eval(&info.setup) {
-            info.print_helper_error("-setup", &msg);
+            info.print_helper_error("-setup", &msg.to_string());
         }
 
         // Body
@@ -280,7 +281,7 @@ impl TestCommand {
 
         // Cleanup
         if let Err(ResultCode::Error(msg)) = interp.eval(&info.cleanup) {
-            info.print_helper_error("-cleanup", &msg);
+            info.print_helper_error("-cleanup", &msg.to_string());
         }
 
         // NEXT, pop the scope.
@@ -289,22 +290,22 @@ impl TestCommand {
         match &result {
             Ok(out) => {
                 if info.code == Code::Ok {
-                    if *out == info.expect {
+                    if *out == Value::from(&info.expect) {
                         ctx.num_passed += 1;
                     } else {
                         ctx.num_failed += 1;
-                        info.print_failure("-ok", &out);
+                        info.print_failure("-ok", &out.to_string());
                     }
                     return;
                 }
             }
             Err(ResultCode::Error(out)) => {
                 if info.code == Code::Error {
-                    if *out == info.expect {
+                    if *out == Value::from(&info.expect) {
                         ctx.num_passed += 1;
                     } else {
                         ctx.num_failed += 1;
-                        info.print_failure("-error", &out);
+                        info.print_failure("-error", &out.to_string());
                     }
                     return;
                 }
@@ -319,7 +320,7 @@ impl TestCommand {
 impl Command for TestCommand {
     fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
         // FIRST, check the minimum command line.
-        molt::check_args(1, argv, 4, 0, "name description args...")?;
+        molt::check_str_args(1, argv, 4, 0, "name description args...")?;
 
         // NEXT, see which kind of command it is.
         if argv[3].starts_with('-') {

@@ -130,13 +130,13 @@ pub fn cmd_error(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 /// Terminates the application by calling `std::process::exit()`.
 /// If given, _returnCode_ must be an integer return code; if absent, it
 /// defaults to 0.
-pub fn cmd_exit(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 1, 2, "?returnCode?")?;
+pub fn cmd_exit(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 1, 2, "?returnCode?")?;
 
     let return_code: MoltInt = if argv.len() == 1 {
         0
     } else {
-        interp.get_int(argv[1])?
+        argv[1].as_int()?
     };
 
     std::process::exit(return_code as i32)

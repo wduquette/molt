@@ -85,7 +85,7 @@ impl Interp {
         interp.add_command("catch", commands::cmd_catch);
         interp.add_command("continue", commands::cmd_continue);
         interp.add_command("error", commands::cmd_error);
-        interp.add_str_command("exit", commands::cmd_exit);
+        interp.add_command("exit", commands::cmd_exit);
         interp.add_str_command("expr", commands::cmd_expr);
         interp.add_str_command("for", commands::cmd_for);
         interp.add_str_command("foreach", commands::cmd_foreach);

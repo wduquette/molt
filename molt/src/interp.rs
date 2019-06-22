@@ -103,7 +103,7 @@ impl Interp {
         interp.add_str_command("rename", commands::cmd_rename);
         interp.add_command("return", commands::cmd_return);
         interp.add_command("set", commands::cmd_set);
-        interp.add_str_command("source", commands::cmd_source);
+        interp.add_command("source", commands::cmd_source);
         interp.add_str_command("unset", commands::cmd_unset);
         interp.add_str_command("while", commands::cmd_while);
         interp

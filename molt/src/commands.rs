@@ -612,12 +612,14 @@ pub fn cmd_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 /// # source *filename*
 ///
 /// Sources the file, returning the result.
-pub fn cmd_source(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 2, 2, "filename")?;
+pub fn cmd_source(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 2, "filename")?;
 
-    match fs::read_to_string(argv[1]) {
+    let filename = &*argv[1].as_string();
+
+    match fs::read_to_string(filename) {
         Ok(script) => interp.eval(&script),
-        Err(e) => molt_err!("couldn't read file \"{}\": {}", argv[1], e),
+        Err(e) => molt_err!("couldn't read file \"{}\": {}", filename, e),
     }
 }
 

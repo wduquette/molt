@@ -494,13 +494,12 @@ pub fn cmd_list(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 /// # llength *list*
 ///
 /// Returns the length of the list.
-pub fn cmd_llength(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 2, 2, "list")?;
-    molt_err!("FUBAR")
-    //
+pub fn cmd_llength(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 2, "list")?;
+
     // let list = interp.get_list(argv[1])?;
-    //
-    // molt_ok!(list.len().to_string())
+
+    molt_ok!(Value::from(argv[1].as_list()?.len() as MoltInt))
 }
 
 pub fn cmd_proc(interp: &mut Interp, argv: &[&str]) -> MoltResult {

@@ -54,6 +54,8 @@ $ cargo run test test/all.tcl
     * "join"
     * "lindex"
     * "list"
+    * "llength"
+    * "set"
     * Test expression parser thoroughly
       * Add tests for "eq", "ne", "in", "ni"
       * Implement remaining math functions

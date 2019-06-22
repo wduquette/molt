@@ -597,19 +597,16 @@ pub fn cmd_return(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 /// ## TCL Liens
 ///
 /// * Does not support arrays
-pub fn cmd_set(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 2, 3, "varName ?newValue?")?;
+pub fn cmd_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 3, "varName ?newValue?")?;
 
-    let value;
+    let var_name = &*argv[1].as_string();
 
     if argv.len() == 3 {
-        value = argv[2].into();
-        interp.set_var(argv[1], argv[2]);
+        molt_ok!(interp.set_var2(var_name, argv[2].clone()))
     } else {
-        value = interp.var(argv[1])?.to_string();
+        molt_ok!(interp.var(var_name)?.clone())
     }
-
-    molt_ok!(value)
 }
 
 /// # source *filename*

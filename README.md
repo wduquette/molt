@@ -52,6 +52,7 @@ $ cargo run test test/all.tcl
     * "global"
     * "incr"
     * "join"
+    * "lindex"
     * "list"
     * Test expression parser thoroughly
       * Add tests for "eq", "ne", "in", "ni"

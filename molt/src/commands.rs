@@ -464,24 +464,23 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 /// # lindex *list* ?*index* ...?
 ///
 /// Returns an element from the list, indexing into nested lists.
-pub fn cmd_lindex(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 2, 0, "list ?index ...?")?;
-    molt_err!("FUBAR")
+pub fn cmd_lindex(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 0, "list ?index ...?")?;
 
-    // let mut value = argv[1].to_string();
-    //
-    // for index_string in &argv[2..] {
-    //     let list = interp.get_list(&value)?;
-    //     let index = interp.get_int(index_string)?;
-    //
-    //     value = if index < 0 || index as usize >= list.len() {
-    //         "".to_string()
-    //     }  else {
-    //         list[index as usize].to_string()
-    //     };
-    // }
-    //
-    // molt_ok!(value)
+    let mut value = argv[1].clone();
+
+    for index_val in &argv[2..] {
+        let list = value.as_list()?;
+        let index = index_val.as_int()?;
+
+        value = if index < 0 || index as usize >= list.len() {
+            Value::empty()
+        }  else {
+            list[index as usize].clone()
+        };
+    }
+
+    molt_ok!(value)
 }
 
 /// # list ?*arg*...?

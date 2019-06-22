@@ -33,6 +33,15 @@ $ cargo run test test/all.tcl
 
 *   Integrate the new Value type into Molt:
     *   Revise all commands to use `argv: &[Value]`
+        *   "proc"
+        *   "rename"
+        *   "expr"
+        *   "if"
+        *   "for"
+        *   "while"
+        *   Test harness commands
+    *   Revise Interp and Command to use `&[Value]`, and eliminate CommandStrFunc and
+        Interp::add_str_command and check_str_args
     *   Complete the Value doc comments.
     *   Revise `expr` to do its computations in terms of Values.
         *   As it turns out to be appropriate.
@@ -56,6 +65,7 @@ $ cargo run test test/all.tcl
     * "list"
     * "llength"
     * "set"
+    * "unset"
     * Test expression parser thoroughly
       * Add tests for "eq", "ne", "in", "ni"
       * Implement remaining math functions

@@ -42,6 +42,7 @@ Things to remember to do soon:
         *   Maybe implement `TryInto<T>` for the standard data rep types.
 *   Implemented `puts` as a new-style CommandFunc, and it works.
     *   Woohoo!
+*   Revised a bunch of other commands to be new-style commands.
 
 ### 2019-06-19 (Wednesday)
 *   Finished updating the molt:: code so it compiles.

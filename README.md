@@ -33,8 +33,6 @@ $ cargo run test test/all.tcl
 
 *   Integrate the new Value type into Molt:
     *   Revise all commands to use `argv: &[Value]`
-        *   "proc"
-        *   "rename"
         *   "expr"
         *   "if"
         *   "for"

@@ -275,25 +275,25 @@ impl Value {
         Value::from("")
     }
 
-    /// Creates a new `Value` from the given String.
-    ///
-    /// Prefer [`new`](#method.new) if you have a string slice
-    /// you'd otherwise have to create a new string from.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::Value;
-    /// let string = String::from("My New String");
-    /// let value = Value::from_string(string);
-    /// assert_eq!(&*value.as_string(), "My New String");
-    /// ```
-    pub fn from_string(str: String) -> Value {
-        Value {
-            string_rep: RefCell::new(Some(Rc::new(str))),
-            data_rep: RefCell::new(Datum::None),
-        }
-    }
+    // /// Creates a new `Value` from the given String.
+    // ///
+    // /// Prefer [`new`](#method.new) if you have a string slice
+    // /// you'd otherwise have to create a new string from.
+    // ///
+    // /// # Example
+    // ///
+    // /// ```
+    // /// use molt::Value;
+    // /// let string = String::from("My New String");
+    // /// let value = Value::from_string(string);
+    // /// assert_eq!(&*value.as_string(), "My New String");
+    // /// ```
+    // pub fn from_string(str: String) -> Value {
+    //     Value {
+    //         string_rep: RefCell::new(Some(Rc::new(str))),
+    //         data_rep: RefCell::new(Datum::None),
+    //     }
+    // }
 
     /// Returns the value's string representation as a reference-counted
     /// string.

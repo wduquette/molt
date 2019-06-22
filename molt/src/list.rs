@@ -137,7 +137,7 @@ fn parse_bare_item(ctx: &mut Context) -> MoltResult {
         }
     }
 
-    Ok(Value::from_string(subst_backslashes(&item)))
+    Ok(Value::from(subst_backslashes(&item)))
 }
 
 //--------------------------------------------------------------------------

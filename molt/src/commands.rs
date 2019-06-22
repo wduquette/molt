@@ -42,8 +42,8 @@ pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 ///
 /// Returns an error if received doesn't equal the expected value.
 /// Primarily for use in examples.
-pub fn cmd_assert_eq(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 3, 3, "received expected")?;
+pub fn cmd_assert_eq(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 3, 3, "received expected")?;
 
     if argv[1] == argv[2] {
         molt_ok!()

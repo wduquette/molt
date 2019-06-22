@@ -80,7 +80,7 @@ impl Interp {
         let mut interp = Interp::empty();
 
         interp.add_command("append", commands::cmd_append);
-        interp.add_str_command("assert_eq", commands::cmd_assert_eq);
+        interp.add_command("assert_eq", commands::cmd_assert_eq);
         interp.add_str_command("break", commands::cmd_break);
         interp.add_str_command("catch", commands::cmd_catch);
         interp.add_str_command("continue", commands::cmd_continue);

@@ -9,9 +9,19 @@ Things to remember to do soon:
 *   MoltList should maybe be a newtype with helper methods.
 
 ### 2019-06-22 (Saturday)
-*   Began implementing From<T> for the Value input types.
-    *   String, &str, bool, int, float.
+*   Implemented From<T> for the standard Value data representations.
+    *   String, &str, &String, bool, MoltInt, MoltFloat, MoltList.
     *   Works a treat; both `Value::from(x)` and `let val: Value = x.into()` work as expected.
+    *   `molt_ok!` and `molt_err!` now use `Value::from` instead of `Value::from_string`, and
+        so pass `Value` objects along unchanged.
+        *   Implementing `From<&String>` was necessary for this; somewhere I've got a
+            `molt_err!` that's passed a `&String`, and for some reason it isn't being treated
+            as a `&str`.
+        *   It appears that types implement `From<Self>` automatically, so I can also pass
+            `Value` objects to these macros.
+    *   Added `Value::empty()`, which is equivalent to `Value::from("")`.
+        *   Could possibly make it a constant?
+    *   Removed `Value::new` and all of the `Value::from_*` functions.
 
 ### 2019-06-19 (Wednesday)
 *   Finished updating the molt:: code so it compiles.

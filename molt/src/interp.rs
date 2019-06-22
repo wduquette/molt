@@ -32,12 +32,14 @@ use std::rc::Rc;
 ///
 /// ```
 /// # use molt::types::*;
-/// # use molt::interp::Interp;
+/// # use molt::Interp;
+/// # use molt::molt_ok;
+/// # use molt::Value;
 /// # fn dummy() -> MoltResult {
 /// let mut interp = Interp::new();
 /// let four = interp.eval("expr {2 + 2}")?;
-/// assert_eq!(four, "4");
-/// # Ok("".to_string())
+/// assert_eq!(four, Value::from(4));
+/// # molt_ok!()
 /// # }
 /// ```
 #[derive(Default)]
@@ -98,7 +100,7 @@ impl Interp {
         interp.add_command("lindex", commands::cmd_lindex);
         interp.add_command("list", commands::cmd_list);
         interp.add_command("llength", commands::cmd_llength);
-        interp.add_str_command("proc", commands::cmd_proc);
+        interp.add_command("proc", commands::cmd_proc);
         interp.add_command("puts", commands::cmd_puts);
         interp.add_str_command("rename", commands::cmd_rename);
         interp.add_command("return", commands::cmd_return);
@@ -166,9 +168,9 @@ impl Interp {
     ///
     /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
     /// as for the `proc` command and the `commands::cmd_proc` function.
-    pub fn add_proc(&mut self, name: &str, args: MoltList, body: &str) {
+    pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &str) {
         let command = Rc::new(CommandProc {
-            args,
+            args: args.to_owned(),
             body: body.to_string(),
         });
 
@@ -331,20 +333,8 @@ impl Interp {
     /// of whitespace-delimited items, with normal TCL quoting for items containing
     /// whitespace.
     ///
-    /// # Example
+    /// TODO: Code should be using `Value::as_list` instead. 
     ///
-    /// ```
-    /// # use molt::Interp;
-    /// # use molt::types::*;
-    /// # fn dummy() -> Result<MoltList,ResultCode> {
-    /// # let interp = Interp::new();
-    /// let arg = "a {b c} d";
-    /// let list = interp.get_list(arg)?;
-    /// assert_eq!(list.len(), 3);
-    /// assert_eq!(list[1], "b c".to_string());
-    /// # Ok(list)
-    /// # }
-    /// ```
     pub fn get_list(&self, str: &str) -> Result<MoltList, ResultCode> {
         crate::list::get_list(str)
     }

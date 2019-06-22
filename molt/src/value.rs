@@ -340,7 +340,7 @@ impl Value {
     /// use molt::Value;
     /// use molt::types::ResultCode;
     /// # fn dummy() -> Result<bool,ResultCode> {
-    /// let value = Value::from_bool(true);
+    /// let value = Value::from(true);
     /// let flag = value.as_bool()?;
     /// assert!(flag);
     ///

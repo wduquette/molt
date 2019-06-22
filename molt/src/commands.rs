@@ -502,30 +502,29 @@ pub fn cmd_llength(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     molt_ok!(Value::from(argv[1].as_list()?.len() as MoltInt))
 }
 
-pub fn cmd_proc(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 4, 4, "name args body")?;
-    molt_err!("FUBAR")
-    //
-    // // FIRST, get the arguments
-    // let name = argv[1];
-    // let args = interp.get_list(argv[2])?;
-    // let body = argv[3];
-    //
-    // // NEXT, validate the argument specs
-    // for arg in &args {
-    //     let vec = interp.get_list(&arg)?;
-    //
-    //     if vec.is_empty() {
-    //         return molt_err!("argument with no name");
-    //     } else if vec.len() > 2 {
-    //         return molt_err!("too many fields in argument specifier \"{}\"", arg);
-    //     }
-    // }
-    //
-    // // NEXT, add the command.
-    // interp.add_proc(name, args, body);
-    //
-    // molt_ok!()
+pub fn cmd_proc(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 4, 4, "name args body")?;
+
+    // FIRST, get the arguments
+    let name = &*argv[1].as_string();
+    let args = &*argv[2].as_list()?;
+    let body = &*argv[3].as_string();
+
+    // NEXT, validate the argument specs
+    for arg in args {
+        let vec = arg.as_list()?;
+
+        if vec.is_empty() {
+            return molt_err!("argument with no name");
+        } else if vec.len() > 2 {
+            return molt_err!("too many fields in argument specifier \"{}\"", arg);
+        }
+    }
+
+    // NEXT, add the command.
+    interp.add_proc(name, args, body);
+
+    molt_ok!()
 }
 
 /// # puts *string*

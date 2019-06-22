@@ -376,9 +376,9 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
 
 /// # info *subcommand* ?*arg*...?
-pub fn cmd_info(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
-    let subc = Subcommand::find(&INFO_SUBCOMMANDS, argv[1])?;
+pub fn cmd_info(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
+    let subc = Subcommand::find(&INFO_SUBCOMMANDS, &*argv[1].as_string())?;
 
     (subc.1)(interp, argv)
 }
@@ -390,26 +390,26 @@ const INFO_SUBCOMMANDS: [Subcommand; 3] = [
 ];
 
 /// # info commands ?*pattern*?
-pub fn cmd_info_commands(interp: &mut Interp, _argv: &[&str]) -> MoltResult {
-    molt_ok!("{}", list_to_string(&interp.command_names()))
+pub fn cmd_info_commands(interp: &mut Interp, _argv: &[Value]) -> MoltResult {
+    // TODO: Return the list
+    molt_ok!(Value::from(interp.command_names()))
 }
 
 /// # info complete *command*
-pub fn cmd_info_complete(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(2, argv, 3, 3, "command")?;
+pub fn cmd_info_complete(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "command")?;
 
-    // TODO: Add way of returning a boolean result.
-    if interp.complete(argv[2]) {
-        molt_ok!("1")
+    if interp.complete(&*argv[2].as_string()) {
+        molt_ok!(true)
     } else {
-        molt_ok!("0")
+        molt_ok!(false)
     }
 }
 
 /// # info vars ?*pattern*?
 /// TODO: Add glob matching as a feature, and provide optional pattern argument.
-pub fn cmd_info_vars(interp: &mut Interp, _argv: &[&str]) -> MoltResult {
-    molt_ok!(list_to_string(&interp.vars_in_scope()))
+pub fn cmd_info_vars(interp: &mut Interp, _argv: &[Value]) -> MoltResult {
+    molt_ok!(Value::from(interp.vars_in_scope()))
 }
 
 /// # join *list* ?*joinString*?

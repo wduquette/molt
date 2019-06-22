@@ -139,14 +139,14 @@ pub type CommandStrFunc = fn(&mut Interp, &[&str]) -> MoltResult;
 
 /// Used for defining subcommands of ensemble commands.
 ///
-/// The tuple fields are the subcommand's name and [`CommandStrFunc`].
+/// The tuple fields are the subcommand's name and [`CommandFunc`].
 ///
-/// TODO: This interface isn't yet stable; we don't want to support `CommandStrFunc`
-/// and might want to support [`Command`] instead of [`CommandFunc`].
+/// TODO: This interface isn't yet stable; we might want to support [`Command`]
+/// instead of [`CommandFunc`].
 ///
 /// [`Command`]: trait.Command.html
-/// [`CommandStrFunc`]: type.CommandStrFunc.html
-pub struct Subcommand(pub &'static str, pub CommandStrFunc);
+/// [`CommandFunc`]: type.CommandFunc.html
+pub struct Subcommand(pub &'static str, pub CommandFunc);
 
 impl Subcommand {
     /// Looks up a subcommand of an ensemble command by name in a table,

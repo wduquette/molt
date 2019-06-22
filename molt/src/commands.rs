@@ -119,10 +119,10 @@ pub fn cmd_continue(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 /// ## TCL Liens
 ///
 /// * In Standard TCL, `error` can optionally set the stack trace and an error code.
-pub fn cmd_error(_interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 2, 2, "message")?;
+pub fn cmd_error(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 2, "message")?;
 
-    molt_err!(argv[1])
+    molt_err!(argv[1].clone())
 }
 
 /// # exit ?*returnCode*?

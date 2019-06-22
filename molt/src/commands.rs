@@ -546,12 +546,12 @@ pub fn cmd_puts(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 ///
 /// Renames the command called *oldName* to have the *newName*.  If the
 /// *newName* is "", the command is destroyed.
-pub fn cmd_rename(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 3, 3, "oldName newName")?;
+pub fn cmd_rename(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 3, 3, "oldName newName")?;
 
     // FIRST, get the arguments
-    let old_name = argv[1];
-    let new_name = argv[2];
+    let old_name = &*argv[1].as_string();
+    let new_name = &*argv[2].as_string();
 
     if !interp.has_command(old_name) {
         return molt_err!("can't rename \"{}\": command doesn't exist", old_name);

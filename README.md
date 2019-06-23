@@ -32,24 +32,20 @@ $ cargo run test test/all.tcl
 ## TODO Items
 
 *   Integrate the new Value type into Molt:
-    *   Revise all commands to use `argv: &[Value]`
-        *   "expr"
-        *   "if"
-        *   "for"
-        *   "while"
-        *   Test harness commands
-    *   Revise Interp and Command to use `&[Value]`, and eliminate CommandStrFunc and
-        Interp::add_str_command and check_str_args
+    *   Make `Value` public as `molt::types::Value`, not `molt::Value`
     *   Complete the Value doc comments.
-    *   Revise `expr` to do its computations in terms of Values.
-        *   As it turns out to be appropriate.
-    *   Or at least gets its inputs from and writes its output to MoltValues.
+    *   Revise the Command trait to use `argv: &[Value]`.
+        *   This requires updating the CommandFuncWrapper and the molt-shell test harness'
+            test command.
+        *   And then, remove `molt::check_str_args.`
     *   Ponder the MoltList API, and consider how to make it cleaner
         *   list! macro to build lists from things that implement `Into<Value>`?
     *   Consider whether to replace Value's two RefCell's with one.
     *   Consider whether var names should be stored as Values.
+    *   Consider how best to store `proc` data for ease of invocation.
     *   Consider whether molt::MoltFloat, molt::MoltInt, and molt::MoltList should be
         molt::Float, molt::Int, and molt::List.
+        *   Yeah, probably.
 * Issues from wduquette/molt.
   * #15: molt_shell::repl should support continuation lines
   * #17: molt_shell should document how to write app code.

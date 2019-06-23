@@ -1,4 +1,3 @@
-use molt::MoltResult;
 use molt::Interp;
 use std::env;
 
@@ -9,7 +8,7 @@ fn main() {
     // NEXT, create and initialize the interpreter.
     let mut interp = Interp::new();
 
-    interp.add_str_command("doit", cmd_doit);
+    // NOTE: commands can be added to the interpreter here.
 
     // NEXT, if there's at least one then it's a subcommand.
     if args.len() > 1 {
@@ -37,11 +36,6 @@ fn main() {
     } else {
         print_help();
     }
-}
-
-fn cmd_doit(_interp: &mut Interp, _argv: &[&str]) -> MoltResult {
-    // TODO: Should use molt_ok!().
-    Ok(format!("max={}, min={}", std::i64::MAX, std::i64::MIN).into())
 }
 
 fn print_help() {

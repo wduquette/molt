@@ -2,7 +2,6 @@
 //!
 //! This module defines the standard Molt commands.
 
-use crate::expr::molt_expr_bool;
 use crate::expr::expr;
 use crate::expr::expr_test;
 use crate::interp::Interp;

@@ -24,12 +24,7 @@ pub type MoltFloat = f64;
 /// The standard list type for Molt code.
 ///
 /// Lists are an important data structure, both in Molt code proper and in Rust code
-/// that implements and works with Molt commands.  The standard internal representation
-/// for Molt values is `String`, so the natural representation for lists is currently
-/// `Vec<String>`.  In time, though, `String` will be replaced by `MoltValue`, a struct
-/// that will maintain a string representation, an internal representation, or both,
-/// for the sake of efficiency.  At that time `MoltList` will be changed to (something like)
-/// `Vec<MoltValue>`...or, possibly, to a struct that contains such a vector.
+/// that implements and works with Molt commands.  A list is a list of `Value`s.
 pub type MoltList = Vec<Value>;
 
 /// Molt's standard `Result<T,E>` type.
@@ -51,7 +46,7 @@ pub type MoltResult = Result<Value, ResultCode>;
 ///   for display to the user.
 ///
 /// * `Return(Value)`: This code indicates that a Molt procedure called the
-///   `return` command.  The `Value` is the returned value, or the empty string if
+///   `return` command.  The `Value` is the returned value, or the empty value if
 ///   no value was returned.  This result will bubble up until it reaches the top-level
 ///   of the procedure, which will then return the value as a normal `Ok` result.  If
 ///   it is received when evaluating an arbitrary script, i.e., if `return` is called outside
@@ -71,10 +66,6 @@ pub type MoltResult = Result<Value, ResultCode>;
 /// and handled within the interpreter.
 ///
 /// # Future Work
-///
-/// * The `Return` code returns a `String`, this being the standard Molt value representation.
-///   In time we will replace `String` with `MoltValue`, a more complex type that will support
-///   both string and internal representations of data.
 ///
 /// * Standard TCL allows for an arbitrary number of result codes, which in turn allows the
 ///   application to define an arbitrary number of new kinds of control structures that are
@@ -127,15 +118,6 @@ pub trait Command {
 ///
 /// [`Interp`]: ../interp/struct.Interp.html
 pub type CommandFunc = fn(&mut Interp, &[Value]) -> MoltResult;
-
-/// A simple command function, used to implement a command without any attached
-/// context data (other than the [`Interp`] itself).
-///
-/// The command function receives the interpreter and an array representing the
-/// command and its arguments.
-///
-/// [`Interp`]: ../interp/struct.Interp.html
-pub type CommandStrFunc = fn(&mut Interp, &[&str]) -> MoltResult;
 
 /// Used for defining subcommands of ensemble commands.
 ///

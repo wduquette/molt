@@ -11,7 +11,6 @@ use crate::molt_ok;
 use crate::molt_err;
 use crate::scope::ScopeStack;
 use crate::types::Command;
-use crate::types::CommandStrFunc;
 use crate::types::*;
 use crate::value::Value;
 use std::collections::HashMap;
@@ -143,16 +142,6 @@ impl Interp {
 
     //--------------------------------------------------------------------------------------------
     // Command Definition and Handling
-
-    /// Adds a command defined by a `CommandStrFunc` to the interpreter.
-    ///
-    /// This is the normal way to add commands to
-    /// the interpreter.  If the command requires context other than the interpreter itself,
-    /// define a struct that implements `Command` and use `add_command_object`.
-    pub fn add_str_command(&mut self, name: &str, func: CommandStrFunc) {
-        let command = Rc::new(CommandStrFuncWrapper::new(func));
-        self.add_command_object(name, command);
-    }
 
     /// Adds a command defined by a `CommandFunc` to the interpreter.
     ///
@@ -769,23 +758,6 @@ impl Interp {
         }
 
         molt_err!("missing close-brace for variable name")
-    }
-}
-
-/// A struct that wraps a CommandStrFunc function and implements the Command trait.
-struct CommandStrFuncWrapper {
-    func: CommandStrFunc,
-}
-
-impl CommandStrFuncWrapper {
-    fn new(func: CommandStrFunc) -> Self {
-        Self { func }
-    }
-}
-
-impl Command for CommandStrFuncWrapper {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
-        (self.func)(interp, argv)
     }
 }
 

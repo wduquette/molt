@@ -2,6 +2,10 @@
 
 Things to remember to do soon:
 
+*   types.rs should "pub use" the `Value` type; the standard public declaration
+    should be `use molt::types::Value`.
+*   Look at the standard ways we use `Value` in commands.rs, and see if we can't
+    make things simpler.
 *   Consider implementing `TryInto<T>` for the standard data reps.
     *   Can't implement `TryFrom<T>` because I don't own the data reps.  If I define
         MoltList as a newtype, I could define `TryFrom<Value>` for MoltList.
@@ -14,7 +18,7 @@ Things to remember to do soon:
     return `MoltResult` but should possibly return `Result<String,ResultCode>`.
 *   MoltList should maybe be a newtype with helper methods.
     *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
-        e.g., `From<&Vec<Value>>`
+        e.g., `From<&MoltValue>`, `From<&Vec<String>>`
 
 ### 2019-06-23 (Sunday)
 *   The `expr.rs` interface.
@@ -52,7 +56,10 @@ Things to remember to do soon:
             *   But `Value::as_bool` does not check to see if the string rep is a numeric
                 string.  If you want to interpret a general string as a boolean, use
                 `expr`.
-        
+*   Converted `expr`, `for`, `if`, and `while` to be new-style commands.
+    *   Those were the last.
+*   Removed `CommandStrFunc` and `Interp::add_str_command`.
+*   It's time to revise the `Command` trait to use `argv: &[Value]`!
 
 ### 2019-06-22 (Saturday)
 *   Implemented From<T> for the standard Value data representations.

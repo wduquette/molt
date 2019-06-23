@@ -276,32 +276,32 @@ enum IfWants {
 ///
 /// * Because we don't yet have an expression parser, the *expr* arguments are evaluated as
 ///   scripts that must return a boolean value.
-pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> MoltResult {
+pub fn cmd_if(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     let mut argi = 1;
     let mut wants = IfWants::Expr;
 
     while argi < argv.len() {
         match wants {
             IfWants::Expr => {
-                wants = if molt_expr_bool(interp, argv[argi])? {
+                wants = if expr_test(interp, &argv[argi])? {
                     IfWants::ThenBody
                 } else {
                     IfWants::SkipThenClause
                 };
             },
             IfWants::ThenBody => {
-                if argv[argi] == "then" {
+                if &*argv[argi].as_string() == "then" {
                     argi += 1;
                 }
 
                 if argi < argv.len() {
-                    return interp.eval_body(argv[argi]);
+                    return interp.eval_body(&*argv[argi].as_string());
                 } else {
                     break;
                 }
             },
             IfWants::SkipThenClause => {
-                if argv[argi] == "then" {
+                if &*argv[argi].as_string() == "then" {
                     argi += 1;
                 }
 
@@ -312,7 +312,7 @@ pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> MoltResult {
                 continue;
             }
             IfWants::ElseClause => {
-                if argv[argi] == "elseif" {
+                if &*argv[argi].as_string() == "elseif" {
                     wants = IfWants::Expr;
                 } else {
                     wants = IfWants::ElseBody;
@@ -320,7 +320,7 @@ pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> MoltResult {
                 }
             }
             IfWants::ElseBody => {
-                if argv[argi] == "else" {
+                if &*argv[argi].as_string() == "else" {
                     argi += 1;
 
                     // If "else" appears, then the else body is required.
@@ -331,7 +331,7 @@ pub fn cmd_if(interp: &mut Interp, argv: &[&str]) -> MoltResult {
                 }
 
                 if argi < argv.len() {
-                    return interp.eval_body(argv[argi]);
+                    return interp.eval_body(&*argv[argi].as_string());
                 } else {
                     break;
                 }

@@ -4,6 +4,7 @@
 
 use crate::expr::molt_expr_bool;
 use crate::expr::expr;
+use crate::expr::expr_test;
 use crate::interp::Interp;
 use crate::types::*;
 use crate::*;
@@ -160,14 +161,19 @@ pub fn cmd_expr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 ///
 /// A standard "for" loop.  start, next, and command are scripts; test is an expression
 ///
-pub fn cmd_for(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 5, 5, "start test next command")?;
+pub fn cmd_for(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 5, 5, "start test next command")?;
+
+    let start = &*argv[1].as_string();
+    let test = &argv[2];
+    let next = &*argv[3].as_string();
+    let command = &*argv[4].as_string();
 
     // Start
-    interp.eval(argv[1])?;
+    interp.eval(start)?;
 
-    while molt_expr_bool(interp, argv[2])? {
-        let result = interp.eval_body(argv[4]);
+    while expr_test(interp, test)? {
+        let result = interp.eval_body(command);
 
         match result {
             Ok(_) => (),
@@ -177,7 +183,7 @@ pub fn cmd_for(interp: &mut Interp, argv: &[&str]) -> MoltResult {
         }
 
         // Execute next script.  Break is allowed, but continue is not.
-        let result = interp.eval_body(argv[3]);
+        let result = interp.eval_body(next);
 
         match result {
             Ok(_) => (),
@@ -641,7 +647,7 @@ pub fn cmd_unset(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 pub fn cmd_while(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 3, 3, "test command")?;
 
-    while expr(interp, &argv[1])?.as_bool()? {
+    while expr_test(interp, &argv[1])? {
         let result = interp.eval_body(&*argv[2].as_string());
 
         match result {

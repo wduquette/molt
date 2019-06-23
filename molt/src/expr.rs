@@ -260,6 +260,12 @@ pub fn expr(interp: &mut Interp, expr: &Value) -> MoltResult {
     }
 }
 
+/// Evaluates an expression and returns its value as a boolean.
+pub fn expr_test(interp: &mut Interp, bool_expr: &Value) -> Result<bool, ResultCode> {
+    let value = expr(interp, bool_expr)?;
+    value.as_bool()
+}
+
 /// Evaluates an expression and returns its value in string form.
 /// TODO: Remove
 pub fn molt_expr_string(interp: &mut Interp, string: &str) -> MoltResult {
@@ -1537,5 +1543,18 @@ mod tests {
 
     fn near(x: MoltFloat, target: MoltFloat) -> bool {
         x >= target - std::f64::EPSILON && x <= target + std::f64::EPSILON
+    }
+
+    #[test]
+    fn call_expr_test() {
+        let mut interp = Interp::new();
+
+        let result = expr_test(&mut interp, &Value::from("1 + 1"));
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), true);
+
+        let result = expr_test(&mut interp, &Value::from("1 - 1"));
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), false);
     }
 }

@@ -331,8 +331,13 @@ impl Value {
     ///
     /// # Boolean Strings
     ///
-    /// The following string values can be interpreted as boolean values, regardless of case: `true`,
-    /// `false`, `on`, `off`, `yes`, `no`, `1`, `0`.
+    /// The following are valid boolean strings, regardless of case: `true`,
+    /// `false`, `on`, `off`, `yes`, `no`, `1`, `0`.  Note that other numeric strings are
+    /// _not_ valid boolean strings.
+    ///
+    /// # Numeric Values
+    ///
+    /// Non-negative numbers are interpreted as true; zero is interpreted as false.
     ///
     /// # Example
     ///
@@ -340,13 +345,34 @@ impl Value {
     /// use molt::Value;
     /// use molt::types::ResultCode;
     /// # fn dummy() -> Result<bool,ResultCode> {
+    /// // All of the following can be interpreted as booleans.
     /// let value = Value::from(true);
     /// let flag = value.as_bool()?;
-    /// assert!(flag);
+    /// assert_eq!(flag, true);
     ///
     /// let value = Value::from("no");
     /// let flag = value.as_bool()?;
-    /// assert!(!flag);
+    /// assert_eq!(flag, false);
+    ///
+    /// let value = Value::from(5);
+    /// let flag = value.as_bool()?;
+    /// assert_eq!(flag, true);
+    ///
+    /// let value = Value::from(0);
+    /// let flag = value.as_bool()?;
+    /// assert_eq!(flag, false);
+    ///
+    /// let value = Value::from(1.1);
+    /// let flag = value.as_bool()?;
+    /// assert_eq!(flag, true);
+    ///
+    /// let value = Value::from(0.0);
+    /// let flag = value.as_bool()?;
+    /// assert_eq!(flag, false);
+    ///
+    /// // Numeric strings can not, unless evaluated as expressions.
+    /// let value = Value::from("123");
+    /// assert!(value.as_bool().is_err());
     /// # Ok(true)
     /// # }
     /// ```
@@ -359,13 +385,22 @@ impl Value {
             return Ok(flag);
         }
 
+        // NEXT, if we have a number return whether it's zero or not.
+        if let Datum::Int(int) = *data_ref {
+            return Ok(int != 0);
+        }
+
+        if let Datum::Flt(flt) = *data_ref {
+            return Ok(flt != 0.0);
+        }
+
         // NEXT, if we don't have a string_rep, get one from the current
         // data_rep.
         if (*string_ref).is_none() {
             *string_ref = Some(Rc::new(data_ref.to_string()));
         }
 
-        // NEXT, Try to parse the string_rep as an integer
+        // NEXT, Try to parse the string_rep as a boolean
         let str = (&*string_ref).as_ref().unwrap();
         let flag = Value::parse_bool(&*str)?;
         *data_ref = Datum::Bool(flag);
@@ -807,6 +842,19 @@ mod tests {
         // Can convert string to bool.
         let val = Value::from("true");
         assert_eq!(val.as_bool(), Ok(true));
+
+        // Non-zero numbers are true; zero is false.
+        let val = Value::from(5);
+        assert_eq!(val.as_bool(), Ok(true));
+
+        let val = Value::from(0);
+        assert_eq!(val.as_bool(), Ok(false));
+
+        let val = Value::from(5.5);
+        assert_eq!(val.as_bool(), Ok(true));
+
+        let val = Value::from(0.0);
+        assert_eq!(val.as_bool(), Ok(false));
     }
 
     #[test]

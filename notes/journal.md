@@ -16,6 +16,35 @@ Things to remember to do soon:
     *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
         e.g., `From<&Vec<Value>>`
 
+### 2019-06-23 (Sunday)
+*   The `expr.rs` interface.
+    *   We have `molt_expr_string`, `molt_expr_bool`, `molt_expr_int`, and
+        `molt_expr_float`.  
+    *   Each takes a `&str` and returns a value of the given type.
+    *   Questions:
+        *   Q: Should these take a `&str` or a `Value`?
+            *   I'm thinking `Value`.
+        *   Q: Should these return a `Value`?
+            *   Maybe.  In which case we can lose most of them.
+        *   Q: What about `molt_expr_bool`?
+            *   `Value::as_bool` either returns the `bool` data rep, or tries
+                to parse the value as a boolean string.
+            *   `molt_expr_bool` looks at the computed result, and also handles
+                numeric results as booleans.
+            *   Either we need to move that numeric result logic into
+                `Value::as_bool`, or we need to retain `molt_expr_bool`.
+            *   What does Tcl_GetBoolean() do in TCL 8?
+                *   Tcl_GetBoolean() (the legacy string version) only accepts
+                    proper boolean strings.
+                *   Tcl_GetBooleanFromObj() looks for numeric values as well.
+                *   So we might want a routine for validating/converting
+                    explicitly boolean strings, but in practice numeric values
+                    are acceptable as well.
+                *   Note, though, that Value::as_bool should avoid losing the
+                    numeric data rep if there is one.
+        *   Q: what should we actually call them?  The "molt_" prefix is
+            unusual in the code-base.
+
 ### 2019-06-22 (Saturday)
 *   Implemented From<T> for the standard Value data representations.
     *   String, &str, &String, bool, MoltInt, MoltFloat, MoltList.

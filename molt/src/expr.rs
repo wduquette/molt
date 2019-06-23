@@ -11,6 +11,8 @@ use crate::interp::Interp;
 
 //------------------------------------------------------------------------------------------------
 // Datum Representation
+//
+// TODO: I need to review this to make sure that we are using interpolated results efficiently.
 
 type DatumResult = Result<Datum,ResultCode>;
 

@@ -44,6 +44,15 @@ Things to remember to do soon:
                     numeric data rep if there is one.
         *   Q: what should we actually call them?  The "molt_" prefix is
             unusual in the code-base.
+    *   Answers:
+        *   The existing functions are going to go away; they've been replaced by
+            `pub fn expr(interp: &mut Interp, expr: &Value) -> MoltResult`.
+        *   `Value::as_bool` looks for numeric data reps, and returns true for non-zero
+            and false for zero.
+            *   But `Value::as_bool` does not check to see if the string rep is a numeric
+                string.  If you want to interpret a general string as a boolean, use
+                `expr`.
+        
 
 ### 2019-06-22 (Saturday)
 *   Implemented From<T> for the standard Value data representations.

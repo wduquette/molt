@@ -2,8 +2,8 @@
 //!
 //! This module defines the standard Molt commands.
 
-use crate::expr::molt_expr_string;
 use crate::expr::molt_expr_bool;
+use crate::expr::expr;
 use crate::interp::Interp;
 use crate::types::*;
 use crate::*;
@@ -150,10 +150,10 @@ pub fn cmd_exit(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 ///
 /// See the Molt Book.
 
-pub fn cmd_expr(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 2, 2, "expr")?;
+pub fn cmd_expr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 2, "expr")?;
 
-    molt_expr_string(interp, argv[1])
+    expr(interp, &argv[1])
 }
 
 /// # for *start* *test* *next* *command*

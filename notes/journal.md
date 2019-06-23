@@ -2,8 +2,6 @@
 
 Things to remember to do soon:
 
-*   types.rs should "pub use" the `Value` type; the standard public declaration
-    should be `use molt::types::Value`.
 *   Look at the standard ways we use `Value` in commands.rs, and see if we can't
     make things simpler.
 *   Consider implementing `TryInto<T>` for the standard data reps.

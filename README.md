@@ -32,7 +32,6 @@ $ cargo run test test/all.tcl
 ## TODO Items
 
 *   Integrate the new Value type into Molt:
-    *   Make `Value` public as `molt::types::Value`, not `molt::Value`
     *   Complete the Value doc comments.
     *   Revise the Command trait to use `argv: &[Value]`.
         *   This requires updating the CommandFuncWrapper and the molt-shell test harness'

@@ -1,7 +1,7 @@
 //! Public Type Declarations
 
 use crate::interp::Interp;
-use crate::value::Value;
+pub use crate::value::Value;
 
 // Molt Numeric Types
 

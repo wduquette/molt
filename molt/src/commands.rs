@@ -638,11 +638,11 @@ pub fn cmd_unset(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 ///
 /// A standard "while" loop.  *test* is a boolean expression; *command* is a script to
 /// execute so long as the expression is true.
-pub fn cmd_while(interp: &mut Interp, argv: &[&str]) -> MoltResult {
-    check_str_args(1, argv, 3, 3, "test command")?;
+pub fn cmd_while(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 3, 3, "test command")?;
 
-    while molt_expr_bool(interp, argv[1])? {
-        let result = interp.eval_body(argv[2]);
+    while expr(interp, &argv[1])?.as_bool()? {
+        let result = interp.eval_body(&*argv[2].as_string());
 
         match result {
             Ok(_) => (),

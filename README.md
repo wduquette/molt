@@ -33,10 +33,8 @@ $ cargo run test test/all.tcl
 
 *   Integrate the new Value type into Molt:
     *   Complete the Value doc comments.
-    *   Revise the Command trait to use `argv: &[Value]`.
-        *   This requires updating the CommandFuncWrapper and the molt-shell test harness'
-            test command.
-        *   And then, remove `molt::check_str_args.`
+    *   Clean up clippy warnings.
+    *   Look at how to best store proc details for efficient execution.
     *   Ponder the MoltList API, and consider how to make it cleaner
         *   list! macro to build lists from things that implement `Into<Value>`?
     *   Consider whether to replace Value's two RefCell's with one.

@@ -359,6 +359,12 @@ impl Interp {
         value
     }
 
+    /// Sets the value of the named variable in the current scope, creating the variable
+    /// if necessary.
+    pub fn set_var3(&mut self, name: &str, value: &Value) {
+        self.scopes.set(name, value.clone());
+    }
+
     /// Unsets the value of the named variable in the current scope
     pub fn unset_var(&mut self, name: &str) {
         self.scopes.unset(name);
@@ -518,9 +524,9 @@ impl Interp {
         let mut result_value = Value::empty();
 
         while !ctx.at_end_of_script() {
-            let vec = self.parse_command(ctx)?;
+            let words = self.parse_command(ctx)?;
 
-            if vec.is_empty() {
+            if words.is_empty() {
                 break;
             }
 
@@ -530,9 +536,8 @@ impl Interp {
             }
 
             // FIRST, convert to Vec<&str>
-            let words: Vec<&str> = vec.iter().map(|s| &**s).collect();
-
-            if let Some(cmd) = self.commands.get(words[0]) {
+            let name = &*words[0].as_string();
+            if let Some(cmd) = self.commands.get(name) {
                 let cmd = Rc::clone(cmd);
                 let result = cmd.execute(self, words.as_slice());
                 match result {
@@ -540,17 +545,14 @@ impl Interp {
                     _ => return result,
                 }
             } else {
-                return molt_err!("invalid command name \"{}\"", words[0]);
+                return molt_err!("invalid command name \"{}\"", name);
             }
         }
 
         Ok(result_value)
     }
 
-    // TODO: Ultimately, this should return a Vec<Value>.
-    // But then, all of the commands will need to take a Vec<Value>.
-    // Write a wrapper that handles that, so we can convert them a little at a time.
-    fn parse_command(&mut self, ctx: &mut Context) -> Result<Vec<String>, ResultCode> {
+    fn parse_command(&mut self, ctx: &mut Context) -> Result<MoltList, ResultCode> {
         // FIRST, deal with whitespace and comments between "here" and the next command.
         while !ctx.at_end_of_script() {
             ctx.skip_block_white();
@@ -569,8 +571,7 @@ impl Interp {
         // NOTE: parse_word() can always assume that it's at the beginning of a word.
         while !ctx.at_end_of_command() {
             // FIRST, get the next word; there has to be one, or there's an input error.
-            // TODO: parse_word should probably return Result<String,ResultCode>
-            let word = self.parse_word(ctx)?.to_string();
+            let word = self.parse_word(ctx)?;
 
             // NEXT, save the word we found.
             words.push(word);
@@ -773,10 +774,8 @@ impl CommandFuncWrapper {
 }
 
 impl Command for CommandFuncWrapper {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
-        // TODO: When Command switches to `argv: &[Value]` this won't be needed.
-        let argv: MoltList = argv.iter().map(|s| Value::from(*s)).collect();
-        (self.func)(interp, &argv)
+    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
+        (self.func)(interp, argv)
     }
 }
 
@@ -786,8 +785,12 @@ struct CommandProc {
     body: String
 }
 
+// TODO: Need to work out how we're going to store the CommandProc details for
+// best efficiency.
 impl Command for CommandProc {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
+    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
+        let name = &*argv[0].as_string();
+
         // FIRST, push the proc's local scope onto the stack.
         interp.push_scope();
 
@@ -808,8 +811,9 @@ impl Command for CommandProc {
             // final arg spec in the list.
             if &*vec[0].as_string() == "args" && speci == self.args.len() - 1 {
                 let args = if argi < argv.len() {
-                    let lst: MoltList = argv[argi..].iter().map(|s| Value::from(*s)).collect();
-                    list_to_string(&lst)
+                    // TODO: Almost certainly a better way to do this.
+                    // let lst: MoltList = &argv[argi..].iter().collect();
+                    list_to_string(&argv[argi..])
                 } else {
                     "".into()
                 };
@@ -823,23 +827,24 @@ impl Command for CommandProc {
             // NEXT, do we have a matching argument?
              if argi < argv.len() {
                 // Pair them up
-                interp.set_var(&*vec[0].as_string(), argv[argi]);
+                interp.set_var3(&*vec[0].as_string(), &argv[argi]);
                 argi += 1;
                 continue;
             }
 
             // NEXT, do we have a default value?
             if vec.len() == 2 {
-                interp.set_var(&*vec[0].as_string(), &*vec[1].as_string());
+                interp.set_var3(&*vec[0].as_string(), &vec[1]);
             } else {
                 // We don't; we're missing a required argument.
-                return wrong_num_args_for_proc(interp, argv[0], &str_args);
+                return wrong_num_args_for_proc(interp, name, &str_args);
             }
         }
 
         // NEXT, do we have any arguments left over?
+
         if argi != argv.len() {
-            return wrong_num_args_for_proc(interp, argv[0], &str_args);
+            return wrong_num_args_for_proc(interp, name, &str_args);
         }
 
         // NEXT, evaluate the proc's body, getting the result.

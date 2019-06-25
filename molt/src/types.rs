@@ -107,7 +107,7 @@ pub trait Command {
     /// The `Command`'s execution method: the Molt interpreter calls this method  to
     /// execute the command.  The method receives the object itself, the interpreter,
     /// and an array representing the command and its arguments.
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult;
+    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult;
 }
 
 /// A simple command function, used to implement a command without any attached

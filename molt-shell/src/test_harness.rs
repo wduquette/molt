@@ -184,21 +184,21 @@ impl TestCommand {
         }
     }
 
-    fn fancy_test(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
-        molt::check_str_args(1, argv, 4, 0, "name description option value ?option value...?")?;
+    fn fancy_test(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
+        molt::check_args(1, argv, 4, 0, "name description option value ?option value...?")?;
 
         // FIRST, get the test context
         let mut ctx = self.ctx.borrow_mut();
 
         // NEXT, get the tes tinfo
-        let mut info = TestInfo::new(argv[1], argv[2]);
+        let mut info = TestInfo::new(&*argv[1].as_string(), &*argv[2].as_string());
         let mut iter = argv[3..].iter();
         loop {
             let opt = iter.next();
             if opt.is_none() {
                 break;
             }
-            let opt = opt.unwrap();
+            let opt = &*opt.unwrap().as_string();
 
             let val = iter.next();
             if val.is_none() {
@@ -207,9 +207,9 @@ impl TestCommand {
                     &format!("missing value for {}", opt));
                 return molt_ok!();
             }
-            let val = val.unwrap();
+            let val = &*val.unwrap().as_string();
 
-            match *opt {
+            match opt.as_ref() {
                 "-setup" => info.setup = val.to_string(),
                 "-body" => info.body = val.to_string(),
                 "-cleanup" => info.cleanup = val.to_string(),
@@ -235,18 +235,18 @@ impl TestCommand {
         molt_ok!()
     }
 
-    fn simple_test(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
-        molt::check_str_args(1, argv, 6, 6, "name description script -ok|-error result")?;
+    fn simple_test(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
+        molt::check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
 
         // FIRST, get the test context
         let mut ctx = self.ctx.borrow_mut();
 
         // NEXT, get the test info
-        let mut info = TestInfo::new(argv[1], argv[2]);
-        info.body = argv[3].into();
-        info.expect = argv[5].into();
+        let mut info = TestInfo::new(&*argv[1].as_string(), &*argv[2].as_string());
+        info.body = argv[3].to_string();
+        info.expect = argv[5].to_string();
 
-        let code = argv[4];
+        let code = &*argv[4].as_string();
 
         info.code = if code == "-ok" {
             Code::Ok
@@ -318,12 +318,13 @@ impl TestCommand {
 }
 
 impl Command for TestCommand {
-    fn execute(&self, interp: &mut Interp, argv: &[&str]) -> MoltResult {
+    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         // FIRST, check the minimum command line.
-        molt::check_str_args(1, argv, 4, 0, "name description args...")?;
+        molt::check_args(1, argv, 4, 0, "name description args...")?;
 
         // NEXT, see which kind of command it is.
-        if argv[3].starts_with('-') {
+        let arg = &*argv[3].as_string();
+        if arg.starts_with('-') {
             self.fancy_test(interp, argv)
         } else {
             self.simple_test(interp, argv)

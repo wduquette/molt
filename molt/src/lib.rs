@@ -29,33 +29,6 @@ mod util;
 /// is included in the count; thus, min should always be >= 1.
 ///
 /// *Note:* Defined as a function because it doesn't need anything from the Interp.
-pub fn check_str_args(
-    namec: usize,
-    argv: &[&str],
-    min: usize,
-    max: usize,
-    argsig: &str,
-) -> MoltResult {
-    assert!(namec >= 1);
-    assert!(min >= 1);
-    assert!(!argv.is_empty());
-
-    if argv.len() < min || (max > 0 && argv.len() > max) {
-        molt_err!("wrong # args: should be \"{} {}\"",
-            argv[0..namec].join(" "),
-            argsig
-        )
-    } else {
-        molt_ok!()
-    }
-}
-
-/// Checks to see whether a command's argument list is of a reasonable size.
-/// Returns an error if not.  The arglist must have at least min entries, and can have up
-/// to max.  If max is 0, there is no maximum.  argv[0] is always the command name, and
-/// is included in the count; thus, min should always be >= 1.
-///
-/// *Note:* Defined as a function because it doesn't need anything from the Interp.
 pub fn check_args(
     namec: usize,
     argv: &[Value],
@@ -84,35 +57,6 @@ pub fn check_args(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_check_str_args() {
-        assert_ok(&check_str_args(1, vec!["mycmd"].as_slice(), 1, 1, ""));
-        assert_ok(&check_str_args(1, vec!["mycmd"].as_slice(), 1, 2, "arg1"));
-        assert_ok(&check_str_args(
-            1,
-            vec!["mycmd", "data"].as_slice(),
-            1,
-            2,
-            "arg1",
-        ));
-        assert_ok(&check_str_args(
-            1,
-            vec!["mycmd", "data", "data2"].as_slice(),
-            1,
-            0,
-            "arg1",
-        ));
-
-        assert_err(
-            &check_str_args(1, vec!["mycmd"].as_slice(), 2, 2, "arg1"),
-            "wrong # args: should be \"mycmd arg1\"",
-        );
-        assert_err(
-            &check_str_args(1, vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
-            "wrong # args: should be \"mycmd arg1\"",
-        );
-    }
 
     #[test]
     fn test_check_args() {

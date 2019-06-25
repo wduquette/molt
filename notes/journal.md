@@ -2,6 +2,8 @@
 
 Things to remember to do soon:
 
+*   Look at removing the `get_*` methods from Interp.  See if some of them need to be
+    retained somewhere.
 *   Look at the standard ways we use `Value` in commands.rs, and see if we can't
     make things simpler.
 *   Consider implementing `TryInto<T>` for the standard data reps.
@@ -12,11 +14,13 @@ Things to remember to do soon:
     *   The derived Debug displays everything, but reveals internals.
     *   Non-trivial: both string_reps and data_reps can be quite large.  Need to ponder
         just what I want.  The above suggests one line, which isn't it.
-*   There are a bunch of internal "parse_*" routines in interp.rs that
-    return `MoltResult` but should possibly return `Result<String,ResultCode>`.
 *   MoltList should maybe be a newtype with helper methods.
     *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
         e.g., `From<&MoltValue>`, `From<&Vec<String>>`
+
+### 2019-06-24 (Monday)
+*   Got rid of old-style commands.
+    *   The Command trait is now in terms of `&[Value]`.
 
 ### 2019-06-23 (Sunday)
 *   The `expr.rs` interface.

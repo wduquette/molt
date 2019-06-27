@@ -264,16 +264,16 @@ mod tests {
 
     #[test]
     fn test_list_to_string() {
-        assert_eq!(list_to_string(&vec![Value::from("a")]), "a");
-        assert_eq!(list_to_string(&vec![Value::from("a"), Value::from("b")]), "a b");
-        assert_eq!(list_to_string(&vec![Value::from("a"), Value::from("b"), Value::from("c")]), "a b c");
-        assert_eq!(list_to_string(&vec![Value::from("a"), Value::from(" "), Value::from("c")]), "a { } c");
-        assert_eq!(list_to_string(&vec![Value::from("a"), Value::from(""), Value::from("c")]), "a {} c");
-        assert_eq!(list_to_string(&vec![Value::from("a;b")]), "{a;b}");
-        assert_eq!(list_to_string(&vec![Value::from("a$b")]), "{a$b}");
-        assert_eq!(list_to_string(&vec![Value::from("a[b")]), "{a[b}");
-        assert_eq!(list_to_string(&vec![Value::from("a]b")]), "{a]b}");
-        assert_eq!(list_to_string(&vec![Value::from("a\\nb")]), "{a\\nb}");
-        assert_eq!(list_to_string(&vec![Value::from("{ "), Value::from("abc")]), r#"\{\  abc"#);
+        assert_eq!(list_to_string(&[Value::from("a")]), "a");
+        assert_eq!(list_to_string(&[Value::from("a"), Value::from("b")]), "a b");
+        assert_eq!(list_to_string(&[Value::from("a"), Value::from("b"), Value::from("c")]), "a b c");
+        assert_eq!(list_to_string(&[Value::from("a"), Value::from(" "), Value::from("c")]), "a { } c");
+        assert_eq!(list_to_string(&[Value::from("a"), Value::from(""), Value::from("c")]), "a {} c");
+        assert_eq!(list_to_string(&[Value::from("a;b")]), "{a;b}");
+        assert_eq!(list_to_string(&[Value::from("a$b")]), "{a$b}");
+        assert_eq!(list_to_string(&[Value::from("a[b")]), "{a[b}");
+        assert_eq!(list_to_string(&[Value::from("a]b")]), "{a]b}");
+        assert_eq!(list_to_string(&[Value::from("a\\nb")]), "{a\\nb}");
+        assert_eq!(list_to_string(&[Value::from("{ "), Value::from("abc")]), r#"\{\  abc"#);
     }
 }

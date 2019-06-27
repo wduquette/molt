@@ -2,26 +2,27 @@
 //!
 //! The [`Value`] struct is the standard representation of a data value
 //! in the Molt language.  It represents a single immutable data value; the
-//! data is reference-counted, so instances can be cloned efficiently.  The
-//! data value can be any TCL data value: a number, a list, or any
-//! arbitrary type (that meets certain requirements).
+//! data is reference-counted, so instances can be cloned efficiently.  Its
+//! content may be any TCL data value: a number, a list, a string, or a value of
+//! an arbitrary type that meets certain requirements.
 //!
-//! In TCL, "everything is a string".  A `Value` can be a number, a boolean, a list, an instance
-//! of an external type, or just an arbitrary string, but every value has a
-//! _string representation_, and it can be any other data type with a compatible _string rep_.
-//! for example, the string "5" can be a string, the integer 5, or a list of one element, "5".
+//! In TCL, "everything is a string".  Every value is defined by its _string
+//! representation_, e.g., "one two three" is the _string rep_ of a
+//! list with three items, "one", "two", and "three".  A string that is a valid string
+//! for multiple types can be interpreted as any of those types; for example, the
+//! string "5" can be a string, the integer 5, or a list of one element, "5".
 //!
 //! # Comparisons
 //!
 //! If two `Value`'s are compared for equality in Rust, Rust compares their string reps.
-//! In TCL expressions the `==` and `!=` operators do numeric comparisons, and the
-//! `eq` and `ne` do string rep comparisons.
+//! In TCL expressions the `==` and `!=` operators compare numbers and the
+//! `eq` and `ne` operators compare string reps.
 //!
 //! # Internal Representation
 //!
 //! "Everything is a string"; thus, every `Value` has a string
 //! representation, or _string rep_.  But for efficiency with numbers, lists,
-//! and user-defined binary data structures, the Value also caches a
+//! and user-defined binary data structures, the `Value` also caches a
 //! data representation, or _data rep_.
 //!
 //! A `Value` can have just a string rep, just a data rep, or both.
@@ -60,15 +61,15 @@
 //!
 //! `Value` handles strings, integers, floating-point values, and lists as
 //! special cases, since they are part of the language and are so frequently used.
-//! In addition, a `Value` can also contain any Rust struct that meets
+//! In addition, a `Value` can also contain _external types_: Rust types that meet
 //! certain requirements.
 //!
 //! # External Types
 //!
-//! Any struct that implements the `std::fmt::Display`, `std::fmt::Debug`,
+//! Any type that implements the `std::fmt::Display`, `std::fmt::Debug`,
 //! and `std::str::FromStr` traits can be saved in a `Value`.  The struct's
-//! `Display` and `FromStr` trait implementations are used to do the string
-//! rep/data rep conversions.  In particular:
+//! `Display` and `FromStr` trait implementations are used to convert between
+//! the string rep and data rep.
 //!
 //! * The `Display` implementation is responsible for producing the value's string rep.
 //!
@@ -85,7 +86,56 @@
 //! For example, the following code shows how to define an external type implementing
 //! a simple enum.
 //!
-//! TODO
+//! ```
+//! use molt::types::*;
+//! use std::fmt;
+//! use std::str::FromStr;
+//!
+//! #[derive(Debug, PartialEq, Copy, Clone)]
+//! pub enum Flavor {
+//!     SALTY,
+//!     SWEET,
+//! }
+//!
+//! impl fmt::Display for Flavor {
+//!     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//!         if *self == Flavor::SALTY {
+//!             write!(f, "salty")
+//!         } else {
+//!             write!(f, "sweet")
+//!         }
+//!     }
+//! }
+//!
+//! impl FromStr for Flavor {
+//!     type Err = String;
+//!
+//!     fn from_str(value: &str) -> Result<Self, Self::Err> {
+//!         let value = value.to_lowercase();
+//!
+//!         if value == "salty" {
+//!             Ok(Flavor::SALTY)
+//!         } else if value == "sweet" {
+//!             Ok(Flavor::SWEET)
+//!         } else {
+//!            // The error message doesn't matter to Molt
+//!            Err("Not a flavor string".to_string())
+//!         }
+//!     }
+//! }
+//!
+//! impl Flavor {
+//!     /// A convenience: retrieves the enumerated value, converting it from
+//!     /// `Option<Flavor>` into `Result<Flavor,ResultCode>`.
+//!     pub fn from_molt(value: &Value) -> Result<Self, ResultCode> {
+//!         if let Some(x) = value.as_copy::<Flavor>() {
+//!             Ok(x)
+//!         } else {
+//!             Err(ResultCode::Error(Value::from("Not a flavor string")))
+//!         }
+//!     }
+//! }
+//! ```
 //!
 //! [`Value`]: struct.Value.html
 
@@ -134,7 +184,7 @@ impl From<String> for Value {
     /// # Example
     ///
     /// ```
-    /// use molt::Value;
+    /// use molt::types::Value;
     /// let string = String::from("My New String");
     /// let value = Value::from(string);
     /// assert_eq!(&*value.as_string(), "My New String");
@@ -153,7 +203,7 @@ impl From<&str> for Value {
     /// # Example
     ///
     /// ```
-    /// use molt::Value;
+    /// use molt::types::Value;
     /// let value = Value::from("My String Slice");
     /// assert_eq!(&*value.as_string(), "My String Slice");
     /// ```
@@ -173,7 +223,7 @@ impl From<&String> for Value {
     /// # Example
     ///
     /// ```
-    /// use molt::Value;
+    /// use molt::types::Value;
     /// let value = Value::from("My String Slice");
     /// assert_eq!(&*value.as_string(), "My String Slice");
     /// ```
@@ -192,7 +242,7 @@ impl From<bool> for Value {
     /// # Example
     ///
     /// ```
-    /// use molt::Value;
+    /// use molt::types::Value;
     /// let value = Value::from(true);
     /// assert_eq!(&*value.as_string(), "1");
     ///
@@ -213,7 +263,7 @@ impl From<MoltInt> for Value {
     /// # Example
     ///
     /// ```
-    /// use molt::Value;
+    /// use molt::types::Value;
     ///
     /// let value = Value::from(123);
     /// assert_eq!(&*value.as_string(), "123");
@@ -240,7 +290,7 @@ impl From<MoltFloat> for Value {
     /// # Example
     ///
     /// ```
-    /// use molt::Value;
+    /// use molt::types::Value;
     ///
     /// let value = Value::from(12.34);
     /// assert_eq!(&*value.as_string(), "12.34");
@@ -258,7 +308,13 @@ impl From<MoltList> for Value {
     ///
     /// # Example
     ///
-    /// TODO
+    /// ```
+    /// use molt::types::Value;
+    ///
+    /// let list = vec![Value::from(1234), Value::from("abc")];
+    /// let value = Value::from(list);
+    /// assert_eq!(&*value.as_string(), "1234 abc");
+    /// ```
     fn from(list: MoltList) -> Self {
         Self {
             string_rep: RefCell::new(None),
@@ -266,7 +322,6 @@ impl From<MoltList> for Value {
         }
     }
 }
-
 
 impl Value {
     /// Returns the empty `Value`, a value whose string representation is the empty
@@ -283,7 +338,7 @@ impl Value {
     // /// # Example
     // ///
     // /// ```
-    // /// use molt::Value;
+    // /// use molt::types::Value;
     // /// let string = String::from("My New String");
     // /// let value = Value::from_string(string);
     // /// assert_eq!(&*value.as_string(), "My New String");
@@ -304,7 +359,7 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// use molt::Value;
+    /// use molt::types::Value;
     /// let value = Value::from(123);
     /// assert_eq!(&*value.as_string(), "123");
     /// ```
@@ -342,7 +397,7 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// use molt::Value;
+    /// use molt::types::Value;
     /// use molt::types::ResultCode;
     /// # fn dummy() -> Result<bool,ResultCode> {
     /// // All of the following can be interpreted as booleans.
@@ -430,7 +485,7 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// use molt::Value;
+    /// use molt::types::Value;
     /// use molt::types::MoltInt;
     /// use molt::types::ResultCode;
     /// # fn dummy() -> Result<MoltInt,ResultCode> {
@@ -502,7 +557,7 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// use molt::Value;
+    /// use molt::types::Value;
     /// use molt::types::MoltFloat;
     /// use molt::types::ResultCode;
     /// # fn dummy() -> Result<MoltFloat,ResultCode> {
@@ -554,7 +609,22 @@ impl Value {
     ///
     /// # Example
     ///
-    /// TODO
+    /// ```
+    /// use molt::types::Value;
+    /// use molt::types::MoltList;
+    /// use molt::types::ResultCode;
+    /// # fn dummy() -> Result<String,ResultCode> {
+    ///
+    /// let value = Value::from("1234 abc");
+    /// let list = value.as_list()?;
+    /// assert_eq!(list.len(), 2);
+    ///
+    /// assert_eq!(list[0], Value::from("1234"));
+    /// assert_eq!(list[1], Value::from("abc"));
+    ///
+    /// # Ok("dummy".to_string())
+    /// # }
+    /// ```
     pub fn as_list(&self) -> Result<Rc<MoltList>, ResultCode> {
         let mut string_ref = self.string_rep.borrow_mut();
         let mut data_ref = self.data_rep.borrow_mut();
@@ -989,18 +1059,6 @@ mod tests {
     pub enum Flavor {
         SALTY,
         SWEET,
-    }
-
-    impl Flavor {
-        // TODO: The error should be a Molt ResultCode.
-        // TODO: This should move to the example.
-        pub fn from_molt(value: &Value) -> Result<Self, String> {
-            if let Some(x) = value.as_copy::<Flavor>() {
-                Ok(x)
-            } else {
-                Err("Not a flavor string".to_string())
-            }
-        }
     }
 
     impl FromStr for Flavor {

@@ -650,8 +650,26 @@ impl Value {
 
     /// Creates a new `Value` containing the given value of some user type.
     ///
-    /// See [the module level documentation](index.html) for details on
+    /// The user type must meet certain constraints; see the
+    /// [module level documentation](index.html) for details on
     /// how to define an external type for use with Molt.
+    ///
+    /// # Example
+    ///
+    /// Suppose we have a type `HexColor` that meets the constraints; we can create
+    /// a `Value` containing one as follows.  Notice that the `Value` ownership of its input:
+    ///
+    /// ```ignore
+    /// let color: HexColor::new(0x11u8, 0x22u8, 0x33u8);
+    /// let value = Value::from_other(color);
+    ///
+    /// // Retrieve the value's string rep.
+    /// assert_eq!(&*value.as_string(), "#112233");
+    /// ```
+    ///
+    /// See [`Value::as_other`](#method.as_other) and
+    /// [`Value::as_copy`](#method.as_copy) for examples of how to
+    /// retrieve a `MyType` value from a `Value`.
     pub fn from_other<T: 'static>(value: T) -> Value
     where
         T: Display + Debug,
@@ -662,19 +680,42 @@ impl Value {
         }
     }
 
-    /// Tries to interpret the `Value` as a value of type `T`.
+    /// Tries to interpret the `Value` as a value of external type `T`, parsing
+    /// the string representation if necessary.
+    ///
+    /// The user type must meet certain constraints; see the
+    /// [module level documentation](index.html) for details on
+    /// how to define an external type for use with Molt.
+    ///
+    /// # Return Value
     ///
     /// The value is returned as an `Rc<T>`, as this allows the client to
-    /// use the value freely.
+    /// use the value freely and clone it efficiently if needed.
     ///
-    /// This method returns `Option` rather than `Result` because it is up
-    /// to the caller to provide a meaningful error message.  It is normal
-    /// for externally defined types to wrap this function in a function
-    /// that does so.
+    /// This method returns `Option<Rc<T>>` rather than `Result<Rc<T>,ResultCode>`
+    /// because it is up to the caller to provide a meaningful error message.
+    /// It is normal for externally defined types to wrap this function in a function
+    /// that does so; see the [module level documentation](index.html) for an example.
     ///
     /// # Example
     ///
-    /// TODO
+    /// Suppose we have a type `HexColor` that meets the constraints; we can create
+    /// a `Value` containing one and retrieve it as follows.
+    ///
+    /// ```ignore
+    /// // Just a normal Molt string
+    /// let value = Value::from("#112233");
+    ///
+    /// // Retrieve it as an Option<Rc<HexColor>>:
+    /// let color = value.as_other::<HexColor>()
+    ///
+    /// if color.is_some() {
+    ///     let color = color.unwrap();
+    ///     let r = *color.red();
+    ///     let g = *color.green();
+    ///     let b = *color.blue();
+    /// }
+    /// ```
     pub fn as_other<T: 'static>(&self) -> Option<Rc<T>>
     where
         T: Display + Debug + FromStr,
@@ -714,8 +755,12 @@ impl Value {
         None
     }
 
-    /// Tries to interpret the `Value` as a value of type `T`, returning
-    /// a copy.
+    /// Tries to interpret the `Value` as a value of type `T`, parsing the string
+    /// representation if necessary, and returning a copy.
+    ///
+    /// The user type must meet certain constraints; and in particular it must
+    /// implement `Copy`. See the [module level documentation](index.html) for details on
+    /// how to define an external type for use with Molt.
     ///
     /// This method returns `Option` rather than `Result` because it is up
     /// to the caller to provide a meaningful error message.  It is normal
@@ -724,7 +769,24 @@ impl Value {
     ///
     /// # Example
     ///
-    /// TODO
+    /// Suppose we have a type `HexColor` that meets the normal external type
+    /// constraints and also supports copy; we can create a `Value` containing one and
+    /// retrieve it as follows.
+    ///
+    /// ```ignore
+    /// // Just a normal Molt string
+    /// let value = Value::from("#112233");
+    ///
+    /// // Retrieve it as an Option<HexColor>:
+    /// let color = value.as_copy::<HexColor>()
+    ///
+    /// if color.is_some() {
+    ///     let color = color.unwrap();
+    ///     let r = color.red();
+    ///     let g = color.green();
+    ///     let b = color.blue();
+    /// }
+    /// ```
     pub fn as_copy<T: 'static>(&self) -> Option<T>
     where
         T: Display + Debug + FromStr + Copy,

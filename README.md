@@ -32,14 +32,11 @@ $ cargo run test test/all.tcl
 ## TODO Items
 
 *   Integrate the new Value type into Molt:
-    *   Complete the Value doc comments.
-    *   Clean up clippy warnings.
     *   Look at how to best store proc details for efficient execution.
     *   Ponder the MoltList API, and consider how to make it cleaner
         *   list! macro to build lists from things that implement `Into<Value>`?
     *   Consider whether to replace Value's two RefCell's with one.
     *   Consider whether var names should be stored as Values.
-    *   Consider how best to store `proc` data for ease of invocation.
     *   Consider whether molt::MoltFloat, molt::MoltInt, and molt::MoltList should be
         molt::Float, molt::Int, and molt::List.
         *   Yeah, probably.

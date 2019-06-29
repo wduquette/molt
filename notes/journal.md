@@ -18,6 +18,10 @@ Things to remember to do soon:
     *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
         e.g., `From<&MoltValue>`, `From<&Vec<String>>`
 
+### 2019-06-25 (Tuesday)
+*   Got rid of the remaining Clippy warnings.
+*   Added the remaining examples to the value.rs doc comments.
+
 ### 2019-06-24 (Monday)
 *   Got rid of old-style commands.
     *   The Command trait is now in terms of `&[Value]`.

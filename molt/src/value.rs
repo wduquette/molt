@@ -458,19 +458,20 @@ impl Value {
 
         // NEXT, Try to parse the string_rep as a boolean
         let str = (&*string_ref).as_ref().unwrap();
-        let flag = Value::parse_bool(&*str)?;
+        let flag = Value::get_bool(&*str)?;
         *data_ref = DataRep::Bool(flag);
         Ok(flag)
     }
 
     // Parses a string as a boolean using the standard TCL syntax.
     // Returns a standard Molt error result.
-    fn parse_bool(arg: &str) -> Result<bool, ResultCode> {
-        let value: &str = &arg.to_lowercase();
+    pub fn get_bool(arg: &str) -> Result<bool, ResultCode> {
+        let orig = arg;
+        let value: &str = &arg.trim().to_lowercase();
         match value {
             "1" | "true" | "yes" | "on" => Ok(true),
             "0" | "false" | "no" | "off" => Ok(false),
-            _ => molt_err!("expected boolean but got \"{}\"", arg),
+            _ => molt_err!("expected boolean but got \"{}\"", orig),
         }
     }
 
@@ -1004,24 +1005,27 @@ mod tests {
     }
 
     #[test]
-    fn parse_bool() {
+    fn get_bool() {
         // Test the underlying boolean value parser.
-        assert_eq!(Ok(true), Value::parse_bool("1"));
-        assert_eq!(Ok(true), Value::parse_bool("true"));
-        assert_eq!(Ok(true), Value::parse_bool("yes"));
-        assert_eq!(Ok(true), Value::parse_bool("on"));
-        assert_eq!(Ok(true), Value::parse_bool("TRUE"));
-        assert_eq!(Ok(true), Value::parse_bool("YES"));
-        assert_eq!(Ok(true), Value::parse_bool("ON"));
-        assert_eq!(Ok(false), Value::parse_bool("0"));
-        assert_eq!(Ok(false), Value::parse_bool("false"));
-        assert_eq!(Ok(false), Value::parse_bool("no"));
-        assert_eq!(Ok(false), Value::parse_bool("off"));
-        assert_eq!(Ok(false), Value::parse_bool("FALSE"));
-        assert_eq!(Ok(false), Value::parse_bool("NO"));
-        assert_eq!(Ok(false), Value::parse_bool("OFF"));
-        assert_eq!(Value::parse_bool("nonesuch"),
+        assert_eq!(Ok(true), Value::get_bool("1"));
+        assert_eq!(Ok(true), Value::get_bool("true"));
+        assert_eq!(Ok(true), Value::get_bool("yes"));
+        assert_eq!(Ok(true), Value::get_bool("on"));
+        assert_eq!(Ok(true), Value::get_bool("TRUE"));
+        assert_eq!(Ok(true), Value::get_bool("YES"));
+        assert_eq!(Ok(true), Value::get_bool("ON"));
+        assert_eq!(Ok(false), Value::get_bool("0"));
+        assert_eq!(Ok(false), Value::get_bool("false"));
+        assert_eq!(Ok(false), Value::get_bool("no"));
+        assert_eq!(Ok(false), Value::get_bool("off"));
+        assert_eq!(Ok(false), Value::get_bool("FALSE"));
+        assert_eq!(Ok(false), Value::get_bool("NO"));
+        assert_eq!(Ok(false), Value::get_bool("OFF"));
+        assert_eq!(Ok(true), Value::get_bool(" true "));
+        assert_eq!(Value::get_bool("nonesuch"),
             molt_err!("expected boolean but got \"nonesuch\""));
+        assert_eq!(Value::get_bool(" Nonesuch "),
+            molt_err!("expected boolean but got \" Nonesuch \""));
     }
 
     #[test]

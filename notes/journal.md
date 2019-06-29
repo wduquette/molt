@@ -37,6 +37,18 @@ Things to remember to do soon:
     *   So, yes, in every case it can do what `Value` already does.
         *   We need a `Value::as_datum` converter
             *   Where `Datum` is the `expr` type.
+    *   Added Value::already_number()
+        *   Used in new expr::expr_parse_value, which is now used where appropriate.
+*   WHOOPS!
+    *   Tcl's Tcl_GetInt and Tcl_GetFloat allow leading and trailing whitespace.  The Molt
+        equivalents do not.
+    *   Replaced Value::parse_int with the public Value::get_int, which now allows leading
+        and trailing whitespace.
+    *   Added Value::get_float, which allows leading and trailing whitespace.
+        *   And is used by Value::as_float.
+    *   I need to eliminate the Interp::get_int and Interp::get_float routines in favor of
+        these.
+    *   I almost certainly need to do the same things with Interp::get_bool!
 
 ### 2019-06-25 (Tuesday)
 *   Got rid of the remaining Clippy warnings.

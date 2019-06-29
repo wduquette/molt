@@ -40,9 +40,14 @@ $ cargo run test test/all.tcl
     *   Consider whether molt::MoltFloat, molt::MoltInt, and molt::MoltList should be
         molt::Float, molt::Int, and molt::List.
         *   Yeah, probably.
+*   Need to define some standard benchmarks so when I work on performance-related things
+    I can track it.
+    *   `time` command.
+        *   Use std::time::Instant and std::time::Duration
+    *   See core.tcl-lang.org/tclbench/home for the standard Tcl benchmarks.
+        This code won't work directly in molt at this point, but I can look at it for
+        examples.
 * Issues from wduquette/molt.
-  * #15: molt_shell::repl should support continuation lines
-  * #17: molt_shell should document how to write app code.
 * Add complete tests for the existing Tcl commands.
     * "catch"
     * "foreach"

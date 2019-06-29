@@ -632,8 +632,21 @@ impl Value {
         Ok(flt)
     }
 
-    // Parses a string as an integer using the standard TCL syntax (except octal :-)
-    // Returns a standard Molt error result.
+    /// Converts an string argument into a `MoltFloat`, returning an error on failure.
+    ///
+    /// Molt accepts any string acceptable to `str::parse<f64>` as a valid floating
+    /// point string.  Leading and trailing whitespace is ignored.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # fn dummy() -> Result<MoltFloat,ResultCode> {
+    /// let arg = "1e2";
+    /// let val = Value::get_float(arg)?;
+    /// # Ok(val)
+    /// # }
+    /// ```
     pub fn get_float(arg: &str) -> Result<MoltFloat, ResultCode> {
         let arg_trim = arg.trim();
 

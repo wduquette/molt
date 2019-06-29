@@ -7,6 +7,7 @@ use crate::char_ptr::CharPtr;
 use crate::context::Context;
 use crate::*;
 use crate::interp::Interp;
+use crate::list;
 
 //------------------------------------------------------------------------------------------------
 // Datum Representation
@@ -750,7 +751,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 };
             }
             IN => {
-                let list = interp.get_list(&value2.str)?;
+                let list = list::get_list(&value2.str)?;
                 // TODO: Need a better MoltList contains() method.
                 value = if list.contains(&Value::from(&value.str)) {
                     Datum::int(1)
@@ -759,7 +760,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 };
             }
             NI => {
-                let list = interp.get_list(&value2.str)?;
+                let list = list::get_list(&value2.str)?;
                 // TODO: Need a better MoltList contains() method.
                 value = if list.contains(&Value::from(&value.str)) {
                     Datum::int(0)
@@ -852,7 +853,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         } else if let Some(token) = util::read_float(&mut p) {
             info.token = VALUE;
             info.expr = p;
-            return Ok(Datum::float(interp.get_float(&token)?));
+            return Ok(Datum::float(Value::get_float(&token)?));
         }
     }
 
@@ -870,11 +871,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
-                // TODO: expr_parse_string takes the string and computes (or fails to
-                // compute) a single datum from it.  If the Value is already numeric,
-                // there's no need to parse it.  Need a way for this module to query
-                // whether a value is a float or int.
-                expr_parse_value(interp, &var_val)
+                expr_parse_value(&var_val)
             }
         }
         Some('[') => {
@@ -886,7 +883,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
-                expr_parse_value(interp, &script_val)
+                expr_parse_value(&script_val)
             }
         }
         Some('"') => {
@@ -900,7 +897,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             } else {
                 // Note: we got a Value, but since it was parsed from a quoted string,
                 // it won't already be numeric.
-                expr_parse_string(interp, &*val.as_string())
+                expr_parse_string(&*val.as_string())
             }
         }
         Some('{') => {
@@ -914,7 +911,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             } else {
                 // Note: we got a Value, but since it was parsed from a braced string,
                 // it won't already be numeric.
-                expr_parse_string(interp, &*val.as_string())
+                expr_parse_string(&*val.as_string())
             }
         }
         Some('(') => {
@@ -1211,10 +1208,10 @@ fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc,ResultCode> {
 ///
 /// NOTE: We don't just use `Value::as_float` or `Value::as_int`, as those expect
 /// to parse strings with no extra whitespace.  (That may be a bug.)
-fn expr_parse_value(interp: &mut Interp, value: &Value) -> DatumResult {
+fn expr_parse_value(value: &Value) -> DatumResult {
     match value.already_number() {
         Some(datum) => Ok(datum),
-        _ => expr_parse_string(interp, &*value.as_string())
+        _ => expr_parse_string(&*value.as_string())
     }
 }
 
@@ -1222,7 +1219,7 @@ fn expr_parse_value(interp: &mut Interp, value: &Value) -> DatumResult {
 /// Datum based on the string.  The value will be floating-point or integer if possible,
 /// or else it will just be a copy of the string.  Returns an error on failed numeric
 /// conversions.
-fn expr_parse_string(interp: &mut Interp, string: &str) -> DatumResult {
+fn expr_parse_string(string: &str) -> DatumResult {
     if !string.is_empty() {
         let mut p = CharPtr::new(string);
 
@@ -1254,7 +1251,7 @@ fn expr_parse_string(interp: &mut Interp, string: &str) -> DatumResult {
                 p.skip_while(|c| c.is_whitespace());
 
                 if p.is_none() {
-                    let flt = interp.get_float(&token)?;
+                    let flt = Value::get_float(&token)?;
                     return Ok(Datum::float(flt));
                 }
             }
@@ -1423,33 +1420,31 @@ mod tests {
 
     #[test]
     fn test_expr_parse_string() {
-        let mut interp = Interp::new();
-
-        let result = expr_parse_string(&mut interp, "");
+        let result = expr_parse_string("");
         assert!(result.is_ok());
         assert!(veq(&result.unwrap(), &Datum::string("")));
 
-        let result = expr_parse_string(&mut interp, "abc");
+        let result = expr_parse_string("abc");
         assert!(result.is_ok());
         assert!(veq(&result.unwrap(), &Datum::string("abc")));
 
-        let result = expr_parse_string(&mut interp, " 123abc");
+        let result = expr_parse_string(" 123abc");
         assert!(result.is_ok());
         assert!(veq(&result.unwrap(), &Datum::string(" 123abc")));
 
-        let result = expr_parse_string(&mut interp, " 123.0abc");
+        let result = expr_parse_string(" 123.0abc");
         assert!(result.is_ok());
         assert!(veq(&result.unwrap(), &Datum::string(" 123.0abc")));
 
-        let result = expr_parse_string(&mut interp, " 123   ");
+        let result = expr_parse_string(" 123   ");
         assert!(result.is_ok());
         assert!(veq(&result.unwrap(), &Datum::int(123)));
 
-        let result = expr_parse_string(&mut interp, " 1.0   ");
+        let result = expr_parse_string(" 1.0   ");
         assert!(result.is_ok());
         assert!(veq(&result.unwrap(), &Datum::float(1.0)));
 
-        let result = expr_parse_string(&mut interp, "1234567890123456789012345678901234567890");
+        let result = expr_parse_string("1234567890123456789012345678901234567890");
         assert!(result.is_err());
 
         // Should have an example of a float overflow/underflow, but I've not found a literal

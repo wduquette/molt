@@ -4,7 +4,7 @@
 //!
 //! [`Interp`]: struct.Interp.html
 
-use crate::list::list_to_string;
+use crate::list;
 use crate::commands;
 use crate::context::Context;
 use crate::molt_ok;
@@ -205,53 +205,6 @@ impl Interp {
 
         vec
     }
-
-    //--------------------------------------------------------------------------------------------
-    // Argument Conversions
-    //
-    // These methods convert strings to and from Molt values in the context of the
-    // `Interp`
-
-    /// Converts an string argument into a `MoltFloat`, returning an error on failure.
-    /// A command function will call this to convert an argument into a number,
-    /// using "?" to propagate errors to the interpreter.
-    ///
-    /// Molt accepts any string acceptable to `str::parse<f64>` as a valid floating
-    /// point string.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use molt::Interp;
-    /// # use molt::types::*;
-    /// # fn dummy() -> Result<MoltFloat,ResultCode> {
-    /// # let interp = Interp::new();
-    /// let arg = "1e2";
-    /// let val = interp.get_float(arg)?;
-    /// # Ok(val)
-    /// # }
-    /// ```
-    pub fn get_float(&self, arg: &str) -> Result<MoltFloat, ResultCode> {
-        match arg.parse::<MoltFloat>() {
-            Ok(val) => Ok(val),
-            Err(_) => molt_err!("expected floating-point number but got \"{}\"", arg),
-        }
-    }
-
-    /// Converts a string argument into a `MoltList`,
-    /// returning an error on failure. A command function will call this to convert
-    /// an argument into a list, using "?" to propagate errors to the interpreter.
-    ///
-    /// TCL list syntax is too complex to discuss here, but basically consists
-    /// of whitespace-delimited items, with normal TCL quoting for items containing
-    /// whitespace.
-    ///
-    /// TODO: Code should be using `Value::as_list` instead.
-    ///
-    pub fn get_list(&self, str: &str) -> Result<MoltList, ResultCode> {
-        crate::list::get_list(str)
-    }
-
 
     //--------------------------------------------------------------------------------------------
     // Variable Handling
@@ -737,7 +690,7 @@ impl Command for CommandProc {
                 let args = if argi < argv.len() {
                     // TODO: Almost certainly a better way to do this.
                     // let lst: MoltList = &argv[argi..].iter().collect();
-                    list_to_string(&argv[argi..])
+                    list::list_to_string(&argv[argi..])
                 } else {
                     "".into()
                 };
@@ -761,14 +714,14 @@ impl Command for CommandProc {
                 interp.set_var3(&*vec[0].as_string(), &vec[1]);
             } else {
                 // We don't; we're missing a required argument.
-                return wrong_num_args_for_proc(interp, name, &str_args);
+                return wrong_num_args_for_proc(name, &str_args);
             }
         }
 
         // NEXT, do we have any arguments left over?
 
         if argi != argv.len() {
-            return wrong_num_args_for_proc(interp, name, &str_args);
+            return wrong_num_args_for_proc(name, &str_args);
         }
 
         // NEXT, evaluate the proc's body, getting the result.
@@ -784,7 +737,8 @@ impl Command for CommandProc {
     }
 }
 
-fn wrong_num_args_for_proc(interp: &Interp, name: &str, args: &[String]) -> MoltResult {
+// TODO: This almost certainly needs to be refactored to use Values.
+fn wrong_num_args_for_proc(name: &str, args: &[String]) -> MoltResult {
     let mut msg = String::new();
     msg.push_str("wrong # args: should be \"");
     msg.push_str(name);
@@ -798,7 +752,7 @@ fn wrong_num_args_for_proc(interp: &Interp, name: &str, args: &[String]) -> Molt
             break;
         }
 
-        let vec = interp.get_list(arg).expect("error in proc arglist validation!");
+        let vec = list::get_list(arg).expect("error in proc arglist validation!");
 
         if vec.len() == 1 {
             msg.push_str(&*vec[0].as_string());
@@ -942,34 +896,6 @@ mod tests {
         assert!(!interp.complete("a {bc"));
         assert!(!interp.complete("a [bc"));
         assert!(!interp.complete("a \"bc"));
-    }
-
-    #[test]
-    fn test_get_float() {
-        let interp = Interp::new();
-
-        assert_eq!(interp.get_float("1"), Ok(1.0));
-        assert_eq!(interp.get_float("-1"), Ok(-1.0));
-        assert_eq!(interp.get_float("+1"), Ok(1.0));
-        assert_eq!(interp.get_float("1e3"), Ok(1000.0));
-        assert_eq!(interp.get_float("a"),
-            molt_err!("expected floating-point number but got \"a\""));
-    }
-
-    #[test]
-    fn test_get_list() {
-        // NOTE: List syntax is tested in list.rs; this simply verifies that
-        // Interp provides an interface to it.
-        let interp = Interp::new();
-
-        let vec = interp.get_list("a b c").unwrap();
-        assert_eq!(vec.len(), 3);
-        assert_eq!(vec[0], Value::from("a"));
-        assert_eq!(vec[1], Value::from("b"));
-        assert_eq!(vec[2], Value::from("c"));
-
-        let result = interp.get_list("a {b c");
-        assert!(result.is_err());
     }
 
     #[test]

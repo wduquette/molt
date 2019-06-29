@@ -29,6 +29,14 @@ Things to remember to do soon:
     *   `expr::expr_parse_string` takes a string and turns it into an
         `expr::Datum`.  It's sometimes starting with a `Value`.  Can
         we eliminate it?
+    *   How is `expr::expr_parse_string` used?
+        *   Variable value to string
+        *   Command result to string
+        *   Quoted string to string
+        *   Braced string to string
+    *   So, yes, in every case it can do what `Value` already does.
+        *   We need a `Value::as_datum` converter
+            *   Where `Datum` is the `expr` type.
 
 ### 2019-06-25 (Tuesday)
 *   Got rid of the remaining Clippy warnings.

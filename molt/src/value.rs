@@ -139,6 +139,7 @@
 //!
 //! [`Value`]: struct.Value.html
 
+use crate::expr::Datum;
 use std::any::Any;
 use std::any::TypeId;
 use std::cell::RefCell;
@@ -825,6 +826,17 @@ impl Value {
         // NEXT, we couldn't do it.
         None
     }
+
+    /// For use by `expr::expr` in parsing out `Values`.
+    pub(crate) fn already_number(&self) -> Option<Datum> {
+        let data_ref = self.data_rep.borrow();
+
+        match *data_ref {
+            DataRep::Flt(flt) => Some(Datum::float(flt)),
+            DataRep::Int(int) => Some(Datum::int(int)),
+            _ => None
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -1113,6 +1125,25 @@ mod tests {
         assert!(result.is_some());
         let out = result.unwrap();
         assert_eq!(out, Flavor::SALTY);
+    }
+
+    #[test]
+    fn already_number() {
+        // Can retrieve a DataRep::Int as a Datum::Int.
+        let value = Value::from(123);
+        let out = value.already_number();
+        assert!(out.is_some());
+        assert_eq!(out.unwrap(), Datum::int(123));
+
+        // Can retrieve a DataRep::Flt as a Datum::Flt.
+        let value = Value::from(45.6);
+        let out = value.already_number();
+        assert!(out.is_some());
+        assert_eq!(out.unwrap(), Datum::float(45.6));
+
+        // Other values, None.
+        let value = Value::from("123");
+        assert!(value.already_number().is_none());
     }
 
     // Sample external type, used for testing.

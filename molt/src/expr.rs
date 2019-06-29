@@ -8,7 +8,6 @@ use crate::context::Context;
 use crate::*;
 use crate::interp::Interp;
 
-
 //------------------------------------------------------------------------------------------------
 // Datum Representation
 
@@ -16,7 +15,7 @@ type DatumResult = Result<Datum,ResultCode>;
 
 /// The value type.
 #[derive(Debug,PartialEq,Eq,Copy,Clone)]
-enum Type {
+pub(crate) enum Type {
     Int,
     Float,
     String,
@@ -31,8 +30,8 @@ enum Type {
 ///
 /// I could have used a union to save space, but we don't keep large numbers of these
 /// around.
-#[derive(Debug)]
-struct Datum {
+#[derive(Debug,PartialEq)]
+pub(crate) struct Datum {
     vtype: Type,
     int: MoltInt,
     flt: MoltFloat,
@@ -49,7 +48,7 @@ impl Datum {
         }
     }
 
-    fn int(int: MoltInt) -> Self {
+    pub(crate) fn int(int: MoltInt) -> Self {
         Self {
             vtype: Type::Int,
             int,
@@ -58,7 +57,7 @@ impl Datum {
         }
     }
 
-    fn float(flt: MoltFloat) -> Self {
+    pub(crate) fn float(flt: MoltFloat) -> Self {
         Self {
             vtype: Type::Float,
             int: 0,
@@ -874,7 +873,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
                 // TODO: expr_parse_string takes the string and computes (or fails to
                 // compute) a single datum from it.  If the Value is already numeric,
                 // there's no need to parse it.  Need a way for this module to query
-                // whether a value is a float or int. 
+                // whether a value is a float or int.
                 expr_parse_string(interp, &*var_val.as_string())
             }
         }

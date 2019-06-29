@@ -63,9 +63,11 @@ pub fn read_int(ptr: &mut CharPtr) -> Option<String> {
 /// The string will consist of:
 ///
 /// * Possibly, a unary plus/minus
-/// * Some number of decimal digits, optionally containing a ".".
-/// * An optional exponent beginning with "e" or "E"
-/// * The exponent may contain a + or -, followed by some number of digits.
+/// * "Inf" (case insensitive), -OR-
+/// * A number:
+///   * Some number of decimal digits, optionally containing a ".".
+///   * An optional exponent beginning with "e" or "E"
+///   * The exponent may contain a + or -, followed by some number of digits.
 ///
 /// ## Notes
 ///

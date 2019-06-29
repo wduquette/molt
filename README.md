@@ -32,7 +32,6 @@ $ cargo run test test/all.tcl
 ## TODO Items
 
 *   Integrate the new Value type into Molt:
-    *   See if there's anything more to do in expr.
     *   Look at how to best store proc details for efficient execution.
     *   Ponder the MoltList API, and consider how to make it cleaner
         *   list! macro to build lists from things that implement `Into<Value>`?

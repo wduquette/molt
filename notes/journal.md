@@ -58,6 +58,12 @@ Things to remember to do soon:
         *   Output `inf` and `-inf` as `Inf` and `-Inf`.
         *   Accept `Inf` and `-Inf` on input, case-insensitively.
             *   get_float() now does this; but util::read_float doesn't.
+    *   Updated util::read_float to do the right thing.
+    *   Added Value::fmt_float, used by Datum::'s Fmt implementation.
+        *   Outputs "Inf", "-Inf", and "NaN" when appropriate.
+        *   Otherwise, still uses default Rust formatting.  Wrote Issue #29 to cover the
+            remaining formatting issues.
+    *   `expr` is done, so far as `Value` is concerned!
 
 
 ### 2019-06-25 (Tuesday)

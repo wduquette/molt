@@ -8,7 +8,7 @@ and user documentation.
 
 To build Molt:
 
-*   Install the latest stable version of Rust (1.33.0 at time of writing)
+*   Install the latest stable version of Rust (1.35.0 at time of writing)
 *   Clone this repository
 *   To build:
 
@@ -31,38 +31,29 @@ $ cargo run test test/all.tcl
 
 ## TODO Items
 
-* Integrate the new MoltValue type into Molt:
-  * DONE: MoltValue::as_int uses ResultCode and parses as for Interp::parse_int.
-  * DONE: MoltValue::as_float uses ResultCode.
-  * DONE: Add Datum::Bool, MoltValue::from_bool, MoltValue::as_bool, parsing as for Interp::get_bool.
-  * DONE: MoltValue::as_list uses ResultCode, and parses as for Interp::get_list.
-  * DONE: MoltValue uses the list formatter for MoltList values.
-  * Add examples to the doc comments for:
-    * DONE: MoltValue::from_str
-    * DONE: MoltValue::from_string
-    * DONE: MoltValue::as_string
-    * DONE: MoltValue::from_bool
-    * DONE: MoltValue::as_bool
-    * DONE: MoltValue::from_int
-    * DONE: MoltValue::as_int
-    * DONE: MoltValue::from_float
-    * DONE: MoltValue::as_float
-    * MoltValue::from_list
-    * MoltValue::to_list
-    * MoltValue::from_other
-    * MoltValue::as_other
-    * MoltValue::as_copy
-  * Variables have MoltValues instead of strings.
-  * MoltList elements are MoltValues instead of strings.
-  * Command argument lists contain MoltValues rather than strings.
-  * ResultCode::Return and ResultCode::Error use MoltValue for the return value.
-  * `expr` does computations in terms of MoltValues.
-    * Or at least gets its inputs from and writes its output to MoltValues.
-  * Consider whether to replace MoltValue's two RefCell's with one.
+*   Integrate the new Value type into Molt:
+    *   Look at how to best store proc details for efficient execution.
+    *   Ponder the MoltList API, and consider how to make it cleaner
+        *   list! macro to build lists from things that implement `Into<Value>`?
+    *   Consider whether to replace Value's two RefCell's with one.
+    *   Consider whether var names should be stored as Values.
+    *   Consider whether molt::MoltFloat, molt::MoltInt, and molt::MoltList should be
+        molt::Float, molt::Int, and molt::List.
+        *   Yeah, probably.
 * Issues from wduquette/molt.
   * #15: molt_shell::repl should support continuation lines
   * #17: molt_shell should document how to write app code.
 * Add complete tests for the existing Tcl commands.
+    * "catch"
+    * "foreach"
+    * "global"
+    * "incr"
+    * "join"
+    * "lindex"
+    * "list"
+    * "llength"
+    * "set"
+    * "unset"
     * Test expression parser thoroughly
       * Add tests for "eq", "ne", "in", "ni"
       * Implement remaining math functions

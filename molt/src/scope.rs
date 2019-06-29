@@ -13,12 +13,14 @@
 //! `Interp` (or the Molt language itself).
 
 use std::collections::HashMap;
+use crate::value::Value;
+use crate::types::MoltList;
 
 /// A variable in a `Scope`.  If the variable is defined in the `Scope`, it has a
 /// `Value`; if it is a reference to a variable in a higher scope (e.g., a global) then
 /// the `Level` gives the referenced scope.
 enum Var {
-    Value(String),
+    Value(Value),
     Level(usize)
 }
 
@@ -58,15 +60,15 @@ impl ScopeStack {
     /// Sets a variable to a value in the current scope.  If the variable is linked to
     /// another scope, the value is set there instead.  The variable is created if it does
     /// not already exist.
-    pub fn set(&mut self, name: &str, value: &str) -> String {
+    pub fn set(&mut self, name: &str, value: Value) -> Value {
         let top = self.stack.len() - 1;
 
-        self.set_at(top, name, value);
-        value.into()
+        self.set_at(top, name, value.clone());
+        value
     }
 
     /// Gets the value of the named variable in the current scope, if present.
-    pub fn get(&self, name: &str) -> Option<String> {
+    pub fn get(&self, name: &str) -> Option<Value> {
         let top = self.stack.len() - 1;
 
         self.get_at(top, name)
@@ -81,7 +83,7 @@ impl ScopeStack {
     }
 
     /// Gets the value at the given level, recursing up the stack as needed.
-    fn get_at(&self, level: usize, name: &str) -> Option<String> {
+    fn get_at(&self, level: usize, name: &str) -> Option<Value> {
         match self.stack[level].map.get(name) {
             Some(Var::Value(value)) => Some(value.clone()),
             Some(Var::Level(at)) => self.get_at(*at, name),
@@ -91,14 +93,14 @@ impl ScopeStack {
 
     /// Set a variable to a value at a given level in the stack.  If the variable at that level
     /// is linked to a higher level, sets it at that level instead.
-    fn set_at(&mut self, level:usize, name: &str, value: &str) {
+    fn set_at(&mut self, level:usize, name: &str, value: Value) {
         match self.stack[level].map.get(name) {
             Some(Var::Level(at)) => {
                 let true_level = *at;
                 self.set_at(true_level, name, value);
             }
             _ => {
-                self.stack[level].map.insert(name.into(), Var::Value(value.into()));
+                self.stack[level].map.insert(name.into(), Var::Value(value));
             }
         }
     }
@@ -150,11 +152,12 @@ impl ScopeStack {
 
     /// Gets the names of the variables defined in the current scope.
     /// TODO: Should return a MoltList.
-    pub fn vars_in_scope(&self) -> Vec<String> {
+    pub fn vars_in_scope(&self) -> MoltList {
         let top = self.stack.len() - 1;
-        let vec: Vec<String> = self.stack[top].map.keys().cloned().collect();
-
-        vec
+        // let vec: MoltList = self.stack[top].map.keys().cloned().map(|x| Value::new(&x)).collect();
+        //
+        // vec
+        self.stack[top].map.keys().cloned().map(|x| Value::from(&x)).collect()
     }
 }
 
@@ -173,23 +176,27 @@ mod tests {
     fn test_set_get_basic() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", "1");
-        assert_eq!(ss.get("a"), Some("1".into()));
+        ss.set("a", Value::from("1"));
+        let out = ss.get("a");
+        assert!(out.is_some());
+        assert_eq!(&*out.unwrap().as_string(), "1");
 
-        ss.set("b", "2");
-        assert_eq!(ss.get("b"), Some("2".into()));
+        ss.set("b", Value::from("2"));
+        let out = ss.get("b");
+        assert!(out.is_some());
+        assert_eq!(&*out.unwrap().as_string(), "2");
 
-        assert_eq!(ss.get("c"), None);
+        assert!(ss.get("c").is_none());
     }
 
     #[test]
     fn test_unset_basic() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", "1");
-        assert_eq!(ss.get("a"), Some("1".into()));
+        ss.set("a", Value::from("1"));
+        assert!(ss.get("a").is_some());
         ss.unset("a");
-        assert_eq!(ss.get("a"), None);
+        assert!(ss.get("a").is_none());
     }
 
 
@@ -240,65 +247,65 @@ mod tests {
     fn test_set_levels() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", "1");
-        ss.set("b", "2");
+        ss.set("a", Value::from("1"));
+        ss.set("b", Value::from("2"));
 
         ss.push();
-        assert_eq!(ss.get("a"), None);
-        assert_eq!(ss.get("b"), None);
-        assert_eq!(ss.get("c"), None);
+        assert!(ss.get("a").is_none());
+        assert!(ss.get("b").is_none());
+        assert!(ss.get("c").is_none());
 
-        ss.set("a", "3");
-        ss.set("b", "4");
-        ss.set("c", "5");
-        assert_eq!(ss.get("a"), Some("3".into()));
-        assert_eq!(ss.get("b"), Some("4".into()));
-        assert_eq!(ss.get("c"), Some("5".into()));
+        ss.set("a", Value::from("3"));
+        ss.set("b", Value::from("4"));
+        ss.set("c", Value::from("5"));
+        assert_eq!(&*ss.get("a").unwrap().as_string(), "3");
+        assert_eq!(&*ss.get("b").unwrap().as_string(), "4");
+        assert_eq!(&*ss.get("c").unwrap().as_string(), "5");
 
         ss.pop();
-        assert_eq!(ss.get("a"), Some("1".into()));
-        assert_eq!(ss.get("b"), Some("2".into()));
-        assert_eq!(ss.get("c"), None);
+        assert_eq!(&*ss.get("a").unwrap().as_string(), "1");
+        assert_eq!(&*ss.get("b").unwrap().as_string(), "2");
+        assert!(ss.get("c").is_none());
     }
 
     #[test]
     fn test_set_get_upvar() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", "1");
-        ss.set("b", "2");
+        ss.set("a", Value::from("1"));
+        ss.set("b", Value::from("2"));
 
         ss.push();
         ss.upvar(0, "a");
-        assert_eq!(ss.get("a"), Some("1".into()));
-        assert_eq!(ss.get("b"), None);
+        assert_eq!(&*ss.get("a").unwrap().as_string(), "1");
+        assert!(ss.get("b").is_none());
 
-        ss.set("a", "3");
-        ss.set("b", "4");
-        assert_eq!(ss.get("a"), Some("3".into()));
-        assert_eq!(ss.get("b"), Some("4".into()));
+        ss.set("a", Value::from("3"));
+        ss.set("b", Value::from("4"));
+        assert_eq!(&*ss.get("a").unwrap().as_string(), "3");
+        assert_eq!(&*ss.get("b").unwrap().as_string(), "4");
 
         ss.pop();
-        assert_eq!(ss.get("a"), Some("3".into()));
-        assert_eq!(ss.get("b"), Some("2".into()));
+        assert_eq!(&*ss.get("a").unwrap().as_string(), "3");
+        assert_eq!(&*ss.get("b").unwrap().as_string(), "2");
     }
 
     #[test]
     fn test_unset_levels() {
         let mut ss = ScopeStack::new();
 
-        ss.set("a", "1");
-        ss.set("b", "2");
+        ss.set("a", Value::from("1"));
+        ss.set("b", Value::from("2"));
 
         ss.push();
-        ss.set("a", "3");
+        ss.set("a", Value::from("3"));
 
         ss.unset("a");  // Was set in this scope
         ss.unset("b");  // Was not set in this scope
 
         ss.pop();
-        assert_eq!(ss.get("a"), Some("1".into()));
-        assert_eq!(ss.get("b"), Some("2".into()));
+        assert_eq!(&*ss.get("a").unwrap().as_string(), "1");
+        assert_eq!(&*ss.get("b").unwrap().as_string(), "2");
     }
 
     #[test]
@@ -306,18 +313,21 @@ mod tests {
         let mut ss = ScopeStack::new();
 
         // Set a value at level 0
-        ss.set("a", "1");
+        ss.set("a", Value::from("1"));
+        assert!(ss.get("a").is_some());
         ss.push();
+        assert!(ss.get("a").is_none());
 
         // Link a@1 to a@0
         ss.upvar(0, "a");
+        assert!(ss.get("a").is_some());
 
         // Unset it; it should be unset in both scopes.
         ss.unset("a");
 
-        assert_eq!(ss.get("a"), None);
+        assert!(ss.get("a").is_none());
         ss.pop();
-        assert_eq!(ss.get("a"), None);
+        assert!(ss.get("a").is_none());
     }
 
     #[test]
@@ -327,35 +337,34 @@ mod tests {
         assert_eq!(ss.vars_in_scope().len(), 0);
 
         // Add two vars to current scope
-        ss.set("a", "1");
-        ss.set("b", "2");
+        ss.set("a", Value::from("1"));
+        ss.set("b", Value::from("2"));
         assert_eq!(ss.vars_in_scope().len(), 2);
-        assert!(ss.vars_in_scope().contains(&"a".into()));
-        assert!(ss.vars_in_scope().contains(&"b".into()));
+        assert!(ss.vars_in_scope().contains(&Value::from("a")));
+        assert!(ss.vars_in_scope().contains(&Value::from("b")));
 
         // Push a scope; no vars initially
         ss.push();
         assert_eq!(ss.vars_in_scope().len(), 0);
 
         // Add a var
-        ss.set("c", "3");
+        ss.set("c", Value::from("3"));
         assert_eq!(ss.vars_in_scope().len(), 1);
-        assert!(ss.vars_in_scope().contains(&"c".into()));
+        assert!(ss.vars_in_scope().contains(&Value::from("c")));
 
         // Upvar a var
         ss.upvar(0, "a");
         assert_eq!(ss.vars_in_scope().len(), 2);
-        assert!(ss.vars_in_scope().contains(&"a".into()));
+        assert!(ss.vars_in_scope().contains(&Value::from("a")));
 
         // Pop a scope
         ss.pop();
         assert_eq!(ss.vars_in_scope().len(), 2);
-        assert!(!ss.vars_in_scope().contains(&"c".into()));
+        assert!(!ss.vars_in_scope().contains(&Value::from("c")));
 
         // Unset a var
         ss.unset("b");
         assert_eq!(ss.vars_in_scope().len(), 1);
-        assert!(!ss.vars_in_scope().contains(&"b".into()));
+        assert!(!ss.vars_in_scope().contains(&Value::from("b")));
     }
-
 }

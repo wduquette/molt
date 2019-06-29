@@ -7,7 +7,6 @@
 pub use crate::types::*;
 pub use crate::list::list_to_string;
 pub use crate::interp::Interp;
-pub use crate::value::MoltValue;
 
 #[allow(dead_code)] // Temporary
 mod char_ptr;
@@ -32,7 +31,7 @@ mod util;
 /// *Note:* Defined as a function because it doesn't need anything from the Interp.
 pub fn check_args(
     namec: usize,
-    argv: &[&str],
+    argv: &[Value],
     min: usize,
     max: usize,
     argsig: &str,
@@ -42,8 +41,12 @@ pub fn check_args(
     assert!(!argv.is_empty());
 
     if argv.len() < min || (max > 0 && argv.len() > max) {
+        // TODO: Need an easy way to join the values in a &[&Value] into a string.
+        // This is a stopgap.
+        let vec: Vec<String> = argv[0..namec].iter().map(|v| v.to_string()).collect();
         molt_err!("wrong # args: should be \"{} {}\"",
-            argv[0..namec].join(" "),
+            // argv[0..namec].join(" "),
+            vec.join(" "),
             argsig
         )
     } else {
@@ -57,31 +60,36 @@ mod tests {
 
     #[test]
     fn test_check_args() {
-        assert_ok(&check_args(1, vec!["mycmd"].as_slice(), 1, 1, ""));
-        assert_ok(&check_args(1, vec!["mycmd"].as_slice(), 1, 2, "arg1"));
+        assert_ok(&check_args(1, &mklist(vec!["mycmd"].as_slice()), 1, 1, ""));
+        assert_ok(&check_args(1, &mklist(vec!["mycmd"].as_slice()), 1, 2, "arg1"));
         assert_ok(&check_args(
             1,
-            vec!["mycmd", "data"].as_slice(),
+            &mklist(vec!["mycmd", "data"].as_slice()),
             1,
             2,
             "arg1",
         ));
         assert_ok(&check_args(
             1,
-            vec!["mycmd", "data", "data2"].as_slice(),
+            &mklist(vec!["mycmd", "data", "data2"].as_slice()),
             1,
             0,
             "arg1",
         ));
 
         assert_err(
-            &check_args(1, vec!["mycmd"].as_slice(), 2, 2, "arg1"),
+            &check_args(1, &mklist(vec!["mycmd"].as_slice()), 2, 2, "arg1"),
             "wrong # args: should be \"mycmd arg1\"",
         );
         assert_err(
-            &check_args(1, vec!["mycmd", "val1", "val2"].as_slice(), 2, 2, "arg1"),
+            &check_args(1, &mklist(vec!["mycmd", "val1", "val2"].as_slice()), 2, 2, "arg1"),
             "wrong # args: should be \"mycmd arg1\"",
         );
+    }
+
+    // TODO: stopgap until we have finalized the MoltList API.
+    fn mklist(argv: &[&str]) -> MoltList {
+        argv.iter().map(|s| Value::from(*s)).collect()
     }
 
     // Helpers

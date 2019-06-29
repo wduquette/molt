@@ -63,9 +63,11 @@ pub fn read_int(ptr: &mut CharPtr) -> Option<String> {
 /// The string will consist of:
 ///
 /// * Possibly, a unary plus/minus
-/// * Some number of decimal digits, optionally containing a ".".
-/// * An optional exponent beginning with "e" or "E"
-/// * The exponent may contain a + or -, followed by some number of digits.
+/// * "Inf" (case insensitive), -OR-
+/// * A number:
+///   * Some number of decimal digits, optionally containing a ".".
+///   * An optional exponent beginning with "e" or "E"
+///   * The exponent may contain a + or -, followed by some number of digits.
 ///
 /// ## Notes
 ///
@@ -80,6 +82,26 @@ pub fn read_float(ptr: &mut CharPtr) -> Option<String> {
     // FIRST, skip a unary operator.
     if p.is('+') || p.is('-') {
         result.push(p.next().unwrap());
+    }
+
+    // NEXT, looking for Inf
+    if p.is('I') || p.is('i') {
+        result.push(p.next().unwrap());
+
+        if p.is('N') || p.is('n') {
+            result.push(p.next().unwrap());
+        } else {
+            return None;
+        }
+
+        if p.is('F') || p.is('f') {
+            result.push(p.next().unwrap());
+            // Update the pointer.
+            ptr.skip_over(result.len());
+            return Some(result);
+        } else {
+            return None;
+        }
     }
 
     // NEXT, get any integer digits

@@ -1,5 +1,166 @@
 # Molt Development Journal
 
+Things to remember to do soon:
+
+*   Look at the standard ways we use `Value` in commands.rs, and see if we can't
+    make things simpler.
+*   Consider implementing `TryInto<T>` for the standard data reps.
+    *   Can't implement `TryFrom<T>` because I don't own the data reps.  If I define
+        MoltList as a newtype, I could define `TryFrom<Value>` for MoltList.
+*   Implement Debug for Value.  Should output a pair, `Value[string_rep,data_rep]`, or
+    something like that.
+    *   The derived Debug displays everything, but reveals internals.
+    *   Non-trivial: both string_reps and data_reps can be quite large.  Need to ponder
+        just what I want.  The above suggests one line, which isn't it.
+*   MoltList should maybe be a newtype with helper methods.
+    *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
+        e.g., `From<&MoltValue>`, `From<&Vec<String>>`
+
+### 2019-06-29 (Wednesday)
+*   More expr.rs cleaning.
+    *   Removed some obsolete methods.
+        *   Public, but replaced by `expr::expr` and `expr::expr_test`.
+            *   Note: these should be exposed as `molt::expr` and
+                `molt::expr_test`.
+        *   Private, used to convert results back to string for output
+            (since we don't do that anymore).
+    *   `expr::expr_parse_string` takes a string and turns it into an
+        `expr::Datum`.  It's sometimes starting with a `Value`.  Can
+        we eliminate it?
+    *   How is `expr::expr_parse_string` used?
+        *   Variable value to string
+        *   Command result to string
+        *   Quoted string to string
+        *   Braced string to string
+    *   So, yes, in every case it can do what `Value` already does.
+        *   We need a `Value::as_datum` converter
+            *   Where `Datum` is the `expr` type.
+    *   Added Value::already_number()
+        *   Used in new expr::expr_parse_value, which is now used where appropriate.
+*   WHOOPS!
+    *   Tcl's Tcl_GetInt and Tcl_GetFloat allow leading and trailing whitespace.  The Molt
+        equivalents do not.
+    *   Replaced Value::parse_int with the public Value::get_int, which now allows leading
+        and trailing whitespace.
+    *   Added Value::get_float, which allows leading and trailing whitespace.
+        *   And is used by Value::as_float.
+    *   I need to eliminate the Interp::get_int and Interp::get_float routines in favor of
+        these.
+    *   I almost certainly need to do the same things with Interp::get_bool!
+    *   Yup.  Done.
+*   Removed the `Interp::get_{int,float,bool,list}` methods in favor of
+    `Value::get_{int,float,bool}` and `list::get_list`.
+*   Did some experiments with `expr` and floating point numbers.
+    *   Rust floats propagate Infinity, -Infinity, and NaN appropriately; and my current parser is
+        apparently good with that.
+    *   Rust formats Infinity and -Infinity as `inf` and `-inf`.
+    *   It looks like all I need to do for floating point correctness in this regard is this:
+        *   Output `inf` and `-inf` as `Inf` and `-Inf`.
+        *   Accept `Inf` and `-Inf` on input, case-insensitively.
+            *   get_float() now does this; but util::read_float doesn't.
+    *   Updated util::read_float to do the right thing.
+    *   Added Value::fmt_float, used by Datum::'s Fmt implementation.
+        *   Outputs "Inf", "-Inf", and "NaN" when appropriate.
+        *   Otherwise, still uses default Rust formatting.  Wrote Issue #29 to cover the
+            remaining formatting issues.
+    *   `expr` is done, so far as `Value` is concerned!
+
+
+### 2019-06-25 (Tuesday)
+*   Got rid of the remaining Clippy warnings.
+*   Added the remaining examples to the value.rs doc comments.
+
+### 2019-06-24 (Monday)
+*   Got rid of old-style commands.
+    *   The Command trait is now in terms of `&[Value]`.
+
+### 2019-06-23 (Sunday)
+*   The `expr.rs` interface.
+    *   We have `molt_expr_string`, `molt_expr_bool`, `molt_expr_int`, and
+        `molt_expr_float`.  
+    *   Each takes a `&str` and returns a value of the given type.
+    *   Questions:
+        *   Q: Should these take a `&str` or a `Value`?
+            *   I'm thinking `Value`.
+        *   Q: Should these return a `Value`?
+            *   Maybe.  In which case we can lose most of them.
+        *   Q: What about `molt_expr_bool`?
+            *   `Value::as_bool` either returns the `bool` data rep, or tries
+                to parse the value as a boolean string.
+            *   `molt_expr_bool` looks at the computed result, and also handles
+                numeric results as booleans.
+            *   Either we need to move that numeric result logic into
+                `Value::as_bool`, or we need to retain `molt_expr_bool`.
+            *   What does Tcl_GetBoolean() do in TCL 8?
+                *   Tcl_GetBoolean() (the legacy string version) only accepts
+                    proper boolean strings.
+                *   Tcl_GetBooleanFromObj() looks for numeric values as well.
+                *   So we might want a routine for validating/converting
+                    explicitly boolean strings, but in practice numeric values
+                    are acceptable as well.
+                *   Note, though, that Value::as_bool should avoid losing the
+                    numeric data rep if there is one.
+        *   Q: what should we actually call them?  The "molt_" prefix is
+            unusual in the code-base.
+    *   Answers:
+        *   The existing functions are going to go away; they've been replaced by
+            `pub fn expr(interp: &mut Interp, expr: &Value) -> MoltResult`.
+        *   `Value::as_bool` looks for numeric data reps, and returns true for non-zero
+            and false for zero.
+            *   But `Value::as_bool` does not check to see if the string rep is a numeric
+                string.  If you want to interpret a general string as a boolean, use
+                `expr`.
+*   Converted `expr`, `for`, `if`, and `while` to be new-style commands.
+    *   Those were the last.
+*   Removed `CommandStrFunc` and `Interp::add_str_command`.
+*   It's time to revise the `Command` trait to use `argv: &[Value]`!
+
+### 2019-06-22 (Saturday)
+*   Implemented From<T> for the standard Value data representations.
+    *   String, &str, &String, bool, MoltInt, MoltFloat, MoltList.
+    *   Works a treat; both `Value::from(x)` and `let val: Value = x.into()` work as expected.
+    *   `molt_ok!` and `molt_err!` now use `Value::from` instead of `Value::from_string`, and
+        so pass `Value` objects along unchanged.
+        *   Implementing `From<&String>` was necessary for this; somewhere I've got a
+            `molt_err!` that's passed a `&String`, and for some reason it isn't being treated
+            as a `&str`.
+        *   It appears that types implement `From<Self>` automatically, so I can also pass
+            `Value` objects to these macros.
+    *   Added `Value::empty()`, which is equivalent to `Value::from("")`.
+        *   Could possibly make it a constant?
+    *   Removed `Value::new` and all of the `Value::from_*` functions.
+*   Next: revise the standard commands.
+    *   Make them take `argv: &[Value]` instead of `argv: &[&str]`.
+    *   Move CommandFunc to CommandStrFunc and check_args to check_str_args, and define
+        new versions that do the right thing.
+        *   That way we can revise the commands one by one.
+    *   Minimally update molt-shell and molt-app so that they can build, so that I can
+        use them and begin to run the test suite.
+    *   As part of this, continue to work the API.
+        *   Figure out the MoltList API
+        *   Maybe implement `TryInto<T>` for the standard data rep types.
+*   Implemented `puts` as a new-style CommandFunc, and it works.
+    *   Woohoo!
+*   Revised a bunch of other commands to be new-style commands.
+
+### 2019-06-19 (Wednesday)
+*   Finished updating the molt:: code so it compiles.
+    *   Bodies of many commands are compiled out at present.
+*   One test failure, interp::tests::test_recursion_limit, because the "proc" command is
+    currently FUBAR.
+
+### 2019-06-18 (Tuesday)
+*   Converted scope.rs to use MoltValue.
+*   Renamed expr::Value (an internal type) to expr::Datum.
+*   Renamed value::MoltValue to value::Value.
+*   Tried to make ResultCode::Error(String) be ResultCode::Error(Value).
+    *   Problem: ResultCode current implements Eq and PartialEq.  Value doesn't.
+*   Implemented Eq and PartialEq (comparing the string_reps).
+*   Updated all types in types.rs to use Value where appropriate.
+*   Updated list.rs accordingly.
+*   Updated expr.rs accordingly.
+*   Still lots of work in interp.rs and commands.rs to go.
+
 ### 2019-06-17 (Monday)
 *   Fleshed out the MoltValue::from_list and MoltValue::as_list methods, and added list formatting
     to Datum's Display implementation.

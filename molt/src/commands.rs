@@ -646,7 +646,7 @@ pub fn cmd_time(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
     let mut total = Duration::new(0,0);
 
-    for _i in 1..count {
+    for _i in 0..count {
         let start = Instant::now();
         let _ = interp.eval(command);
         let span = Instant::now().duration_since(start);

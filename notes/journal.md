@@ -2,6 +2,8 @@
 
 Things to remember to do soon:
 
+*   expr::expr_parse_value should probably try as_int and as_float, to convert string values
+    to numbers.
 *   Look at the standard ways we use `Value` in commands.rs, and see if we can't
     make things simpler.
 *   Consider implementing `TryInto<T>` for the standard data reps.

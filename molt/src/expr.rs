@@ -874,7 +874,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
                 // compute) a single datum from it.  If the Value is already numeric,
                 // there's no need to parse it.  Need a way for this module to query
                 // whether a value is a float or int.
-                expr_parse_string(interp, &*var_val.as_string())
+                expr_parse_value(interp, &var_val)
             }
         }
         Some('[') => {
@@ -886,7 +886,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
-                expr_parse_string(interp, &*script_val.as_string())
+                expr_parse_value(interp, &script_val)
             }
         }
         Some('"') => {
@@ -898,6 +898,8 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
+                // Note: we got a Value, but since it was parsed from a quoted string,
+                // it won't already be numeric.
                 expr_parse_string(interp, &*val.as_string())
             }
         }
@@ -910,6 +912,8 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
+                // Note: we got a Value, but since it was parsed from a braced string,
+                // it won't already be numeric.
                 expr_parse_string(interp, &*val.as_string())
             }
         }
@@ -1200,6 +1204,18 @@ fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc,ResultCode> {
     }
 
     molt_err!("unknown math function \"{}\"", func_name)
+}
+
+/// If the value already has a numeric data rep, just gets it as a Datum; otherwise,
+/// tries to parse it out as a string.
+///
+/// NOTE: We don't just use `Value::as_float` or `Value::as_int`, as those expect
+/// to parse strings with no extra whitespace.  (That may be a bug.)
+fn expr_parse_value(interp: &mut Interp, value: &Value) -> DatumResult {
+    match value.already_number() {
+        Some(datum) => Ok(datum),
+        _ => expr_parse_string(interp, &*value.as_string())
+    }
 }
 
 /// Given a string (such as one coming from command or variable substitution) make a

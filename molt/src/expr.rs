@@ -266,53 +266,6 @@ pub fn expr_test(interp: &mut Interp, bool_expr: &Value) -> Result<bool, ResultC
     value.as_bool()
 }
 
-/// Evaluates an expression and returns its value in string form.
-/// TODO: Remove
-pub fn molt_expr_string(interp: &mut Interp, string: &str) -> MoltResult {
-    let value = expr_top_level(interp, string)?;
-
-    match value.vtype {
-        Type::Int => molt_ok!("{}", value.int),
-        Type::Float => molt_ok!("{}", value.flt), // TODO: better float->string logic
-        Type::String => molt_ok!(value.str),
-    }
-}
-
-/// Evaluates an expression and returns its value as a Molt integer.
-/// TODO: Remove
-pub fn molt_expr_int(interp: &mut Interp, string: &str) -> Result<MoltInt, ResultCode> {
-    let value = expr_top_level(interp, string)?;
-
-    match value.vtype {
-        Type::Int => Ok(value.int),
-        Type::Float => Ok(value.flt as MoltInt),
-        _ => molt_err!("expression didn't have numeric value"),
-    }
-}
-
-/// Evaluates an expression and returns its value as a Molt float.
-/// TODO: Remove
-pub fn molt_expr_float(interp: &mut Interp, string: &str) -> Result<MoltFloat, ResultCode> {
-    let value = expr_top_level(interp, string)?;
-
-    match value.vtype {
-        Type::Int => Ok(value.int as MoltFloat),
-        Type::Float => Ok(value.flt),
-        _ => molt_err!("expression didn't have numeric value"),
-    }
-}
-
-/// Evaluates an expression and returns its value as a boolean.
-pub fn molt_expr_bool(interp: &mut Interp, string: &str) -> Result<bool, ResultCode> {
-    let value = expr_top_level(interp, string)?;
-
-    match value.vtype {
-        Type::Int => Ok(value.int != 0),
-        Type::Float => Ok(value.flt != 0.0),
-        Type::String => interp.get_bool(&value.str),
-    }
-}
-
 //------------------------------------------------------------------------------------------------
 // Expression Internals
 

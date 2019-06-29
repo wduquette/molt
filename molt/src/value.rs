@@ -635,7 +635,8 @@ impl Value {
     /// Converts an string argument into a `MoltFloat`, returning an error on failure.
     ///
     /// Molt accepts any string acceptable to `str::parse<f64>` as a valid floating
-    /// point string.  Leading and trailing whitespace is ignored.
+    /// point string.  Leading and trailing whitespace is ignored, and parsing is
+    /// case-insensitive.
     ///
     /// # Example
     ///
@@ -648,7 +649,7 @@ impl Value {
     /// # }
     /// ```
     pub fn get_float(arg: &str) -> Result<MoltFloat, ResultCode> {
-        let arg_trim = arg.trim();
+        let arg_trim = arg.trim().to_lowercase();
 
         match arg_trim.parse::<MoltFloat>() {
             Ok(flt) => Ok(flt),
@@ -1148,6 +1149,7 @@ mod tests {
         assert_eq!(Value::get_float("1"), Ok(1.0));
         assert_eq!(Value::get_float("2.3"), Ok(2.3));
         assert_eq!(Value::get_float(" 4.5 "), Ok(4.5));
+        assert_eq!(Value::get_float("Inf"), Ok(std::f64::INFINITY));
 
         assert_eq!(Value::get_float("abc"),
             molt_err!("expected floating-point number but got \"abc\""));

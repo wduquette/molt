@@ -657,6 +657,23 @@ impl Value {
         }
     }
 
+    /// Computes the string rep for a MoltFloat.
+    ///
+    /// TODO: This needs a lot of work, so that floating point outputs will parse back into
+    /// the same floating point numbers.
+    fn fmt_float(f: &mut std::fmt::Formatter, flt: MoltFloat) -> std::fmt::Result {
+        if flt == std::f64::INFINITY {
+            write!(f, "Inf")
+        } else if flt == std::f64::NEG_INFINITY {
+            write!(f, "-Inf")
+        } else if flt.is_nan() {
+            write!(f, "NaN")
+        } else {
+            // TODO: Needs improvement.
+            write!(f, "{}", flt)
+        }
+    }
+
     /// Tries to return the `Value` as a `MoltList`, parsing the
     /// value's string representation if necessary.
     ///
@@ -960,7 +977,7 @@ impl Display for DataRep {
         match self {
             DataRep::Bool(flag) => write!(f, "{}", if *flag { 1 } else { 0 }),
             DataRep::Int(int) => write!(f, "{}", int),
-            DataRep::Flt(flt) => write!(f, "{}", flt),
+            DataRep::Flt(flt) => Value::fmt_float(f, *flt),
             DataRep::List(list) => write!(f, "{}", list_to_string(&*list)),
             DataRep::Other(other) => write!(f, "{}", other),
             DataRep::None => write!(f, ""),

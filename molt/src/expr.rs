@@ -1236,6 +1236,8 @@ fn expr_parse_string(string: &str) -> DatumResult {
             p.skip_while(|c| c.is_whitespace());
 
             if p.is_none() {
+                // Can return an error if the number is too long to represent as a
+                // MoltInt.  This is consistent with Tcl 7.6.  (Tcl 8 uses BigNums.)
                 let int = Value::get_int(&token)?;
                 return Ok(Datum::int(int));
             }
@@ -1244,13 +1246,14 @@ fn expr_parse_string(string: &str) -> DatumResult {
             p.skip_while(|c| c.is_whitespace());
 
             // NEXT, see if we can get a float token from it.
-            // since it "looks like int".
             if let Some(token) = util::read_float(&mut p) {
                 // Did we read the whole string?  If not, it isn't really a float.
                 // Otherwise, drop through and return it as a string.
                 p.skip_while(|c| c.is_whitespace());
 
                 if p.is_none() {
+                    // Can theoretically return an error.  This is consistent with
+                    // Tcl 7.6.  Molt and Tcl 8 return 0, Inf, or -Inf instead.
                     let flt = Value::get_float(&token)?;
                     return Ok(Datum::float(flt));
                 }

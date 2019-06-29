@@ -50,6 +50,14 @@ Things to remember to do soon:
     *   Yup.  Done.
 *   Removed the `Interp::get_{int,float,bool,list}` methods in favor of
     `Value::get_{int,float,bool}` and `list::get_list`.
+*   Did some experiments with `expr` and floating point numbers.
+    *   Rust floats propagate Infinity, -Infinity, and NaN appropriately; and my current parser is
+        apparently good with that.
+    *   Rust formats Infinity and -Infinity as `inf` and `-inf`.
+    *   It looks like all I need to do for floating point correctness in this regard is this:
+        *   Output `inf` and `-inf` as `Inf` and `-Inf`.
+        *   Accept `Inf` and `-Inf` on input, case-insensitively.
+            *   get_float() now does this; but util::read_float doesn't.
 
 
 ### 2019-06-25 (Tuesday)

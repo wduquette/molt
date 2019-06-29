@@ -518,15 +518,15 @@ impl Value {
 
         // NEXT, Try to parse the string_rep as an integer
         let str = (&*string_ref).as_ref().unwrap();
-        let int = Value::parse_int(&*str)?;
+        let int = Value::get_int(&*str)?;
         *data_ref = DataRep::Int(int);
         Ok(int)
     }
 
     // Parses a string as an integer using the standard TCL syntax (except octal :-)
     // Returns a standard Molt error result.
-    fn parse_int(arg: &str) -> Result<MoltInt, ResultCode> {
-        let mut arg = arg;
+    pub fn get_int(arg: &str) -> Result<MoltInt, ResultCode> {
+        let mut arg = arg.trim();
         let mut minus = 1;
 
         if arg.starts_with('+') {
@@ -1047,19 +1047,20 @@ mod tests {
     }
 
     #[test]
-    fn parse_int() {
+    fn get_int() {
         // Test the internal integer parser
-        assert_eq!(Value::parse_int("1"), Ok(1));
-        assert_eq!(Value::parse_int("-1"), Ok(-1));
-        assert_eq!(Value::parse_int("+1"), Ok(1));
-        assert_eq!(Value::parse_int("0xFF"), Ok(255));
-        assert_eq!(Value::parse_int("+0xFF"), Ok(255));
-        assert_eq!(Value::parse_int("-0xFF"), Ok(-255));
+        assert_eq!(Value::get_int("1"), Ok(1));
+        assert_eq!(Value::get_int("-1"), Ok(-1));
+        assert_eq!(Value::get_int("+1"), Ok(1));
+        assert_eq!(Value::get_int("0xFF"), Ok(255));
+        assert_eq!(Value::get_int("+0xFF"), Ok(255));
+        assert_eq!(Value::get_int("-0xFF"), Ok(-255));
+        assert_eq!(Value::get_int(" 1 "), Ok(1));
 
-        assert_eq!(Value::parse_int(""), molt_err!("expected integer but got \"\""));
-        assert_eq!(Value::parse_int("a"), molt_err!("expected integer but got \"a\""));
-        assert_eq!(Value::parse_int("0x"), molt_err!("expected integer but got \"0x\""));
-        assert_eq!(Value::parse_int("0xABGG"),
+        assert_eq!(Value::get_int(""), molt_err!("expected integer but got \"\""));
+        assert_eq!(Value::get_int("a"), molt_err!("expected integer but got \"a\""));
+        assert_eq!(Value::get_int("0x"), molt_err!("expected integer but got \"0x\""));
+        assert_eq!(Value::get_int("0xABGG"),
             molt_err!("expected integer but got \"0xABGG\""));
     }
 

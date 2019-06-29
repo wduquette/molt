@@ -11,8 +11,6 @@ use crate::interp::Interp;
 
 //------------------------------------------------------------------------------------------------
 // Datum Representation
-//
-// TODO: I need to review this to make sure that we are using interpolated results efficiently.
 
 type DatumResult = Result<Datum,ResultCode>;
 
@@ -1247,27 +1245,7 @@ fn expr_parse_string(interp: &mut Interp, string: &str) -> DatumResult {
     Ok(Datum::string(string))
 }
 
-/// Converts a value from int or double representation to a string, if it wasn't
-/// already.
-///
-/// **Note:** In the TCL code, the interp is used for the floating point precision.
-/// At some point I might add that.
-/// Also, should probably make this return a new Datum directly, instead of modifying
-/// the old one.
-fn expr_make_string(_interp: &mut Interp, value: &mut Datum) {
-    match value.vtype {
-        Type::Int => {
-            value.vtype=Type::String;
-            value.str = format!("{}", value.int);
-        }
-        Type::Float => {
-            value.vtype=Type::String;
-            value.str = format!("{}", value.flt);
-        }
-        _ => {},
-    }
-}
-
+// Converts values to strings for string comparisons.
 fn expr_as_string(value: Datum) -> Datum {
     match value.vtype {
         Type::Int => Datum::string(&format!("{}", value.int)),
@@ -1422,23 +1400,6 @@ mod tests {
         assert!(!call_expr_looks_like_int("."));
         assert!(!call_expr_looks_like_int("e"));
         assert!(!call_expr_looks_like_int("E"));
-    }
-
-    #[test]
-    fn test_expr_make_string() {
-        let mut interp = Interp::new();
-
-        let mut value = Datum::int(123);
-        expr_make_string(&mut interp, &mut value);
-        assert!(veq(&value, &Datum::string("123")));
-
-        let mut value = Datum::float(1.1);
-        expr_make_string(&mut interp, &mut value);
-        assert!(veq(&value, &Datum::string("1.1")));
-
-        let mut value = Datum::string("abc");
-        expr_make_string(&mut interp, &mut value);
-        assert!(veq(&value, &Datum::string("abc")));
     }
 
     #[test]

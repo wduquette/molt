@@ -7,6 +7,8 @@ use crate::expr::expr_test;
 use crate::interp::Interp;
 use crate::types::*;
 use crate::*;
+use std::time::Instant;
+use std::time::Duration;
 use std::fs;
 
 /// # append *varName* ?*value* ...?
@@ -625,6 +627,35 @@ pub fn cmd_source(interp: &mut Interp, argv: &[Value]) -> MoltResult {
         Ok(script) => interp.eval(&script),
         Err(e) => molt_err!("couldn't read file \"{}\": {}", filename, e),
     }
+}
+
+/// # time *command* ?*count*?
+///
+/// Executes the command the given number of times, and returns the average
+/// number of microseconds per iteration.  The *count* defaults to 1.
+pub fn cmd_time(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 3, "command ?count?")?;
+
+    let command = &*argv[1].as_string();
+
+    let count = if argv.len() == 3 {
+        argv[2].as_int()?
+    } else {
+        1
+    };
+
+    let mut total = Duration::new(0,0);
+
+    for _i in 1..count {
+        let start = Instant::now();
+        let _ = interp.eval(command);
+        let span = Instant::now().duration_since(start);
+        total += span;
+    }
+
+    let avg = total.as_micros() / (count as u128);
+
+    molt_ok!("{} microseconds per iteration", avg)
 }
 
 /// # unset *varName*

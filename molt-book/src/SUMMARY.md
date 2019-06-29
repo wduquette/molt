@@ -30,6 +30,7 @@
   - [return](./ref/return.md)
   - [set](./ref/set.md)
   - [test](./ref/test.md)
+  - [time](./ref/time.md)
   - [unset](./ref/unset.md)
   - [while](./ref/while.md)
 - [Extending and Embedding](./embed/overview.md)

@@ -29,7 +29,7 @@ goals of this document is to carefully delineate:
 
 ## Initial Goals
 
-The initial goals are as follows; see [Tcl Compatility](./tcl_comp.md) for
+The initial goals are as follows; see [Tcl Compatibility](./tcl_comp.md) for
 more details.
 
 *   Embedding, script execution, and an interactive shell.

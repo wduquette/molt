@@ -24,7 +24,8 @@ have already been implemented.  The current set of features includes:
 *   Script execution
 *   Procedure definition
 *   Control flow
-*   Local and global variables
+*   Molt Values (e.g., Tcl_Obj)
+*   Local and global variables (but not arrays)
 *   Evaluation of expressions
 *   A modicum of introspection
 *   An interactive REPL
@@ -35,16 +36,8 @@ have already been implemented.  The current set of features includes:
 
 ## Features to be added soon
 
-*   [**molt test**](./cmdline/molt_test.md) Enhancements
 *   An improved test suite
-*   The remainder of the minimal TCL command set:
-    *   catch
-    *   error
-    *   info level
-    *   info commands (without glob matching)
-    *   upvar
-    *   while
-    *   ...
+*   Additional commands from the minimal TCL command set:
 *   A clean and modular embedding API
     *   Including interactive REPLs, and the ability to use
         `molt test` to test custom Molt extensions.
@@ -58,8 +51,8 @@ have already been implemented.  The current set of features includes:
 
 ## Features that may never be added
 
-*   Slave interpreters
 *   Namespaces
+*   Slave interpreters
 *   Traces
 *   File I/O
 *   Event loop

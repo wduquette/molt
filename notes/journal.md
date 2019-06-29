@@ -18,6 +18,18 @@ Things to remember to do soon:
     *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
         e.g., `From<&MoltValue>`, `From<&Vec<String>>`
 
+### 2019-06-29 (Wednesday)
+*   More expr.rs cleaning.
+    *   Removed some obsolete methods.
+        *   Public, but replaced by `expr::expr` and `expr::expr_test`.
+            *   Note: these should be exposed as `molt::expr` and
+                `molt::expr_test`.
+        *   Private, used to convert results back to string for output
+            (since we don't do that anymore).
+    *   `expr::expr_parse_string` takes a string and turns it into an
+        `expr::Datum`.  It's sometimes starting with a `Value`.  Can
+        we eliminate it?
+
 ### 2019-06-25 (Tuesday)
 *   Got rid of the remaining Clippy warnings.
 *   Added the remaining examples to the value.rs doc comments.

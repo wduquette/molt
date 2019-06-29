@@ -871,6 +871,10 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
+                // TODO: expr_parse_string takes the string and computes (or fails to
+                // compute) a single datum from it.  If the Value is already numeric,
+                // there's no need to parse it.  Need a way for this module to query
+                // whether a value is a float or int. 
                 expr_parse_string(interp, &*var_val.as_string())
             }
         }

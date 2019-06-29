@@ -212,40 +212,6 @@ impl Interp {
     // These methods convert strings to and from Molt values in the context of the
     // `Interp`
 
-    /// Converts a string argument into a boolean, returning an error on failure.
-    /// A command function will call this to convert an argument,
-    /// using "?" to propagate errors to the interpreter.
-    ///
-    /// Molt accepts the following strings as Boolean values:
-    ///
-    /// * **true**: `true`, `yes`, `on`, `1`
-    /// * **false**: `false`, `no`, `off`, `0`
-    ///
-    /// This method does not evaluate expressions; use TODO to evaluate boolean
-    /// expressions.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use molt::types::*;
-    /// # use molt::interp::Interp;
-    /// # fn dummy() -> Result<bool,ResultCode> {
-    /// # let interp = Interp::new();
-    /// let arg = "yes";
-    /// let flag = interp.get_bool(arg)?;
-    /// assert!(flag);
-    /// # Ok(flag)
-    /// # }
-    /// ```
-    pub fn get_bool(&self, arg: &str) -> Result<bool, ResultCode> {
-        let value: &str = &arg.to_lowercase();
-        match value {
-            "1" | "true" | "yes" | "on" => Ok(true),
-            "0" | "false" | "no" | "off" => Ok(false),
-            _ => molt_err!("expected boolean but got \"{}\"", arg),
-        }
-    }
-
     /// Converts an string argument into a `MoltFloat`, returning an error on failure.
     /// A command function will call this to convert an argument into a number,
     /// using "?" to propagate errors to the interpreter.
@@ -1018,28 +984,6 @@ mod tests {
         assert!(!interp.complete("a {bc"));
         assert!(!interp.complete("a [bc"));
         assert!(!interp.complete("a \"bc"));
-    }
-
-    #[test]
-    fn test_get_bool() {
-        let interp = Interp::new();
-
-        assert_eq!(Ok(true), interp.get_bool("1"));
-        assert_eq!(Ok(true), interp.get_bool("true"));
-        assert_eq!(Ok(true), interp.get_bool("yes"));
-        assert_eq!(Ok(true), interp.get_bool("on"));
-        assert_eq!(Ok(true), interp.get_bool("TRUE"));
-        assert_eq!(Ok(true), interp.get_bool("YES"));
-        assert_eq!(Ok(true), interp.get_bool("ON"));
-        assert_eq!(Ok(false), interp.get_bool("0"));
-        assert_eq!(Ok(false), interp.get_bool("false"));
-        assert_eq!(Ok(false), interp.get_bool("no"));
-        assert_eq!(Ok(false), interp.get_bool("off"));
-        assert_eq!(Ok(false), interp.get_bool("FALSE"));
-        assert_eq!(Ok(false), interp.get_bool("NO"));
-        assert_eq!(Ok(false), interp.get_bool("OFF"));
-        assert_eq!(interp.get_bool("nonesuch"),
-            molt_err!("expected boolean but got \"nonesuch\""));
     }
 
     #[test]

@@ -463,8 +463,29 @@ impl Value {
         Ok(flag)
     }
 
-    // Parses a string as a boolean using the standard TCL syntax.
-    // Returns a standard Molt error result.
+    /// Converts a string argument into a boolean, returning an error on failure.
+    ///
+    /// Molt accepts the following strings as Boolean values:
+    ///
+    /// * **true**: `true`, `yes`, `on`, `1`
+    /// * **false**: `false`, `no`, `off`, `0`
+    ///
+    /// Parsing is case-insensitive, and leading and trailing whitespace are ignored.
+    ///
+    /// This method does not evaluate expressions; use `molt::expr` to evaluate boolean
+    /// expressions.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # fn dummy() -> Result<bool,ResultCode> {
+    /// let arg = "yes";
+    /// let flag = Value::get_bool(arg)?;
+    /// assert!(flag);
+    /// # Ok(flag)
+    /// # }
+    /// ```
     pub fn get_bool(arg: &str) -> Result<bool, ResultCode> {
         let orig = arg;
         let value: &str = &arg.trim().to_lowercase();

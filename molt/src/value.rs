@@ -526,6 +526,7 @@ impl Value {
     // Parses a string as an integer using the standard TCL syntax (except octal :-)
     // Returns a standard Molt error result.
     pub fn get_int(arg: &str) -> Result<MoltInt, ResultCode> {
+        let orig = arg;
         let mut arg = arg.trim();
         let mut minus = 1;
 
@@ -544,7 +545,7 @@ impl Value {
 
         match parse_result {
             Ok(int) => Ok(minus * int),
-            Err(_) => molt_err!("expected integer but got \"{}\"", arg),
+            Err(_) => molt_err!("expected integer but got \"{}\"", orig),
         }
     }
 
@@ -589,19 +590,20 @@ impl Value {
         }
 
         // NEXT, Try to parse the string_rep as a float
-        // TODO: Currently uses the standard Rust parser.  That may
-        // be OK, but I need to check.
         let str = (&*string_ref).as_ref().unwrap();
-        let result = str.parse::<MoltFloat>();
+        let flt = Value::get_float(&*str)?;
+        *data_ref = DataRep::Flt(flt);
+        Ok(flt)
+    }
 
-        match result {
-            Ok(flt) => {
-                *data_ref = DataRep::Flt(flt);
-                Ok(flt)
-            },
-            Err(_) => {
-                molt_err!("expected floating-point number but got \"{}\"", str)
-            }
+    // Parses a string as an integer using the standard TCL syntax (except octal :-)
+    // Returns a standard Molt error result.
+    pub fn get_float(arg: &str) -> Result<MoltFloat, ResultCode> {
+        let arg_trim = arg.trim();
+
+        match arg_trim.parse::<MoltFloat>() {
+            Ok(flt) => Ok(flt),
+            Err(_) => molt_err!("expected floating-point number but got \"{}\"", arg),
         }
     }
 
@@ -1062,6 +1064,8 @@ mod tests {
         assert_eq!(Value::get_int("0x"), molt_err!("expected integer but got \"0x\""));
         assert_eq!(Value::get_int("0xABGG"),
             molt_err!("expected integer but got \"0xABGG\""));
+        assert_eq!(Value::get_int(" abc "),
+            molt_err!("expected integer but got \" abc \""));
     }
 
     #[test]
@@ -1082,6 +1086,21 @@ mod tests {
         let val = Value::from("abc");
         assert_eq!(val.as_float(),
             molt_err!("expected floating-point number but got \"abc\""));
+    }
+
+    #[test]
+    fn get_float() {
+        // Test the internal float parser.
+        // NOTE: At present, it relies on the standard Rust float parser, so only
+        // check special case behavior.
+        assert_eq!(Value::get_float("1"), Ok(1.0));
+        assert_eq!(Value::get_float("2.3"), Ok(2.3));
+        assert_eq!(Value::get_float(" 4.5 "), Ok(4.5));
+
+        assert_eq!(Value::get_float("abc"),
+            molt_err!("expected floating-point number but got \"abc\""));
+        assert_eq!(Value::get_float(" abc "),
+            molt_err!("expected floating-point number but got \" abc \""));
     }
 
     #[test]

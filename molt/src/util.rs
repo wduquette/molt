@@ -82,6 +82,26 @@ pub fn read_float(ptr: &mut CharPtr) -> Option<String> {
         result.push(p.next().unwrap());
     }
 
+    // NEXT, looking for Inf
+    if p.is('I') || p.is('i') {
+        result.push(p.next().unwrap());
+
+        if p.is('N') || p.is('n') {
+            result.push(p.next().unwrap());
+        } else {
+            return None;
+        }
+
+        if p.is('F') || p.is('f') {
+            result.push(p.next().unwrap());
+            // Update the pointer.
+            ptr.skip_over(result.len());
+            return Some(result);
+        } else {
+            return None;
+        }
+    }
+
     // NEXT, get any integer digits
     while p.is_digit(10) {
         missing_mantissa = false;

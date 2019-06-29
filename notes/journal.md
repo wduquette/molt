@@ -2,8 +2,6 @@
 
 Things to remember to do soon:
 
-*   Look at removing the `get_*` methods from Interp.  See if some of them need to be
-    retained somewhere.
 *   Look at the standard ways we use `Value` in commands.rs, and see if we can't
     make things simpler.
 *   Consider implementing `TryInto<T>` for the standard data reps.
@@ -49,6 +47,10 @@ Things to remember to do soon:
     *   I need to eliminate the Interp::get_int and Interp::get_float routines in favor of
         these.
     *   I almost certainly need to do the same things with Interp::get_bool!
+    *   Yup.  Done.
+*   Removed the `Interp::get_{int,float,bool,list}` methods in favor of
+    `Value::get_{int,float,bool}` and `list::get_list`.
+
 
 ### 2019-06-25 (Tuesday)
 *   Got rid of the remaining Clippy warnings.

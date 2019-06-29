@@ -238,48 +238,6 @@ impl Interp {
         }
     }
 
-    /// Converts a string argument into a `MoltInt`, returning an error on failure.
-    /// A command function will call this to convert an argument into an integer,
-    /// using "?" to propagate errors to the interpreter.
-    ///
-    /// Molt accepts decimal integer strings, and hexadecimal integer strings
-    /// with a `0x` prefix.  Strings may begin with a unary "+" or "-".
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use molt::Interp;
-    /// # use molt::types::*;
-    /// # fn dummy() -> Result<MoltInt,ResultCode> {
-    /// # let interp = Interp::new();
-    /// let arg = "1";
-    /// let int = interp.get_int(arg)?;
-    /// # Ok(int)
-    /// # }
-    /// ```
-    pub fn get_int(&self, arg: &str) -> Result<MoltInt, ResultCode> {
-        let mut arg = arg;
-        let mut minus = 1;
-
-        if arg.starts_with('+') {
-            arg = &arg[1..];
-        } else if arg.starts_with('-') {
-            minus = -1;
-            arg = &arg[1..];
-        }
-
-        let parse_result = if arg.starts_with("0x") {
-            MoltInt::from_str_radix(&arg[2..], 16)
-        } else {
-            arg.parse::<MoltInt>()
-        };
-
-        match parse_result {
-            Ok(int) => Ok(minus * int),
-            Err(_) => molt_err!("expected integer but got \"{}\"", arg),
-        }
-    }
-
     /// Converts a string argument into a `MoltList`,
     /// returning an error on failure. A command function will call this to convert
     /// an argument into a list, using "?" to propagate errors to the interpreter.
@@ -996,24 +954,6 @@ mod tests {
         assert_eq!(interp.get_float("1e3"), Ok(1000.0));
         assert_eq!(interp.get_float("a"),
             molt_err!("expected floating-point number but got \"a\""));
-    }
-
-    #[test]
-    fn test_get_int() {
-        let interp = Interp::new();
-
-        assert_eq!(interp.get_int("1"), Ok(1));
-        assert_eq!(interp.get_int("-1"), Ok(-1));
-        assert_eq!(interp.get_int("+1"), Ok(1));
-        assert_eq!(interp.get_int("0xFF"), Ok(255));
-        assert_eq!(interp.get_int("+0xFF"), Ok(255));
-        assert_eq!(interp.get_int("-0xFF"), Ok(-255));
-
-        assert_eq!(interp.get_int(""), molt_err!("expected integer but got \"\""));
-        assert_eq!(interp.get_int("a"), molt_err!("expected integer but got \"a\""));
-        assert_eq!(interp.get_int("0x"), molt_err!("expected integer but got \"0x\""));
-        assert_eq!(interp.get_int("0xABGG"),
-            molt_err!("expected integer but got \"0xABGG\""));
     }
 
     #[test]

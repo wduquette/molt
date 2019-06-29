@@ -545,8 +545,22 @@ impl Value {
         Ok(int)
     }
 
-    // Parses a string as an integer using the standard TCL syntax (except octal :-)
-    // Returns a standard Molt error result.
+    /// Converts a string argument into a `MoltInt`, returning an error on failure.
+    ///
+    /// Molt accepts decimal integer strings, and hexadecimal integer strings
+    /// with a `0x` prefix.  Strings may begin with a unary "+" or "-".  Leading and
+    /// trailing whitespace is ignored.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # fn dummy() -> Result<MoltInt,ResultCode> {
+    /// let arg = "1";
+    /// let int = Value::get_int(arg)?;
+    /// # Ok(int)
+    /// # }
+    /// ```
     pub fn get_int(arg: &str) -> Result<MoltInt, ResultCode> {
         let orig = arg;
         let mut arg = arg.trim();

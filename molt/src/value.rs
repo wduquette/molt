@@ -160,7 +160,7 @@ use crate::types::ResultCode;
 #[derive(Clone, Debug)]
 pub struct Value {
     string_rep: RefCell<Option<Rc<String>>>,
-    data_rep: RefCell<Datum>,
+    data_rep: RefCell<DataRep>,
 }
 
 impl Display for Value {
@@ -192,7 +192,7 @@ impl From<String> for Value {
     fn from(str: String) -> Self {
         Self {
             string_rep: RefCell::new(Some(Rc::new(str))),
-            data_rep: RefCell::new(Datum::None),
+            data_rep: RefCell::new(DataRep::None),
         }
     }
 }
@@ -210,7 +210,7 @@ impl From<&str> for Value {
     fn from(str: &str) -> Self {
         Self {
             string_rep: RefCell::new(Some(Rc::new(str.to_string()))),
-            data_rep: RefCell::new(Datum::None),
+            data_rep: RefCell::new(DataRep::None),
         }
     }
 }
@@ -230,7 +230,7 @@ impl From<&String> for Value {
     fn from(str: &String) -> Self {
         Self {
             string_rep: RefCell::new(Some(Rc::new(str.to_string()))),
-            data_rep: RefCell::new(Datum::None),
+            data_rep: RefCell::new(DataRep::None),
         }
     }
 }
@@ -252,7 +252,7 @@ impl From<bool> for Value {
     fn from(flag: bool) -> Self {
         Self {
             string_rep: RefCell::new(None),
-            data_rep: RefCell::new(Datum::Bool(flag)),
+            data_rep: RefCell::new(DataRep::Bool(flag)),
         }
     }
 }
@@ -271,7 +271,7 @@ impl From<MoltInt> for Value {
     fn from(int: MoltInt) -> Self {
         Self {
             string_rep: RefCell::new(None),
-            data_rep: RefCell::new(Datum::Int(int)),
+            data_rep: RefCell::new(DataRep::Int(int)),
         }
     }
 }
@@ -298,7 +298,7 @@ impl From<MoltFloat> for Value {
     fn from(flt: MoltFloat) -> Self {
         Self {
             string_rep: RefCell::new(None),
-            data_rep: RefCell::new(Datum::Flt(flt)),
+            data_rep: RefCell::new(DataRep::Flt(flt)),
         }
     }
 }
@@ -318,7 +318,7 @@ impl From<MoltList> for Value {
     fn from(list: MoltList) -> Self {
         Self {
             string_rep: RefCell::new(None),
-            data_rep: RefCell::new(Datum::List(Rc::new(list))),
+            data_rep: RefCell::new(DataRep::List(Rc::new(list))),
         }
     }
 }
@@ -346,7 +346,7 @@ impl Value {
     // pub fn from_string(str: String) -> Value {
     //     Value {
     //         string_rep: RefCell::new(Some(Rc::new(str))),
-    //         data_rep: RefCell::new(Datum::None),
+    //         data_rep: RefCell::new(DataRep::None),
     //     }
     // }
 
@@ -436,16 +436,16 @@ impl Value {
         let mut string_ref = self.string_rep.borrow_mut();
 
         // FIRST, if we have a boolean then just return it.
-        if let Datum::Bool(flag) = *data_ref {
+        if let DataRep::Bool(flag) = *data_ref {
             return Ok(flag);
         }
 
         // NEXT, if we have a number return whether it's zero or not.
-        if let Datum::Int(int) = *data_ref {
+        if let DataRep::Int(int) = *data_ref {
             return Ok(int != 0);
         }
 
-        if let Datum::Flt(flt) = *data_ref {
+        if let DataRep::Flt(flt) = *data_ref {
             return Ok(flt != 0.0);
         }
 
@@ -458,7 +458,7 @@ impl Value {
         // NEXT, Try to parse the string_rep as a boolean
         let str = (&*string_ref).as_ref().unwrap();
         let flag = Value::parse_bool(&*str)?;
-        *data_ref = Datum::Bool(flag);
+        *data_ref = DataRep::Bool(flag);
         Ok(flag)
     }
 
@@ -505,7 +505,7 @@ impl Value {
         let mut string_ref = self.string_rep.borrow_mut();
 
         // FIRST, if we have an integer then just return it.
-        if let Datum::Int(int) = *data_ref {
+        if let DataRep::Int(int) = *data_ref {
             return Ok(int);
         }
 
@@ -518,7 +518,7 @@ impl Value {
         // NEXT, Try to parse the string_rep as an integer
         let str = (&*string_ref).as_ref().unwrap();
         let int = Value::parse_int(&*str)?;
-        *data_ref = Datum::Int(int);
+        *data_ref = DataRep::Int(int);
         Ok(int)
     }
 
@@ -577,7 +577,7 @@ impl Value {
         let mut string_ref = self.string_rep.borrow_mut();
 
         // FIRST, if we have a float then just return it.
-        if let Datum::Flt(flt) = *data_ref {
+        if let DataRep::Flt(flt) = *data_ref {
             return Ok(flt);
         }
 
@@ -595,7 +595,7 @@ impl Value {
 
         match result {
             Ok(flt) => {
-                *data_ref = Datum::Flt(flt);
+                *data_ref = DataRep::Flt(flt);
                 Ok(flt)
             },
             Err(_) => {
@@ -630,7 +630,7 @@ impl Value {
         let mut data_ref = self.data_rep.borrow_mut();
 
         // FIRST, if we have the desired type, return it.
-        if let Datum::List(list) = &*data_ref {
+        if let DataRep::List(list) = &*data_ref {
             return Ok(list.clone());
         }
 
@@ -643,7 +643,7 @@ impl Value {
         // NEXT, try to parse the string_rep as a list.
         let str = (&*string_ref).as_ref().unwrap();
         let list = Rc::new(get_list(str)?);
-        *data_ref = Datum::List(list.clone());
+        *data_ref = DataRep::List(list.clone());
 
         Ok(list)
     }
@@ -676,7 +676,7 @@ impl Value {
     {
         Value {
             string_rep: RefCell::new(None),
-            data_rep: RefCell::new(Datum::Other(Rc::new(value))),
+            data_rep: RefCell::new(DataRep::Other(Rc::new(value))),
         }
     }
 
@@ -724,7 +724,7 @@ impl Value {
         let mut data_ref = self.data_rep.borrow_mut();
 
         // FIRST, if we have the desired type, return it.
-        if let Datum::Other(other) = &*data_ref {
+        if let DataRep::Other(other) = &*data_ref {
             // other is an &Rc<MoltAny>
             let result = other.clone().downcast::<T>();
 
@@ -746,7 +746,7 @@ impl Value {
             if let Ok(tval) = str.parse::<T>() {
                 let tval = Rc::new(tval);
                 let out = tval.clone();
-                *data_ref = Datum::Other(Rc::new(tval));
+                *data_ref = DataRep::Other(Rc::new(tval));
                 return Some(out);
             }
         }
@@ -795,7 +795,7 @@ impl Value {
         let mut data_ref = self.data_rep.borrow_mut();
 
         // FIRST, if we have the desired type, return it.
-        if let Datum::Other(other) = &*data_ref {
+        if let DataRep::Other(other) = &*data_ref {
             // other is an &Rc<MoltAny>
             let result = other.clone().downcast::<T>();
 
@@ -817,7 +817,7 @@ impl Value {
             if let Ok(tval) = str.parse::<T>() {
                 let tval = Rc::new(tval);
                 let out = tval.clone();
-                *data_ref = Datum::Other(Rc::new(tval));
+                *data_ref = DataRep::Other(Rc::new(tval));
                 return Some(*out);
             }
         }
@@ -867,11 +867,11 @@ impl<T: Any + Display + Debug> MoltAny for T {
 }
 
 //-----------------------------------------------------------------------------
-// Datum enum: a sum type for the different kinds of data_reps.
+// DataRep enum: a sum type for the different kinds of data_reps.
 
 // The data representation for Values.
 #[derive(Clone, Debug)]
-enum Datum {
+enum DataRep {
     /// A Boolean
     Bool(bool),
 
@@ -891,15 +891,15 @@ enum Datum {
     None,
 }
 
-impl Display for Datum {
+impl Display for DataRep {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Datum::Bool(flag) => write!(f, "{}", if *flag { 1 } else { 0 }),
-            Datum::Int(int) => write!(f, "{}", int),
-            Datum::Flt(flt) => write!(f, "{}", flt),
-            Datum::List(list) => write!(f, "{}", list_to_string(&*list)),
-            Datum::Other(other) => write!(f, "{}", other),
-            Datum::None => write!(f, ""),
+            DataRep::Bool(flag) => write!(f, "{}", if *flag { 1 } else { 0 }),
+            DataRep::Int(int) => write!(f, "{}", int),
+            DataRep::Flt(flt) => write!(f, "{}", flt),
+            DataRep::List(list) => write!(f, "{}", list_to_string(&*list)),
+            DataRep::Other(other) => write!(f, "{}", other),
+            DataRep::None => write!(f, ""),
         }
     }
 }

@@ -2,16 +2,8 @@
 
 Things to remember to do soon:
 
-*   "time" command:
-    *   Handle negative counts.
-    *   In Tcl 7.6, "time" times over the entire loop, not just the individual calls.
-        If Tcl 8 does the same, then so should molt.
 *   Benchmarking
-    *   Define a command that takes no arguments and does nothing but return Ok(""), and see
-        how long it takes.
-    *   Define a benchmark script.
-    *   Ultimately should probably be a "molt-app" flavor, so it can include special
-        commands.
+    *   Extend `benchmark` to output results in csv.
 *   expr::expr_parse_value should probably try as_int and as_float, to convert string values
     to numbers.
 *   Look at the standard ways we use `Value` in commands.rs, and see if we can't
@@ -52,7 +44,34 @@ debug = true
     *   Tcl 7.6 takes ~0.23 microseconds.  (I had to modify the "time" command to output
         the decimal part.)
 *   So, still a lot to do.
-
+*   Added preliminary benchmark tool
+    *   Reads a Tcl library file using the `include_str!` macro. (!)
+        *   My notion of Tcl crates can work.
+    *   Includes "ok" and "ident" commands for benchmarking the parser.
+    *   "ok" accepts any number of arguments, and returns "".
+    *   "ident" accepts exactly one argument, and returns it.
+*   Interesting results
+    *   Building for development:
+```
+Micros     Norm -- Benchmark
+  7.79     1.00 -- ok-1.1 ok, no arguments
+  9.97     1.28 -- ok-1.2 ok, one argument
+ 11.48     1.47 -- ok-1.2 ok, two arguments
+ 11.84     1.52 -- ident-1.1 ident, simple argument
+ 15.72     2.02 -- incr-1.1 incr a
+```
+    *   Building for release:
+```
+Micros     Norm -- Benchmark
+  0.69     1.00 -- ok-1.1 ok, no arguments
+  1.11     1.60 -- ok-1.2 ok, one argument
+  1.51     2.17 -- ok-1.2 ok, two arguments
+  1.30     1.88 -- ident-1.1 ident, simple argument
+  1.39     2.00 -- incr-1.1 incr a
+```
+    *   The relative performance in development is by no means a good guide to performance
+        when built for release.
+        
 ### 2019-06-29 (Saturday)
 *   More expr.rs cleaning.
     *   Removed some obsolete methods.

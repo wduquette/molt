@@ -1,5 +1,5 @@
 # Benchmark Library
 
-proc benchmark {name body} {
+proc benchmark {name description body} {
     puts "$name -- [time $body 1000]"
 }

@@ -1,7 +1,9 @@
+use molt::check_args;
 use molt::Interp;
 use molt::MoltResult;
 use molt::ResultCode;
 use molt::Command;
+use molt::molt_ok;
 use molt::Value;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -32,6 +34,8 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     // let context = Rc::new(RefCell::new(BenchContext::new()));
 
     // NEXT, install the test commands into the interpreter.
+    interp.add_command("ident", cmd_ident);
+    interp.add_command("ok", cmd_ok);
     // interp.add_command_object("test", Rc::new(TestCommand::new(&context)));
 
     // NEXT, load the benchmark Tcl library
@@ -64,4 +68,21 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     // let ctx = context.borrow();
     // println!("\n{} tests, {} passed, {} failed, {} errors",
     //     ctx.num_tests, ctx.num_passed, ctx.num_failed, ctx.num_errors);
+}
+
+/// # ident value
+///
+/// Returns its argument.
+fn cmd_ident(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 2, "value")?;
+
+    molt_ok!(argv[1].clone())
+}
+
+
+/// # ok ...
+///
+/// Takes any number of arguments, and returns "".
+fn cmd_ok(_interp: &mut Interp, _argv: &[Value]) -> MoltResult {
+    molt_ok!()
 }

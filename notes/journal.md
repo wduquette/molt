@@ -4,6 +4,7 @@ Things to remember to do soon:
 
 *   "time" command:
     *   Handle negative counts.
+    *   Propagate errors in timed script.
     *   In Tcl 7.6, "time" times over the entire loop, not just the individual calls.
         If Tcl 8 does the same, then so should molt.
 *   Benchmarking
@@ -52,6 +53,12 @@ debug = true
     *   Tcl 7.6 takes ~0.23 microseconds.  (I had to modify the "time" command to output
         the decimal part.)
 *   So, still a lot to do.
+*   Added preliminary benchmark tool
+    *   Reads a Tcl library file using the `include_str!` macro. (!)
+        *   My notion of Tcl crates can work.
+    *   TODOs:
+        *   Add "ok" and "ident" commands.
+        *   Keep results and provide output in various formats (e.g., CSV).
 
 ### 2019-06-29 (Saturday)
 *   More expr.rs cleaning.

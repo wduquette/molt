@@ -2,14 +2,9 @@
 
 Things to remember to do soon:
 
-*   "time" command:
-    *   Propagate errors in timed script.
 *   Benchmarking
-    *   Define a command that takes no arguments and does nothing but return Ok(""), and see
-        how long it takes.
-    *   Define a benchmark script.
-    *   Ultimately should probably be a "molt-app" flavor, so it can include special
-        commands.
+    *   Extend `benchmark` to accumulate results and output them in formatted columns
+    *   Include normalized results vs. ok-1.1 (really, the first in the script)
 *   expr::expr_parse_value should probably try as_int and as_float, to convert string values
     to numbers.
 *   Look at the standard ways we use `Value` in commands.rs, and see if we can't

@@ -31,10 +31,11 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     let parent = path.parent();
 
     // NEXT, initialize the benchmark context.
-    // let context = Rc::new(RefCell::new(BenchContext::new()));
+    let context = Rc::new(RefCell::new(Context::new()));
 
     // NEXT, install the test commands into the interpreter.
     interp.add_command("ident", cmd_ident);
+    interp.add_command_object("measure", Rc::new(MeasureCommand::new(&context)));
     interp.add_command("ok", cmd_ok);
     // interp.add_command_object("test", Rc::new(TestCommand::new(&context)));
 
@@ -65,9 +66,90 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     }
 
     // NEXT, output the test results:
-    // let ctx = context.borrow();
-    // println!("\n{} tests, {} passed, {} failed, {} errors",
-    //     ctx.num_tests, ctx.num_passed, ctx.num_failed, ctx.num_errors);
+    let ctx = context.borrow();
+
+    println!("{:>8} {:>8} -- Benchmark", "Micros", "Norm");
+
+    let baseline = ctx.baseline.unwrap_or(1.0);
+
+    for record in &ctx.measurements {
+        println!("{:>8.2} {:>8.2} -- {} {}",
+            record.micros,
+            record.micros / baseline, 
+            record.name,
+            record.description);
+    }
+}
+
+struct Context {
+    // The baseline, in microseconds
+    baseline: Option<f64>,
+
+    // The list of measurements.
+    measurements: Vec<Measurement>,
+}
+
+impl Context {
+    fn new() -> Self {
+        Self {
+            baseline: None,
+            measurements: Vec::new()
+        }
+    }
+}
+
+struct Measurement {
+    // The measurement's symbolic name
+    name: String,
+
+    // The measurement's human-readable description
+    description: String,
+
+    // The average number of microseconds per measured iteration
+    micros: f64,
+}
+
+/// # measure *name* *description* *micros*
+///
+/// Records a benchmark measurement.
+struct MeasureCommand {
+    ctx: Rc<RefCell<Context>>,
+}
+
+impl MeasureCommand {
+    fn new(ctx: &Rc<RefCell<Context>>) -> Self {
+        Self {
+            ctx: Rc::clone(ctx),
+        }
+    }
+}
+
+impl Command for MeasureCommand {
+    fn execute(&self, _interp: &mut Interp, argv: &[Value]) -> MoltResult {
+        molt::check_args(1, argv, 4, 4, "name description micros")?;
+
+        // FIRST, get the arguments
+        let name = argv[1].to_string();
+        let description = argv[2].to_string();
+        let micros = argv[3].as_float()?;
+
+        // NEXT, get the test context
+        let mut ctx = self.ctx.borrow_mut();
+
+        if ctx.baseline.is_none() {
+            ctx.baseline = Some(micros);
+        }
+
+        let record = Measurement {
+            name,
+            description,
+            micros,
+        };
+
+        ctx.measurements.push(record);
+
+        molt_ok!()
+    }
 }
 
 /// # ident value

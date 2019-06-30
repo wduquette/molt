@@ -2,6 +2,16 @@
 
 Things to remember to do soon:
 
+*   "time" command:
+    *   Handle negative counts.
+    *   In Tcl 7.6, "time" times over the entire loop, not just the individual calls.
+        If Tcl 8 does the same, then so should molt.
+*   Benchmarking
+    *   Define a command that takes no arguments and does nothing but return Ok(""), and see
+        how long it takes.
+    *   Define a benchmark script.
+    *   Ultimately should probably be a "molt-app" flavor, so it can include special
+        commands.
 *   expr::expr_parse_value should probably try as_int and as_float, to convert string values
     to numbers.
 *   Look at the standard ways we use `Value` in commands.rs, and see if we can't

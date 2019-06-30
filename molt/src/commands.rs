@@ -8,7 +8,6 @@ use crate::interp::Interp;
 use crate::types::*;
 use crate::*;
 use std::time::Instant;
-use std::time::Duration;
 use std::fs;
 
 /// # append *varName* ?*value* ...?
@@ -644,16 +643,19 @@ pub fn cmd_time(interp: &mut Interp, argv: &[Value]) -> MoltResult {
         1
     };
 
-    let mut total = Duration::new(0,0);
+    let start = Instant::now();
 
     for _i in 0..count {
-        let start = Instant::now();
         let _ = interp.eval(command);
-        let span = Instant::now().duration_since(start);
-        total += span;
     }
 
-    let avg = total.as_micros() as f64 / (count as f64);
+    let span = Instant::now().duration_since(start);
+
+    let avg = if count > 0 {
+        span.as_micros() as f64 / (count as f64)
+    } else {
+        0.0
+    };
 
     molt_ok!("{} microseconds per iteration", avg)
 }

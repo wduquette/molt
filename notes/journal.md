@@ -3,10 +3,7 @@
 Things to remember to do soon:
 
 *   "time" command:
-    *   Handle negative counts.
     *   Propagate errors in timed script.
-    *   In Tcl 7.6, "time" times over the entire loop, not just the individual calls.
-        If Tcl 8 does the same, then so should molt.
 *   Benchmarking
     *   Define a command that takes no arguments and does nothing but return Ok(""), and see
         how long it takes.

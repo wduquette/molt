@@ -646,7 +646,11 @@ pub fn cmd_time(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     let start = Instant::now();
 
     for _i in 0..count {
-        let _ = interp.eval(command);
+        let result = interp.eval(command);
+        // Note: explicit returns will break the loop.
+        if result.is_err() {
+            return result;
+        }
     }
 
     let span = Instant::now().duration_since(start);

@@ -18,7 +18,25 @@ Things to remember to do soon:
     *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
         e.g., `From<&MoltValue>`, `From<&Vec<String>>`
 
-### 2019-06-29 (Wednesday)
+### 2019-06-30 (Sunday)
+*   Added the "time" command yesterday, and was a little surprised at how
+    slowly Molt was running.  Did some research today on profiling Rust
+    code.
+    *   First, **always** `cargo build --release`.  Development builds are
+        known to run much slower.
+    *   And include debugging symbols in the release build.  Add the following
+        to `cargo.toml`
+```
+[profile.release]
+debug = true
+```
+    *   There's more advice on using XCode Instruments here, though it may
+        be out-of-date:
+        *   http://carol-nichols.com/2015/12/09/rust-profiling-on-osx-cpu-time/
+    *   I've also seen recommendations to use valgrind/callgrind/qcachegrind
+        on MacOS, by way of homebrew.
+
+### 2019-06-29 (Saturday)
 *   More expr.rs cleaning.
     *   Removed some obsolete methods.
         *   Public, but replaced by `expr::expr` and `expr::expr_test`.

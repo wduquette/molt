@@ -35,6 +35,13 @@ debug = true
         *   http://carol-nichols.com/2015/12/09/rust-profiling-on-osx-cpu-time/
     *   I've also seen recommendations to use valgrind/callgrind/qcachegrind
         on MacOS, by way of homebrew.
+*   On my desktop, the command `time {incr a} 1000` takes ~15.3 microseconds per iteration
+    in development mode, but only ~1.53 microseconds per iteration in release mode: almost
+    exactly a factor of ten.
+    *   Tcl 8.6.4 takes ~.18 microseconds.  So there's a long way to go to match that.
+    *   Tcl 7.6 takes ~0.23 microseconds.  (I had to modify the "time" command to output
+        the decimal part.)
+*   So, still a lot to do.
 
 ### 2019-06-29 (Saturday)
 *   More expr.rs cleaning.

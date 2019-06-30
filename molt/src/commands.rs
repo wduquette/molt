@@ -653,7 +653,7 @@ pub fn cmd_time(interp: &mut Interp, argv: &[Value]) -> MoltResult {
         total += span;
     }
 
-    let avg = total.as_micros() / (count as u128);
+    let avg = total.as_micros() as f64 / (count as f64);
 
     molt_ok!("{} microseconds per iteration", avg)
 }

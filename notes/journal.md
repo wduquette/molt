@@ -2,8 +2,6 @@
 
 Things to remember to do soon:
 
-*   Benchmarking
-    *   Extend `benchmark` to output results in csv.
 *   expr::expr_parse_value should probably try as_int and as_float, to convert string values
     to numbers.
 *   Look at the standard ways we use `Value` in commands.rs, and see if we can't
@@ -71,7 +69,9 @@ Micros     Norm -- Benchmark
 ```
     *   The relative performance in development is by no means a good guide to performance
         when built for release.
-        
+*   The `molt` application is now called `molt`, not `molt-app`, and it lists
+    `molt bench` as one of the tools.
+
 ### 2019-06-29 (Saturday)
 *   More expr.rs cleaning.
     *   Removed some obsolete methods.

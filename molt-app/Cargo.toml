@@ -6,5 +6,9 @@ edition = "2018"
 
 [dependencies]
 molt = { path = "../molt" }
-molt-shell = { path = "../molt-shell" } 
+molt-shell = { path = "../molt-shell" }
 rustyline = "3.0.0"
+
+[[bin]]
+name = "molt"
+path = "src/main.rs"

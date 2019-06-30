@@ -51,6 +51,7 @@ fn print_help() {
     println!("  help                          -- This help");
     println!("  shell [<script>] [args...]    -- The Molt shell");
     println!("  test  [<script>] [args...]    -- The Molt test harness");
+    println!("  bench [<script>] [args...]    -- The Molt benchmark tool");
     println!();
     println!("See the Molt Book for details.");
 }

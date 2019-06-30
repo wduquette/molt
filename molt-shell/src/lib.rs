@@ -14,6 +14,8 @@
 
 mod shell;
 pub mod test_harness;
+pub mod bench;
 
 pub use shell::*;
+pub use bench::*;
 pub use test_harness::*;

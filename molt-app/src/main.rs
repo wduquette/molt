@@ -15,6 +15,9 @@ fn main() {
         let subcmd: &str = &args[1];
 
         match subcmd {
+            "bench" => {
+                molt_shell::benchmark(&mut interp, &args[2..]);
+            }
             "shell" => {
                 if args.len() == 2 {
                     println!("Molt {}", env!("CARGO_PKG_VERSION"));

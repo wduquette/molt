@@ -7,8 +7,8 @@ use crate::expr::expr_test;
 use crate::interp::Interp;
 use crate::types::*;
 use crate::*;
-use std::time::Instant;
 use std::fs;
+use std::time::Instant;
 
 /// # append *varName* ?*value* ...?
 ///
@@ -50,7 +50,11 @@ pub fn cmd_assert_eq(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     if argv[1] == argv[2] {
         molt_ok!()
     } else {
-        molt_err!("assertion failed: received \"{}\", expected \"{}\".", argv[1], argv[2])
+        molt_err!(
+            "assertion failed: received \"{}\", expected \"{}\".",
+            argv[1],
+            argv[2]
+        )
     }
 }
 
@@ -190,7 +194,7 @@ pub fn cmd_for(interp: &mut Interp, argv: &[Value]) -> MoltResult {
             Err(ResultCode::Break) => break,
             Err(ResultCode::Continue) => {
                 return molt_err!("invoked \"continue\" outside of a loop");
-            },
+            }
             _ => return result,
         }
     }
@@ -240,7 +244,6 @@ pub fn cmd_foreach(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     molt_ok!()
 }
 
-
 /// # global ?*varName* ...?
 ///
 /// Appends any number of values to a variable's value, which need not
@@ -288,7 +291,7 @@ pub fn cmd_if(interp: &mut Interp, argv: &[Value]) -> MoltResult {
                 } else {
                     IfWants::SkipThenClause
                 };
-            },
+            }
             IfWants::ThenBody => {
                 if &*argv[argi].as_string() == "then" {
                     argi += 1;
@@ -299,7 +302,7 @@ pub fn cmd_if(interp: &mut Interp, argv: &[Value]) -> MoltResult {
                 } else {
                     break;
                 }
-            },
+            }
             IfWants::SkipThenClause => {
                 if &*argv[argi].as_string() == "then" {
                     argi += 1;
@@ -325,8 +328,10 @@ pub fn cmd_if(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
                     // If "else" appears, then the else body is required.
                     if argi == argv.len() {
-                        return molt_err!("wrong # args: no script following after \"{}\" argument",
-                            argv[argi - 1]);
+                        return molt_err!(
+                            "wrong # args: no script following after \"{}\" argument",
+                            argv[argi - 1]
+                        );
                     }
                 }
 
@@ -342,14 +347,17 @@ pub fn cmd_if(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     }
 
     if argi < argv.len() {
-        return molt_err!(
-            "wrong # args: extra words after \"else\" clause in \"if\" command");
+        return molt_err!("wrong # args: extra words after \"else\" clause in \"if\" command");
     } else if wants == IfWants::Expr {
-        return molt_err!("wrong # args: no expression after \"{}\" argument",
-            argv[argi-1]);
+        return molt_err!(
+            "wrong # args: no expression after \"{}\" argument",
+            argv[argi - 1]
+        );
     } else if wants == IfWants::ThenBody || wants == IfWants::SkipThenClause {
-        return molt_err!("wrong # args: no script following after \"{}\" argument",
-            argv[argi - 1]);
+        return molt_err!(
+            "wrong # args: no script following after \"{}\" argument",
+            argv[argi - 1]
+        );
     } else {
         // Looking for ElseBody, but there doesn't need to be one.
         molt_ok!() // temp
@@ -379,7 +387,6 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
     molt_ok!(interp.set_var2(var_name, new_value.into()))
 }
-
 
 /// # info *subcommand* ?*arg*...?
 pub fn cmd_info(interp: &mut Interp, argv: &[Value]) -> MoltResult {
@@ -423,7 +430,6 @@ pub fn cmd_info_vars(interp: &mut Interp, _argv: &[Value]) -> MoltResult {
 /// Joins the elements of a list with a string.  The join string defaults to " ".
 pub fn cmd_join(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 3, "list ?joinString?")?;
-
 
     let list = &argv[1].as_list()?;
 
@@ -481,7 +487,7 @@ pub fn cmd_lindex(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
         value = if index < 0 || index as usize >= list.len() {
             Value::empty()
-        }  else {
+        } else {
             list[index as usize].clone()
         };
     }

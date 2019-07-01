@@ -23,16 +23,16 @@
 //! See the Molt Book (or the Molt test suite) for examples of test scripts.
 
 use molt::molt_ok;
+use molt::Command;
 use molt::Interp;
 use molt::MoltResult;
 use molt::ResultCode;
-use molt::Command;
 use molt::Value;
 use std::cell::RefCell;
-use std::rc::Rc;
+use std::env;
 use std::fs;
 use std::path::PathBuf;
-use std::env;
+use std::rc::Rc;
 
 /// Executes the Molt test harness, given the command-line arguments,
 /// in the context of the given interpreter.
@@ -82,8 +82,10 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) {
 
     // NEXT, output the test results:
     let ctx = context.borrow();
-    println!("\n{} tests, {} passed, {} failed, {} errors",
-        ctx.num_tests, ctx.num_passed, ctx.num_failed, ctx.num_errors);
+    println!(
+        "\n{} tests, {} passed, {} failed, {} errors",
+        ctx.num_tests, ctx.num_passed, ctx.num_failed, ctx.num_errors
+    );
 }
 
 struct TestContext {
@@ -104,10 +106,10 @@ impl TestContext {
     }
 }
 
-#[derive(Eq,PartialEq,Debug)]
+#[derive(Eq, PartialEq, Debug)]
 enum Code {
     Ok,
-    Error
+    Error,
 }
 
 impl Code {
@@ -162,7 +164,10 @@ impl TestInfo {
     }
 
     fn print_helper_error(&self, part: &str, msg: &str) {
-        println!("\n*** ERROR (in {}) {} {}", part, self.name, self.description);
+        println!(
+            "\n*** ERROR (in {}) {} {}",
+            part, self.name, self.description
+        );
         println!("    {}", msg);
     }
 }
@@ -185,7 +190,13 @@ impl TestCommand {
     }
 
     fn fancy_test(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        molt::check_args(1, argv, 4, 0, "name description option value ?option value...?")?;
+        molt::check_args(
+            1,
+            argv,
+            4,
+            0,
+            "name description option value ?option value...?",
+        )?;
 
         // FIRST, get the test context
         let mut ctx = self.ctx.borrow_mut();
@@ -203,8 +214,7 @@ impl TestCommand {
             let val = iter.next();
             if val.is_none() {
                 ctx.num_errors += 1;
-                info.print_helper_error("test command",
-                    &format!("missing value for {}", opt));
+                info.print_helper_error("test command", &format!("missing value for {}", opt));
                 return molt_ok!();
             }
             let val = &*val.unwrap().as_string();
@@ -223,8 +233,10 @@ impl TestCommand {
                 }
                 _ => {
                     ctx.num_errors += 1;
-                    info.print_helper_error("test command",
-                        &format!("invalid option: \"{}\"", val));
+                    info.print_helper_error(
+                        "test command",
+                        &format!("invalid option: \"{}\"", val),
+                    );
                     return molt_ok!();
                 }
             }
@@ -254,8 +266,7 @@ impl TestCommand {
             Code::Error
         } else {
             ctx.num_errors += 1;
-            info.print_helper_error("test command",
-                &format!("invalid option: \"{}\"", code));
+            info.print_helper_error("test command", &format!("invalid option: \"{}\"", code));
 
             return molt_ok!();
         };
@@ -310,7 +321,7 @@ impl TestCommand {
                     return;
                 }
             }
-            _ => ()
+            _ => (),
         }
         ctx.num_errors += 1;
         info.print_error(&result);

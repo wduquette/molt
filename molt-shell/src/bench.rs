@@ -1,15 +1,15 @@
 use molt::check_args;
+use molt::molt_ok;
+use molt::Command;
 use molt::Interp;
 use molt::MoltResult;
 use molt::ResultCode;
-use molt::Command;
-use molt::molt_ok;
 use molt::Value;
 use std::cell::RefCell;
-use std::rc::Rc;
+use std::env;
 use std::fs;
 use std::path::PathBuf;
-use std::env;
+use std::rc::Rc;
 
 /// Executes the Molt benchmark harness, given the command-line arguments,
 /// in the context of the given interpreter.
@@ -73,11 +73,13 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     let baseline = ctx.baseline.unwrap_or(1.0);
 
     for record in &ctx.measurements {
-        println!("{:>8.2} {:>8.2} -- {} {}",
+        println!(
+            "{:>8.2} {:>8.2} -- {} {}",
             record.micros,
-            record.micros / baseline, 
+            record.micros / baseline,
             record.name,
-            record.description);
+            record.description
+        );
     }
 }
 
@@ -93,7 +95,7 @@ impl Context {
     fn new() -> Self {
         Self {
             baseline: None,
-            measurements: Vec::new()
+            measurements: Vec::new(),
         }
     }
 }
@@ -160,7 +162,6 @@ fn cmd_ident(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
     molt_ok!(argv[1].clone())
 }
-
 
 /// # ok ...
 ///

@@ -11,11 +11,10 @@
 //! * To execute the test harness on a Molt test script, use
 //!   `molt_shell::test_harness`.
 
-
+pub mod bench;
 mod shell;
 pub mod test_harness;
-pub mod bench;
 
-pub use shell::*;
 pub use bench::*;
+pub use shell::*;
 pub use test_harness::*;

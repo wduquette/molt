@@ -1,10 +1,10 @@
 //! TCL List Parsing and Formatting
 
+use crate::context::Context;
+use crate::interp::subst_backslashes;
 use crate::molt_err;
 use crate::types::*;
 use crate::value::Value;
-use crate::context::Context;
-use crate::interp::subst_backslashes;
 
 //--------------------------------------------------------------------------
 // List Parsing
@@ -203,18 +203,18 @@ fn escape_item(hash: bool, item: &str) -> String {
                 word.push('\\');
                 word.push(ch);
             }
-            _ => word.push(ch)
+            _ => word.push(ch),
         }
     }
 
     word
 }
 
-#[derive(Eq,PartialEq,Debug)]
+#[derive(Eq, PartialEq, Debug)]
 enum Mode {
     AsIs,
     Brace,
-    Escape
+    Escape,
 }
 
 fn get_mode(word: &str) -> Mode {
@@ -247,7 +247,7 @@ fn get_mode(word: &str) -> Mode {
                     mode = Mode::Brace;
                 }
             }
-            _ => ()
+            _ => (),
         }
     }
 
@@ -266,14 +266,26 @@ mod tests {
     fn test_list_to_string() {
         assert_eq!(list_to_string(&[Value::from("a")]), "a");
         assert_eq!(list_to_string(&[Value::from("a"), Value::from("b")]), "a b");
-        assert_eq!(list_to_string(&[Value::from("a"), Value::from("b"), Value::from("c")]), "a b c");
-        assert_eq!(list_to_string(&[Value::from("a"), Value::from(" "), Value::from("c")]), "a { } c");
-        assert_eq!(list_to_string(&[Value::from("a"), Value::from(""), Value::from("c")]), "a {} c");
+        assert_eq!(
+            list_to_string(&[Value::from("a"), Value::from("b"), Value::from("c")]),
+            "a b c"
+        );
+        assert_eq!(
+            list_to_string(&[Value::from("a"), Value::from(" "), Value::from("c")]),
+            "a { } c"
+        );
+        assert_eq!(
+            list_to_string(&[Value::from("a"), Value::from(""), Value::from("c")]),
+            "a {} c"
+        );
         assert_eq!(list_to_string(&[Value::from("a;b")]), "{a;b}");
         assert_eq!(list_to_string(&[Value::from("a$b")]), "{a$b}");
         assert_eq!(list_to_string(&[Value::from("a[b")]), "{a[b}");
         assert_eq!(list_to_string(&[Value::from("a]b")]), "{a]b}");
         assert_eq!(list_to_string(&[Value::from("a\\nb")]), "{a\\nb}");
-        assert_eq!(list_to_string(&[Value::from("{ "), Value::from("abc")]), r#"\{\  abc"#);
+        assert_eq!(
+            list_to_string(&[Value::from("{ "), Value::from("abc")]),
+            r#"\{\  abc"#
+        );
     }
 }

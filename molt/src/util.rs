@@ -39,7 +39,6 @@ pub fn read_int(ptr: &mut CharPtr) -> Option<String> {
         } else {
             missing_digits = false;
         }
-
     }
 
     // NEXT, read the digits

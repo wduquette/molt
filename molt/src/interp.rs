@@ -4,11 +4,11 @@
 //!
 //! [`Interp`]: struct.Interp.html
 
-use crate::list;
 use crate::commands;
 use crate::context::Context;
-use crate::molt_ok;
+use crate::list;
 use crate::molt_err;
+use crate::molt_ok;
 use crate::scope::ScopeStack;
 use crate::types::Command;
 use crate::types::*;
@@ -202,7 +202,12 @@ impl Interp {
     /// Gets a vector of the names of the existing commands.
     ///
     pub fn command_names(&self) -> MoltList {
-        let vec: MoltList = self.commands.keys().cloned().map(|x| Value::from(&x)).collect();
+        let vec: MoltList = self
+            .commands
+            .keys()
+            .cloned()
+            .map(|x| Value::from(&x))
+            .collect();
 
         vec
     }
@@ -304,16 +309,10 @@ impl Interp {
 
         // NEXT, translate and return the result.
         match result {
-            Err(ResultCode::Return(value)) => {
-                molt_ok!(value)
-            }
-            Err(ResultCode::Break) => {
-                molt_err!("invoked \"break\" outside of a loop")
-            }
-            Err(ResultCode::Continue) => {
-                molt_err!("invoked \"continue\" outside of a loop")
-            }
-            _ => result
+            Err(ResultCode::Return(value)) => molt_ok!(value),
+            Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
+            Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
+            _ => result,
         }
     }
 
@@ -384,7 +383,6 @@ impl Interp {
     /// let interp = Interp::new();
     /// assert_eq!("+\x07-\n-\r-p+", interp.subst_backslashes("+\\a-\\n-\\r-\\x70+"));
     /// ```
-
 
     pub fn subst_backslashes(&self, str: &str) -> String {
         subst_backslashes(str)
@@ -660,7 +658,7 @@ impl Command for CommandFuncWrapper {
 // Context structure for a proc.
 struct CommandProc {
     args: MoltList,
-    body: String
+    body: String,
 }
 
 // TODO: Need to work out how we're going to store the CommandProc details for
@@ -681,7 +679,7 @@ impl Command for CommandProc {
         for (speci, spec) in self.args.iter().enumerate() {
             // FIRST, get the parameter as a vector.  It should be a list of
             // one or two elements.
-            let vec = &*spec.as_list()?;  // Should never fail
+            let vec = &*spec.as_list()?; // Should never fail
             assert!(vec.len() == 1 || vec.len() == 2);
 
             // NEXT, if this is the args parameter, give the remaining args,
@@ -703,7 +701,7 @@ impl Command for CommandProc {
             }
 
             // NEXT, do we have a matching argument?
-             if argi < argv.len() {
+            if argi < argv.len() {
                 // Pair them up
                 interp.set_var3(&*vec[0].as_string(), &argv[argi]);
                 argi += 1;
@@ -748,7 +746,7 @@ fn wrong_num_args_for_proc(name: &str, args: &[String]) -> MoltResult {
         msg.push(' ');
 
         // "args" has special meaning only in the last place.
-        if arg == "args" && i == args.len() - 1  {
+        if arg == "args" && i == args.len() - 1 {
             msg.push_str("?arg ...?");
             break;
         }
@@ -882,8 +880,10 @@ mod tests {
         assert_eq!(interp.recursion_limit(), 100);
 
         assert!(dbg!(interp.eval("proc myproc {} { myproc }")).is_ok());
-        assert_eq!(interp.eval("myproc"),
-            molt_err!("too many nested calls to Interp::eval (infinite loop?)"));
+        assert_eq!(
+            interp.eval("myproc"),
+            molt_err!("too many nested calls to Interp::eval (infinite loop?)")
+        );
     }
 
     #[test]

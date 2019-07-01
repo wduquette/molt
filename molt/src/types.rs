@@ -166,6 +166,10 @@ impl Subcommand {
             names.push_str(subs[last].0);
         }
 
-        molt_err!("unknown or ambiguous subcommand \"{}\": must be {}", sub, &names)
+        molt_err!(
+            "unknown or ambiguous subcommand \"{}\": must be {}",
+            sub,
+            &names
+        )
     }
 }

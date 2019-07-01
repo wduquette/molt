@@ -140,6 +140,12 @@
 //! [`Value`]: struct.Value.html
 
 use crate::expr::Datum;
+use crate::list::get_list;
+use crate::list::list_to_string;
+use crate::types::MoltFloat;
+use crate::types::MoltInt;
+use crate::types::MoltList;
+use crate::types::ResultCode;
 use std::any::Any;
 use std::any::TypeId;
 use std::cell::RefCell;
@@ -147,12 +153,6 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::rc::Rc;
 use std::str::FromStr;
-use crate::list::get_list;
-use crate::list::list_to_string;
-use crate::types::MoltList;
-use crate::types::MoltInt;
-use crate::types::MoltFloat;
-use crate::types::ResultCode;
 
 //-----------------------------------------------------------------------------
 // Public Data Types
@@ -903,7 +903,7 @@ impl Value {
         match *data_ref {
             DataRep::Flt(flt) => Some(Datum::float(flt)),
             DataRep::Int(int) => Some(Datum::int(int)),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -1088,10 +1088,14 @@ mod tests {
         assert_eq!(Ok(false), Value::get_bool("NO"));
         assert_eq!(Ok(false), Value::get_bool("OFF"));
         assert_eq!(Ok(true), Value::get_bool(" true "));
-        assert_eq!(Value::get_bool("nonesuch"),
-            molt_err!("expected boolean but got \"nonesuch\""));
-        assert_eq!(Value::get_bool(" Nonesuch "),
-            molt_err!("expected boolean but got \" Nonesuch \""));
+        assert_eq!(
+            Value::get_bool("nonesuch"),
+            molt_err!("expected boolean but got \"nonesuch\"")
+        );
+        assert_eq!(
+            Value::get_bool(" Nonesuch "),
+            molt_err!("expected boolean but got \" Nonesuch \"")
+        );
     }
 
     #[test]
@@ -1129,13 +1133,26 @@ mod tests {
         assert_eq!(Value::get_int("-0xFF"), Ok(-255));
         assert_eq!(Value::get_int(" 1 "), Ok(1));
 
-        assert_eq!(Value::get_int(""), molt_err!("expected integer but got \"\""));
-        assert_eq!(Value::get_int("a"), molt_err!("expected integer but got \"a\""));
-        assert_eq!(Value::get_int("0x"), molt_err!("expected integer but got \"0x\""));
-        assert_eq!(Value::get_int("0xABGG"),
-            molt_err!("expected integer but got \"0xABGG\""));
-        assert_eq!(Value::get_int(" abc "),
-            molt_err!("expected integer but got \" abc \""));
+        assert_eq!(
+            Value::get_int(""),
+            molt_err!("expected integer but got \"\"")
+        );
+        assert_eq!(
+            Value::get_int("a"),
+            molt_err!("expected integer but got \"a\"")
+        );
+        assert_eq!(
+            Value::get_int("0x"),
+            molt_err!("expected integer but got \"0x\"")
+        );
+        assert_eq!(
+            Value::get_int("0xABGG"),
+            molt_err!("expected integer but got \"0xABGG\"")
+        );
+        assert_eq!(
+            Value::get_int(" abc "),
+            molt_err!("expected integer but got \" abc \"")
+        );
     }
 
     #[test]
@@ -1154,8 +1171,10 @@ mod tests {
         assert_eq!(val.as_float(), Ok(5.0));
 
         let val = Value::from("abc");
-        assert_eq!(val.as_float(),
-            molt_err!("expected floating-point number but got \"abc\""));
+        assert_eq!(
+            val.as_float(),
+            molt_err!("expected floating-point number but got \"abc\"")
+        );
     }
 
     #[test]
@@ -1168,10 +1187,14 @@ mod tests {
         assert_eq!(Value::get_float(" 4.5 "), Ok(4.5));
         assert_eq!(Value::get_float("Inf"), Ok(std::f64::INFINITY));
 
-        assert_eq!(Value::get_float("abc"),
-            molt_err!("expected floating-point number but got \"abc\""));
-        assert_eq!(Value::get_float(" abc "),
-            molt_err!("expected floating-point number but got \" abc \""));
+        assert_eq!(
+            Value::get_float("abc"),
+            molt_err!("expected floating-point number but got \"abc\"")
+        );
+        assert_eq!(
+            Value::get_float(" abc "),
+            molt_err!("expected floating-point number but got \" abc \"")
+        );
     }
 
     #[test]

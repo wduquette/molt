@@ -2,7 +2,7 @@
 
 Things to remember to do soon:
 
-*   Does Value have Display?
+*   Should `Interp::set_var(&str,&Value)` be `Interp::set_var(&str,Value)`?
 *   Try adding a context map to `Interp`.  (See 2019-07-02)
 *   expr::expr_parse_value should probably try as_int and as_float, to convert string values
     to numbers.
@@ -19,6 +19,8 @@ Things to remember to do soon:
 *   MoltList should maybe be a newtype with helper methods.
     *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
         e.g., `From<&MoltValue>`, `From<&Vec<String>>`
+
+### 2019-07-03 (Wednesday)
 
 ### 2019-07-02 (Tuesday)
 *   Had an idea for command context far too early this morning.

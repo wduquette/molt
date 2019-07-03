@@ -211,8 +211,6 @@ impl Interp {
     // Variable Handling
 
     /// Retrieves the value of the named variable in the current scope, if any.
-    /// TODO: Somehow this converts the MoltValue from the variable into a string automatically.
-    /// Maybe it's molt_ok! doing that?
     pub fn var(&self, name: &str) -> MoltResult {
         match self.scopes.get(name) {
             Some(v) => molt_ok!(v.clone()),
@@ -220,17 +218,18 @@ impl Interp {
         }
     }
 
-    /// Sets the value of the named variable in the current scope, creating the variable
-    /// if necessary.
-    pub fn set_var(&mut self, name: &str, value: &str) {
-        // TODO: Temporary fix while integrating MoltValue.
-        self.scopes.set(name, Value::from(value));
-    }
+    // /// Sets the value of the named variable in the current scope, creating the variable
+    // /// if necessary.
+    // ///
+    // /// TODO: Remove, and rename set_var2.
+    // pub fn set_var(&mut self, name: &str, value: &str) {
+    //     self.scopes.set(name, Value::from(value));
+    // }
 
     /// Sets the value of the named variable in the current scope, creating the variable
     /// if necessary.
     ///
-    /// TODO: Ultimately, this should replace set_var.
+    /// TODO: Ultimately, this should be set_and_return.
     pub fn set_var2(&mut self, name: &str, value: Value) -> Value {
         self.scopes.set(name, value.clone());
 
@@ -239,7 +238,9 @@ impl Interp {
 
     /// Sets the value of the named variable in the current scope, creating the variable
     /// if necessary.
-    pub fn set_var3(&mut self, name: &str, value: &Value) {
+    ///
+    /// Ultimately, this should be set_var.
+    pub fn set_var(&mut self, name: &str, value: &Value) {
         self.scopes.set(name, value.clone());
     }
 
@@ -688,14 +689,7 @@ impl Command for CommandProc {
             // if any.  Note that "args" has special meaning only if it's the
             // final arg spec in the list.
             if &*vec[0].as_string() == "args" && speci == self.args.len() - 1 {
-                let args = if argi < argv.len() {
-                    // TODO: Almost certainly a better way to do this.
-                    // let lst: MoltList = &argv[argi..].iter().collect();
-                    list::list_to_string(&argv[argi..])
-                } else {
-                    "".into()
-                };
-                interp.set_var("args", &args);
+                interp.set_var2("args", Value::from(&argv[argi..]));
 
                 // We've processed all of the args
                 argi = argv.len();
@@ -705,14 +699,14 @@ impl Command for CommandProc {
             // NEXT, do we have a matching argument?
              if argi < argv.len() {
                 // Pair them up
-                interp.set_var3(&*vec[0].as_string(), &argv[argi]);
+                interp.set_var(&*vec[0].as_string(), &argv[argi]);
                 argi += 1;
                 continue;
             }
 
             // NEXT, do we have a default value?
             if vec.len() == 2 {
-                interp.set_var3(&*vec[0].as_string(), &vec[1]);
+                interp.set_var(&*vec[0].as_string(), &vec[1]);
             } else {
                 // We don't; we're missing a required argument.
                 return wrong_num_args_for_proc(name, &str_args);

@@ -91,13 +91,9 @@ pub fn script(interp: &mut Interp, args: &[String]) {
 /// * The Molt variable `arg0` will be set to the `arg0` value.
 /// * The Molt variable `argv` will be set to the `argv` array as a Molt list.
 fn execute_script(interp: &mut Interp, script: String, arg0: &str, argv: &[String]) {
-    // TODO: Quick stopgap.  But really we want to save the argv as a MoltList.
-    // It probably would work right now, actually.
     let argv: MoltList = argv.iter().map(Value::from).collect();
-    let argv = molt::list_to_string(&argv);
-
-    interp.set_var("arg0", arg0);
-    interp.set_var("argv", &argv);
+    interp.set_var("arg0", &Value::from(arg0));
+    interp.set_var("argv", &Value::from(argv));
 
     match interp.eval(&script) {
         Ok(_) => (),

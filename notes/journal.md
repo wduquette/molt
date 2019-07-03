@@ -2,6 +2,7 @@
 
 Things to remember to do soon:
 
+*   Try adding a context map to `Interp`.  (See 2019-07-02)
 *   expr::expr_parse_value should probably try as_int and as_float, to convert string values
     to numbers.
 *   Look at the standard ways we use `Value` in commands.rs, and see if we can't
@@ -17,6 +18,16 @@ Things to remember to do soon:
 *   MoltList should maybe be a newtype with helper methods.
     *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
         e.g., `From<&MoltValue>`, `From<&Vec<String>>`
+
+### 2019-07-02 (Tuesday)
+*   Had an idea for command context far too early this morning.
+    *   `Interp` contains a `HashMap<Context,Any>`, where `Context` is a unique identifier type.
+    *   The application passes a data structure to the `Interp` and gets a `Context` back.
+    *   Later, the application can pass the context to a mutable `Interp` and get a mutable
+        reference to their data structure back.
+    *   For commands with context, just pass the `Context` as the context value; the command
+        then retrieves the mutable data structure it really wants; and no `RefCell` is needed.
+    *   Give this a try.
 
 ### 2019-06-30 (Sunday)
 *   Added the "time" command yesterday, and was a little surprised at how

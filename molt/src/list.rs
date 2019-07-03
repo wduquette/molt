@@ -3,7 +3,7 @@
 use crate::molt_err;
 use crate::types::*;
 use crate::value::Value;
-use crate::context::Context;
+use crate::eval_ptr::EvalPtr;
 use crate::interp::subst_backslashes;
 
 //--------------------------------------------------------------------------
@@ -12,12 +12,12 @@ use crate::interp::subst_backslashes;
 /// Parses a list-formatted string into a vector, throwing
 /// a Molt error if the list cannot be parsed as a list.
 pub(crate) fn get_list(str: &str) -> Result<MoltList, ResultCode> {
-    let mut ctx = Context::new(str);
+    let mut ctx = EvalPtr::new(str);
 
     parse_list(&mut ctx)
 }
 
-fn parse_list(ctx: &mut Context) -> Result<MoltList, ResultCode> {
+fn parse_list(ctx: &mut EvalPtr) -> Result<MoltList, ResultCode> {
     // FIRST, skip any list whitespace.
     ctx.skip_list_white();
 
@@ -39,7 +39,7 @@ fn parse_list(ctx: &mut Context) -> Result<MoltList, ResultCode> {
 /// We're at the beginning of an item in the list.
 /// It's either a bare word, a braced string, or a quoted string--or there's
 /// an error in the input.  Whichever it is, get it.
-fn parse_item(ctx: &mut Context) -> MoltResult {
+fn parse_item(ctx: &mut EvalPtr) -> MoltResult {
     if ctx.next_is('{') {
         Ok(parse_braced_item(ctx)?)
     } else if ctx.next_is('"') {
@@ -50,7 +50,7 @@ fn parse_item(ctx: &mut Context) -> MoltResult {
 }
 
 /// Parse a braced item.
-fn parse_braced_item(ctx: &mut Context) -> MoltResult {
+fn parse_braced_item(ctx: &mut EvalPtr) -> MoltResult {
     // FIRST, we have to count braces.  Skip the first one, and count it.
     ctx.next();
     let mut count = 1;
@@ -94,7 +94,7 @@ fn parse_braced_item(ctx: &mut Context) -> MoltResult {
 }
 
 /// Parse a quoted item.  Does *not* do backslash substitution.
-fn parse_quoted_item(ctx: &mut Context) -> MoltResult {
+fn parse_quoted_item(ctx: &mut EvalPtr) -> MoltResult {
     // FIRST, consume the the opening quote.
     ctx.next();
 
@@ -121,7 +121,7 @@ fn parse_quoted_item(ctx: &mut Context) -> MoltResult {
 }
 
 /// Parse a bare item.  Does *not* do backslash substitution.
-fn parse_bare_item(ctx: &mut Context) -> MoltResult {
+fn parse_bare_item(ctx: &mut EvalPtr) -> MoltResult {
     let mut item = String::new();
 
     while !ctx.at_end() && !ctx.next_is_list_white() {

@@ -4,7 +4,7 @@
 //!   But this is convenient for now.
 
 use crate::char_ptr::CharPtr;
-use crate::context::Context;
+use crate::eval_ptr::EvalPtr;
 use crate::*;
 use crate::interp::Interp;
 use crate::list;
@@ -863,7 +863,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
 
     match p.peek() {
         Some('$') => {
-            let mut ctx = Context::from_peekable(p.to_peekable());
+            let mut ctx = EvalPtr::from_peekable(p.to_peekable());
             ctx.set_no_eval(info.no_eval > 0);
             let var_val = interp.parse_variable(&mut ctx)?;
             info.token = VALUE;
@@ -875,7 +875,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             }
         }
         Some('[') => {
-            let mut ctx = Context::from_peekable(p.to_peekable());
+            let mut ctx = EvalPtr::from_peekable(p.to_peekable());
             ctx.set_no_eval(info.no_eval > 0);
             let script_val = interp.parse_script(&mut ctx)?;
             info.token = VALUE;
@@ -887,7 +887,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             }
         }
         Some('"') => {
-            let mut ctx = Context::from_peekable(p.to_peekable());
+            let mut ctx = EvalPtr::from_peekable(p.to_peekable());
             ctx.set_no_eval(info.no_eval > 0);
             let val = interp.parse_quoted_word(&mut ctx)?;
             info.token = VALUE;
@@ -901,7 +901,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             }
         }
         Some('{') => {
-            let mut ctx = Context::from_peekable(p.to_peekable());
+            let mut ctx = EvalPtr::from_peekable(p.to_peekable());
             ctx.set_no_eval(info.no_eval > 0);
             let val = interp.parse_braced_word(&mut ctx)?;
             info.token = VALUE;

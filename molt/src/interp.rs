@@ -6,7 +6,7 @@
 
 use crate::list;
 use crate::commands;
-use crate::context::Context;
+use crate::eval_ptr::EvalPtr;
 use crate::molt_ok;
 use crate::molt_err;
 use crate::scope::ScopeStack;
@@ -296,7 +296,7 @@ impl Interp {
         }
 
         // NEXT, evaluate the script and translate the result to Ok or Error
-        let mut ctx = Context::new(script);
+        let mut ctx = EvalPtr::new(script);
 
         let result = self.eval_context(&mut ctx);
 
@@ -325,7 +325,7 @@ impl Interp {
     /// script body; the control structure must handle the special
     /// result codes appropriately.
     pub fn eval_body(&mut self, script: &str) -> MoltResult {
-        let mut ctx = Context::new(script);
+        let mut ctx = EvalPtr::new(script);
 
         self.eval_context(&mut ctx)
     }
@@ -346,7 +346,7 @@ impl Interp {
     /// ```
 
     pub fn complete(&mut self, script: &str) -> bool {
-        let mut ctx = Context::new(script);
+        let mut ctx = EvalPtr::new(script);
         ctx.set_no_eval(true);
 
         self.eval_context(&mut ctx).is_ok()
@@ -399,7 +399,7 @@ impl Interp {
 
     /// Low-level script evaluator; evaluates the next script in the
     /// context.
-    fn eval_context(&mut self, ctx: &mut Context) -> MoltResult {
+    fn eval_context(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         let mut result_value = Value::empty();
 
         while !ctx.at_end_of_script() {
@@ -431,7 +431,7 @@ impl Interp {
         Ok(result_value)
     }
 
-    fn parse_command(&mut self, ctx: &mut Context) -> Result<MoltList, ResultCode> {
+    fn parse_command(&mut self, ctx: &mut EvalPtr) -> Result<MoltList, ResultCode> {
         // FIRST, deal with whitespace and comments between "here" and the next command.
         while !ctx.at_end_of_script() {
             ctx.skip_block_white();
@@ -470,7 +470,7 @@ impl Interp {
     /// We're at the beginning of a word belonging to the current command.
     /// It's either a bare word, a braced string, or a quoted string--or there's
     /// an error in the input.  Whichever it is, get it.
-    fn parse_word(&mut self, ctx: &mut Context) -> MoltResult {
+    fn parse_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         if ctx.next_is('{') {
             Ok(self.parse_braced_word(ctx)?)
         } else if ctx.next_is('"') {
@@ -481,7 +481,7 @@ impl Interp {
     }
 
     /// Parse a braced word.
-    pub(crate) fn parse_braced_word(&mut self, ctx: &mut Context) -> MoltResult {
+    pub(crate) fn parse_braced_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         // FIRST, we have to count braces.  Skip the first one, and count it.
         ctx.next();
         let mut count = 1;
@@ -531,7 +531,7 @@ impl Interp {
     }
 
     /// Parse a quoted word.
-    pub(crate) fn parse_quoted_word(&mut self, ctx: &mut Context) -> MoltResult {
+    pub(crate) fn parse_quoted_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         // FIRST, consume the the opening quote.
         ctx.next();
 
@@ -558,7 +558,7 @@ impl Interp {
     }
 
     /// Parse a bare word.
-    fn parse_bare_word(&mut self, ctx: &mut Context) -> MoltResult {
+    fn parse_bare_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         let mut word = String::new();
 
         while !ctx.at_end_of_command() && !ctx.next_is_line_white() {
@@ -577,7 +577,7 @@ impl Interp {
         Ok(Value::from(word))
     }
 
-    pub(crate) fn parse_script(&mut self, ctx: &mut Context) -> MoltResult {
+    pub(crate) fn parse_script(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         // FIRST, skip the '['
         ctx.skip_char('[');
 
@@ -599,7 +599,7 @@ impl Interp {
         result
     }
 
-    pub(crate) fn parse_variable(&mut self, ctx: &mut Context) -> MoltResult {
+    pub(crate) fn parse_variable(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         // FIRST, skip the '$'
         ctx.skip_char('$');
 
@@ -624,7 +624,7 @@ impl Interp {
         Ok(self.var(&varname)?)
     }
 
-    fn parse_braced_varname(&self, ctx: &mut Context) -> MoltResult {
+    fn parse_braced_varname(&self, ctx: &mut EvalPtr) -> MoltResult {
         let mut string = String::new();
 
         while !ctx.at_end() {
@@ -658,7 +658,7 @@ impl Command for CommandFuncWrapper {
     }
 }
 
-// Context structure for a proc.
+// EvalPtr structure for a proc.
 struct CommandProc {
     args: MoltList,
     body: String
@@ -765,7 +765,7 @@ fn wrong_num_args_for_proc(name: &str, args: &[String]) -> MoltResult {
 /// Performs standard TCL backslash substitution in the string, returning a new string.
 pub(crate) fn subst_backslashes(str: &str) -> String {
     let mut item = String::new();
-    let mut ctx = Context::new(str);
+    let mut ctx = EvalPtr::new(str);
 
     while !ctx.at_end() {
         if ctx.next_is('\\') {
@@ -779,7 +779,7 @@ pub(crate) fn subst_backslashes(str: &str) -> String {
 }
 
 // Converts a backslash escape into the equivalent character.
-fn subst_backslash(ctx: &mut Context, word: &mut String) {
+fn subst_backslash(ctx: &mut EvalPtr, word: &mut String) {
     // FIRST, skip the first backslash.
     ctx.skip_char('\\');
 

@@ -11,7 +11,7 @@ pub use crate::interp::Interp;
 #[allow(dead_code)] // Temporary
 mod char_ptr;
 mod commands;
-mod context;
+mod eval_ptr;
 #[allow(dead_code)] // Temporary
 mod expr;
 pub mod interp;

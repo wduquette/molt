@@ -8,9 +8,9 @@
 use std::iter::Peekable;
 use std::str::Chars;
 
-/// A struct that holds the editing context: the iterator over the input string, and
+/// A struct that holds the parsing context: the iterator over the input string, and
 /// any relevant flags.
-pub struct Context<'a> {
+pub struct EvalPtr<'a> {
     // The input iterator
     chars: Peekable<Chars<'a>>,
 
@@ -24,7 +24,7 @@ pub struct Context<'a> {
     no_eval: bool,
 }
 
-impl<'a> Context<'a> {
+impl<'a> EvalPtr<'a> {
     pub fn new(input: &'a str) -> Self {
         Self {
             chars: input.chars().peekable(),
@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     fn test_bracket_term() {
-        let mut ctx = Context::new("123");
+        let mut ctx = EvalPtr::new("123");
 
         assert!(!ctx.is_bracket_term());
         ctx.set_bracket_term(true);
@@ -229,32 +229,32 @@ mod tests {
 
     #[test]
     fn test_next_is() {
-        let mut ctx = Context::new("123");
+        let mut ctx = EvalPtr::new("123");
         assert!(ctx.next_is('1'));
         assert!(!ctx.next_is('2'));
 
-        let mut ctx = Context::new("");
+        let mut ctx = EvalPtr::new("");
         assert!(!ctx.next_is('1'));
     }
 
     #[test]
     fn test_at_end() {
-        let mut ctx = Context::new("123");
+        let mut ctx = EvalPtr::new("123");
         assert!(!ctx.at_end());
 
-        let mut ctx = Context::new("");
+        let mut ctx = EvalPtr::new("");
         assert!(ctx.at_end());
     }
 
     #[test]
     fn test_at_end_of_script() {
-        let mut ctx = Context::new("123");
+        let mut ctx = EvalPtr::new("123");
         assert!(!ctx.at_end_of_script());
 
-        let mut ctx = Context::new("");
+        let mut ctx = EvalPtr::new("");
         assert!(ctx.at_end_of_script());
 
-        let mut ctx = Context::new("]");
+        let mut ctx = EvalPtr::new("]");
         assert!(!ctx.at_end_of_script());
         ctx.set_bracket_term(true);
         assert!(ctx.at_end_of_script());
@@ -262,100 +262,100 @@ mod tests {
 
     #[test]
     fn test_at_end_of_command() {
-        let mut ctx = Context::new("123");
+        let mut ctx = EvalPtr::new("123");
         assert!(!ctx.at_end_of_command());
 
-        let mut ctx = Context::new(";123");
+        let mut ctx = EvalPtr::new(";123");
         assert!(ctx.at_end_of_command());
 
-        let mut ctx = Context::new("\n123");
+        let mut ctx = EvalPtr::new("\n123");
         assert!(ctx.at_end_of_command());
 
-        let mut ctx = Context::new("]123");
+        let mut ctx = EvalPtr::new("]123");
         assert!(!ctx.at_end_of_command());
 
-        let mut ctx = Context::new("]123");
+        let mut ctx = EvalPtr::new("]123");
         ctx.set_bracket_term(true);
         assert!(ctx.at_end_of_command());
     }
 
     #[test]
     fn test_next_is_block_white() {
-        let mut ctx = Context::new("123");
+        let mut ctx = EvalPtr::new("123");
         assert!(!ctx.next_is_block_white());
 
-        let mut ctx = Context::new(" 123");
+        let mut ctx = EvalPtr::new(" 123");
         assert!(ctx.next_is_block_white());
 
-        let mut ctx = Context::new("\n123");
+        let mut ctx = EvalPtr::new("\n123");
         assert!(ctx.next_is_block_white());
     }
 
     #[test]
     fn test_skip_block_white() {
-        let mut ctx = Context::new("123");
+        let mut ctx = EvalPtr::new("123");
         ctx.skip_block_white();
         assert!(ctx.next_is('1'));
 
-        let mut ctx = Context::new("   123");
+        let mut ctx = EvalPtr::new("   123");
         ctx.skip_block_white();
         assert!(ctx.next_is('1'));
 
-        let mut ctx = Context::new(" \n 123");
+        let mut ctx = EvalPtr::new(" \n 123");
         ctx.skip_block_white();
         assert!(ctx.next_is('1'));
     }
 
     #[test]
     fn test_next_is_line_white() {
-        let mut ctx = Context::new("123");
+        let mut ctx = EvalPtr::new("123");
         assert!(!ctx.next_is_line_white());
 
-        let mut ctx = Context::new(" 123");
+        let mut ctx = EvalPtr::new(" 123");
         assert!(ctx.next_is_line_white());
 
-        let mut ctx = Context::new("\n123");
+        let mut ctx = EvalPtr::new("\n123");
         assert!(!ctx.next_is_line_white());
     }
 
     #[test]
     fn test_skip_line_white() {
-        let mut ctx = Context::new("123");
+        let mut ctx = EvalPtr::new("123");
         ctx.skip_line_white();
         assert!(ctx.next_is('1'));
 
-        let mut ctx = Context::new("   123");
+        let mut ctx = EvalPtr::new("   123");
         ctx.skip_line_white();
         assert!(ctx.next_is('1'));
 
-        let mut ctx = Context::new(" \n 123");
+        let mut ctx = EvalPtr::new(" \n 123");
         ctx.skip_line_white();
         assert!(ctx.next_is('\n'));
     }
 
     #[test]
     fn test_skip_comment() {
-        let mut ctx = Context::new("123");
+        let mut ctx = EvalPtr::new("123");
         assert!(!ctx.skip_comment());
         assert!(ctx.next_is('1'));
 
-        let mut ctx = Context::new(" #123");
+        let mut ctx = EvalPtr::new(" #123");
         assert!(!ctx.skip_comment());
         assert!(ctx.next_is(' '));
 
-        let mut ctx = Context::new("#123");
+        let mut ctx = EvalPtr::new("#123");
         assert!(ctx.skip_comment());
         assert!(ctx.at_end());
 
-        let mut ctx = Context::new("#1 2 3 \na");
+        let mut ctx = EvalPtr::new("#1 2 3 \na");
         assert!(ctx.skip_comment());
         assert!(ctx.next_is('a'));
 
-        let mut ctx = Context::new("#1 \\na\nb");
+        let mut ctx = EvalPtr::new("#1 \\na\nb");
         assert!(ctx.skip_comment());
         assert!(ctx.next_is('b'));
 
-        let mut ctx = Context::new("#1 2] 3 \na");
+        let mut ctx = EvalPtr::new("#1 2] 3 \na");
         ctx.set_bracket_term(true);
         assert!(ctx.skip_comment());
         assert!(ctx.next_is('a'));

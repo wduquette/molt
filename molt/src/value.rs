@@ -324,6 +324,27 @@ impl From<MoltList> for Value {
     }
 }
 
+impl From<&[Value]> for Value {
+    /// Creates a new `Value` whose data representation is a `MoltList`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::Value;
+    ///
+    /// let values = [Value::from(1234), Value::from("abc")];
+    /// let value = Value::from(&values[..]);
+    /// assert_eq!(&*value.as_string(), "1234 abc");
+    /// ```
+    fn from(list: &[Value]) -> Self {
+        let list = list.to_vec();
+        Self {
+            string_rep: RefCell::new(None),
+            data_rep: RefCell::new(DataRep::List(Rc::new(list))),
+        }
+    }
+}
+
 impl Value {
     /// Returns the empty `Value`, a value whose string representation is the empty
     /// string.
@@ -1172,6 +1193,16 @@ mod tests {
             assert_eq!(rclist[0].to_string(), "qrs".to_string());
             assert_eq!(rclist[1].to_string(), "xyz".to_string());
         }
+    }
+
+    #[test]
+    fn from_value_slice() {
+        // NOTE: we aren't testing list formatting and parsing here; that's done in list.rs.
+        // We *are* testing that Value will use the list.rs code to convert strings to lists
+        // and back again.
+        let array = [Value::from("abc"), Value::from("def")];
+        let listval = Value::from(&array[..]);
+        assert_eq!(&*listval.as_string(), "abc def");
     }
 
     #[test]

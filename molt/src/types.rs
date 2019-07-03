@@ -91,6 +91,11 @@ impl ResultCode {
     }
 }
 
+/// A unique identifier, used to identify cached context data.
+#[derive(Eq, PartialEq, Debug, Hash, Copy, Clone)]
+pub struct ContextID(pub u64);
+
+
 /// A trait defining a Molt command object: a struct that implements a command (and may also
 /// have context data).
 ///

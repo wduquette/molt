@@ -1,3 +1,4 @@
+use molt::ContextID;
 use molt::check_args;
 use molt::Interp;
 use molt::MoltResult;
@@ -5,7 +6,6 @@ use molt::ResultCode;
 use molt::Command;
 use molt::molt_ok;
 use molt::Value;
-use std::cell::RefCell;
 use std::rc::Rc;
 use std::fs;
 use std::path::PathBuf;
@@ -31,11 +31,11 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     let parent = path.parent();
 
     // NEXT, initialize the benchmark context.
-    let context = Rc::new(RefCell::new(Context::new()));
+    let context_id = interp.save_context(Context::new());
 
     // NEXT, install the test commands into the interpreter.
     interp.add_command("ident", cmd_ident);
-    interp.add_command_object("measure", Rc::new(MeasureCommand::new(&context)));
+    interp.add_command_object("measure", Rc::new(MeasureCommand::new(context_id)));
     interp.add_command("ok", cmd_ok);
     // interp.add_command_object("test", Rc::new(TestCommand::new(&context)));
 
@@ -66,7 +66,7 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     }
 
     // NEXT, output the test results:
-    let ctx = context.borrow();
+    let ctx = interp.context::<Context>(context_id);
 
     println!("{:>8} {:>8} -- Benchmark", "Micros", "Norm");
 
@@ -75,7 +75,7 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     for record in &ctx.measurements {
         println!("{:>8.2} {:>8.2} -- {} {}",
             record.micros,
-            record.micros / baseline, 
+            record.micros / baseline,
             record.name,
             record.description);
     }
@@ -113,19 +113,17 @@ struct Measurement {
 ///
 /// Records a benchmark measurement.
 struct MeasureCommand {
-    ctx: Rc<RefCell<Context>>,
+    ctx_id: ContextID,
 }
 
 impl MeasureCommand {
-    fn new(ctx: &Rc<RefCell<Context>>) -> Self {
-        Self {
-            ctx: Rc::clone(ctx),
-        }
+    fn new(ctx_id: ContextID) -> Self {
+        Self { ctx_id }
     }
 }
 
 impl Command for MeasureCommand {
-    fn execute(&self, _interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         molt::check_args(1, argv, 4, 4, "name description micros")?;
 
         // FIRST, get the arguments
@@ -134,7 +132,7 @@ impl Command for MeasureCommand {
         let micros = argv[3].as_float()?;
 
         // NEXT, get the test context
-        let mut ctx = self.ctx.borrow_mut();
+        let ctx = interp.context::<Context>(self.ctx_id);
 
         if ctx.baseline.is_none() {
             ctx.baseline = Some(micros);

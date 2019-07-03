@@ -4,6 +4,7 @@
 //!
 //! [`Interp`]: struct.Interp.html
 
+use std::any::Any;
 use crate::list;
 use crate::commands;
 use crate::eval_ptr::EvalPtr;
@@ -50,6 +51,12 @@ pub struct Interp {
     // Variable Table
     scopes: ScopeStack,
 
+    // Context ID Counter
+    last_context_id: u64,
+
+    // Context Map
+    context_map: HashMap<ContextID,Box<Any>>,
+
     // Defines the recursion limit for Interp::eval().
     recursion_limit: usize,
 
@@ -68,6 +75,8 @@ impl Interp {
         Self {
             recursion_limit: 1000,
             commands: HashMap::new(),
+            last_context_id: 0,
+            context_map: HashMap::new(),
             scopes: ScopeStack::new(),
             num_levels: 0,
         }
@@ -139,6 +148,126 @@ impl Interp {
     /// ```
     pub fn set_recursion_limit(&mut self, limit: usize) {
         self.recursion_limit = limit;
+    }
+
+    //--------------------------------------------------------------------------------------------
+    // Context Cache
+
+    /// Generates a unique context ID for command context data.
+    ///
+    /// Normally the client will use [`save_context`](#method.save_context) to
+    /// save the context data and generate the client ID in one operation, rather than
+    /// call this explicitly.
+    ////
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::interp::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let id1 = interp.context_id();
+    /// let id2 = interp.context_id();
+    /// assert_ne!(id1, id2);
+    /// ```
+    pub fn context_id(&mut self) -> ContextID {
+        // TODO: Practically speaking we won't overflow u64; but practically speaking
+        // we should check any.
+        self.last_context_id += 1;
+        ContextID(self.last_context_id)
+    }
+
+    /// Saves a client context value in the interpreter for the given
+    /// context ID.  Client commands can retrieve the data given the context ID.
+    ///
+    /// Normally the client will use [`save_context`](#method.save_context) to
+    /// save the context data and generate the client ID in one operation, rather than
+    /// call this explicitly.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::interp::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let id = interp.context_id();
+    /// let data: Vec<String> = Vec::new();
+    /// interp.set_context(id, data);
+    /// ```
+    pub fn set_context<T: 'static>(&mut self, id: ContextID, data: T)  {
+        self.context_map.insert(id, Box::new(data));
+    }
+
+    /// Saves the client context data in the interpreter's context cache,
+    /// returning a generated context ID.  Client commands can retrieve the data
+    /// given the ID.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::interp::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let data: Vec<String> = Vec::new();
+    /// let id = interp.save_context(data);
+    /// ```
+    pub fn save_context<T: 'static>(&mut self, data: T) -> ContextID {
+        let id = self.context_id();
+        self.context_map.insert(id, Box::new(data));
+        id
+    }
+
+    /// Retrieves mutable client context given the context ID.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::interp::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let data: Vec<String> = Vec::new();
+    /// let id = interp.save_context(data);
+    ///
+    /// // Later...
+    /// let data: &mut Vec<String> = interp.context(id);
+    /// data.push("New Value".into());
+    ///
+    /// // Or
+    /// let data = interp.context::<Vec<String>>(id);
+    /// data.push("New Value".into());
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// This call panics if the context ID is unknown, or if the retrieved data
+    /// has an unexpected type.
+    pub fn context<T: 'static>(&mut self, id: ContextID) -> &mut T {
+        self.context_map.get_mut(&id).expect("unknown context ID")
+            .downcast_mut::<T>().expect("context type mismatch")
+    }
+
+    /// Removes a context record from the context cache.  Clears the data from
+    /// the cache when it is no longer needed.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::interp::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let data: Vec<String> = Vec::new();
+    /// let id = interp.save_context(data);
+    ///
+    /// // Later...
+    /// interp.forget_context(id);
+    /// ```
+    ///
+    pub fn forget_context(&mut self, id: ContextID) {
+        self.context_map.remove(&id);
     }
 
     //--------------------------------------------------------------------------------------------

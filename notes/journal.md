@@ -2,8 +2,7 @@
 
 Things to remember to do soon:
 
-*   Should `Interp::set_var(&str,&Value)` be `Interp::set_var(&str,Value)`?
-*   Try adding a context map to `Interp`.  (See 2019-07-02)
+*   Add Interp::context tests.
 *   expr::expr_parse_value should probably try as_int and as_float, to convert string values
     to numbers.
 *   Look at the standard ways we use `Value` in commands.rs, and see if we can't
@@ -21,6 +20,8 @@ Things to remember to do soon:
         e.g., `From<&MoltValue>`, `From<&Vec<String>>`
 
 ### 2019-07-03 (Wednesday)
+*   Implemented the context cache in Interp, for use by command definitions.
+    *   It's in use by the benchmark app.
 
 ### 2019-07-02 (Tuesday)
 *   Had an idea for command context far too early this morning.

@@ -279,7 +279,7 @@ impl Interp {
     /// the interpreter.  If the command requires context other than the interpreter itself,
     /// define a struct that implements `Command` and use `add_command_object`.
     pub fn add_command(&mut self, name: &str, func: CommandFunc) {
-        let command = Rc::new(CommandFuncWrapper::new(func));
+        let command = CommandFuncWrapper::new(func);
         self.add_command_object(name, command);
     }
 
@@ -288,19 +288,19 @@ impl Interp {
     /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
     /// as for the `proc` command and the `commands::cmd_proc` function.
     pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &str) {
-        let command = Rc::new(CommandProc {
+        let command = CommandProc {
             args: args.to_owned(),
             body: body.to_string(),
-        });
+        };
 
         self.add_command_object(name, command);
     }
 
-    /// Adds a command to the interpreter using a `Command` trait object.
+    /// Adds a command to the interpreter using a `Command` object.
     ///
     /// Use this when defining a command that requires application context.
-    pub fn add_command_object(&mut self, name: &str, command: Rc<dyn Command>) {
-        self.commands.insert(name.into(), command);
+    pub fn add_command_object<T: 'static + Command>(&mut self, name: &str, command: T) {
+        self.commands.insert(name.into(), Rc::new(command));
     }
 
     /// Determines whether the interpreter contains a command with the given

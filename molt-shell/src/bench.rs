@@ -6,7 +6,6 @@ use molt::ResultCode;
 use molt::Command;
 use molt::molt_ok;
 use molt::Value;
-use std::rc::Rc;
 use std::fs;
 use std::path::PathBuf;
 use std::env;
@@ -35,9 +34,8 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
 
     // NEXT, install the test commands into the interpreter.
     interp.add_command("ident", cmd_ident);
-    interp.add_command_object("measure", Rc::new(MeasureCommand::new(context_id)));
+    interp.add_command_object("measure", MeasureCommand::new(context_id));
     interp.add_command("ok", cmd_ok);
-    // interp.add_command_object("test", Rc::new(TestCommand::new(&context)));
 
     // NEXT, load the benchmark Tcl library
     if let Err(ResultCode::Error(value)) = interp.eval(include_str!("bench.tcl")) {

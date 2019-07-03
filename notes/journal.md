@@ -3,6 +3,7 @@
 Things to remember to do soon:
 
 *   Add Interp::context tests.
+*   Revise test_harness to use the context cache.
 *   expr::expr_parse_value should probably try as_int and as_float, to convert string values
     to numbers.
 *   Look at the standard ways we use `Value` in commands.rs, and see if we can't

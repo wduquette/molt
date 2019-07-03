@@ -221,16 +221,16 @@ impl Interp {
     // /// Sets the value of the named variable in the current scope, creating the variable
     // /// if necessary.
     // ///
-    // /// TODO: Remove, and rename set_var2.
+    // /// TODO: Remove, and rename set_and_return.
     // pub fn set_var(&mut self, name: &str, value: &str) {
     //     self.scopes.set(name, Value::from(value));
     // }
 
     /// Sets the value of the named variable in the current scope, creating the variable
-    /// if necessary.
+    /// if necessary, and returning the value.
     ///
     /// TODO: Ultimately, this should be set_and_return.
-    pub fn set_var2(&mut self, name: &str, value: Value) -> Value {
+    pub fn set_and_return(&mut self, name: &str, value: Value) -> Value {
         self.scopes.set(name, value.clone());
 
         value
@@ -689,7 +689,7 @@ impl Command for CommandProc {
             // if any.  Note that "args" has special meaning only if it's the
             // final arg spec in the list.
             if &*vec[0].as_string() == "args" && speci == self.args.len() - 1 {
-                interp.set_var2("args", Value::from(&argv[argi..]));
+                interp.set_and_return("args", Value::from(&argv[argi..]));
 
                 // We've processed all of the args
                 argi = argv.len();

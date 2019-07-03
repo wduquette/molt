@@ -37,7 +37,7 @@ pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     }
 
     // NEXT, save and return the new value.
-    molt_ok!(interp.set_var2(var_name, new_string.into()))
+    molt_ok!(interp.set_and_return(var_name, new_string.into()))
 }
 
 /// assert_eq received, expected
@@ -98,7 +98,7 @@ pub fn cmd_catch(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     }
 
     if argv.len() == 3 {
-        interp.set_var2(&*argv[2].as_string(), value);
+        interp.set_and_return(&*argv[2].as_string(), value);
     }
 
     Ok(Value::from(code))
@@ -220,10 +220,10 @@ pub fn cmd_foreach(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     while i < list.len() {
         for var_name in var_list {
             if i < list.len() {
-                interp.set_var2(&*var_name.as_string(), list[i].clone());
+                interp.set_and_return(&*var_name.as_string(), list[i].clone());
                 i += 1;
             } else {
-                interp.set_var2(&*var_name.as_string(), Value::empty());
+                interp.set_and_return(&*var_name.as_string(), Value::empty());
             }
         }
 
@@ -377,7 +377,7 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
         increment
     };
 
-    molt_ok!(interp.set_var2(var_name, new_value.into()))
+    molt_ok!(interp.set_and_return(var_name, new_value.into()))
 }
 
 
@@ -464,7 +464,7 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[Value]) -> MoltResult {
         list.push(value.clone());
     }
 
-    molt_ok!(interp.set_var2(var_name, Value::from(list)))
+    molt_ok!(interp.set_and_return(var_name, Value::from(list)))
 }
 
 /// # lindex *list* ?*index* ...?
@@ -608,7 +608,7 @@ pub fn cmd_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     let var_name = &*argv[1].as_string();
 
     if argv.len() == 3 {
-        molt_ok!(interp.set_var2(var_name, argv[2].clone()))
+        molt_ok!(interp.set_and_return(var_name, argv[2].clone()))
     } else {
         molt_ok!(interp.var(var_name)?.clone())
     }

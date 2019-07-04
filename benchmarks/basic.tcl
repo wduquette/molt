@@ -8,7 +8,7 @@ benchmark ok-1.2 {ok, one argument} {
     ok a
 }
 
-benchmark ok-1.2 {ok, two arguments} {
+benchmark ok-1.3 {ok, two arguments} {
     ok a b
 }
 

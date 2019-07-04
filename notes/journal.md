@@ -4,10 +4,8 @@ Things to remember to do soon:
 
 *   Before Tcl 2019:
     *   Publish Molt crates to crates.io.
-    *   Publish the Molt Book via Molt's GitHub Pages.
     *   Implement sample applications for use in the talk.
 *   Revise test_harness to use the context cache.
-*   Refactor Interp::wrong_num_args_for_proc to use Value!
 *   expr::expr_parse_value should probably try as_int and as_float, to convert string values
     to numbers.
 *   Look at the standard ways we use `Value` in commands.rs, and see if we can't
@@ -33,6 +31,10 @@ Things to remember to do soon:
     *   And revised the "bench" tool's `measure` command to use it.
 *   Noticed that `Interp::wrong_num_args_for_proc` needed work.
     *   It's now a CommandProc method, and works directly with Values.
+*   Added `-csv` output to `molt bench`.
+*   The `master` version of the Molt Book is now published on GitHub pages,
+    https://wduquette.github.io/molt.
+    *   Added a blog post about it.
 
 ### 2019-07-03 (Wednesday)
 *   Implemented the context cache in Interp, for use by command definitions.

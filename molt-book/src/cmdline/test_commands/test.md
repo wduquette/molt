@@ -1,6 +1,6 @@
 # test *name* *description* *args ...*
 
-**Available in [**molt test**](../cmdline/test.md) scripts only!**
+**Available in [**molt test**](../molt_test.md) scripts only!**
 
 The `test` command is used to test Molt commands, whether built-in or coded
 in Molt.  It executes a Molt script, and compares the result against an
@@ -13,7 +13,7 @@ will allow the user to filter the set of tests on this name string.
 
 The test is executed in its own local variable scope; variables used by the
 test will be cleaned up automatically at the end of the test.  The
-[**global**](./global.md) command may be used to reference global variables; however,
+[**global**](../../ref/global.md) command may be used to reference global variables; however,
 changes to these must be cleaned up explicitly.
 
 The `test` command has two forms, a brief form and an extended form with more options.
@@ -83,5 +83,5 @@ Standard TCL's `tcltest(n)` framework.  The intention is to increase the
 similarity over time.
 
 This command has an enhancement over TCL's `test` command: the test has
-its own local variable scope, just as a [**proc**](./proc.md) does.  The body
-must use the [**global**](./global.md) command to access global variables.
+its own local variable scope, just as a [**proc**](../../ref/proc.md) does.  The body
+must use the [**global**](../../ref/global.md) command to access global variables.

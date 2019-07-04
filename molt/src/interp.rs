@@ -2,6 +2,15 @@
 //!
 //! The [`Interp`] struct is the primary API for embedding Molt into a Rust application.
 //!
+//! TODO: This should be primary documentation on using the Molt Interp.  Topics should
+//! include:
+//!
+//! * Evaluating scripts
+//! * Checking scripts for completeness
+//! * Defining commands
+//! * Using the context cache
+//! * Setting and getting variables in command bodies
+//!
 //! [`Interp`]: struct.Interp.html
 
 use std::any::Any;
@@ -153,55 +162,10 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Context Cache
 
-    /// Generates a unique context ID for command context data.
-    ///
-    /// Normally the client will use [`save_context`](#method.save_context) to
-    /// save the context data and generate the client ID in one operation, rather than
-    /// call this explicitly.
-    ////
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::interp::Interp;
-    ///
-    /// let mut interp = Interp::new();
-    /// let id1 = interp.context_id();
-    /// let id2 = interp.context_id();
-    /// assert_ne!(id1, id2);
-    /// ```
-    pub fn context_id(&mut self) -> ContextID {
-        // TODO: Practically speaking we won't overflow u64; but practically speaking
-        // we should check any.
-        self.last_context_id += 1;
-        ContextID(self.last_context_id)
-    }
-
-    /// Saves a client context value in the interpreter for the given
-    /// context ID.  Client commands can retrieve the data given the context ID.
-    ///
-    /// Normally the client will use [`save_context`](#method.save_context) to
-    /// save the context data and generate the client ID in one operation, rather than
-    /// call this explicitly.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::interp::Interp;
-    ///
-    /// let mut interp = Interp::new();
-    /// let id = interp.context_id();
-    /// let data: Vec<String> = Vec::new();
-    /// interp.set_context(id, data);
-    /// ```
-    pub fn set_context<T: 'static>(&mut self, id: ContextID, data: T)  {
-        self.context_map.insert(id, Box::new(data));
-    }
-
     /// Saves the client context data in the interpreter's context cache,
     /// returning a generated context ID.  Client commands can retrieve the data
     /// given the ID.
+    ///
     ///
     /// # Example
     ///
@@ -268,6 +232,57 @@ impl Interp {
     ///
     pub fn forget_context(&mut self, id: ContextID) {
         self.context_map.remove(&id);
+    }
+
+    /// Generates a unique context ID for command context data.
+    ///
+    /// Normally the client will use [`save_context`](#method.save_context) to
+    /// save the context data and generate the client ID in one operation, rather than
+    /// call this explicitly.
+    ////
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::interp::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let id1 = interp.context_id();
+    /// let id2 = interp.context_id();
+    /// assert_ne!(id1, id2);
+    /// ```
+    pub fn context_id(&mut self) -> ContextID {
+        // TODO: Practically speaking we won't overflow u64; but practically speaking
+        // we should check any.
+        self.last_context_id += 1;
+        ContextID(self.last_context_id)
+    }
+
+    /// Saves a client context value in the interpreter for the given
+    /// context ID.  Client commands can retrieve the data given the context ID.
+    ///
+    /// Normally the client will use [`save_context`](#method.save_context) to
+    /// save the context data and generate the client ID in one operation, rather than
+    /// call this explicitly.
+    ///
+    /// TODO: This method allows the user to generate a context ID and
+    /// put data into the context cache as two separate steps; and to update the
+    /// the data in the context cache for a given ID.  I'm not at all sure that
+    /// either of those things is a good idea.  Waiting to see.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::interp::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let id = interp.context_id();
+    /// let data: Vec<String> = Vec::new();
+    /// interp.set_context(id, data);
+    /// ```
+    pub fn set_context<T: 'static>(&mut self, id: ContextID, data: T)  {
+        self.context_map.insert(id, Box::new(data));
     }
 
     //--------------------------------------------------------------------------------------------
@@ -1049,5 +1064,84 @@ mod tests {
         assert_eq!("XwY", interp.subst_backslashes("X\\U000077Y"));
         assert_eq!("XwY", interp.subst_backslashes("X\\U0000077Y"));
         assert_eq!("XwY", interp.subst_backslashes("X\\U00000077Y"));
+    }
+
+    //-----------------------------------------------------------------------
+    // Context Cache tests
+
+    #[test]
+    fn context_basic_use() {
+        let mut interp = Interp::new();
+
+        // Save a context object.
+        let id = interp.save_context(String::from("ABC"));
+
+        // Retrieve it.
+        let ctx = interp.context::<String>(id);
+        assert_eq!(*ctx, "ABC");
+        ctx.push_str("DEF");
+
+        let ctx = interp.context::<String>(id);
+        assert_eq!(*ctx, "ABCDEF");
+    }
+
+    #[test]
+    fn context_advanced_use() {
+        let mut interp = Interp::new();
+
+        // Save a context object.
+        let id = interp.context_id();
+        interp.set_context(id, String::from("ABC"));
+
+        // Retrieve it.
+        let ctx = interp.context::<String>(id);
+        assert_eq!(*ctx, "ABC");
+    }
+
+    #[test]
+    #[should_panic]
+    fn context_unknown() {
+        let mut interp = Interp::new();
+
+        // Valid ID Generated, but no context saved.
+        let id = interp.context_id();
+
+        // Try to retrieve it.
+        let _ctx = interp.context::<String>(id);
+
+        // Should panic!
+    }
+
+    #[test]
+    #[should_panic]
+    fn context_wrong_type() {
+        let mut interp = Interp::new();
+
+        // Save a context object.
+        let id = interp.save_context(String::from("ABC"));
+
+        // Try to retrieve it as something else.
+        let _ctx = interp.context::<Vec<String>>(id);
+
+        // Should panic!
+    }
+
+    #[test]
+    #[should_panic]
+    fn context_forget() {
+        let mut interp = Interp::new();
+
+        // Save a context object.
+        let id = interp.save_context(String::from("ABC"));
+
+        // Retrieve it.
+        let ctx = interp.context::<String>(id);
+        assert_eq!(*ctx, "ABC");
+
+        // Forget it
+        interp.forget_context(id);
+
+        // Retrieve it; should panic.
+        let _ctx = interp.context::<String>(id);
     }
 }

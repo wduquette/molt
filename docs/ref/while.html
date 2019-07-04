@@ -1,0 +1,213 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>while - The Molt Book</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="../overview.html"><strong aria-hidden="true">1.</strong> Molt: More Or Less Tcl</a></li><li><ol class="section"><li><a href="../tcl_comp.html"><strong aria-hidden="true">1.1.</strong> Tcl Compatibility</a></li></ol></li><li><a href="../cmdline/cmdline.html"><strong aria-hidden="true">2.</strong> Molt Command Line Tool</a></li><li><ol class="section"><li><a href="../cmdline/molt_shell.html"><strong aria-hidden="true">2.1.</strong> molt shell</a></li><li><a href="../cmdline/molt_test.html"><strong aria-hidden="true">2.2.</strong> molt test</a></li></ol></li><li><a href="../ref/reference.html"><strong aria-hidden="true">3.</strong> Molt Command Reference</a></li><li><ol class="section"><li><a href="../ref/append.html"><strong aria-hidden="true">3.1.</strong> append</a></li><li><a href="../ref/assert_eq.html"><strong aria-hidden="true">3.2.</strong> assert_eq</a></li><li><a href="../ref/break.html"><strong aria-hidden="true">3.3.</strong> break</a></li><li><a href="../ref/catch.html"><strong aria-hidden="true">3.4.</strong> catch</a></li><li><a href="../ref/continue.html"><strong aria-hidden="true">3.5.</strong> continue</a></li><li><a href="../ref/error.html"><strong aria-hidden="true">3.6.</strong> error</a></li><li><a href="../ref/exit.html"><strong aria-hidden="true">3.7.</strong> exit</a></li><li><a href="../ref/expr.html"><strong aria-hidden="true">3.8.</strong> expr</a></li><li><a href="../ref/for.html"><strong aria-hidden="true">3.9.</strong> for</a></li><li><a href="../ref/foreach.html"><strong aria-hidden="true">3.10.</strong> foreach</a></li><li><a href="../ref/global.html"><strong aria-hidden="true">3.11.</strong> global</a></li><li><a href="../ref/if.html"><strong aria-hidden="true">3.12.</strong> if</a></li><li><a href="../ref/incr.html"><strong aria-hidden="true">3.13.</strong> incr</a></li><li><a href="../ref/info.html"><strong aria-hidden="true">3.14.</strong> info</a></li><li><a href="../ref/join.html"><strong aria-hidden="true">3.15.</strong> join</a></li><li><a href="../ref/lindex.html"><strong aria-hidden="true">3.16.</strong> lindex</a></li><li><a href="../ref/list.html"><strong aria-hidden="true">3.17.</strong> list</a></li><li><a href="../ref/llength.html"><strong aria-hidden="true">3.18.</strong> llength</a></li><li><a href="../ref/proc.html"><strong aria-hidden="true">3.19.</strong> proc</a></li><li><a href="../ref/puts.html"><strong aria-hidden="true">3.20.</strong> puts</a></li><li><a href="../ref/rename.html"><strong aria-hidden="true">3.21.</strong> rename</a></li><li><a href="../ref/return.html"><strong aria-hidden="true">3.22.</strong> return</a></li><li><a href="../ref/set.html"><strong aria-hidden="true">3.23.</strong> set</a></li><li><a href="../ref/test.html"><strong aria-hidden="true">3.24.</strong> test</a></li><li><a href="../ref/time.html"><strong aria-hidden="true">3.25.</strong> time</a></li><li><a href="../ref/unset.html"><strong aria-hidden="true">3.26.</strong> unset</a></li><li><a href="../ref/while.html" class="active"><strong aria-hidden="true">3.27.</strong> while</a></li></ol></li><li><a href="../embed/overview.html"><strong aria-hidden="true">4.</strong> Extending and Embedding</a></li><li><ol class="section"><li><a href="../embed/commands.html"><strong aria-hidden="true">4.1.</strong> Defining Commands</a></li><li><a href="../embed/eval.html"><strong aria-hidden="true">4.2.</strong> Evaluating Molt Code</a></li><li><a href="../embed/shell.html"><strong aria-hidden="true">4.3.</strong> Custom Shells</a></li><li><a href="../embed/harness.html"><strong aria-hidden="true">4.4.</strong> Custom Test Harnesses</a></li></ol></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Molt Book</h1> 
+
+                        <div class="right-buttons">
+                            <a href="../print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#while-test-command" id="while-test-command"><h1>while <em>test</em> <em>command</em></h1></a>
+<p>The <code>while</code> command is a standard &quot;while&quot; loop, executing the <em>command</em> script just so
+long as the <em>test</em> expression evaluates to true.</p>
+<a class="header" href="#example" id="example"><h2>Example</h2></a>
+<p>The following code will output the numbers from 1 to 10.</p>
+<pre><code class="language-tcl">set i 0
+while {$i &lt; 10} {
+    puts &quot;i=[incr i]&quot;
+}
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../ref/unset.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../embed/overview.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="../ref/unset.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="../embed/overview.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

@@ -2,6 +2,10 @@
 
 Things to remember to do soon:
 
+*   Before Tcl 2019:
+    *   Publish Molt crates to crates.io.
+    *   Publish the Molt Book via Molt's GitHub Pages.
+    *   Implement sample applications for use in the talk.
 *   Revise test_harness to use the context cache.
 *   Refactor Interp::wrong_num_args_for_proc to use Value!
 *   expr::expr_parse_value should probably try as_int and as_float, to convert string values

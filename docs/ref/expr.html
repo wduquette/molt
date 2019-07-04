@@ -1,0 +1,288 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>expr - The Molt Book</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../";
+            var default_theme = "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="../overview.html"><strong aria-hidden="true">1.</strong> Molt: More Or Less Tcl</a></li><li><ol class="section"><li><a href="../tcl_comp.html"><strong aria-hidden="true">1.1.</strong> Tcl Compatibility</a></li></ol></li><li><a href="../cmdline/cmdline.html"><strong aria-hidden="true">2.</strong> Molt Command Line Tool</a></li><li><ol class="section"><li><a href="../cmdline/molt_shell.html"><strong aria-hidden="true">2.1.</strong> molt shell</a></li><li><a href="../cmdline/molt_test.html"><strong aria-hidden="true">2.2.</strong> molt test</a></li></ol></li><li><a href="../ref/reference.html"><strong aria-hidden="true">3.</strong> Molt Command Reference</a></li><li><ol class="section"><li><a href="../ref/append.html"><strong aria-hidden="true">3.1.</strong> append</a></li><li><a href="../ref/assert_eq.html"><strong aria-hidden="true">3.2.</strong> assert_eq</a></li><li><a href="../ref/break.html"><strong aria-hidden="true">3.3.</strong> break</a></li><li><a href="../ref/catch.html"><strong aria-hidden="true">3.4.</strong> catch</a></li><li><a href="../ref/continue.html"><strong aria-hidden="true">3.5.</strong> continue</a></li><li><a href="../ref/error.html"><strong aria-hidden="true">3.6.</strong> error</a></li><li><a href="../ref/exit.html"><strong aria-hidden="true">3.7.</strong> exit</a></li><li><a href="../ref/expr.html" class="active"><strong aria-hidden="true">3.8.</strong> expr</a></li><li><a href="../ref/for.html"><strong aria-hidden="true">3.9.</strong> for</a></li><li><a href="../ref/foreach.html"><strong aria-hidden="true">3.10.</strong> foreach</a></li><li><a href="../ref/global.html"><strong aria-hidden="true">3.11.</strong> global</a></li><li><a href="../ref/if.html"><strong aria-hidden="true">3.12.</strong> if</a></li><li><a href="../ref/incr.html"><strong aria-hidden="true">3.13.</strong> incr</a></li><li><a href="../ref/info.html"><strong aria-hidden="true">3.14.</strong> info</a></li><li><a href="../ref/join.html"><strong aria-hidden="true">3.15.</strong> join</a></li><li><a href="../ref/lindex.html"><strong aria-hidden="true">3.16.</strong> lindex</a></li><li><a href="../ref/list.html"><strong aria-hidden="true">3.17.</strong> list</a></li><li><a href="../ref/llength.html"><strong aria-hidden="true">3.18.</strong> llength</a></li><li><a href="../ref/proc.html"><strong aria-hidden="true">3.19.</strong> proc</a></li><li><a href="../ref/puts.html"><strong aria-hidden="true">3.20.</strong> puts</a></li><li><a href="../ref/rename.html"><strong aria-hidden="true">3.21.</strong> rename</a></li><li><a href="../ref/return.html"><strong aria-hidden="true">3.22.</strong> return</a></li><li><a href="../ref/set.html"><strong aria-hidden="true">3.23.</strong> set</a></li><li><a href="../ref/test.html"><strong aria-hidden="true">3.24.</strong> test</a></li><li><a href="../ref/time.html"><strong aria-hidden="true">3.25.</strong> time</a></li><li><a href="../ref/unset.html"><strong aria-hidden="true">3.26.</strong> unset</a></li><li><a href="../ref/while.html"><strong aria-hidden="true">3.27.</strong> while</a></li></ol></li><li><a href="../embed/overview.html"><strong aria-hidden="true">4.</strong> Extending and Embedding</a></li><li><ol class="section"><li><a href="../embed/commands.html"><strong aria-hidden="true">4.1.</strong> Defining Commands</a></li><li><a href="../embed/eval.html"><strong aria-hidden="true">4.2.</strong> Evaluating Molt Code</a></li><li><a href="../embed/shell.html"><strong aria-hidden="true">4.3.</strong> Custom Shells</a></li><li><a href="../embed/harness.html"><strong aria-hidden="true">4.4.</strong> Custom Test Harnesses</a></li></ol></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">The Molt Book</h1> 
+
+                        <div class="right-buttons">
+                            <a href="../print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#expr-expr" id="expr-expr"><h1>expr <em>expr</em></h1></a>
+<p>Evaluates the expression, returning the result.</p>
+<p><code>expr</code> implements a little language that has a syntax separate from that of Molt. An
+expression is composed of values and operators, with parentheses for grouping, just
+as in C, Java, and so forth.  Values consist of numeric and boolean literals,
+<a href="#math-functions">function calls</a>, variable and command interpolations, and double-quoted
+and braced strings. Every value that looks like a number is treated as a number, and every
+value that looks like a <a href="#boolean-values">boolean</a> is treated as a boolean.</p>
+<p>The <a href="#operators-and-precedence">operators</a> permitted in expressions include most of those
+permitted in C expressions, with a few additional ones  The operators have the same
+meaning and precedence as in C.  Expressions can yield numeric or non-numeric results.</p>
+<p>Integer computations are done with Rust's <code>i64</code> type; floating-point computations are
+done with Rust's <code>f64</code> type.</p>
+<a class="header" href="#examples" id="examples"><h2>Examples</h2></a>
+<pre><code class="language-tcl">expr {1 + 1}
+
+set x 7.5
+set y 3.4
+expr {$x + $y}
+
+expr {[mycommand] + 2}
+
+expr {2*(1 + abs($x))}
+</code></pre>
+<a class="header" href="#operators-and-precedence" id="operators-and-precedence"><h2>Operators and Precedence</h2></a>
+<p>The following table shows the operators in order of precedence.</p>
+<table><thead><tr><th> Operators                 </th><th> Details                                          </th></tr></thead><tbody>
+<tr><td> <code>- + ~ !</code>                 </td><td> Unary plus, minus, bit-wise not, and logical not </td></tr>
+<tr><td> <code>* / %</code>                   </td><td> Multiplication, division, integer remainder      </td></tr>
+<tr><td> <code>+ -</code>                     </td><td> Addition, subtraction                            </td></tr>
+<tr><td> <code>&lt;&lt; &gt;&gt;</code>                   </td><td> Left and right shift.                            </td></tr>
+<tr><td> <code>&lt; &gt; &lt;= &gt;=</code>               </td><td> Ordering relations (see below)                   </td></tr>
+<tr><td> <code>== !=</code>                   </td><td> Equality, inequality (see below)                 </td></tr>
+<tr><td> <code>eq ne</code>                   </td><td> String equality, inequality                      </td></tr>
+<tr><td> <code>in ni</code>                   </td><td> List inclusion, exclusion                        </td></tr>
+<tr><td> <code>&amp;</code>                       </td><td> Bit-wise AND                                     </td></tr>
+<tr><td> <code>^</code>                       </td><td> Bit-wise exclusive OR                            </td></tr>
+<tr><td> <code>|</code>       </td><td> Bit-wise OR                                      </td></tr>
+<tr><td> <code>&amp;&amp;</code>                      </td><td> Logical AND, short circuiting                    </td></tr>
+<tr><td> <code>||</code> </td><td> Logical OR, short circuiting                     </td></tr>
+<tr><td> <code>x ? y : z</code>               </td><td> Ternary &quot;if-then-else&quot; operator.                 </td></tr>
+</tbody></table>
+<a class="header" href="#boolean-values" id="boolean-values"><h2>Boolean Values</h2></a>
+<ul>
+<li>True values: any non-zero number, <code>true</code>, <code>yes</code>, <code>on</code>.</li>
+<li>False values: zero, <code>false</code>, <code>no</code>, <code>off</code>.</li>
+<li>Logical operators always return 0 or 1.</li>
+<li>By convention, predicate commands also return 0 or 1.</li>
+</ul>
+<a class="header" href="#math-functions" id="math-functions"><h2>Math Functions</h2></a>
+<p>Functions are written as &quot;<em>name</em>(<em>argument</em>,...)&quot;.  Each argument is itself a complete
+expression.</p>
+<p>The following functions are available in Molt expressions:</p>
+<p><strong>abs(<em>x</em>)</strong> — Absolute value of <em>x</em>.</p>
+<p><strong>double(<em>x</em>)</strong> — Returns integer <em>x</em> as a floating-point value.</p>
+<p><strong>int(<em>x</em>)</strong> — Truncates floating-point value <em>x</em> and returns it as an integer.</p>
+<p><strong>round(<em>x</em>)</strong> — Rounds floating-point value <em>x</em> to the nearest integer and returns it as
+an integer.</p>
+<a class="header" href="#tcl-liens" id="tcl-liens"><h2>TCL Liens</h2></a>
+<p><strong>Expr Command Syntax:</strong> In standard TCL <code>expr</code> takes any number of arguments, which it
+concatenates into a single expression for evaluation.  This means that variable and command
+interpolation is done twice, once by the TCL parser and once by <code>expr</code>, which hurts
+performance and can also be a source of subtle and confusing errors.  Consequently it is
+almost always best to provide the expression as a single braced string, and so Molt's <code>expr</code>
+takes a single argument.  This is unlikely to change.</p>
+<p><strong>Expression Syntax:</strong> Molt's expression parsing is meant to be consistent with TCL 7.6, with the
+addition of the TCL 8.x <code>eq</code>, <code>ne</code>, <code>in</code>, and <code>ni</code> operators.</p>
+<ul>
+<li>Molt does not yet support the full range of math functions supported by TCL 7.6.</li>
+<li>Molt does not yet do precise float-to-string-to-float conversions, per TCL 8.6.  See<br />
+&quot;String Representation of Floating Point Numbers&quot; on the Tcler's Wiki expr page.</li>
+<li>Molt's handling of floating point arithmetic errors is still naive.</li>
+</ul>
+<p><strong>Integer Division:</strong> Integer division in Molt rounds down towards zero, following the example
+of Rust, Python, C99, and many other languages.  Standard TCL rounds toward negative
+infinity, a decision that dates to a time when the C standard did not define the correct
+behavior and C compilers varied.  It seems reasonable that an extension language should do
+something as basic as this in the same way as the host language.</p>
+<p><strong>Possible Futures:</strong> The following TCL 8.6 features are not on the road map at present,
+but might be added in the future.</p>
+<ul>
+<li>Bignums</li>
+<li>The exponential operator, <code>**</code></li>
+<li>The <code>tcl::mathfunc::</code> namespace, and the ability to define new functions in TCL code.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../ref/exit.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../ref/for.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="../ref/exit.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="../ref/for.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

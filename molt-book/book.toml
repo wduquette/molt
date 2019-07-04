@@ -3,5 +3,9 @@ authors = ["Will Duquette"]
 multilingual = false
 src = "src"
 title = "The Molt Book"
+
+[build]
+build-dir = "../docs"
+
 [output.html]
 theme = "src/theme"

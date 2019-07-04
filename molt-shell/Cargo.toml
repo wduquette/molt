@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 molt = { path = "../molt" }
-rustyline = "3.0.0"
+rustyline = "5.0.0"

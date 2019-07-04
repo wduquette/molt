@@ -14,7 +14,6 @@
 //! [`Interp`]: struct.Interp.html
 
 use std::any::Any;
-use crate::list;
 use crate::commands;
 use crate::eval_ptr::EvalPtr;
 use crate::molt_ok;
@@ -849,9 +848,6 @@ impl Command for CommandProc {
         // NEXT, process the proc's argument list.
         let mut argi = 1; // Skip the proc's name
 
-        // TODO: Ugly; need better tools.
-        let str_args: Vec<String> = self.args.iter().map(|v| v.to_string()).collect();
-
         for (speci, spec) in self.args.iter().enumerate() {
             // FIRST, get the parameter as a vector.  It should be a list of
             // one or two elements.
@@ -882,14 +878,14 @@ impl Command for CommandProc {
                 interp.set_var(&*vec[0].as_string(), &vec[1]);
             } else {
                 // We don't; we're missing a required argument.
-                return wrong_num_args_for_proc(name, &str_args);
+                return self.wrong_num_args(name);
             }
         }
 
         // NEXT, do we have any arguments left over?
 
         if argi != argv.len() {
-            return wrong_num_args_for_proc(name, &str_args);
+            return self.wrong_num_args(name);
         }
 
         // NEXT, evaluate the proc's body, getting the result.
@@ -905,34 +901,37 @@ impl Command for CommandProc {
     }
 }
 
-// TODO: This almost certainly needs to be refactored to use Values.
-fn wrong_num_args_for_proc(name: &str, args: &[String]) -> MoltResult {
-    let mut msg = String::new();
-    msg.push_str("wrong # args: should be \"");
-    msg.push_str(name);
+impl CommandProc {
+    // Outputs the wrong # args message for the proc.  The name is passed in
+    // because it can be changed via the `rename` command.
+    fn wrong_num_args(&self, name: &str) -> MoltResult {
+        let mut msg = String::new();
+        msg.push_str("wrong # args: should be \"");
+        msg.push_str(name);
 
-    for (i, arg) in args.iter().enumerate() {
-        msg.push(' ');
+        for (i, arg) in self.args.iter().enumerate() {
+            msg.push(' ');
 
-        // "args" has special meaning only in the last place.
-        if arg == "args" && i == args.len() - 1  {
-            msg.push_str("?arg ...?");
-            break;
+            // "args" has special meaning only in the last place.
+            if *arg.as_string() == "args" && i == self.args.len() - 1  {
+                msg.push_str("?arg ...?");
+                break;
+            }
+
+            let vec = arg.as_list().expect("error in proc arglist validation!");
+
+            if vec.len() == 1 {
+                msg.push_str(&*vec[0].as_string());
+            } else {
+                msg.push('?');
+                msg.push_str(&*vec[0].as_string());
+                msg.push('?');
+            }
         }
+        msg.push_str("\"");
 
-        let vec = list::get_list(arg).expect("error in proc arglist validation!");
-
-        if vec.len() == 1 {
-            msg.push_str(&*vec[0].as_string());
-        } else {
-            msg.push('?');
-            msg.push_str(&*vec[0].as_string());
-            msg.push('?');
-        }
+        molt_err!(&msg)
     }
-    msg.push_str("\"");
-
-    molt_err!(&msg)
 }
 
 /// Performs standard TCL backslash substitution in the string, returning a new string.

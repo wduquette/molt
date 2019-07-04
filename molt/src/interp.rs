@@ -292,9 +292,20 @@ impl Interp {
     ///
     /// This is the normal way to add commands to
     /// the interpreter.  If the command requires context other than the interpreter itself,
-    /// define a struct that implements `Command` and use `add_command_object`.
+    /// add the context data to the context cache and use
+    /// [`add_context_command`](#method.add_context_command), or define a struct that
+    /// implements `Command` and use [`add_command_object`](#method.add_command_object).
     pub fn add_command(&mut self, name: &str, func: CommandFunc) {
         let command = CommandFuncWrapper::new(func);
+        self.add_command_object(name, command);
+    }
+
+    /// Adds a command defined by a `ContextCommandFunc` to the interpreter.
+    ///
+    /// This is the normal way to add commands requiring application context to
+    /// the interpreter.
+    pub fn add_context_command(&mut self, name: &str, func: ContextCommandFunc, context_id: ContextID) {
+        let command = ContextCommandFuncWrapper::new(func, context_id);
         self.add_command_object(name, command);
     }
 
@@ -799,6 +810,24 @@ impl CommandFuncWrapper {
 impl Command for CommandFuncWrapper {
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         (self.func)(interp, argv)
+    }
+}
+
+/// A struct that wraps a ContextCommandFunc and implements the Command trait.
+struct ContextCommandFuncWrapper {
+    func: ContextCommandFunc,
+    context_id: ContextID,
+}
+
+impl ContextCommandFuncWrapper {
+    fn new(func: ContextCommandFunc, context_id: ContextID) -> Self {
+        Self { func, context_id }
+    }
+}
+
+impl Command for ContextCommandFuncWrapper {
+    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
+        (self.func)(interp, self.context_id, argv)
     }
 }
 

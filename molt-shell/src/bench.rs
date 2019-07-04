@@ -3,7 +3,6 @@ use molt::check_args;
 use molt::Interp;
 use molt::MoltResult;
 use molt::ResultCode;
-use molt::Command;
 use molt::molt_ok;
 use molt::Value;
 use std::fs;
@@ -34,7 +33,7 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
 
     // NEXT, install the test commands into the interpreter.
     interp.add_command("ident", cmd_ident);
-    interp.add_command_object("measure", MeasureCommand::new(context_id));
+    interp.add_context_command("measure", measure_cmd, context_id);
     interp.add_command("ok", cmd_ok);
 
     // NEXT, load the benchmark Tcl library
@@ -110,42 +109,30 @@ struct Measurement {
 /// # measure *name* *description* *micros*
 ///
 /// Records a benchmark measurement.
-struct MeasureCommand {
-    ctx_id: ContextID,
-}
+fn measure_cmd(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+    molt::check_args(1, argv, 4, 4, "name description micros")?;
 
-impl MeasureCommand {
-    fn new(ctx_id: ContextID) -> Self {
-        Self { ctx_id }
+    // FIRST, get the arguments
+    let name = argv[1].to_string();
+    let description = argv[2].to_string();
+    let micros = argv[3].as_float()?;
+
+    // NEXT, get the test context
+    let ctx = interp.context::<Context>(context_id);
+
+    if ctx.baseline.is_none() {
+        ctx.baseline = Some(micros);
     }
-}
 
-impl Command for MeasureCommand {
-    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        molt::check_args(1, argv, 4, 4, "name description micros")?;
+    let record = Measurement {
+        name,
+        description,
+        micros,
+    };
 
-        // FIRST, get the arguments
-        let name = argv[1].to_string();
-        let description = argv[2].to_string();
-        let micros = argv[3].as_float()?;
+    ctx.measurements.push(record);
 
-        // NEXT, get the test context
-        let ctx = interp.context::<Context>(self.ctx_id);
-
-        if ctx.baseline.is_none() {
-            ctx.baseline = Some(micros);
-        }
-
-        let record = Measurement {
-            name,
-            description,
-            micros,
-        };
-
-        ctx.measurements.push(record);
-
-        molt_ok!()
-    }
+    molt_ok!()
 }
 
 /// # ident value

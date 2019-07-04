@@ -124,11 +124,20 @@ pub trait Command {
 /// [`Interp`]: ../interp/struct.Interp.html
 pub type CommandFunc = fn(&mut Interp, &[Value]) -> MoltResult;
 
+/// A simple command function, used to implement a command that retrieves
+/// application context from the [`Interp`]'s context cache.
+///
+/// The command function receives the interpreter, the context ID, and an array
+/// representing the command and its arguments.
+///
+/// [`Interp`]: ../interp/struct.Interp.html
+pub type ContextCommandFunc = fn(&mut Interp, ContextID, &[Value]) -> MoltResult;
+
 /// Used for defining subcommands of ensemble commands.
 ///
 /// The tuple fields are the subcommand's name and [`CommandFunc`].
 ///
-/// TODO: This interface isn't yet stable; we might want to support [`Command`]
+/// TODO: This interface isn't yet stable; we probably want to support [`Command`]
 /// instead of [`CommandFunc`].
 ///
 /// [`Command`]: trait.Command.html

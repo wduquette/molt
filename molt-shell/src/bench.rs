@@ -16,15 +16,39 @@ use std::env;
 /// to execute.  The remaining elements are meant to be harness options,
 /// but are currently ignored.
 pub fn benchmark(interp: &mut Interp, args: &[String]) {
-    // FIRST, announce who we are.
-    println!("Molt {} -- Benchmark", env!("CARGO_PKG_VERSION"));
-
-    // NEXT, get the script file name
+    // FIRST, get the script file name
     if args.is_empty() {
-        eprintln!("missing benchmark script");
+        eprintln!("Missing benchmark script.");
+        write_usage();
         return;
     }
 
+    // NEXT, parse any options.
+    let mut output_csv = false;
+
+    let mut iter = args[1..].iter();
+    loop {
+        let opt = iter.next();
+        if opt.is_none() {
+            break;
+        }
+
+        let opt = opt.unwrap();
+
+        match opt.as_ref() {
+            "-csv" => {
+                output_csv = true;
+            }
+            _ => {
+                eprintln!("Unknown option: \"{}\"", opt);
+                write_usage();
+                return;
+            }
+        }
+    }
+
+    // NEXT, get the parent folder from the path, if any.  We'll cd into the parent so
+    // the `source` command can find scripts there.
     let path = PathBuf::from(&args[0]);
     let parent = path.parent();
 
@@ -65,9 +89,38 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     // NEXT, output the test results:
     let ctx = interp.context::<Context>(context_id);
 
+    if output_csv {
+        write_csv(ctx);
+    } else {
+        write_formatted_text(ctx);
+    }
+}
+
+fn write_csv(ctx: &Context) {
+    println!("\"benchmark\",\"description\",\"micros\",\"norm\"");
+
+    let baseline = ctx.baseline();
+
+    for record in &ctx.measurements {
+        println!("\"{}\",\"{}\",{},{}",
+            strip_quotes(&record.name),
+            strip_quotes(&record.description),
+            record.micros,
+            record.micros / baseline);
+    }
+}
+
+fn strip_quotes(string: &str) -> String {
+    let out: String = string.chars().map(|ch| if ch == '\"' { '\'' } else { ch }).collect();
+    out
+}
+
+fn write_formatted_text(ctx: &Context) {
+    write_version();
+    println!();
     println!("{:>8} {:>8} -- Benchmark", "Micros", "Norm");
 
-    let baseline = ctx.baseline.unwrap_or(1.0);
+    let baseline = ctx.baseline();
 
     for record in &ctx.measurements {
         println!("{:>8.2} {:>8.2} -- {} {}",
@@ -76,6 +129,16 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
             record.name,
             record.description);
     }
+}
+
+fn write_version() {
+    println!("Molt {} -- Benchmark", env!("CARGO_PKG_VERSION"));
+}
+
+fn write_usage() {
+    write_version();
+    println!();
+    println!("Usage: molt bench filename.tcl [-csv]");
 }
 
 struct Context {
@@ -92,6 +155,10 @@ impl Context {
             baseline: None,
             measurements: Vec::new()
         }
+    }
+
+    fn baseline(&self) -> f64 {
+        self.baseline.unwrap_or(1.0)
     }
 }
 

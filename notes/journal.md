@@ -20,6 +20,16 @@ Things to remember to do soon:
     *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
         e.g., `From<&MoltValue>`, `From<&Vec<String>>`
 
+### 2019-07-04 (Thursday)
+*   Added tests to interp.rs for the context cache.
+*   Updated Molt to use Rustyline 5 instead of Rustyline 3, because Rustyline 3 doesn't
+    compile with Rust 1.36.  (Kind of shocked that Rustyline 5 has jumped two versions!)
+*   Added ContextCommandFunc and `Interp::add_context_command`, for commands that use
+    use the context cache.
+    *   And revised the "bench" tool's `measure` command to use it.
+*   Noticed that `Interp::wrong_num_args_for_proc` needed work.
+    *   It's now a CommandProc method, and works directly with Values.
+
 ### 2019-07-03 (Wednesday)
 *   Implemented the context cache in Interp, for use by command definitions.
     *   It's in use by the benchmark app.

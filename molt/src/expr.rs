@@ -5,17 +5,17 @@
 
 use crate::char_ptr::CharPtr;
 use crate::eval_ptr::EvalPtr;
-use crate::*;
 use crate::interp::Interp;
 use crate::list;
+use crate::*;
 
 //------------------------------------------------------------------------------------------------
 // Datum Representation
 
-type DatumResult = Result<Datum,ResultCode>;
+type DatumResult = Result<Datum, ResultCode>;
 
 /// The value type.
-#[derive(Debug,PartialEq,Eq,Copy,Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub(crate) enum Type {
     Int,
     Float,
@@ -31,7 +31,7 @@ pub(crate) enum Type {
 ///
 /// I could have used a union to save space, but we don't keep large numbers of these
 /// around.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct Datum {
     vtype: Type,
     int: MoltInt,
@@ -93,11 +93,11 @@ impl Datum {
 const MAX_MATH_ARGS: usize = 2;
 
 /// The argument type.
-#[derive(Debug,PartialEq,Eq,Copy,Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 enum ArgType {
     None,
-    Float, // Must convert to Type::Float
-    Int, // Must convert to Type::Int
+    Float,  // Must convert to Type::Float
+    Int,    // Must convert to Type::Int
     Number, // Either Type::Int or Type::Float is OK
 }
 
@@ -110,7 +110,7 @@ struct BuiltinFunc {
     func: MathFunc,
 }
 
-const FUNC_TABLE: [BuiltinFunc;4] = [
+const FUNC_TABLE: [BuiltinFunc; 4] = [
     BuiltinFunc {
         name: "abs",
         num_args: 1,
@@ -219,8 +219,7 @@ const BIT_NOT: i32 = 35;
 // Precedence table.  The values for non-operator token types are ignored.
 
 const PREC_TABLE: [i32; 36] = [
-    0, 0, 0, 0, 0, 0, 0, 0,
-    14, 14, 14, // MULT, DIVIDE, MOD
+    0, 0, 0, 0, 0, 0, 0, 0, 14, 14, 14, // MULT, DIVIDE, MOD
     13, 13, // PLUS, MINUS
     12, 12, // LEFT_SHIFT, RIGHT_SHIFT
     11, 11, 11, 11, // LESS, GREATER, LEQ, GEQ
@@ -238,10 +237,9 @@ const PREC_TABLE: [i32; 36] = [
 ];
 
 const OP_STRINGS: [&str; 36] = [
-    "VALUE", "(", ")", ",", "END", "UNKNOWN", "6", "7",
-    "*", "/", "%", "+", "-", "<<", ">>", "<", ">", "<=",
-    ">=", "==", "!=", "eq", "ne", "in", "ni", "&", "^", "|", "&&", "||", "?", ":",
-    "-", "+", "!", "~"
+    "VALUE", "(", ")", ",", "END", "UNKNOWN", "6", "7", "*", "/", "%", "+", "-", "<<", ">>", "<",
+    ">", "<=", ">=", "==", "!=", "eq", "ne", "in", "ni", "&", "^", "|", "&&", "||", "?", ":", "-",
+    "+", "!", "~",
 ];
 
 //------------------------------------------------------------------------------------------------
@@ -285,13 +283,9 @@ fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> DatumResult {
         Ok(value)
     } else {
         match result {
-            Err(ResultCode::Break) => {
-                molt_err!("invoked \"break\" outside of a loop")
-            }
-            Err(ResultCode::Continue) => {
-                molt_err!("invoked \"continue\" outside of a loop")
-            }
-            _ => result
+            Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
+            Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
+            _ => result,
         }
     }
 }
@@ -316,7 +310,10 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
         value = expr_get_value(interp, info, -1)?;
 
         if info.token != CLOSE_PAREN {
-            return molt_err!("unmatched parentheses in expression \"{}\"", info.original_expr);
+            return molt_err!(
+                "unmatched parentheses in expression \"{}\"",
+                info.original_expr
+            );
         }
     } else {
         if info.token == MINUS {
@@ -334,20 +331,18 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
 
             if info.no_eval == 0 {
                 match operator {
-                    UNARY_MINUS => {
-                        match value.vtype {
-                            Type::Int => {
-                                value.int = -value.int;
-                            }
-                            Type::Float => {
-                                value.flt = -value.flt;
-                            }
-                            _ => {
-                                return illegal_type(value.vtype, operator);
-                            }
+                    UNARY_MINUS => match value.vtype {
+                        Type::Int => {
+                            value.int = -value.int;
                         }
-                    }
-                    UNARY_PLUS  => {
+                        Type::Float => {
+                            value.flt = -value.flt;
+                        }
+                        _ => {
+                            return illegal_type(value.vtype, operator);
+                        }
+                    },
+                    UNARY_PLUS => {
                         if !value.is_numeric() {
                             return illegal_type(value.vtype, operator);
                         }
@@ -468,18 +463,18 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     }
 
                     info.no_eval += 1;
-                    value2 = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] -1)?;
+                    value2 = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
                     info.no_eval -= 1;
                 } else {
                     info.no_eval += 1;
-                    value2 = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] -1)?;
+                    value2 = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
                     info.no_eval -= 1;
 
                     if info.token != COLON {
                         return syntax_error(info);
                     }
 
-                    value = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] -1)?;
+                    value = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
                 }
             } else {
                 value2 = expr_get_value(interp, info, PREC_TABLE[operator as usize])?;
@@ -557,7 +552,6 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 }
             }
 
-
             // For the operators below, everything's treated as a string.
             // For IN and NI, the second value is a list, but we'll parse it as a list
             // as part of evaluation.
@@ -622,7 +616,6 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                     }
                     value.flt /= value2.flt;
                 }
-
             }
             MOD => {
                 assert!(value.vtype == Type::Int);
@@ -783,8 +776,8 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             // for the second value.
             AND => {
                 if value2.vtype == Type::Float {
-                   value2.vtype = Type::Int;
-                   value2.int = if value2.flt != 0.0 { 1 } else { 0 };
+                    value2.vtype = Type::Int;
+                    value2.int = if value2.flt != 0.0 { 1 } else { 0 };
                 }
                 value.int = if value.int != 0 && value2.int != 0 {
                     1
@@ -794,8 +787,8 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             }
             OR => {
                 if value2.vtype == Type::Float {
-                   value2.vtype = Type::Int;
-                   value2.int = if value2.flt != 0.0 { 1 } else { 0 };
+                    value2.vtype = Type::Int;
+                    value2.int = if value2.flt != 0.0 { 1 } else { 0 };
                 }
                 value.int = if value.int != 0 || value2.int != 0 {
                     1
@@ -1149,7 +1142,8 @@ fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> 
                 } else {
                     args[i] = arg;
                 }
-            } else {  // Type::Float
+            } else {
+                // Type::Float
                 if bfunc.arg_types[i] == ArgType::Int {
                     // TODO: Need to handle overflow?
                     args[i] = Datum::int(arg.flt as MoltInt);
@@ -1193,7 +1187,7 @@ fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> 
 
 // Find the function in the table.
 // TODO: Really, functions should be registered with the interpreter.
-fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc,ResultCode> {
+fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc, ResultCode> {
     for bfunc in &FUNC_TABLE {
         if bfunc.name == func_name {
             return Ok(bfunc);
@@ -1211,7 +1205,7 @@ fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc,ResultCode> {
 fn expr_parse_value(value: &Value) -> DatumResult {
     match value.already_number() {
         Some(datum) => Ok(datum),
-        _ => expr_parse_string(&*value.as_string())
+        _ => expr_parse_string(&*value.as_string()),
     }
 }
 
@@ -1355,7 +1349,6 @@ fn expr_round_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
     }
 }
 
-
 // Return standard syntax error
 fn syntax_error(info: &mut ExprInfo) -> DatumResult {
     molt_err!("syntax error in expression \"{}\"", info.original_expr)
@@ -1369,7 +1362,11 @@ fn illegal_type(bad_type: Type, op: i32) -> DatumResult {
         "non-numeric string"
     };
 
-    molt_err!("can't use {} as operand of \"{}\"", type_str, OP_STRINGS[op as usize])
+    molt_err!(
+        "can't use {} as operand of \"{}\"",
+        type_str,
+        OP_STRINGS[op as usize]
+    )
 }
 
 #[cfg(test)]
@@ -1392,15 +1389,9 @@ mod tests {
         }
 
         match &val1.vtype {
-            Type::Int => {
-                val1.int == val2.int
-            }
-            Type::Float => {
-                val1.flt == val2.flt
-            }
-            Type::String => {
-                val1.str == val2.str
-            }
+            Type::Int => val1.int == val2.int,
+            Type::Float => val1.flt == val2.flt,
+            Type::String => val1.str == val2.str,
         }
     }
 

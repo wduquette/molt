@@ -12,29 +12,31 @@
 //! Molt clients do not interact with this mechanism directly, but via the
 //! `Interp` (or the Molt language itself).
 
-use std::collections::HashMap;
-use crate::value::Value;
 use crate::types::MoltList;
+use crate::value::Value;
+use std::collections::HashMap;
 
 /// A variable in a `Scope`.  If the variable is defined in the `Scope`, it has a
 /// `Value`; if it is a reference to a variable in a higher scope (e.g., a global) then
 /// the `Level` gives the referenced scope.
 enum Var {
     Value(Value),
-    Level(usize)
+    Level(usize),
 }
 
 /// A scope: a level in the `ScopeStack`.  It contains a hash table of `Var`'s by name.
 #[derive(Default)]
 struct Scope {
     /// Vars in this scope by name.
-    map: HashMap<String,Var>
+    map: HashMap<String, Var>,
 }
 
 impl Scope {
     /// Create a new empty scope.
     pub fn new() -> Self {
-        Scope { map: HashMap::new() }
+        Scope {
+            map: HashMap::new(),
+        }
     }
 }
 
@@ -48,9 +50,7 @@ pub(crate) struct ScopeStack {
 impl ScopeStack {
     /// Creates a scope stack containing only scope `0`, the global scope.
     pub fn new() -> Self {
-        let mut ss = Self {
-            stack: Vec::new(),
-        };
+        let mut ss = Self { stack: Vec::new() };
 
         ss.stack.push(Scope::new());
 
@@ -87,13 +87,13 @@ impl ScopeStack {
         match self.stack[level].map.get(name) {
             Some(Var::Value(value)) => Some(value.clone()),
             Some(Var::Level(at)) => self.get_at(*at, name),
-            _ =>  None,
+            _ => None,
         }
     }
 
     /// Set a variable to a value at a given level in the stack.  If the variable at that level
     /// is linked to a higher level, sets it at that level instead.
-    fn set_at(&mut self, level:usize, name: &str, value: Value) {
+    fn set_at(&mut self, level: usize, name: &str, value: Value) {
         match self.stack[level].map.get(name) {
             Some(Var::Level(at)) => {
                 let true_level = *at;
@@ -157,7 +157,12 @@ impl ScopeStack {
         // let vec: MoltList = self.stack[top].map.keys().cloned().map(|x| Value::new(&x)).collect();
         //
         // vec
-        self.stack[top].map.keys().cloned().map(|x| Value::from(&x)).collect()
+        self.stack[top]
+            .map
+            .keys()
+            .cloned()
+            .map(|x| Value::from(&x))
+            .collect()
     }
 }
 
@@ -198,7 +203,6 @@ mod tests {
         ss.unset("a");
         assert!(ss.get("a").is_none());
     }
-
 
     #[test]
     fn test_push() {
@@ -300,8 +304,8 @@ mod tests {
         ss.push();
         ss.set("a", Value::from("3"));
 
-        ss.unset("a");  // Was set in this scope
-        ss.unset("b");  // Was not set in this scope
+        ss.unset("a"); // Was set in this scope
+        ss.unset("b"); // Was not set in this scope
 
         ss.pop();
         assert_eq!(&*ss.get("a").unwrap().as_string(), "1");

@@ -1,13 +1,13 @@
-use molt::ContextID;
 use molt::check_args;
+use molt::molt_ok;
+use molt::ContextID;
 use molt::Interp;
 use molt::MoltResult;
 use molt::ResultCode;
-use molt::molt_ok;
 use molt::Value;
+use std::env;
 use std::fs;
 use std::path::PathBuf;
-use std::env;
 
 /// Executes the Molt benchmark harness, given the command-line arguments,
 /// in the context of the given interpreter.
@@ -102,16 +102,21 @@ fn write_csv(ctx: &Context) {
     let baseline = ctx.baseline();
 
     for record in &ctx.measurements {
-        println!("\"{}\",\"{}\",{},{}",
+        println!(
+            "\"{}\",\"{}\",{},{}",
             strip_quotes(&record.name),
             strip_quotes(&record.description),
             record.micros,
-            record.micros / baseline);
+            record.micros / baseline
+        );
     }
 }
 
 fn strip_quotes(string: &str) -> String {
-    let out: String = string.chars().map(|ch| if ch == '\"' { '\'' } else { ch }).collect();
+    let out: String = string
+        .chars()
+        .map(|ch| if ch == '\"' { '\'' } else { ch })
+        .collect();
     out
 }
 
@@ -123,11 +128,13 @@ fn write_formatted_text(ctx: &Context) {
     let baseline = ctx.baseline();
 
     for record in &ctx.measurements {
-        println!("{:>8.2} {:>8.2} -- {} {}",
+        println!(
+            "{:>8.2} {:>8.2} -- {} {}",
             record.micros,
             record.micros / baseline,
             record.name,
-            record.description);
+            record.description
+        );
     }
 }
 
@@ -153,7 +160,7 @@ impl Context {
     fn new() -> Self {
         Self {
             baseline: None,
-            measurements: Vec::new()
+            measurements: Vec::new(),
         }
     }
 
@@ -210,7 +217,6 @@ fn cmd_ident(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
     molt_ok!(argv[1].clone())
 }
-
 
 /// # ok ...
 ///

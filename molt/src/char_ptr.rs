@@ -1,7 +1,7 @@
 //! A character iterator that mimics a C (char*) pointer into a buffer.
 
-use std::str::Chars;
 use std::iter::Peekable;
+use std::str::Chars;
 
 #[derive(Clone)]
 pub struct CharPtr<'a> {
@@ -17,9 +17,7 @@ impl<'a> CharPtr<'a> {
 
     /// Converts a Peekable<Chars> into a CharPtr.
     pub fn from_peekable(chars: Peekable<Chars<'a>>) -> Self {
-        Self {
-            chars
-        }
+        Self { chars }
     }
 
     /// Converts a CharPtr into a Peekable<Chars>.
@@ -28,7 +26,8 @@ impl<'a> CharPtr<'a> {
     }
 
     pub fn skip_while<P>(&mut self, predicate: P)
-        where P: Fn(&char) -> bool
+    where
+        P: Fn(&char) -> bool,
     {
         while let Some(ch) = self.chars.peek() {
             if predicate(ch) {
@@ -88,7 +87,8 @@ impl<'a> CharPtr<'a> {
     }
 
     pub fn has<P>(&mut self, predicate: P) -> bool
-        where P: Fn(&char) -> bool
+    where
+        P: Fn(&char) -> bool,
     {
         if let Some(ch) = self.chars.peek() {
             predicate(ch)

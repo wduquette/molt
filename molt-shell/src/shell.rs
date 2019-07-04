@@ -1,7 +1,7 @@
 use molt::Interp;
+use molt::MoltList;
 use molt::ResultCode;
 use molt::Value;
-use molt::MoltList;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::fs;

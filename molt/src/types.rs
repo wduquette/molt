@@ -95,7 +95,6 @@ impl ResultCode {
 #[derive(Eq, PartialEq, Debug, Hash, Copy, Clone)]
 pub struct ContextID(pub u64);
 
-
 /// A trait defining a Molt command object: a struct that implements a command (and may also
 /// have context data).
 ///
@@ -180,6 +179,10 @@ impl Subcommand {
             names.push_str(subs[last].0);
         }
 
-        molt_err!("unknown or ambiguous subcommand \"{}\": must be {}", sub, &names)
+        molt_err!(
+            "unknown or ambiguous subcommand \"{}\": must be {}",
+            sub,
+            &names
+        )
     }
 }

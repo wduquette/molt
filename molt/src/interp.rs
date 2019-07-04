@@ -13,15 +13,15 @@
 //!
 //! [`Interp`]: struct.Interp.html
 
-use std::any::Any;
 use crate::commands;
 use crate::eval_ptr::EvalPtr;
-use crate::molt_ok;
 use crate::molt_err;
+use crate::molt_ok;
 use crate::scope::ScopeStack;
 use crate::types::Command;
 use crate::types::*;
 use crate::value::Value;
+use std::any::Any;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -63,7 +63,7 @@ pub struct Interp {
     last_context_id: u64,
 
     // Context Map
-    context_map: HashMap<ContextID,Box<Any>>,
+    context_map: HashMap<ContextID, Box<Any>>,
 
     // Defines the recursion limit for Interp::eval().
     recursion_limit: usize,
@@ -208,8 +208,11 @@ impl Interp {
     /// This call panics if the context ID is unknown, or if the retrieved data
     /// has an unexpected type.
     pub fn context<T: 'static>(&mut self, id: ContextID) -> &mut T {
-        self.context_map.get_mut(&id).expect("unknown context ID")
-            .downcast_mut::<T>().expect("context type mismatch")
+        self.context_map
+            .get_mut(&id)
+            .expect("unknown context ID")
+            .downcast_mut::<T>()
+            .expect("context type mismatch")
     }
 
     /// Removes a context record from the context cache.  Clears the data from
@@ -280,7 +283,7 @@ impl Interp {
     /// let data: Vec<String> = Vec::new();
     /// interp.set_context(id, data);
     /// ```
-    pub fn set_context<T: 'static>(&mut self, id: ContextID, data: T)  {
+    pub fn set_context<T: 'static>(&mut self, id: ContextID, data: T) {
         self.context_map.insert(id, Box::new(data));
     }
 
@@ -303,7 +306,12 @@ impl Interp {
     ///
     /// This is the normal way to add commands requiring application context to
     /// the interpreter.
-    pub fn add_context_command(&mut self, name: &str, func: ContextCommandFunc, context_id: ContextID) {
+    pub fn add_context_command(
+        &mut self,
+        name: &str,
+        func: ContextCommandFunc,
+        context_id: ContextID,
+    ) {
         let command = ContextCommandFuncWrapper::new(func, context_id);
         self.add_command_object(name, command);
     }
@@ -356,7 +364,12 @@ impl Interp {
     /// Gets a vector of the names of the existing commands.
     ///
     pub fn command_names(&self) -> MoltList {
-        let vec: MoltList = self.commands.keys().cloned().map(|x| Value::from(&x)).collect();
+        let vec: MoltList = self
+            .commands
+            .keys()
+            .cloned()
+            .map(|x| Value::from(&x))
+            .collect();
 
         vec
     }
@@ -459,16 +472,10 @@ impl Interp {
 
         // NEXT, translate and return the result.
         match result {
-            Err(ResultCode::Return(value)) => {
-                molt_ok!(value)
-            }
-            Err(ResultCode::Break) => {
-                molt_err!("invoked \"break\" outside of a loop")
-            }
-            Err(ResultCode::Continue) => {
-                molt_err!("invoked \"continue\" outside of a loop")
-            }
-            _ => result
+            Err(ResultCode::Return(value)) => molt_ok!(value),
+            Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
+            Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
+            _ => result,
         }
     }
 
@@ -539,7 +546,6 @@ impl Interp {
     /// let interp = Interp::new();
     /// assert_eq!("+\x07-\n-\r-p+", interp.subst_backslashes("+\\a-\\n-\\r-\\x70+"));
     /// ```
-
 
     pub fn subst_backslashes(&self, str: &str) -> String {
         subst_backslashes(str)
@@ -833,7 +839,7 @@ impl Command for ContextCommandFuncWrapper {
 // EvalPtr structure for a proc.
 struct CommandProc {
     args: MoltList,
-    body: String
+    body: String,
 }
 
 // TODO: Need to work out how we're going to store the CommandProc details for
@@ -851,7 +857,7 @@ impl Command for CommandProc {
         for (speci, spec) in self.args.iter().enumerate() {
             // FIRST, get the parameter as a vector.  It should be a list of
             // one or two elements.
-            let vec = &*spec.as_list()?;  // Should never fail
+            let vec = &*spec.as_list()?; // Should never fail
             assert!(vec.len() == 1 || vec.len() == 2);
 
             // NEXT, if this is the args parameter, give the remaining args,
@@ -866,7 +872,7 @@ impl Command for CommandProc {
             }
 
             // NEXT, do we have a matching argument?
-             if argi < argv.len() {
+            if argi < argv.len() {
                 // Pair them up
                 interp.set_var(&*vec[0].as_string(), &argv[argi]);
                 argi += 1;
@@ -913,7 +919,7 @@ impl CommandProc {
             msg.push(' ');
 
             // "args" has special meaning only in the last place.
-            if *arg.as_string() == "args" && i == self.args.len() - 1  {
+            if *arg.as_string() == "args" && i == self.args.len() - 1 {
                 msg.push_str("?arg ...?");
                 break;
             }
@@ -1048,8 +1054,10 @@ mod tests {
         assert_eq!(interp.recursion_limit(), 100);
 
         assert!(dbg!(interp.eval("proc myproc {} { myproc }")).is_ok());
-        assert_eq!(interp.eval("myproc"),
-            molt_err!("too many nested calls to Interp::eval (infinite loop?)"));
+        assert_eq!(
+            interp.eval("myproc"),
+            molt_err!("too many nested calls to Interp::eval (infinite loop?)")
+        );
     }
 
     #[test]

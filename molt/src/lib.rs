@@ -4,9 +4,9 @@
 
 #![doc(html_root_url = "https://docs.rs/molt/0.1.0")]
 
-pub use crate::types::*;
-pub use crate::list::list_to_string;
 pub use crate::interp::Interp;
+pub use crate::list::list_to_string;
+pub use crate::types::*;
 
 #[allow(dead_code)] // Temporary
 mod char_ptr;
@@ -20,8 +20,8 @@ mod list;
 mod macros;
 mod scope;
 pub mod types;
-pub mod value;
 mod util;
+pub mod value;
 
 /// Checks to see whether a command's argument list is of a reasonable size.
 /// Returns an error if not.  The arglist must have at least min entries, and can have up
@@ -44,7 +44,8 @@ pub fn check_args(
         // TODO: Need an easy way to join the values in a &[&Value] into a string.
         // This is a stopgap.
         let vec: Vec<String> = argv[0..namec].iter().map(|v| v.to_string()).collect();
-        molt_err!("wrong # args: should be \"{} {}\"",
+        molt_err!(
+            "wrong # args: should be \"{} {}\"",
             // argv[0..namec].join(" "),
             vec.join(" "),
             argsig
@@ -61,7 +62,13 @@ mod tests {
     #[test]
     fn test_check_args() {
         assert_ok(&check_args(1, &mklist(vec!["mycmd"].as_slice()), 1, 1, ""));
-        assert_ok(&check_args(1, &mklist(vec!["mycmd"].as_slice()), 1, 2, "arg1"));
+        assert_ok(&check_args(
+            1,
+            &mklist(vec!["mycmd"].as_slice()),
+            1,
+            2,
+            "arg1",
+        ));
         assert_ok(&check_args(
             1,
             &mklist(vec!["mycmd", "data"].as_slice()),
@@ -82,7 +89,13 @@ mod tests {
             "wrong # args: should be \"mycmd arg1\"",
         );
         assert_err(
-            &check_args(1, &mklist(vec!["mycmd", "val1", "val2"].as_slice()), 2, 2, "arg1"),
+            &check_args(
+                1,
+                &mklist(vec!["mycmd", "val1", "val2"].as_slice()),
+                2,
+                2,
+                "arg1",
+            ),
             "wrong # args: should be \"mycmd arg1\"",
         );
     }

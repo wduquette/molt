@@ -1,14 +1,19 @@
 # Molt -- More Or Less TCL
 
-The general notion is to build a minimal version of TCL for embedding in Rust
+The goal of this project is to build a minimal version of TCL for embedding in Rust
 apps.  See [The Molt Book](https://github.com/wduquette/molt-book) for details
 and user documentation.
+
+**NOTE:** A big part of this effort is defining and refining the Rust API used to
+interact with and extend the interpreter.  At this point in development the API
+can change without notice!  (And if you have suggestions for improvement, feel
+free to write an issue.)
 
 ## Building
 
 To build Molt:
 
-*   Install the latest stable version of Rust (1.35.0 at time of writing)
+*   Install the latest stable version of Rust (1.36.0 at time of writing)
 *   Clone this repository
 *   To build:
 

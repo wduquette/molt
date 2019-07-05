@@ -141,6 +141,68 @@
                 <div id="content" class="content">
                     <main>
                         <a class="header" href="#the-moltresult-type" id="the-moltresult-type"><h1>The MoltResult Type</h1></a>
+<p><code>MoltResult</code> is Molt's standard <code>Result&lt;T,E&gt;</code> type; it is defined as</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+pub type MoltResult = Result&lt;Value, ResultCode&gt;;
+#}</code></pre></pre>
+<p>The <code>Value</code> type is described in the <a href="./molt_value.html">previous section</a>; by default, many
+Molt methods and functions return <code>Value</code> on success.</p>
+<p>The <code>ResultCode</code> is more complicated, as it is used to pass not only errors but also
+to manage control flow.  It is defined as follows:</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+#[derive(Eq, PartialEq, Clone, Debug)]
+pub enum ResultCode {
+    Error(Value),
+    Return(Value),
+    Break,
+    Continue,
+}
+#}</code></pre></pre>
+<p>In addition to a normal <code>Ok</code> result, a Molt function, method, or command can return:</p>
+<ul>
+<li>
+<p><code>ResultCode::Error(msg)</code>, where <code>msg</code> is an error message; this indicates that
+something has thrown an error.</p>
+</li>
+<li>
+<p><code>ResultCode::Return(value)</code>, which indicates that the Molt code has called the
+<code>return</code> command; the <code>value</code> is the returned value.  Molt procedures, defined using
+the <code>proc</code> command, will catch this and return <code>value</code> as the value of the procedure.</p>
+</li>
+<li>
+<p><code>ResultCode::Break</code> and <code>ResultCode::Continue</code> are returned by the <code>break</code> and
+<code>continue</code> commands and control loop execution in the usual way.</p>
+</li>
+</ul>
+<a class="header" href="#molt_ok-and-molt_err" id="molt_ok-and-molt_err"><h2><code>molt_ok!</code> and <code>molt_err!</code></h2></a>
+<p>Application-specific Rust code will usually only use <code>Ok(value)</code> and
+<code>Err(ReturnCode::Error(value))</code>. Since these two cases pop up so often,
+Molt provides a couple of macros to make them easier: <code>molt_ok!</code> and <code>molt_err!</code>.</p>
+<p><code>molt_ok!</code> takes one or more arguments and converts them into an <code>Ok(Value)</code>.</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+// Returns the empty result.
+return molt_ok!();
+
+// Returns its argument as a Value (if Molt knows how to convert it)
+return molt_ok!(5);
+
+// A plain Value is OK to.
+return molt_ok!(Value::from(5));
+
+// Returns a formatted string as a Value using a Rust `format!` string.
+return molt_ok!(&quot;The answer is {}.&quot;, x);
+#}</code></pre></pre>
+<p><code>molt_err!</code> works just the same way, but returns <code>Err(ReturnCode::Err(Value))</code>.</p>
+<pre><code>if x &gt; 5 {
+    return molt_err!(&quot;value is out of range: {}&quot;, x);
+}
+</code></pre>
 
                     </main>
 

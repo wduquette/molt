@@ -934,8 +934,149 @@ interpreter so that the application can create a custom command set (e.g., inclu
 variable access and control structures but excluding file I/O), but that hasn't yet
 been implemented.</p>
 <p>We'll cover the remaining topics in the following sections.</p>
-<a class="header" href="#the-molt-value-type" id="the-molt-value-type"><h1>The Molt Value Type</h1></a>
+<a class="header" href="#the-molt-value-type" id="the-molt-value-type"><h1>The Molt <code>Value</code> Type</h1></a>
+<p>The <code>Value</code> type is the standard representation in Rust of Molt values.  In the Tcl
+language, &quot;everything is a string&quot;; which is to say, every value can be represented
+as a string.  Many values—e.g., numbers and lists—also have a binary data representation,
+but a single value can move from one binary data representation to another depending
+on how it is used by the user.  Consider the following:</p>
+<pre><code class="language-tcl">set x [expr {2 + 3}]  ;# It's the integer 5.
+puts &quot;x=$x&quot;           ;# It's converted to a string.
+set y [lindex $x 0]   ;# It's converted to a one-element list.
+</code></pre>
+<p>Initially, the variable <code>x</code> contains a <code>Value</code> with only a data representation, the
+integer 5.  Then <code>puts</code> needs it as a string, and so the <code>Value</code> acquires a string
+representation as well, but retains its integer representation.  Then <code>lindex</code> needs
+to look at it as a list, so the string is parsed into a Molt list and the 0th element
+is returned.  The integer representation is lost and replaced by the list
+representation. The <code>Value</code> type manages all of these transformations internally, with the effect that string-to-binary and binary-to-string conversions happen only when
+absolutely necessary.</p>
+<p>Note: A <code>Value</code>'s string representation is never lost, once acquired: semantically,
+<code>Values</code> are immutable.  The data transformations that go on under the hood are an
+aid to performance, but in principle the value is unchanged.</p>
+<a class="header" href="#creating-values" id="creating-values"><h2>Creating Values</h2></a>
+<p><code>Values</code> can be created easily from a variety of kinds of input:</p>
+<pre><code>let a = Value::from(&quot;abc&quot;);                              // &amp;str
+let b = Value::from(&quot;def&quot;.to_string());                  // String
+let c = Value::from(123);                                // MoltInt (i64)
+let d = Value::from(45.67);                              // MoltFloat (f64)
+let e = Value::from(true);                               // bool
+let f = Value::from(&amp;[Value::from(1), Value::from(2)]);  // &amp;[Value]
+</code></pre>
+<p>And in fact, a <code>Value</code> can contain any Rust type that supports the <code>Display</code>,
+<code>Debug</code>, and <code>FromStr</code> types via the <code>Value::from_other</code> method.  Such types are
+called &quot;external types in the Molt documentation set.</p>
+<a class="header" href="#cloning-values" id="cloning-values"><h2>Cloning Values</h2></a>
+<p>Because <code>Values</code> are immutable, they have been designed to be cheaply and easy cloned
+with reference counting via the standard <code>Rc</code> type.</p>
+<a class="header" href="#retrieving-data-from-values" id="retrieving-data-from-values"><h2>Retrieving Data from Values</h2></a>
+<p>It is always possible to retrieve a <code>Value</code>'s data as a string:</p>
+<pre><code>let value = Value::from(5);
+let text: String = value.to_string();
+assert_eq!(&amp;text, &quot;5&quot;);
+</code></pre>
+<p>The <code>to_string</code> method creates a brand new <code>String</code> in the usual way; it is often better to use <code>as_string</code>, which returns the <code>Value</code>'s actual string rep as an <code>Rc&lt;String&gt;</code>:</p>
+<pre><code>let value = Value::from(5);
+let text: Rc&lt;String&gt; = value.as_string();
+assert_eq!(&amp;*text, &quot;5&quot;);
+</code></pre>
+<p>It is also possible to retrieve data representations; but since this isn't guaranteed to
+work the relevant methods all return <code>Result&lt;_,ResultCode&gt;</code>.  (See
+<a href="embed/./molt_result.html">The <code>MoltResult</code> type</a> for a discussion of <code>ResultCodes</code>.)  For
+example,</p>
+<pre><code>let value = Value::from(&quot;123&quot;);
+let x = value.as_int()?;
+assert_eq!(x, 123);
+</code></pre>
+<a class="header" href="#retrieving-values-of-external-types" id="retrieving-values-of-external-types"><h2>Retrieving Values of External Types</h2></a>
+<p>Values of external types can be retrieved as well using the <code>Value::as_copy</code> or
+<code>Value::as_other</code> method, depending on whether the type implements the <code>Copy</code>
+trait.  These are different than their peers, in that they return <code>Option&lt;T&gt;</code>
+and <code>Option&lt;Rc&lt;T&gt;&gt;</code> rather than <code>Result&lt;T,ResultCode&gt;</code> or <code>Result&lt;Rc&lt;T&gt;,ResultCode&gt;</code>.
+The reason is that Molt doesn't know what the appropriate
+error message should be when it finds a value it can't convert into the external
+type <code>T</code> and so returns <code>None</code>, leaving the error handling up to the client.</p>
+<p>For this reason, when using an external type <code>MyType</code> with Molt it is usual to define a
+function that converts a <code>Value</code> to a <code>Result&lt;MyType,ResultCode&gt;</code>.  If <code>MyType</code> is an
+enum, for example, you might write this:</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+impl MyType {
+    /// A convenience: retrieves the enumerated value, converting it from
+    /// `Option&lt;MyType&gt;` into `Result&lt;MyType,ResultCode&gt;`.
+    pub fn from_molt(value: &amp;Value) -&gt; Result&lt;Self, ResultCode&gt; {
+        if let Some(x) = value.as_copy::&lt;MyType&gt;() {
+            Ok(x)
+        } else {
+            Err(ResultCode::Error(Value::from(&quot;Not a MyType string&quot;)))
+        }
+    }
+}
+#}</code></pre></pre>
 <a class="header" href="#the-moltresult-type" id="the-moltresult-type"><h1>The MoltResult Type</h1></a>
+<p><code>MoltResult</code> is Molt's standard <code>Result&lt;T,E&gt;</code> type; it is defined as</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+pub type MoltResult = Result&lt;Value, ResultCode&gt;;
+#}</code></pre></pre>
+<p>The <code>Value</code> type is described in the <a href="embed/./molt_value.html">previous section</a>; by default, many
+Molt methods and functions return <code>Value</code> on success.</p>
+<p>The <code>ResultCode</code> is more complicated, as it is used to pass not only errors but also
+to manage control flow.  It is defined as follows:</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+#[derive(Eq, PartialEq, Clone, Debug)]
+pub enum ResultCode {
+    Error(Value),
+    Return(Value),
+    Break,
+    Continue,
+}
+#}</code></pre></pre>
+<p>In addition to a normal <code>Ok</code> result, a Molt function, method, or command can return:</p>
+<ul>
+<li>
+<p><code>ResultCode::Error(msg)</code>, where <code>msg</code> is an error message; this indicates that
+something has thrown an error.</p>
+</li>
+<li>
+<p><code>ResultCode::Return(value)</code>, which indicates that the Molt code has called the
+<code>return</code> command; the <code>value</code> is the returned value.  Molt procedures, defined using
+the <code>proc</code> command, will catch this and return <code>value</code> as the value of the procedure.</p>
+</li>
+<li>
+<p><code>ResultCode::Break</code> and <code>ResultCode::Continue</code> are returned by the <code>break</code> and
+<code>continue</code> commands and control loop execution in the usual way.</p>
+</li>
+</ul>
+<a class="header" href="#molt_ok-and-molt_err" id="molt_ok-and-molt_err"><h2><code>molt_ok!</code> and <code>molt_err!</code></h2></a>
+<p>Application-specific Rust code will usually only use <code>Ok(value)</code> and
+<code>Err(ReturnCode::Error(value))</code>. Since these two cases pop up so often,
+Molt provides a couple of macros to make them easier: <code>molt_ok!</code> and <code>molt_err!</code>.</p>
+<p><code>molt_ok!</code> takes one or more arguments and converts them into an <code>Ok(Value)</code>.</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+// Returns the empty result.
+return molt_ok!();
+
+// Returns its argument as a Value (if Molt knows how to convert it)
+return molt_ok!(5);
+
+// A plain Value is OK to.
+return molt_ok!(Value::from(5));
+
+// Returns a formatted string as a Value using a Rust `format!` string.
+return molt_ok!(&quot;The answer is {}.&quot;, x);
+#}</code></pre></pre>
+<p><code>molt_err!</code> works just the same way, but returns <code>Err(ReturnCode::Err(Value))</code>.</p>
+<pre><code>if x &gt; 5 {
+    return molt_err!(&quot;value is out of range: {}&quot;, x);
+}
+</code></pre>
 <a class="header" href="#defining-commands" id="defining-commands"><h1>Defining Commands</h1></a>
 <p>At base, a Molt command is a Rust function that performs some kind of work and optionally
 returns a value in the context of a specific Rust interpreter.  There are four ways an
@@ -946,6 +1087,135 @@ application (or library crate) can define application-specific Rust commands:</p
 <li>As a Rust <code>Command</code> object</li>
 <li>As a Molt procedure, or <code>proc</code>.</li>
 </ul>
+<a class="header" href="#commandfunc-commands" id="commandfunc-commands"><h2><code>CommandFunc</code> Commands</h2></a>
+<p>A <code>CommandFunc</code> command is any Rust function that implements <code>CommandFunc</code>:</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+pub type CommandFunc = fn(&amp;mut Interp, &amp;[Value]) -&gt; MoltResult;
+#}</code></pre></pre>
+<p>For example, here's a simple command that takes one argument and returns it
+unchanged.</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+fn cmd_ident(_interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
+    check_args(1, argv, 2, 2, &quot;value&quot;)?;
+
+    molt_ok!(argv[1].clone())
+}
+#}</code></pre></pre>
+<p>The <code>argv</code> vector contains the arguments to the command, beginning with the
+command's name.  The <code>check_args</code> method verifies that the command has a write
+number of arguments, and returns the standard Tcl error message if not.  Finally,
+it uses <code>molt_ok!</code> to return its first argument.</p>
+<p>Install this command into the interpreter using the <code>Interp::add_command</code> method:</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+interp.add_command(&quot;ident&quot;, cmd_ident);
+#}</code></pre></pre>
+<a class="header" href="#contextcommandfunc-commands" id="contextcommandfunc-commands"><h2><code>ContextCommandFunc</code> Commands</h2></a>
+<p>Normal <code>CommandFunc</code> commands are useful when extending the Molt language itself, but don't
+help much when adding commands to manipulate the application and its data.  In this case,
+it's often best to use a <code>ContextCommandFunc</code> in conjunction with the interpreter's
+<em>context cache</em>.</p>
+<p>The context cache is a hash map that allows the interpreter to keep arbitrary data and make
+it available to commands. The usual pattern is like this:</p>
+<ul>
+<li>
+<p>The application defines a type containing the data the command (or commands) requires.
+We'll call it <code>AppContext</code> for the purpose of this example.</p>
+</li>
+<li>
+<p>The application saves an instance of <code>AppContext</code> into the context cache, retrieving a
+<code>ContextID</code>.</p>
+</li>
+<li>
+<p>The application includes the <code>ContextID</code> when adding the command to the interpreter.</p>
+</li>
+<li>
+<p>The command retrieves the <code>AppContext</code> as a mutable borrow.</p>
+</li>
+</ul>
+<pre><pre class="playpen"><code class="language-rust">// The AppContext
+struct AppContext { text: String }
+
+// The Command
+fn cmd_whatsit(interp: &amp;mut Interp, context_id: ContextID, argv: &amp;[Value]) -&gt; MoltResult {
+    check_args(1, argv, 2, 2, &quot;value&quot;)?;
+
+    let ctx = interp.context::&lt;AppContext&gt;(context_id);
+
+    // Save the first argument to the AppContext's text field.
+    ctx.text.push_str(&amp;*argv[1].as_string());
+
+    molt_ok!()
+}
+
+// Registering the command
+fn main() {
+    let interp = Interp::new();
+    let id = interp.save_context(AppContext::new());
+
+    interp.add_context_command(&quot;whatsit&quot;, cmd_whatsit, id);
+
+    ...
+}
+</code></pre></pre>
+<a class="header" href="#command-objects" id="command-objects"><h2><code>Command</code> Objects</h2></a>
+<p>Sometimes it's desirable to include more data as part of the command itself.  In this
+case one can define a type that implements the <code>Command</code> trait, and register an instance
+with the interp.</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+struct MyCommand {
+    b: RefCell&lt;String&gt;,
+}
+
+impl Command for MyCommand {
+    fn execute(&amp;self, interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
+        ...
+    }
+}
+#}</code></pre></pre>
+<p>The instance is added to the interpreter using the <code>add_command_object</code> method:</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+interp.add_command_object(&quot;my_command&quot;, MyCommand::new());
+#}</code></pre></pre>
+<p>This allows many additional patterns of use.  For example, objects in Tcl are often
+represented as commands with associated data.  This can be handled using <code>Command</code> objects,
+optionally in conjunction with the context cache:</p>
+<ul>
+<li>Command <code>myclass</code> creates a new instance, a Tcl command with its own context record
+in the context cache.</li>
+<li>The new instance can read and write from its instance data as needed.</li>
+<li>The code of the &quot;class&quot; is defined by a struct that implements the <code>Command</code> trait.</li>
+<li>The struct should also implement the <code>Drop</code> trait to release the context record
+when the object goes away.</li>
+</ul>
+<p>TODO: We really need a bigger discussion of how to define Molt objects in Rust.</p>
+<a class="header" href="#molt-procedures" id="molt-procedures"><h2>Molt Procedures</h2></a>
+<p>A Molt procedure is a routine coded in Tcl and defined using the <code>proc</code> command. A
+crate can compile Tcl procedures into itself using the <code>include_str!</code> macro.  Start
+by defining a script that defines the required procedure, say, <code>procs.tcl</code>, and put it
+in the crate's <code>src/</code> folder adjacent to the Rust file that will load it.  The Rust
+file can then do this:</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+let mut interp = Interp::new();
+
+match interp.eval(include_str!(&quot;commands.tcl&quot;)) {
+    Err(ResultCode::Error(msg)) =&gt; {
+        panic!(&quot;Couldn't load procs.tcl: {}&quot;, msg);
+    }
+    _ =&gt; ()
+}
+#}</code></pre></pre>
 <a class="header" href="#evaluating-molt-code" id="evaluating-molt-code"><h1>Evaluating Molt Code</h1></a>
 <p>An application can evaluate Molt code in several ways:</p>
 <ul>

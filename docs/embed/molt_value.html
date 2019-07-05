@@ -140,7 +140,86 @@
 
                 <div id="content" class="content">
                     <main>
-                        <a class="header" href="#the-molt-value-type" id="the-molt-value-type"><h1>The Molt Value Type</h1></a>
+                        <a class="header" href="#the-molt-value-type" id="the-molt-value-type"><h1>The Molt <code>Value</code> Type</h1></a>
+<p>The <code>Value</code> type is the standard representation in Rust of Molt values.  In the Tcl
+language, &quot;everything is a string&quot;; which is to say, every value can be represented
+as a string.  Many values—e.g., numbers and lists—also have a binary data representation,
+but a single value can move from one binary data representation to another depending
+on how it is used by the user.  Consider the following:</p>
+<pre><code class="language-tcl">set x [expr {2 + 3}]  ;# It's the integer 5.
+puts &quot;x=$x&quot;           ;# It's converted to a string.
+set y [lindex $x 0]   ;# It's converted to a one-element list.
+</code></pre>
+<p>Initially, the variable <code>x</code> contains a <code>Value</code> with only a data representation, the
+integer 5.  Then <code>puts</code> needs it as a string, and so the <code>Value</code> acquires a string
+representation as well, but retains its integer representation.  Then <code>lindex</code> needs
+to look at it as a list, so the string is parsed into a Molt list and the 0th element
+is returned.  The integer representation is lost and replaced by the list
+representation. The <code>Value</code> type manages all of these transformations internally, with the effect that string-to-binary and binary-to-string conversions happen only when
+absolutely necessary.</p>
+<p>Note: A <code>Value</code>'s string representation is never lost, once acquired: semantically,
+<code>Values</code> are immutable.  The data transformations that go on under the hood are an
+aid to performance, but in principle the value is unchanged.</p>
+<a class="header" href="#creating-values" id="creating-values"><h2>Creating Values</h2></a>
+<p><code>Values</code> can be created easily from a variety of kinds of input:</p>
+<pre><code>let a = Value::from(&quot;abc&quot;);                              // &amp;str
+let b = Value::from(&quot;def&quot;.to_string());                  // String
+let c = Value::from(123);                                // MoltInt (i64)
+let d = Value::from(45.67);                              // MoltFloat (f64)
+let e = Value::from(true);                               // bool
+let f = Value::from(&amp;[Value::from(1), Value::from(2)]);  // &amp;[Value]
+</code></pre>
+<p>And in fact, a <code>Value</code> can contain any Rust type that supports the <code>Display</code>,
+<code>Debug</code>, and <code>FromStr</code> types via the <code>Value::from_other</code> method.  Such types are
+called &quot;external types in the Molt documentation set.</p>
+<a class="header" href="#cloning-values" id="cloning-values"><h2>Cloning Values</h2></a>
+<p>Because <code>Values</code> are immutable, they have been designed to be cheaply and easy cloned
+with reference counting via the standard <code>Rc</code> type.</p>
+<a class="header" href="#retrieving-data-from-values" id="retrieving-data-from-values"><h2>Retrieving Data from Values</h2></a>
+<p>It is always possible to retrieve a <code>Value</code>'s data as a string:</p>
+<pre><code>let value = Value::from(5);
+let text: String = value.to_string();
+assert_eq!(&amp;text, &quot;5&quot;);
+</code></pre>
+<p>The <code>to_string</code> method creates a brand new <code>String</code> in the usual way; it is often better to use <code>as_string</code>, which returns the <code>Value</code>'s actual string rep as an <code>Rc&lt;String&gt;</code>:</p>
+<pre><code>let value = Value::from(5);
+let text: Rc&lt;String&gt; = value.as_string();
+assert_eq!(&amp;*text, &quot;5&quot;);
+</code></pre>
+<p>It is also possible to retrieve data representations; but since this isn't guaranteed to
+work the relevant methods all return <code>Result&lt;_,ResultCode&gt;</code>.  (See
+<a href="./molt_result.html">The <code>MoltResult</code> type</a> for a discussion of <code>ResultCodes</code>.)  For
+example,</p>
+<pre><code>let value = Value::from(&quot;123&quot;);
+let x = value.as_int()?;
+assert_eq!(x, 123);
+</code></pre>
+<a class="header" href="#retrieving-values-of-external-types" id="retrieving-values-of-external-types"><h2>Retrieving Values of External Types</h2></a>
+<p>Values of external types can be retrieved as well using the <code>Value::as_copy</code> or
+<code>Value::as_other</code> method, depending on whether the type implements the <code>Copy</code>
+trait.  These are different than their peers, in that they return <code>Option&lt;T&gt;</code>
+and <code>Option&lt;Rc&lt;T&gt;&gt;</code> rather than <code>Result&lt;T,ResultCode&gt;</code> or <code>Result&lt;Rc&lt;T&gt;,ResultCode&gt;</code>.
+The reason is that Molt doesn't know what the appropriate
+error message should be when it finds a value it can't convert into the external
+type <code>T</code> and so returns <code>None</code>, leaving the error handling up to the client.</p>
+<p>For this reason, when using an external type <code>MyType</code> with Molt it is usual to define a
+function that converts a <code>Value</code> to a <code>Result&lt;MyType,ResultCode&gt;</code>.  If <code>MyType</code> is an
+enum, for example, you might write this:</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+impl MyType {
+    /// A convenience: retrieves the enumerated value, converting it from
+    /// `Option&lt;MyType&gt;` into `Result&lt;MyType,ResultCode&gt;`.
+    pub fn from_molt(value: &amp;Value) -&gt; Result&lt;Self, ResultCode&gt; {
+        if let Some(x) = value.as_copy::&lt;MyType&gt;() {
+            Ok(x)
+        } else {
+            Err(ResultCode::Error(Value::from(&quot;Not a MyType string&quot;)))
+        }
+    }
+}
+#}</code></pre></pre>
 
                     </main>
 

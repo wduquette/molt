@@ -2,6 +2,9 @@
 
 Things to remember to do soon:
 
+*   Revise `Value` to have a toplevel `Rc` and use a single `RefCell`.
+    *   The `Rc` so that the whole thing can be cloned efficiently.
+    *   The single `RefCell` because we often have to borrow both, and that's wasteful. 
 *   Document "Custom Shell Applications" in chapter 4 of the Molt Book.
 *   Before Tcl 2019:
     *   Publish Molt crates to crates.io.

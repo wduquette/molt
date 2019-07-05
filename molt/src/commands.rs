@@ -2,8 +2,6 @@
 //!
 //! This module defines the standard Molt commands.
 
-use crate::expr::expr;
-use crate::expr::expr_test;
 use crate::interp::Interp;
 use crate::types::*;
 use crate::*;
@@ -158,7 +156,7 @@ pub fn cmd_exit(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 pub fn cmd_expr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 2, "expr")?;
 
-    expr(interp, &argv[1])
+    interp.expr(&argv[1])
 }
 
 /// # for *start* *test* *next* *command*
@@ -176,7 +174,7 @@ pub fn cmd_for(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     // Start
     interp.eval(start)?;
 
-    while expr_test(interp, test)? {
+    while interp.bool_expr(test)? {
         let result = interp.eval_body(command);
 
         match result {
@@ -286,7 +284,7 @@ pub fn cmd_if(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     while argi < argv.len() {
         match wants {
             IfWants::Expr => {
-                wants = if expr_test(interp, &argv[argi])? {
+                wants = if interp.bool_expr(&argv[argi])? {
                     IfWants::ThenBody
                 } else {
                     IfWants::SkipThenClause
@@ -689,7 +687,7 @@ pub fn cmd_unset(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 pub fn cmd_while(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 3, 3, "test command")?;
 
-    while expr_test(interp, &argv[1])? {
+    while interp.bool_expr(&argv[1])? {
         let result = interp.eval_body(&*argv[2].as_string());
 
         match result {

@@ -103,10 +103,10 @@ See [The `MoltResult` Type](./molt_result.md) for more information.
 
 The explicit `Value` type declaration is included for clarity.
 
-## Evaluating Expressions with `expr` and `expr_test`.
+## Evaluating Expressions with `expr` and `bool_expr`.
 
 Evaluating Molt expressions is similar.  To get any expression result (usually a
-numeric or boolean `Value`), use the `molt::expr` function, which return
+numeric or boolean `Value`), use the `Interp::expr` method.
 
 ```rust
 use molt::Interp;
@@ -117,13 +117,13 @@ let mut interp = Interp::new();
 
 ...
 
-let value: Value = molt::expr(&mut interp, "1 + 1")?;
+let value: Value = interp.expr("1 + 1")?;
 ```
 
-Use `molt::expr_test` when a specifically boolean result is wanted:
+Use `Interp::bool_expr` when a specifically boolean result is wanted:
 
 ```rust
-let flag: bool = molt::expr_test(&mut interp, "1 == 1")?;
+let flag: bool = interp.bool_expr("1 == 1")?;
 ```
 
 (See the [`expr`](../ref/expr.md) command reference for more about Molt expressions.)

@@ -257,7 +257,7 @@ pub fn expr(interp: &mut Interp, expr: &Value) -> MoltResult {
 }
 
 /// Evaluates an expression and returns its value as a boolean.
-pub fn expr_test(interp: &mut Interp, bool_expr: &Value) -> Result<bool, ResultCode> {
+pub fn bool_expr(interp: &mut Interp, bool_expr: &Value) -> Result<bool, ResultCode> {
     let value = expr(interp, bool_expr)?;
     value.as_bool()
 }
@@ -1471,11 +1471,11 @@ mod tests {
     fn call_expr_test() {
         let mut interp = Interp::new();
 
-        let result = expr_test(&mut interp, &Value::from("1 + 1"));
+        let result = bool_expr(&mut interp, &Value::from("1 + 1"));
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), true);
 
-        let result = expr_test(&mut interp, &Value::from("1 - 1"));
+        let result = bool_expr(&mut interp, &Value::from("1 - 1"));
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), false);
     }

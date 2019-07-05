@@ -245,9 +245,9 @@ fn my_cmd(interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
 #}</code></pre></pre>
 <p>See <a href="./molt_result.html">The <code>MoltResult</code> Type</a> for more information.</p>
 <p>The explicit <code>Value</code> type declaration is included for clarity.</p>
-<a class="header" href="#evaluating-expressions-with-expr-and-expr_test" id="evaluating-expressions-with-expr-and-expr_test"><h2>Evaluating Expressions with <code>expr</code> and <code>expr_test</code>.</h2></a>
+<a class="header" href="#evaluating-expressions-with-expr-and-bool_expr" id="evaluating-expressions-with-expr-and-bool_expr"><h2>Evaluating Expressions with <code>expr</code> and <code>bool_expr</code>.</h2></a>
 <p>Evaluating Molt expressions is similar.  To get any expression result (usually a
-numeric or boolean <code>Value</code>), use the <code>molt::expr</code> function, which return</p>
+numeric or boolean <code>Value</code>), use the <code>Interp::expr</code> method.</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
@@ -259,13 +259,13 @@ let mut interp = Interp::new();
 
 ...
 
-let value: Value = molt::expr(&amp;mut interp, &quot;1 + 1&quot;)?;
+let value: Value = interp.expr(&quot;1 + 1&quot;)?;
 #}</code></pre></pre>
-<p>Use <code>molt::expr_test</code> when a specifically boolean result is wanted:</p>
+<p>Use <code>Interp::bool_expr</code> when a specifically boolean result is wanted:</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
-let flag: bool = molt::expr_test(&amp;mut interp, &quot;1 == 1&quot;)?;
+let flag: bool = interp.bool_expr(&quot;1 == 1&quot;)?;
 #}</code></pre></pre>
 <p>(See the <a href="../ref/expr.html"><code>expr</code></a> command reference for more about Molt expressions.)</p>
 <a class="header" href="#providing-an-interactive-repl" id="providing-an-interactive-repl"><h2>Providing an interactive REPL</h2></a>

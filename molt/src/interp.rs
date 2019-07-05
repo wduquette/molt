@@ -15,6 +15,7 @@
 
 use crate::commands;
 use crate::eval_ptr::EvalPtr;
+use crate::expr;
 use crate::molt_err;
 use crate::molt_ok;
 use crate::scope::ScopeStack;
@@ -511,6 +512,15 @@ impl Interp {
         ctx.set_no_eval(true);
 
         self.eval_context(&mut ctx).is_ok()
+    }
+
+    // Evaluates an expression and returns its value.
+    pub fn expr(&mut self, expr: &Value) -> MoltResult {
+        expr::expr(self, expr)
+    }
+
+    pub fn bool_expr(&mut self, expr: &Value) -> Result<bool, ResultCode> {
+        expr::bool_expr(self, expr)
     }
 
     //--------------------------------------------------------------------------------------------

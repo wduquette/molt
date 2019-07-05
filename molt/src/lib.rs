@@ -7,8 +7,6 @@
 pub use crate::interp::Interp;
 pub use crate::list::list_to_string;
 pub use crate::types::*;
-pub use crate::expr::expr;
-pub use crate::expr::expr_test;
 
 #[allow(dead_code)] // Temporary
 mod char_ptr;

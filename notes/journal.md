@@ -2,6 +2,11 @@
 
 Things to remember to do soon:
 
+*   `expr` changes:
+    *   Rename `expr::expr_test` to `expr::bool_expr`.
+    *   Consider defining `Interp::expr` and `Interp::bool_expr` methods as the public
+        API for evaluating expressions.
+    *   Revise the Molt Book on evaluating expressions.
 *   Before Tcl 2019:
     *   Publish Molt crates to crates.io.
     *   Implement sample applications for use in the talk.

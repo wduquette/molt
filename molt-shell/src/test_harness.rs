@@ -2,7 +2,7 @@
 //!
 //! A Molt test script is a Molt script containing tests of Molt code.  Each
 //! test is a call of the Molt `test` command provided by the
-//! `molt_shell::test_harness`.  The tests are executed in the context of the
+//! `molt_shell::test_harness` module.  The tests are executed in the context of the
 //! the application's `molt::Interp` (and so can test application-specific commands).
 //!
 //! The test harness keeps track of the number of tests executed, and whether they
@@ -40,6 +40,32 @@ use std::rc::Rc;
 /// The first element of the `args` array must be the name of the test script
 /// to execute.  The remaining elements are meant to be test harness options,
 /// but are currently ignored.
+///
+/// See [`molt::interp`](../molt/interp/index.html) for details on how to configure and
+/// add commands to a Molt interpreter.
+///
+/// # Example
+///
+/// ```
+/// use molt::Interp;
+/// use std::env;
+///
+/// // FIRST, get the command line arguments.
+/// let args: Vec<String> = env::args().collect();
+///
+/// // NEXT, create and initialize the interpreter.
+/// let mut interp = Interp::new();
+///
+/// // NOTE: commands can be added to the interpreter here.
+///
+/// // NEXT, evaluate the file, if any.
+/// if args.len() > 1 {
+///     molt_shell::test_harness(&mut interp, &args[1..]);
+/// } else {
+///     eprintln!("Usage: mytest *filename.tcl");
+/// }
+/// ```
+
 pub fn test_harness(interp: &mut Interp, args: &[String]) {
     // FIRST, announce who we are.
     println!("Molt {} -- Test Harness", env!("CARGO_PKG_VERSION"));

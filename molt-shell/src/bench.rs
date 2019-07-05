@@ -1,3 +1,17 @@
+//! Molt Benchmark Harness
+//!
+//! A Molt benchmark script is a Molt script containing benchmarks of Molt code.  Each
+//! benchmark is a call of the Molt `benchmark` command provided by the
+//! `molt_shell::bench` module.  The benchmarks are executed in the context of the
+//! the application's `molt::Interp` (and so can benchmark application-specific commands).
+//!
+//! The harness executes each benchmark many times and retains the average run-time
+//! in microseconds. The `molt-app` tool provides access to the test harness for a
+//! standard Molt interpreter.
+//!
+//! See the Molt Book (or the Molt benchmark suite) for how to write
+//! benchmarks and examples of benchmark scripts.
+
 use molt::check_args;
 use molt::molt_ok;
 use molt::ContextID;
@@ -13,8 +27,34 @@ use std::path::PathBuf;
 /// in the context of the given interpreter.
 ///
 /// The first element of the `args` array must be the name of the benchmark script
-/// to execute.  The remaining elements are meant to be harness options,
-/// but are currently ignored.
+/// to execute.  The remaining elements are benchmark options.  To see the list
+/// of options, see The Molt Book or execute this function with an empty argument
+/// list.
+///
+/// See [`molt::interp`](../molt/interp/index.html) for details on how to configure and
+/// add commands to a Molt interpreter.
+///
+/// # Example
+///
+/// ```
+/// use molt::Interp;
+/// use std::env;
+///
+/// // FIRST, get the command line arguments.
+/// let args: Vec<String> = env::args().collect();
+///
+/// // NEXT, create and initialize the interpreter.
+/// let mut interp = Interp::new();
+///
+/// // NOTE: commands can be added to the interpreter here.
+///
+/// // NEXT, evaluate the file, if any.
+/// if args.len() > 1 {
+///     molt_shell::benchmark(&mut interp, &args[1..]);
+/// } else {
+///     eprintln!("Usage: mybench *filename.tcl");
+/// }
+/// ```
 pub fn benchmark(interp: &mut Interp, args: &[String]) {
     // FIRST, get the script file name
     if args.is_empty() {

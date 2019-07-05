@@ -6,12 +6,29 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::fs;
 
-/// Invokes an interactive REPL for the given interpreter, using `rustlyline` line editing.
+/// Invokes an interactive REPL for the given interpreter, using `rustyline` line editing.
 ///
 /// The REPL will display the given prompt to the user.  Press `^C` to terminate
-/// the REPL, returning control to the caller.  Entering `exit` will usually cause the
+/// the REPL, returning control to the caller.  Entering `exit` will also normallycause the
 /// application to terminate (but the `exit` command can be removed or redefined by the
 /// application).
+///
+/// See [`molt::interp`](../molt/interp/index.html) for details on how to configure and
+/// add commands to a Molt interpreter.
+///
+/// # Example
+///
+/// ```
+/// use molt::Interp;
+///
+/// // FIRST, create and initialize the interpreter.
+/// let mut interp = Interp::new();
+///
+/// // NOTE: commands can be added to the interpreter here.
+///
+/// // NEXT, invoke the REPL.
+/// molt_shell::repl(&mut interp, "% ");
+/// ```
 pub fn repl(interp: &mut Interp, prompt: &str) {
     let mut rl = Editor::<()>::new();
 
@@ -67,8 +84,33 @@ pub fn repl(interp: &mut Interp, prompt: &str) {
 /// variables:
 ///
 /// * The Molt variable `arg0` will be set to the `arg0` value.
-/// * The Molt variable `argv` will be set to the content of the `argv` array,
-///   formatted as a Molt list.
+/// * The Molt variable `argv` will be set to a Molt list containing the remainder of the
+///   `argv` array.
+///
+/// See [`molt::interp`](../molt/interp/index.html) for details on how to configure and
+/// add commands to a Molt interpreter.
+///
+/// # Example
+///
+/// ```
+/// use molt::Interp;
+/// use std::env;
+///
+/// // FIRST, get the command line arguments.
+/// let args: Vec<String> = env::args().collect();
+///
+/// // NEXT, create and initialize the interpreter.
+/// let mut interp = Interp::new();
+///
+/// // NOTE: commands can be added to the interpreter here.
+///
+/// // NEXT, evaluate the file, if any.
+/// if args.len() > 1 {
+///     molt_shell::script(&mut interp, &args[1..]);
+/// } else {
+///     eprintln!("Usage: myshell *filename.tcl");
+/// }
+/// ```
 pub fn script(interp: &mut Interp, args: &[String]) {
     let arg0 = &args[0];
     let argv = &args[1..];

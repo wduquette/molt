@@ -9,5 +9,5 @@ molt = { path = "../molt" }
 molt-shell = { path = "../molt-shell" }
 
 [[bin]]
-name = "molt"
+name = "moltsh"
 path = "src/main.rs"

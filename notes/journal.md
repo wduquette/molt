@@ -2,9 +2,7 @@
 
 Things to remember to do soon:
 
-*   Revise `Value` to have a toplevel `Rc` and use a single `RefCell`.
-    *   The `Rc` so that the whole thing can be cloned efficiently.
-    *   The single `RefCell` because we often have to borrow both, and that's wasteful.
+*   See about optimization levels.
 *   Document "Custom Shell Applications" in chapter 4 of the Molt Book.
 *   Before Tcl 2019:
     *   Publish Molt crates to crates.io.
@@ -38,11 +36,28 @@ Micros     Norm -- Benchmark
   1.19     1.66 -- ident-1.1 ident, simple argument
   1.42     1.97 -- incr-1.1 incr a
 ```
-   *   Added a top-level `Rc<T>` so that Values can now be cheaply cloned.
-   *   Release benchmark: rather slower...but these benchmarks aren't going to
-       deal with the cloning much.
+    *   Added a top-level `Rc<T>` so that Values can now be cheaply cloned.
+    *   Release benchmark: rather slower...but these benchmarks aren't going to
+        deal with the cloning much.  And cloning should be faster.  
+    *   And in fact I see that ok-1.1 is slower (why?) but the other commands are
+        faster relative to it.  What did I do that makes the ok-1.1 case slower?
 ```text
+Micros     Norm -- Benchmark
+  1.00     1.00 -- ok-1.1 ok, no arguments
+  1.40     1.40 -- ok-1.2 ok, one argument
+  1.95     1.95 -- ok-1.3 ok, two arguments
+  1.60     1.60 -- ident-1.1 ident, simple argument
+  1.74     1.75 -- incr-1.1 incr a
 ```
+*   A different approach:
+    *   What if values were always stored in a hash map in the interpreter, with an integer
+        index?  
+    *   A `Value` would be a newtype like `ContextID`
+    *   A list would a vector of integers, effectively.
+    *   On getting the string rep or getting a data rep, you'd replace the `ValueRep` in
+        the hash map with a new one.
+    *   But you still need reference counting, so you know when to drop the value.
+    *   And all those hash lookups....
 
 
 ### 2019-07-04 (Thursday)

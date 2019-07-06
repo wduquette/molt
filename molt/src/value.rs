@@ -160,7 +160,13 @@ use std::str::FromStr;
 /// The `Value` type. See [the module level documentation](index.html) for more.
 #[derive(Clone, Debug)]
 pub struct Value {
-    inner: RefCell<InnerValue>,
+    inner: Rc<RefCell<InnerValue>>,
+}
+
+impl Value {
+    fn make(inner: InnerValue) -> Self {
+        Self { inner: Rc::new(RefCell::new(inner)) }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -169,11 +175,6 @@ struct InnerValue {
     data_rep: DataRep,
 }
 
-impl Value {
-    fn make(inner: InnerValue) -> Self {
-        Self { inner: RefCell::new(inner) }
-    }
-}
 
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

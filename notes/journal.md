@@ -38,6 +38,12 @@ Micros     Norm -- Benchmark
   1.19     1.66 -- ident-1.1 ident, simple argument
   1.42     1.97 -- incr-1.1 incr a
 ```
+   *   Added a top-level `Rc<T>` so that Values can now be cheaply cloned.
+   *   Release benchmark: rather slower...but these benchmarks aren't going to
+       deal with the cloning much.
+```text
+```
+
 
 ### 2019-07-04 (Thursday)
 *   Added tests to interp.rs for the context cache.

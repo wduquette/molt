@@ -4,7 +4,7 @@ Things to remember to do soon:
 
 *   Revise `Value` to have a toplevel `Rc` and use a single `RefCell`.
     *   The `Rc` so that the whole thing can be cloned efficiently.
-    *   The single `RefCell` because we often have to borrow both, and that's wasteful. 
+    *   The single `RefCell` because we often have to borrow both, and that's wasteful.
 *   Document "Custom Shell Applications" in chapter 4 of the Molt Book.
 *   Before Tcl 2019:
     *   Publish Molt crates to crates.io.
@@ -25,6 +25,19 @@ Things to remember to do soon:
 *   MoltList should maybe be a newtype with helper methods.
     *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
         e.g., `From<&MoltValue>`, `From<&Vec<String>>`
+
+### 2019-07-06 (Saturday)
+*   Reworking the `Value` internals
+    *   Replaced the two `RefCell<T>`'s with a single `RefCell<InnerValue>`.
+    *   Release benchmark: more or less the same as before.
+```text
+Micros     Norm -- Benchmark
+  0.72     1.00 -- ok-1.1 ok, no arguments
+  1.08     1.51 -- ok-1.2 ok, one argument
+  1.45     2.02 -- ok-1.3 ok, two arguments
+  1.19     1.66 -- ident-1.1 ident, simple argument
+  1.42     1.97 -- incr-1.1 incr a
+```
 
 ### 2019-07-04 (Thursday)
 *   Added tests to interp.rs for the context cache.

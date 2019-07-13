@@ -5,3 +5,7 @@ members = [
     "molt-shell",
     "molt-app",
 ]
+
+[profile.release]
+opt-level = 3
+lto = true

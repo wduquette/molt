@@ -160,9 +160,21 @@ use std::str::FromStr;
 /// The `Value` type. See [the module level documentation](index.html) for more.
 #[derive(Clone, Debug)]
 pub struct Value {
-    string_rep: RefCell<Option<Rc<String>>>,
-    data_rep: RefCell<DataRep>,
+    inner: Rc<RefCell<InnerValue>>,
 }
+
+impl Value {
+    fn make(inner: InnerValue) -> Self {
+        Self { inner: Rc::new(RefCell::new(inner)) }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct InnerValue {
+    string_rep: Option<Rc<String>>,
+    data_rep: DataRep,
+}
+
 
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -191,10 +203,11 @@ impl From<String> for Value {
     /// assert_eq!(&*value.as_string(), "My New String");
     /// ```
     fn from(str: String) -> Self {
-        Self {
-            string_rep: RefCell::new(Some(Rc::new(str))),
-            data_rep: RefCell::new(DataRep::None),
-        }
+        let inner = InnerValue {
+            string_rep: Some(Rc::new(str)),
+            data_rep: DataRep::None,
+        };
+        Value::make(inner)
     }
 }
 
@@ -209,10 +222,11 @@ impl From<&str> for Value {
     /// assert_eq!(&*value.as_string(), "My String Slice");
     /// ```
     fn from(str: &str) -> Self {
-        Self {
-            string_rep: RefCell::new(Some(Rc::new(str.to_string()))),
-            data_rep: RefCell::new(DataRep::None),
-        }
+        let inner = InnerValue {
+            string_rep: Some(Rc::new(str.to_string())),
+            data_rep: DataRep::None,
+        };
+        Value::make(inner)
     }
 }
 
@@ -229,10 +243,11 @@ impl From<&String> for Value {
     /// assert_eq!(&*value.as_string(), "My String Slice");
     /// ```
     fn from(str: &String) -> Self {
-        Self {
-            string_rep: RefCell::new(Some(Rc::new(str.to_string()))),
-            data_rep: RefCell::new(DataRep::None),
-        }
+        let inner = InnerValue {
+            string_rep: Some(Rc::new(str.to_string())),
+            data_rep: DataRep::None,
+        };
+        Value::make(inner)
     }
 }
 
@@ -251,10 +266,11 @@ impl From<bool> for Value {
     /// assert_eq!(&*value.as_string(), "0");
     /// ```
     fn from(flag: bool) -> Self {
-        Self {
-            string_rep: RefCell::new(None),
-            data_rep: RefCell::new(DataRep::Bool(flag)),
-        }
+        let inner = InnerValue {
+            string_rep: None,
+            data_rep: DataRep::Bool(flag),
+        };
+        Value::make(inner)
     }
 }
 
@@ -270,10 +286,11 @@ impl From<MoltInt> for Value {
     /// assert_eq!(&*value.as_string(), "123");
     /// ```
     fn from(int: MoltInt) -> Self {
-        Self {
-            string_rep: RefCell::new(None),
-            data_rep: RefCell::new(DataRep::Int(int)),
-        }
+        let inner = InnerValue {
+            string_rep: None,
+            data_rep: DataRep::Int(int),
+        };
+        Value::make(inner)
     }
 }
 
@@ -297,10 +314,11 @@ impl From<MoltFloat> for Value {
     /// assert_eq!(&*value.as_string(), "12.34");
     /// ```
     fn from(flt: MoltFloat) -> Self {
-        Self {
-            string_rep: RefCell::new(None),
-            data_rep: RefCell::new(DataRep::Flt(flt)),
-        }
+        let inner = InnerValue {
+            string_rep: None,
+            data_rep: DataRep::Flt(flt),
+        };
+        Value::make(inner)
     }
 }
 
@@ -317,10 +335,11 @@ impl From<MoltList> for Value {
     /// assert_eq!(&*value.as_string(), "1234 abc");
     /// ```
     fn from(list: MoltList) -> Self {
-        Self {
-            string_rep: RefCell::new(None),
-            data_rep: RefCell::new(DataRep::List(Rc::new(list))),
-        }
+        let inner = InnerValue {
+            string_rep: None,
+            data_rep: DataRep::List(Rc::new(list)),
+        };
+        Value::make(inner)
     }
 }
 
@@ -338,10 +357,11 @@ impl From<&[Value]> for Value {
     /// ```
     fn from(list: &[Value]) -> Self {
         let list = list.to_vec();
-        Self {
-            string_rep: RefCell::new(None),
-            data_rep: RefCell::new(DataRep::List(Rc::new(list))),
-        }
+        let inner = InnerValue {
+            string_rep: None,
+            data_rep: DataRep::List(Rc::new(list)),
+        };
+        Value::make(inner)
     }
 }
 
@@ -367,18 +387,17 @@ impl Value {
     /// ```
     pub fn as_string(&self) -> Rc<String> {
         // FIRST, if there's already a string, return it.
-        let mut string_ref = self.string_rep.borrow_mut();
+        let mut iref = self.inner.borrow_mut();
 
-        if let Some(str) = &*string_ref {
+        if let Some(str) = &iref.string_rep {
             return Rc::clone(str);
         }
 
         // NEXT, if there's no string there must be data.  Convert the data to a string,
         // and save it for next time.
-        let data_ref = self.data_rep.borrow();
-        let new_string = Rc::new((*data_ref).to_string());
+        let new_string = Rc::new((iref.data_rep).to_string());
 
-        *string_ref = Some(new_string.clone());
+        iref.string_rep = Some(new_string.clone());
 
         new_string
     }
@@ -434,33 +453,32 @@ impl Value {
     /// # }
     /// ```
     pub fn as_bool(&self) -> Result<bool, ResultCode> {
-        let mut data_ref = self.data_rep.borrow_mut();
-        let mut string_ref = self.string_rep.borrow_mut();
+        let mut iref = self.inner.borrow_mut();
 
         // FIRST, if we have a boolean then just return it.
-        if let DataRep::Bool(flag) = *data_ref {
+        if let DataRep::Bool(flag) = iref.data_rep {
             return Ok(flag);
         }
 
         // NEXT, if we have a number return whether it's zero or not.
-        if let DataRep::Int(int) = *data_ref {
+        if let DataRep::Int(int) = iref.data_rep {
             return Ok(int != 0);
         }
 
-        if let DataRep::Flt(flt) = *data_ref {
+        if let DataRep::Flt(flt) = iref.data_rep {
             return Ok(flt != 0.0);
         }
 
         // NEXT, if we don't have a string_rep, get one from the current
         // data_rep.
-        if (*string_ref).is_none() {
-            *string_ref = Some(Rc::new(data_ref.to_string()));
+        if iref.string_rep.is_none() {
+            iref.string_rep = Some(Rc::new(iref.data_rep.to_string()));
         }
 
         // NEXT, Try to parse the string_rep as a boolean
-        let str = (&*string_ref).as_ref().unwrap();
+        let str = iref.string_rep.as_ref().unwrap();
         let flag = Value::get_bool(&*str)?;
-        *data_ref = DataRep::Bool(flag);
+        iref.data_rep = DataRep::Bool(flag);
         Ok(flag)
     }
 
@@ -525,24 +543,23 @@ impl Value {
     /// # }
     /// ```
     pub fn as_int(&self) -> Result<MoltInt, ResultCode> {
-        let mut data_ref = self.data_rep.borrow_mut();
-        let mut string_ref = self.string_rep.borrow_mut();
+        let mut iref = self.inner.borrow_mut();
 
         // FIRST, if we have an integer then just return it.
-        if let DataRep::Int(int) = *data_ref {
+        if let DataRep::Int(int) = iref.data_rep {
             return Ok(int);
         }
 
         // NEXT, if we don't have a string_rep, get one from the current
         // data_rep.
-        if (*string_ref).is_none() {
-            *string_ref = Some(Rc::new(data_ref.to_string()));
+        if iref.string_rep.is_none() {
+            iref.string_rep = Some(Rc::new(iref.data_rep.to_string()));
         }
 
         // NEXT, Try to parse the string_rep as an integer
-        let str = (&*string_ref).as_ref().unwrap();
+        let str = iref.string_rep.as_ref().unwrap();
         let int = Value::get_int(&*str)?;
-        *data_ref = DataRep::Int(int);
+        iref.data_rep = DataRep::Int(int);
         Ok(int)
     }
 
@@ -612,24 +629,23 @@ impl Value {
     /// # }
     /// ```
     pub fn as_float(&self) -> Result<MoltFloat, ResultCode> {
-        let mut data_ref = self.data_rep.borrow_mut();
-        let mut string_ref = self.string_rep.borrow_mut();
+        let mut iref = self.inner.borrow_mut();
 
         // FIRST, if we have a float then just return it.
-        if let DataRep::Flt(flt) = *data_ref {
+        if let DataRep::Flt(flt) = iref.data_rep {
             return Ok(flt);
         }
 
         // NEXT, if we don't have a string_rep, get one from the current
         // data rep.
-        if (*string_ref).is_none() {
-            *string_ref = Some(Rc::new(data_ref.to_string()));
+        if iref.string_rep.is_none() {
+            iref.string_rep = Some(Rc::new(iref.data_rep.to_string()));
         }
 
         // NEXT, Try to parse the string_rep as a float
-        let str = (&*string_ref).as_ref().unwrap();
+        let str = iref.string_rep.as_ref().unwrap();
         let flt = Value::get_float(&*str)?;
-        *data_ref = DataRep::Flt(flt);
+        iref.data_rep = DataRep::Flt(flt);
         Ok(flt)
     }
 
@@ -697,24 +713,23 @@ impl Value {
     /// # }
     /// ```
     pub fn as_list(&self) -> Result<Rc<MoltList>, ResultCode> {
-        let mut string_ref = self.string_rep.borrow_mut();
-        let mut data_ref = self.data_rep.borrow_mut();
+        let mut iref = self.inner.borrow_mut();
 
         // FIRST, if we have the desired type, return it.
-        if let DataRep::List(list) = &*data_ref {
+        if let DataRep::List(list) = &iref.data_rep {
             return Ok(list.clone());
         }
 
         // NEXT, if we don't have a string_rep, get one from the current
         // data rep.
-        if (*string_ref).is_none() {
-            *string_ref = Some(Rc::new(data_ref.to_string()));
+        if iref.string_rep.is_none() {
+            iref.string_rep = Some(Rc::new(iref.data_rep.to_string()));
         }
 
         // NEXT, try to parse the string_rep as a list.
-        let str = (&*string_ref).as_ref().unwrap();
+        let str = iref.string_rep.as_ref().unwrap();
         let list = Rc::new(get_list(str)?);
-        *data_ref = DataRep::List(list.clone());
+        iref.data_rep = DataRep::List(list.clone());
 
         Ok(list)
     }
@@ -745,10 +760,11 @@ impl Value {
     where
         T: Display + Debug,
     {
-        Value {
-            string_rep: RefCell::new(None),
-            data_rep: RefCell::new(DataRep::Other(Rc::new(value))),
-        }
+        let inner = InnerValue {
+            string_rep: None,
+            data_rep: DataRep::Other(Rc::new(value)),
+        };
+        Value::make(inner)
     }
 
     /// Tries to interpret the `Value` as a value of external type `T`, parsing
@@ -791,11 +807,10 @@ impl Value {
     where
         T: Display + Debug + FromStr,
     {
-        let mut string_ref = self.string_rep.borrow_mut();
-        let mut data_ref = self.data_rep.borrow_mut();
+        let mut iref = self.inner.borrow_mut();
 
         // FIRST, if we have the desired type, return it.
-        if let DataRep::Other(other) = &*data_ref {
+        if let DataRep::Other(other) = &iref.data_rep {
             // other is an &Rc<MoltAny>
             let result = other.clone().downcast::<T>();
 
@@ -807,17 +822,17 @@ impl Value {
         }
 
         // NEXT, if we don't have a string_rep, get one.
-        if (*string_ref).is_none() {
-            *string_ref = Some(Rc::new(data_ref.to_string()));
+        if iref.string_rep.is_none() {
+            iref.string_rep = Some(Rc::new(iref.data_rep.to_string()));
         }
 
         // NEXT, can we parse it as a T?  If so, save it back to
         // the data_rep, and return it.
-        if let Some(str) = &*string_ref {
+        if let Some(str) = &iref.string_rep {
             if let Ok(tval) = str.parse::<T>() {
                 let tval = Rc::new(tval);
                 let out = tval.clone();
-                *data_ref = DataRep::Other(Rc::new(tval));
+                iref.data_rep = DataRep::Other(Rc::new(tval));
                 return Some(out);
             }
         }
@@ -862,11 +877,10 @@ impl Value {
     where
         T: Display + Debug + FromStr + Copy,
     {
-        let mut string_ref = self.string_rep.borrow_mut();
-        let mut data_ref = self.data_rep.borrow_mut();
+        let mut iref = self.inner.borrow_mut();
 
         // FIRST, if we have the desired type, return it.
-        if let DataRep::Other(other) = &*data_ref {
+        if let DataRep::Other(other) = &iref.data_rep {
             // other is an &Rc<MoltAny>
             let result = other.clone().downcast::<T>();
 
@@ -878,17 +892,17 @@ impl Value {
         }
 
         // NEXT, if we don't have a string_rep, get one.
-        if (*string_ref).is_none() {
-            *string_ref = Some(Rc::new(data_ref.to_string()));
+        if iref.string_rep.is_none() {
+            iref.string_rep = Some(Rc::new(iref.data_rep.to_string()));
         }
 
         // NEXT, can we parse it as a T?  If so, save it back to
         // the data_rep, and return it.
-        if let Some(str) = &*string_ref {
+        if let Some(str) = &iref.string_rep {
             if let Ok(tval) = str.parse::<T>() {
                 let tval = Rc::new(tval);
                 let out = tval.clone();
-                *data_ref = DataRep::Other(Rc::new(tval));
+                iref.data_rep = DataRep::Other(Rc::new(tval));
                 return Some(*out);
             }
         }
@@ -899,9 +913,9 @@ impl Value {
 
     /// For use by `expr::expr` in parsing out `Values`.
     pub(crate) fn already_number(&self) -> Option<Datum> {
-        let data_ref = self.data_rep.borrow();
+        let iref = self.inner.borrow();
 
-        match *data_ref {
+        match iref.data_rep {
             DataRep::Flt(flt) => Some(Datum::float(flt)),
             DataRep::Int(int) => Some(Datum::int(int)),
             _ => None,

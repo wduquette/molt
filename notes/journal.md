@@ -2,7 +2,11 @@
 
 Things to remember to do soon:
 
-*   See about optimization levels.
+*   Flesh out the interp.rs test suite and rustdocs.
+*   Review commands.rs to use `Value` where appropriate.
+*   Review test_harness to use `Value` where appropriate.
+*   Review the context cache; make sure that "object commands" that use the context cache
+    can easily drop the context if they are destroyed by `rename $cmd ""`.
 *   Document "Custom Shell Applications" in chapter 4 of the Molt Book.
 *   Before Tcl 2019:
     *   Publish Molt crates to crates.io.
@@ -23,6 +27,10 @@ Things to remember to do soon:
 *   MoltList should maybe be a newtype with helper methods.
     *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
         e.g., `From<&MoltValue>`, `From<&Vec<String>>`
+*   Question: What would it take to implement core `molt` in `no_std` mode, now that the
+    `alloc` crate exists?
+    *   Is this a reasonable goal?
+    *   Would allow Molt to be used in embedded code.
 
 ### 2019-07-06 (Saturday)
 *   Reworking the `Value` internals

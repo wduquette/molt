@@ -74,7 +74,7 @@ pub fn cmd_break(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 pub fn cmd_catch(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 3, "script ?resultVarName")?;
 
-    let result = interp.eval_body(&*argv[1].as_string());
+    let result = interp.eval_body(&argv[1]);
     let code: MoltInt;
     let mut value = Value::empty();
 
@@ -166,13 +166,13 @@ pub fn cmd_expr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 pub fn cmd_for(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 5, 5, "start test next command")?;
 
-    let start = &*argv[1].as_string();
+    let start = &argv[1];
     let test = &argv[2];
-    let next = &*argv[3].as_string();
-    let command = &*argv[4].as_string();
+    let next = &argv[3];
+    let command = &argv[4];
 
     // Start
-    interp.eval(start)?;
+    interp.eval_value(start)?;
 
     while interp.bool_expr(test)? {
         let result = interp.eval_body(command);
@@ -215,7 +215,7 @@ pub fn cmd_foreach(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
     let var_list = &*argv[1].as_list()?;
     let list = &*argv[2].as_list()?;
-    let body = &*argv[3].as_string();
+    let body = &argv[3];
 
     let mut i = 0;
 
@@ -296,7 +296,7 @@ pub fn cmd_if(interp: &mut Interp, argv: &[Value]) -> MoltResult {
                 }
 
                 if argi < argv.len() {
-                    return interp.eval_body(&*argv[argi].as_string());
+                    return interp.eval_body(&argv[argi]);
                 } else {
                     break;
                 }
@@ -334,7 +334,7 @@ pub fn cmd_if(interp: &mut Interp, argv: &[Value]) -> MoltResult {
                 }
 
                 if argi < argv.len() {
-                    return interp.eval_body(&*argv[argi].as_string());
+                    return interp.eval_body(&argv[argi]);
                 } else {
                     break;
                 }
@@ -639,7 +639,7 @@ pub fn cmd_source(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 pub fn cmd_time(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 3, "command ?count?")?;
 
-    let command = &*argv[1].as_string();
+    let command = &argv[1];
 
     let count = if argv.len() == 3 {
         argv[2].as_int()?
@@ -650,8 +650,7 @@ pub fn cmd_time(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     let start = Instant::now();
 
     for _i in 0..count {
-        let result = interp.eval(command);
-        // Note: explicit returns will break the loop.
+        let result = interp.eval_value(command);
         if result.is_err() {
             return result;
         }
@@ -688,7 +687,7 @@ pub fn cmd_while(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 3, 3, "test command")?;
 
     while interp.bool_expr(&argv[1])? {
-        let result = interp.eval_body(&*argv[2].as_string());
+        let result = interp.eval_body(&argv[2]);
 
         match result {
             Ok(_) => (),

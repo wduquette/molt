@@ -314,7 +314,8 @@ impl TestCommand {
         }
 
         // Body
-        let result = interp.eval_body(&info.body);
+        let body = Value::from(&info.body);
+        let result = interp.eval_body(&body);
 
         // Cleanup
         if let Err(ResultCode::Error(msg)) = interp.eval(&info.cleanup) {

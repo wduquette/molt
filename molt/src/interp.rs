@@ -73,6 +73,8 @@ pub struct Interp {
     num_levels: usize,
 }
 
+// NOTE: The order of methods in the generated RustDoc depends on the order in this block.
+// Consequently, methods are ordered pedagogically.
 impl Interp {
     //--------------------------------------------------------------------------------------------
     // Constructors
@@ -98,13 +100,16 @@ impl Interp {
     pub fn new() -> Self {
         let mut interp = Interp::empty();
 
+        // TODO: These commands affect the interpreter only, not the external environment.
+        // It might be desirable to subdivide them further, into those that can cause
+        // denial-of-service kinds of problems, e.g., for, while, proc, rename, and those
+        // that can't.
         interp.add_command("append", commands::cmd_append);
         interp.add_command("assert_eq", commands::cmd_assert_eq);
         interp.add_command("break", commands::cmd_break);
         interp.add_command("catch", commands::cmd_catch);
         interp.add_command("continue", commands::cmd_continue);
         interp.add_command("error", commands::cmd_error);
-        interp.add_command("exit", commands::cmd_exit);
         interp.add_command("expr", commands::cmd_expr);
         interp.add_command("for", commands::cmd_for);
         interp.add_command("foreach", commands::cmd_foreach);
@@ -122,11 +127,116 @@ impl Interp {
         interp.add_command("rename", commands::cmd_rename);
         interp.add_command("return", commands::cmd_return);
         interp.add_command("set", commands::cmd_set);
-        interp.add_command("source", commands::cmd_source);
         interp.add_command("time", commands::cmd_time);
         interp.add_command("unset", commands::cmd_unset);
         interp.add_command("while", commands::cmd_while);
+
+        // TODO: Requires file access.  Ultimately, might go in an extension crate if
+        // the necessary operations aren't available in core::.
+        interp.add_command("source", commands::cmd_source);
+
+        // TODO: Useful for entire programs written in Molt; but not necessarily wanted in
+        // extension scripts.
+        interp.add_command("exit", commands::cmd_exit);
+
         interp
+    }
+
+    //--------------------------------------------------------------------------------------------
+    // Script and Expression Evaluation
+
+    /// Evaluates a script one command at a time.  Returns the `Value` of the last command
+    /// in the script, or the value of any explicit `return` call in the script, or an
+    /// error thrown by the script.
+    ///
+    /// This method returns only `Ok` or `ResultCode::Error`.  `ResultCode::Return` is converted
+    /// to `Ok`, and `ResultCode::Break` and `ResultCode::Continue` are converted to errors.
+    ///
+    /// Use this method (or [`eval_value`](#method.eval_value) to evaluate arbitrary scripts.
+    /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
+    pub fn eval(&mut self, script: &str) -> MoltResult {
+        // FIRST, check the number of nesting levels
+        self.num_levels += 1;
+
+        if self.num_levels > self.recursion_limit {
+            self.num_levels -= 1;
+            return molt_err!("too many nested calls to Interp::eval (infinite loop?)");
+        }
+
+        // NEXT, evaluate the script and translate the result to Ok or Error
+        let mut ctx = EvalPtr::new(script);
+
+        let result = self.eval_context(&mut ctx);
+
+        // NEXT, decrement the number of nesting levels.
+        self.num_levels -= 1;
+
+        // NEXT, translate and return the result.
+        match result {
+            Err(ResultCode::Return(value)) => molt_ok!(value),
+            Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
+            Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
+            _ => result,
+        }
+    }
+
+    /// Evaluates a script one command at a time.  Returns the `Value` of the last command
+    /// in the script, or the value of any explicit `return` call in the script, or an
+    /// error thrown by the script.
+    ///
+    /// This method returns only `Ok` or `ResultCode::Error`.  `ResultCode::Return` is converted
+    /// to `Ok`, and `ResultCode::Break` and `ResultCode::Continue` are converted to errors.
+    ///
+    /// Use this method (or [`eval`](#method.eval) to evaluate arbitrary scripts.
+    /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
+    pub fn eval_value(&mut self, script: &Value) -> MoltResult {
+        self.eval(&*script.as_string())
+    }
+
+    /// Evaluates a script one command at a time, returning whatever
+    /// MoltResult arises.
+    ///
+    /// This is the method to use when evaluating a control structure's
+    /// script body; the control structure must handle the special
+    /// result codes appropriately.
+    pub fn eval_body(&mut self, script: &Value) -> MoltResult {
+        let script = script.as_string();
+        let mut ctx = EvalPtr::new(&*script);
+
+        self.eval_context(&mut ctx)
+    }
+
+    /// Determines whether or not the script is syntactically complete,
+    /// e.g., has no unmatched quotes, brackets, or braces.
+    ///
+    /// REPLs use this to determine whether or not to ask for another line of
+    /// input.
+    ///
+    /// # Example
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::interp::Interp;
+    /// let mut interp = Interp::new();
+    /// assert!(interp.complete("set a [expr {1+1}]"));
+    /// assert!(!interp.complete("set a [expr {1+1"));
+    /// ```
+
+    pub fn complete(&mut self, script: &str) -> bool {
+        let mut ctx = EvalPtr::new(script);
+        ctx.set_no_eval(true);
+
+        self.eval_context(&mut ctx).is_ok()
+    }
+
+    // Evaluates an expression and returns its value.
+    pub fn expr(&mut self, expr: &Value) -> MoltResult {
+        expr::expr(self, expr)
+    }
+
+    // Evaluates a boolean expression and returns its value, or an error if it couldn't
+    // be interpreted as a boolean.
+    pub fn bool_expr(&mut self, expr: &Value) -> Result<bool, ResultCode> {
+        expr::bool_expr(self, expr)
     }
 
     //--------------------------------------------------------------------------------------------
@@ -444,84 +554,6 @@ impl Interp {
         self.scopes.upvar(level, name);
     }
 
-    //--------------------------------------------------------------------------------------------
-    // Script and Expression Evaluation
-
-    /// Evaluates a script one command at a time, returning the
-    /// value of the last command in the script, the value of an explicit
-    /// `return` command, or an error.
-    ///
-    /// `break` and `continue` results are converted to errors.
-    ///
-    /// This is the method to use when evaluating an entire script.
-    pub fn eval(&mut self, script: &str) -> MoltResult {
-        // FIRST, check the number of nesting levels
-        self.num_levels += 1;
-
-        if self.num_levels > self.recursion_limit {
-            self.num_levels -= 1;
-            return molt_err!("too many nested calls to Interp::eval (infinite loop?)");
-        }
-
-        // NEXT, evaluate the script and translate the result to Ok or Error
-        let mut ctx = EvalPtr::new(script);
-
-        let result = self.eval_context(&mut ctx);
-
-        // NEXT, decrement the number of nesting levels.
-        self.num_levels -= 1;
-
-        // NEXT, translate and return the result.
-        match result {
-            Err(ResultCode::Return(value)) => molt_ok!(value),
-            Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
-            Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
-            _ => result,
-        }
-    }
-
-    /// Evaluates a script one command at a time, returning whatever
-    /// MoltResult arises.
-    ///
-    /// This is the method to use when evaluating a control structure's
-    /// script body; the control structure must handle the special
-    /// result codes appropriately.
-    pub fn eval_body(&mut self, script: &str) -> MoltResult {
-        let mut ctx = EvalPtr::new(script);
-
-        self.eval_context(&mut ctx)
-    }
-
-    /// Determines whether or not the script is syntactically complete,
-    /// e.g., has no unmatched quotes, brackets, or braces.
-    ///
-    /// REPLs use this to determine whether or not to ask for another line of
-    /// input.
-    ///
-    /// # Example
-    /// ```
-    /// # use molt::types::*;
-    /// # use molt::interp::Interp;
-    /// let mut interp = Interp::new();
-    /// assert!(interp.complete("set a [expr {1+1}]"));
-    /// assert!(!interp.complete("set a [expr {1+1"));
-    /// ```
-
-    pub fn complete(&mut self, script: &str) -> bool {
-        let mut ctx = EvalPtr::new(script);
-        ctx.set_no_eval(true);
-
-        self.eval_context(&mut ctx).is_ok()
-    }
-
-    // Evaluates an expression and returns its value.
-    pub fn expr(&mut self, expr: &Value) -> MoltResult {
-        expr::expr(self, expr)
-    }
-
-    pub fn bool_expr(&mut self, expr: &Value) -> Result<bool, ResultCode> {
-        expr::bool_expr(self, expr)
-    }
 
     //--------------------------------------------------------------------------------------------
     // Explicit Substitutions
@@ -1056,6 +1088,90 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_empty() {
+        let interp = Interp::empty();
+        // Interpreter is empty
+        assert!(interp.command_names().is_empty());
+    }
+
+    #[test]
+    fn test_new() {
+        let interp = Interp::new();
+
+        // Interpreter is not empty
+        assert!(!interp.command_names().is_empty());
+
+        // Note: in theory, we should test here that the normal set of commands is present.
+        // In fact, that should be tested by the `molt test` suite.
+    }
+
+    #[test]
+    fn test_eval() {
+        let mut interp = Interp::new();
+
+        assert_eq!(interp.eval("set a 1"), Ok(Value::from("1")));
+        assert_eq!(interp.eval("error 2"), Err(ResultCode::Error(Value::from("2"))));
+        assert_eq!(interp.eval("return 3"), Ok(Value::from("3")));
+        assert_eq!(interp.eval("break"),
+            Err(ResultCode::Error(Value::from("invoked \"break\" outside of a loop"))));
+        assert_eq!(interp.eval("continue"),
+            Err(ResultCode::Error(Value::from("invoked \"continue\" outside of a loop"))));
+    }
+
+    #[test]
+    fn test_eval_value() {
+        let mut interp = Interp::new();
+
+        assert_eq!(interp.eval_value(&Value::from("set a 1")), Ok(Value::from("1")));
+        assert_eq!(interp.eval_value(&Value::from("error 2")), Err(ResultCode::Error(Value::from("2"))));
+        assert_eq!(interp.eval_value(&Value::from("return 3")), Ok(Value::from("3")));
+        assert_eq!(interp.eval_value(&Value::from("break")),
+            Err(ResultCode::Error(Value::from("invoked \"break\" outside of a loop"))));
+        assert_eq!(interp.eval_value(&Value::from("continue")),
+            Err(ResultCode::Error(Value::from("invoked \"continue\" outside of a loop"))));
+    }
+
+    #[test]
+    fn test_eval_body() {
+        let mut interp = Interp::new();
+
+        assert_eq!(interp.eval_body(&Value::from("set a 1")), Ok(Value::from("1")));
+        assert_eq!(interp.eval_body(&Value::from("error 2")), Err(ResultCode::Error(Value::from("2"))));
+        assert_eq!(interp.eval_body(&Value::from("return 3")), Err(ResultCode::Return(Value::from("3"))));
+        assert_eq!(interp.eval_body(&Value::from("break")), Err(ResultCode::Break));
+        assert_eq!(interp.eval_body(&Value::from("continue")), Err(ResultCode::Continue));
+    }
+
+    #[test]
+    fn test_complete() {
+        let mut interp = Interp::new();
+
+        assert!(interp.complete("abc"));
+        assert!(interp.complete("a {bc} [def] \"ghi\" xyz"));
+
+        assert!(!interp.complete("a {bc"));
+        assert!(!interp.complete("a [bc"));
+        assert!(!interp.complete("a \"bc"));
+    }
+
+    #[test]
+    fn test_expr() {
+        let mut interp = Interp::new();
+        assert_eq!(interp.expr(&Value::from("1 + 2")), Ok(Value::from(3)));
+        assert_eq!(interp.expr(&Value::from("a + b")),
+            Err(ResultCode::Error(Value::from("unknown math function \"a\""))));
+    }
+
+    #[test]
+    fn test_expr_bool() {
+        let mut interp = Interp::new();
+        assert_eq!(interp.bool_expr(&Value::from("1")), Ok(true));
+        assert_eq!(interp.bool_expr(&Value::from("0")), Ok(false));
+        assert_eq!(interp.bool_expr(&Value::from("a")),
+            Err(ResultCode::Error(Value::from("unknown math function \"a\""))));
+    }
+
+    #[test]
     fn test_recursion_limit() {
         let mut interp = Interp::new();
 
@@ -1068,19 +1184,6 @@ mod tests {
             interp.eval("myproc"),
             molt_err!("too many nested calls to Interp::eval (infinite loop?)")
         );
-    }
-
-    #[test]
-    fn test_complete() {
-        // This function tests the function by testing the Interp method
-        let mut interp = Interp::new();
-
-        assert!(interp.complete("abc"));
-        assert!(interp.complete("a {bc} [def] \"ghi\" xyz"));
-
-        assert!(!interp.complete("a {bc"));
-        assert!(!interp.complete("a [bc"));
-        assert!(!interp.complete("a \"bc"));
     }
 
     #[test]

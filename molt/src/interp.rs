@@ -496,18 +496,8 @@ impl Interp {
         }
     }
 
-    // /// Sets the value of the named variable in the current scope, creating the variable
-    // /// if necessary.
-    // ///
-    // /// TODO: Remove, and rename set_and_return.
-    // pub fn set_var(&mut self, name: &str, value: &str) {
-    //     self.scopes.set(name, Value::from(value));
-    // }
-
     /// Sets the value of the named variable in the current scope, creating the variable
     /// if necessary, and returning the value.
-    ///
-    /// TODO: Ultimately, this should be set_and_return.
     pub fn set_and_return(&mut self, name: &str, value: Value) -> Value {
         self.scopes.set(name, value.clone());
 

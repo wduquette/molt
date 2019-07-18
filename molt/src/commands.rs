@@ -201,7 +201,7 @@ pub fn cmd_foreach(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     while i < list.len() {
         for var_name in var_list {
             if i < list.len() {
-                interp.set_and_return(&*var_name.as_string(), list[i].clone());
+                interp.set_var(&*var_name.as_string(), &list[i]);
                 i += 1;
             } else {
                 interp.set_and_return(&*var_name.as_string(), Value::empty());
@@ -354,13 +354,10 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     };
 
     let var_name = &*argv[1].as_string();
-    let var_value = interp.var(var_name);
 
-    let new_value = if var_value.is_ok() {
-        var_value.unwrap().as_int()? + increment
-    } else {
-        increment
-    };
+    let new_value = increment + interp.var(var_name)
+        .and_then(|val| Ok(val.as_int()?))
+        .unwrap_or_else(|_| 0);
 
     molt_ok!(interp.set_and_return(var_name, new_value.into()))
 }
@@ -381,7 +378,6 @@ const INFO_SUBCOMMANDS: [Subcommand; 3] = [
 
 /// # info commands ?*pattern*?
 pub fn cmd_info_commands(interp: &mut Interp, _argv: &[Value]) -> MoltResult {
-    // TODO: Return the list
     molt_ok!(Value::from(interp.command_names()))
 }
 

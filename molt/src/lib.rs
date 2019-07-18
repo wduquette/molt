@@ -41,13 +41,10 @@ pub fn check_args(
     assert!(!argv.is_empty());
 
     if argv.len() < min || (max > 0 && argv.len() > max) {
-        // TODO: Need an easy way to join the values in a &[&Value] into a string.
-        // This is a stopgap.
-        let vec: Vec<String> = argv[0..namec].iter().map(|v| v.to_string()).collect();
+        let cmd_tokens = Value::from(&argv[0..namec]);
         molt_err!(
             "wrong # args: should be \"{} {}\"",
-            // argv[0..namec].join(" "),
-            vec.join(" "),
+            cmd_tokens.to_string(),
             argsig
         )
     } else {

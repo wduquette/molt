@@ -554,7 +554,6 @@ impl Interp {
         self.scopes.upvar(level, name);
     }
 
-
     //--------------------------------------------------------------------------------------------
     // Explicit Substitutions
     //
@@ -1110,36 +1109,79 @@ mod tests {
         let mut interp = Interp::new();
 
         assert_eq!(interp.eval("set a 1"), Ok(Value::from("1")));
-        assert_eq!(interp.eval("error 2"), Err(ResultCode::Error(Value::from("2"))));
+        assert_eq!(
+            interp.eval("error 2"),
+            Err(ResultCode::Error(Value::from("2")))
+        );
         assert_eq!(interp.eval("return 3"), Ok(Value::from("3")));
-        assert_eq!(interp.eval("break"),
-            Err(ResultCode::Error(Value::from("invoked \"break\" outside of a loop"))));
-        assert_eq!(interp.eval("continue"),
-            Err(ResultCode::Error(Value::from("invoked \"continue\" outside of a loop"))));
+        assert_eq!(
+            interp.eval("break"),
+            Err(ResultCode::Error(Value::from(
+                "invoked \"break\" outside of a loop"
+            )))
+        );
+        assert_eq!(
+            interp.eval("continue"),
+            Err(ResultCode::Error(Value::from(
+                "invoked \"continue\" outside of a loop"
+            )))
+        );
     }
 
     #[test]
     fn test_eval_value() {
         let mut interp = Interp::new();
 
-        assert_eq!(interp.eval_value(&Value::from("set a 1")), Ok(Value::from("1")));
-        assert_eq!(interp.eval_value(&Value::from("error 2")), Err(ResultCode::Error(Value::from("2"))));
-        assert_eq!(interp.eval_value(&Value::from("return 3")), Ok(Value::from("3")));
-        assert_eq!(interp.eval_value(&Value::from("break")),
-            Err(ResultCode::Error(Value::from("invoked \"break\" outside of a loop"))));
-        assert_eq!(interp.eval_value(&Value::from("continue")),
-            Err(ResultCode::Error(Value::from("invoked \"continue\" outside of a loop"))));
+        assert_eq!(
+            interp.eval_value(&Value::from("set a 1")),
+            Ok(Value::from("1"))
+        );
+        assert_eq!(
+            interp.eval_value(&Value::from("error 2")),
+            Err(ResultCode::Error(Value::from("2")))
+        );
+        assert_eq!(
+            interp.eval_value(&Value::from("return 3")),
+            Ok(Value::from("3"))
+        );
+        assert_eq!(
+            interp.eval_value(&Value::from("break")),
+            Err(ResultCode::Error(Value::from(
+                "invoked \"break\" outside of a loop"
+            )))
+        );
+        assert_eq!(
+            interp.eval_value(&Value::from("continue")),
+            Err(ResultCode::Error(Value::from(
+                "invoked \"continue\" outside of a loop"
+            )))
+        );
     }
 
     #[test]
     fn test_eval_body() {
         let mut interp = Interp::new();
 
-        assert_eq!(interp.eval_body(&Value::from("set a 1")), Ok(Value::from("1")));
-        assert_eq!(interp.eval_body(&Value::from("error 2")), Err(ResultCode::Error(Value::from("2"))));
-        assert_eq!(interp.eval_body(&Value::from("return 3")), Err(ResultCode::Return(Value::from("3"))));
-        assert_eq!(interp.eval_body(&Value::from("break")), Err(ResultCode::Break));
-        assert_eq!(interp.eval_body(&Value::from("continue")), Err(ResultCode::Continue));
+        assert_eq!(
+            interp.eval_body(&Value::from("set a 1")),
+            Ok(Value::from("1"))
+        );
+        assert_eq!(
+            interp.eval_body(&Value::from("error 2")),
+            Err(ResultCode::Error(Value::from("2")))
+        );
+        assert_eq!(
+            interp.eval_body(&Value::from("return 3")),
+            Err(ResultCode::Return(Value::from("3")))
+        );
+        assert_eq!(
+            interp.eval_body(&Value::from("break")),
+            Err(ResultCode::Break)
+        );
+        assert_eq!(
+            interp.eval_body(&Value::from("continue")),
+            Err(ResultCode::Continue)
+        );
     }
 
     #[test]
@@ -1158,8 +1200,12 @@ mod tests {
     fn test_expr() {
         let mut interp = Interp::new();
         assert_eq!(interp.expr(&Value::from("1 + 2")), Ok(Value::from(3)));
-        assert_eq!(interp.expr(&Value::from("a + b")),
-            Err(ResultCode::Error(Value::from("unknown math function \"a\""))));
+        assert_eq!(
+            interp.expr(&Value::from("a + b")),
+            Err(ResultCode::Error(Value::from(
+                "unknown math function \"a\""
+            )))
+        );
     }
 
     #[test]
@@ -1167,8 +1213,12 @@ mod tests {
         let mut interp = Interp::new();
         assert_eq!(interp.bool_expr(&Value::from("1")), Ok(true));
         assert_eq!(interp.bool_expr(&Value::from("0")), Ok(false));
-        assert_eq!(interp.bool_expr(&Value::from("a")),
-            Err(ResultCode::Error(Value::from("unknown math function \"a\""))));
+        assert_eq!(
+            interp.bool_expr(&Value::from("a")),
+            Err(ResultCode::Error(Value::from(
+                "unknown math function \"a\""
+            )))
+        );
     }
 
     #[test]

@@ -165,7 +165,9 @@ pub struct Value {
 
 impl Value {
     fn make(inner: InnerValue) -> Self {
-        Self { inner: Rc::new(RefCell::new(inner)) }
+        Self {
+            inner: Rc::new(RefCell::new(inner)),
+        }
     }
 }
 
@@ -174,7 +176,6 @@ struct InnerValue {
     string_rep: Option<Rc<String>>,
     data_rep: DataRep,
 }
-
 
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

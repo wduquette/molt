@@ -5,6 +5,7 @@
 source append.tcl
 source assert_eq.tcl
 source break.tcl
+source catch.tcl
 source continue.tcl
 source error.tcl
 source exit.tcl

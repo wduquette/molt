@@ -17,17 +17,11 @@ pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
     // FIRST, get the value of the variable.  If the variable is undefined,
     // start with the empty string.
-
-    // TODO: Can we make this conversion simpler, but still as efficient?
     let var_name = &*argv[1].as_string();
-    let var_result = interp.var(var_name);
 
-    let mut new_string = if var_result.is_ok() {
-        // Use to_string() because we need a mutable owned string.
-        var_result.unwrap().to_string()
-    } else {
-        String::new()
-    };
+    let mut new_string: String = interp.var(var_name)
+        .and_then(|val| Ok(val.to_string()))
+        .unwrap_or_else(|_| String::new());
 
     // NEXT, append the remaining values to the string.
     for item in &argv[2..] {
@@ -72,32 +66,17 @@ pub fn cmd_break(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 /// of executing the script is returned in it.  The result code is returned as an integer,
 /// 0=Ok, 1=Error, 2=Return, 3=Break, 4=Continue.
 pub fn cmd_catch(interp: &mut Interp, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 2, 3, "script ?resultVarName")?;
+    check_args(1, argv, 2, 3, "script ?resultVarName?")?;
 
     let result = interp.eval_body(&argv[1]);
-    let code: MoltInt;
-    let mut value = Value::empty();
 
-    match result {
-        Ok(val) => {
-            code = 0;
-            value = val;
-        }
-        Err(ResultCode::Error(val)) => {
-            code = 1;
-            value = val;
-        }
-        Err(ResultCode::Return(val)) => {
-            code = 2;
-            value = val;
-        }
-        Err(ResultCode::Break) => {
-            code = 3;
-        }
-        Err(ResultCode::Continue) => {
-            code = 4;
-        }
-    }
+    let (code, value) = match result {
+        Ok(val) => (0, val),
+        Err(ResultCode::Error(val)) => (1, val),
+        Err(ResultCode::Return(val)) => (2, val),
+        Err(ResultCode::Break) => (3, Value::empty()),
+        Err(ResultCode::Continue) => (4, Value::empty()),
+    };
 
     if argv.len() == 3 {
         interp.set_and_return(&*argv[2].as_string(), value);

@@ -299,13 +299,46 @@ impl Interp {
         self.eval_context(&mut ctx).is_ok()
     }
 
-    // Evaluates an expression and returns its value.
+    /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html) and
+    /// returns its value.  The expression is passed a `Value` which is interpreted as a `String`.
+    ///
+    /// TODO: Consider adding expr_int and expr_float.
+    ///
+    /// # Example
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// # fn dummy() -> Result<String,ResultCode> {
+    /// let mut interp = Interp::new();
+    /// let expr = Value::from("2 + 2");
+    /// let sum = interp.expr(&expr)?.as_int()?;
+    ///
+    /// assert_eq!(sum, 4);
+    /// # Ok("dummy".to_string())
+    /// # }
+    /// ```
     pub fn expr(&mut self, expr: &Value) -> MoltResult {
         expr::expr(self, expr)
     }
 
-    // Evaluates a boolean expression and returns its value, or an error if it couldn't
-    // be interpreted as a boolean.
+    /// Evaluates a boolean [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
+    /// and returns its value, or an error if it couldn't be interpreted as a boolean.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// # fn dummy() -> Result<String,ResultCode> {
+    /// let mut interp = Interp::new();
+    ///
+    /// let expr = Value::from("1 < 2");
+    /// let flag: bool = interp.bool_expr(&expr)?;
+    ///
+    /// assert!(flag);
+    /// # Ok("dummy".to_string())
+    /// # }
+    /// ```
     pub fn bool_expr(&mut self, expr: &Value) -> Result<bool, ResultCode> {
         expr::bool_expr(self, expr)
     }

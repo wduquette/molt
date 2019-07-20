@@ -736,7 +736,6 @@ impl Value {
         Ok(list)
     }
 
-
     /// Tries to return the `Value` as a `MoltList`, parsing the
     /// value's string representation if necessary.
     ///

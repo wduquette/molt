@@ -19,7 +19,8 @@ pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     // start with the empty string.
     let var_name = &*argv[1].as_string();
 
-    let mut new_string: String = interp.var(var_name)
+    let mut new_string: String = interp
+        .var(var_name)
         .and_then(|val| Ok(val.to_string()))
         .unwrap_or_else(|_| String::new());
 
@@ -355,9 +356,11 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
     let var_name = &*argv[1].as_string();
 
-    let new_value = increment + interp.var(var_name)
-        .and_then(|val| Ok(val.as_int()?))
-        .unwrap_or_else(|_| 0);
+    let new_value = increment
+        + interp
+            .var(var_name)
+            .and_then(|val| Ok(val.as_int()?))
+            .unwrap_or_else(|_| 0);
 
     molt_ok!(interp.set_and_return(var_name, new_value.into()))
 }

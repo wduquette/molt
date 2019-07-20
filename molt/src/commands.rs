@@ -475,9 +475,7 @@ pub fn cmd_list(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 pub fn cmd_llength(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 2, "list")?;
 
-    // let list = interp.get_list(argv[1])?;
-
-    molt_ok!(Value::from(argv[1].as_list()?.len() as MoltInt))
+    molt_ok!(argv[1].as_list()?.len() as MoltInt)
 }
 
 pub fn cmd_proc(interp: &mut Interp, argv: &[Value]) -> MoltResult {

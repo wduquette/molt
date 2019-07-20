@@ -14,6 +14,7 @@ source for.tcl
 source incr.tcl
 source interp.tcl
 source lappend.tcl
+source llength.tcl
 source parser.tcl
 source rename.tcl
 source while.tcl

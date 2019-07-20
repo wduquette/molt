@@ -3,10 +3,12 @@
 Things to remember to do soon:
 
 *   Flesh out the interp.rs test suite and rustdocs.
-*   Review commands.rs to use `Value` where appropriate.
 *   Review test_harness to use `Value` where appropriate.
 *   Review the context cache; make sure that "object commands" that use the context cache
     can easily drop the context if they are destroyed by `rename $cmd ""`.
+    *   If an "object command" is the only thing looking at its data, could we provide this
+        by allowing the `Command` struct to edit its own data?
+    *   It's getting a mutable interp; can it also have a mutable self?
 *   Document "Custom Shell Applications" in chapter 4 of the Molt Book.
 *   Before Tcl 2019:
     *   Publish Molt crates to crates.io.

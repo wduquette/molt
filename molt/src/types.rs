@@ -67,6 +67,9 @@ pub type MoltResult = Result<Value, ResultCode>;
 ///
 /// # Future Work
 ///
+/// * Standard TCL includes more information with non-`Ok` results, especially for error cases.
+///   Ultimately, this type will be need to be extended to support that.
+///
 /// * Standard TCL allows for an arbitrary number of result codes, which in turn allows the
 ///   application to define an arbitrary number of new kinds of control structures that are
 ///   distinct from the standard ones.  At some point we might wish to add one or more

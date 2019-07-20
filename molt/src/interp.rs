@@ -43,7 +43,6 @@ use std::rc::Rc;
 /// # use molt::types::*;
 /// # use molt::Interp;
 /// # use molt::molt_ok;
-/// # use molt::Value;
 /// # fn dummy() -> MoltResult {
 /// let mut interp = Interp::new();
 /// let four = interp.eval("expr {2 + 2}")?;
@@ -81,7 +80,16 @@ impl Interp {
 
     /// Creates a new Molt interpreter with no commands defined.  Use this when crafting
     /// command languages that shouldn't include the normal TCL commands, or as a base
-    /// for adding specific command sets.
+    /// to which specific Molt command sets can be added.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::interp::Interp;
+    /// let mut interp = Interp::empty();
+    /// assert!(interp.command_names().is_empty());
+    /// ```
+
     pub fn empty() -> Self {
         Self {
             recursion_limit: 1000,
@@ -94,9 +102,25 @@ impl Interp {
     }
 
     /// Creates a new Molt interpreter, pre-populated with the standard Molt commands.
-    /// Use `info commands` to retrieve the full list.
+    /// Use [`command_names`](#method.command_names) (or the `info commands` Molt command)
+    /// to retrieve the full list, and the [`add_command`](#method.add_command) family of
+    /// methods to extend the interpreter with new commands.
+    ///
     /// TODO: Define command sets (sets of commands that go together, so that clients can
     /// add or remove them in groups).
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::Interp;
+    /// # use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    /// let four = interp.eval("expr {2 + 2}")?;
+    /// assert_eq!(four, Value::from(4));
+    /// # molt_ok!()
+    /// # }
+    /// ```
+    ///
     pub fn new() -> Self {
         let mut interp = Interp::empty();
 
@@ -145,15 +169,39 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Script and Expression Evaluation
 
-    /// Evaluates a script one command at a time.  Returns the `Value` of the last command
-    /// in the script, or the value of any explicit `return` call in the script, or an
-    /// error thrown by the script.
-    ///
-    /// This method returns only `Ok` or `ResultCode::Error`.  `ResultCode::Return` is converted
-    /// to `Ok`, and `ResultCode::Break` and `ResultCode::Continue` are converted to errors.
+    /// Evaluates a script one command at a time.  Returns the [`Value`](../value/struct.Value.html)
+    /// of the last command in the script, or the value of any explicit `return` call in the
+    /// script, or any error thrown by the script.  Other
+    /// [`ResultCode`](../types/enum.ResultCode.html) values are converted to normal errors.
     ///
     /// Use this method (or [`eval_value`](#method.eval_value) to evaluate arbitrary scripts.
     /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
+    ///
+    /// # Example
+    ///
+    /// The following code shows how to evaluate a script and handle the result, whether
+    /// it's a computed `Value` or an error message (which is also a `Value`).
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::Interp;
+    /// let mut interp = Interp::new();
+    /// let input = "set a 1";
+    /// match interp.eval(input) {
+    ///    Ok(val) => {
+    ///        // Computed a Value
+    ///        println!("Value: {}", val);
+    ///    }
+    ///    Err(ResultCode::Error(msg)) => {
+    ///        // Got an error; print it out.
+    ///        println!("Error: {}", msg);
+    ///    }
+    ///    _ => {
+    ///        // Won't ever happen, but the compiler doesn't know that.
+    ///        // panic!() if you like.
+    ///    }
+    /// }
+    /// ```
     pub fn eval(&mut self, script: &str) -> MoltResult {
         // FIRST, check the number of nesting levels
         self.num_levels += 1;
@@ -180,15 +228,9 @@ impl Interp {
         }
     }
 
-    /// Evaluates a script one command at a time.  Returns the `Value` of the last command
-    /// in the script, or the value of any explicit `return` call in the script, or an
-    /// error thrown by the script.
-    ///
-    /// This method returns only `Ok` or `ResultCode::Error`.  `ResultCode::Return` is converted
-    /// to `Ok`, and `ResultCode::Break` and `ResultCode::Continue` are converted to errors.
-    ///
-    /// Use this method (or [`eval`](#method.eval) to evaluate arbitrary scripts.
-    /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
+    /// Evaluates a script one command at a time, where the script is passed as a
+    /// `Value`.  Except for the signature, this command is semantically equivalent to
+    /// [`eval`](#method.eval).
     pub fn eval_value(&mut self, script: &Value) -> MoltResult {
         // TODO: Could probably do better, here.  If the value is already a list, for
         // example, can maybe evaluate it as a command without parsing the string.
@@ -196,11 +238,37 @@ impl Interp {
     }
 
     /// Evaluates a script one command at a time, returning whatever
-    /// MoltResult arises.
+    /// [`MoltResult`](../types/type.MoltResult.html) arises.
     ///
     /// This is the method to use when evaluating a control structure's
     /// script body; the control structure must handle the special
     /// result codes appropriately.
+    ///
+    /// # Example
+    ///
+    /// The following code could be used to process the body of one of the Molt looping
+    /// commands, e.g., `while` or
+    /// `foreach`.  [`ResultCode`](../types/enum.ResultCode.html)`::Return` and `ResultCode::Error`
+    /// return out of the looping command altogether, returning control to the caller.
+    /// `ResultCode::Break` breaks out of the loop.  `Ok` and `ResultCode::Continue`
+    /// continue with the next iteration.
+    ///
+    /// ```ignore
+    /// ...
+    /// while (...) {
+    ///     let result = interp.eval_body(&body);
+    ///
+    ///     match result {
+    ///         Ok(_) => (),
+    ///         Err(ResultCode::Return(_)) => return result,
+    ///         Err(ResultCode::Error(_)) => return result,
+    ///         Err(ResultCode::Break) => break,
+    ///         Err(ResultCode::Continue) => (),
+    ///     }
+    /// }
+    ///
+    /// molt_ok!()
+    /// ```
     pub fn eval_body(&mut self, script: &Value) -> MoltResult {
         let script = script.as_string();
         let mut ctx = EvalPtr::new(&*script);
@@ -215,6 +283,7 @@ impl Interp {
     /// input.
     ///
     /// # Example
+    ///
     /// ```
     /// # use molt::types::*;
     /// # use molt::interp::Interp;

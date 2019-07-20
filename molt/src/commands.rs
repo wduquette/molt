@@ -428,21 +428,14 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     let var_name = &*argv[1].as_string();
     let var_result = interp.var(var_name);
 
-    let mut list: MoltList = Vec::new();
+    let mut list: MoltList = if var_result.is_ok() {
+        var_result.expect("got value").to_list()?
+    } else {
+        Vec::new()
+    };
 
-    if var_result.is_ok() {
-        // TODO: MoltList needs a to_list() method.
-        let old_list = var_result.unwrap().as_list()?;
-
-        for value in &*old_list {
-            list.push(value.clone());
-        }
-    }
-
-    for value in &argv[2..] {
-        list.push(value.clone());
-    }
-
+    let mut values = argv[2..].to_owned();
+    list.append(&mut values);
     molt_ok!(interp.set_and_return(var_name, Value::from(list)))
 }
 

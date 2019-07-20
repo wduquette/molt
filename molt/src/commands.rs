@@ -465,8 +465,8 @@ pub fn cmd_lindex(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 ///
 /// Converts its arguments into a canonical list.
 pub fn cmd_list(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
-    // // No arg check needed; can take any number.
-    molt_ok!(list_to_string(&argv[1..]))
+    // No arg check needed; can take any number.
+    molt_ok!(&argv[1..])
 }
 
 /// # llength *list*

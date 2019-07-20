@@ -478,6 +478,9 @@ pub fn cmd_llength(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     molt_ok!(argv[1].as_list()?.len() as MoltInt)
 }
 
+/// # proc *name* *args* *body*
+///
+/// Defines a procedure.
 pub fn cmd_proc(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 4, 4, "name args body")?;
 
@@ -550,7 +553,7 @@ pub fn cmd_rename(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 ///
 /// ## TCL Liens
 ///
-/// * Doesn't support all of TCL's fancy return machinery.
+/// * Doesn't support all of TCL's fancy return machinery. Someday it will.
 pub fn cmd_return(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 1, 2, "?value?")?;
 

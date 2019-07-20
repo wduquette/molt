@@ -190,6 +190,8 @@ impl Interp {
     /// Use this method (or [`eval`](#method.eval) to evaluate arbitrary scripts.
     /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
     pub fn eval_value(&mut self, script: &Value) -> MoltResult {
+        // TODO: Could probably do better, here.  If the value is already a list, for
+        // example, can maybe evaluate it as a command without parsing the string.
         self.eval(&*script.as_string())
     }
 
@@ -416,7 +418,11 @@ impl Interp {
     /// Adds a command defined by a `ContextCommandFunc` to the interpreter.
     ///
     /// This is the normal way to add commands requiring application context to
-    /// the interpreter.
+    /// the interpreter.  It is up to the module creating the context to free it when it is
+    /// no longer required.
+    ///
+    /// **Warning**: Do not use this method to define a TCL object, i.e., a command with
+    /// its own data and lifetime.  Use a type that implements `Command` and `Drop`.
     pub fn add_context_command(
         &mut self,
         name: &str,

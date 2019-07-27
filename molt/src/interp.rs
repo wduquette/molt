@@ -1,16 +1,106 @@
 //! The Molt Interpreter
 //!
+//! TODO: This should be primary documentation on using the Molt Interp.
+//!
 //! The [`Interp`] struct is the primary API for embedding Molt into a Rust application.
+//! Given an `Interp`, the application may:
 //!
-//! TODO: This should be primary documentation on using the Molt Interp.  Topics should
-//! include:
+//! * Evaluate scripts
+//! * Check scripts for completeness
+//! * Extend the language by defining new Molt commands in Rust
+//! * Set and get Molt variables in command bodies
+//! * Interpret Molt values as a variety of data types.
+//! * Access application data the context cache
 //!
-//! * Evaluating scripts
-//! * Checking scripts for completeness
-//! * Defining commands
-//! * Using the context cache
-//! * Setting and getting variables in command bodies
+//! The following describes the features of the [`Interp`] in general; follow the links for
+//! specifics of the various types and methods.
 //!
+//! # Creating an Interpreter
+//!
+//! There are two ways to create an interpreter.  The usual way is to call
+//! [`Interp::new`](struct.Interp.html#method.new), which creates an interpreter and populates
+//! it with all of the standard Molt commands.  Alternatively,
+//! [`Interp::empty`](struct.Interp.html#method.empty) creates an interpreter with no commands,
+//! allowing the application to define only those commands it needs.  This is useful when the goal
+//! is to provide the application with a simple, non-scriptable console command set.
+//!
+//! TODO: Define a way to add various subsets of the standard commands to an initially
+//! empty interpreter.
+//!
+//! ```
+//! use molt::Interp;
+//! let mut interp = Interp::new();
+//! // ...
+//! ```
+//!
+//! # Evaluating Scripts
+//!
+//! There are a number of ways to evaluate Molt scripts, all of which return [`MoltResult`]:
+//!
+//! ```
+//! pub type MoltResult = Result<Value, ResultCode>;
+//! ```
+//!
+//! [`Value`] is the type of all Molt values (i.e., values that can be passed as parameters and
+//! stored in variables).  [`ResultCode`] is an enum that encompasses all of the kinds of
+//! exceptional return from Molt code, including errors, `return`, `break`, and `continue`.
+//!
+//! [`Interp::eval`](struct.Interp.html#method.eval) and
+//! [`Interp::eval_value`](struct.Interp.html#method.eval_value) evaluate a string as a Molt
+//! script, and return either a normal `Value` or a Molt error.  The script is evaluated in
+//! the caller's context: if called at the application level, the script will be evaluated in
+//! the interpreter's global scope; if called by a Molt command, it will be evaluated in the
+//! scope in which that command is executing.
+//!
+//! [`Interp::eval_body`](struct.Interp.html#method.eval_body) is used to evaluate the body
+//! of loops and other control structures.  Unlike `Interp::eval`, it passes the
+//! `return`, `break`, and `continue` result codes back to the caller for handling.
+//!
+//! # Evaluating Expressions
+//!
+//! In Molt, as in Standard Tcl, algebraic expressions are evaluated by the `expr` command.  At
+//! the Rust level this feature is provided by the
+//! [`Interp::expr`](struct.Interp.html#method.expr) method, which takes the expression as a
+//! [`Value`] and returns the computed `Value` or an error.
+//!
+//! There are three convenience methods,
+//! [`Interp::expr_bool`](struct.Interp.html#method.expr_bool),
+//! [`Interp::expr_int`](struct.Interp.html#method.expr_int), and
+//! [`Interp::expr_float`](struct.Interp.html#method.expr_float), which streamline the computation
+//! of a particular kind of value, and return an error if the computed result is not of that type.
+//!
+//! # Checking Scripts for Completeness
+//!
+//! The [`Interp::complete`](struct.Interp.html#method.complete) checks whether a Molt script is
+//! complete: i.e., that it contains no unterminated quoted or braced strings that
+//! would prevent it from being evaluated as Molt code.  This is primarily useful when
+//! implementing a Read-Eval-Print-Loop, as it allows the REPL to easily determine whether it
+//! should evaluate the input immediately or ask for an additional line of input.
+//!
+//! # Defining New Commands
+//!
+//! The usual reason for embedding Molt in an application is to extend it with
+//! application-specific commands.  There are a number of ways to do this.
+//!
+//! The simplest method, and the one used by most of Molt's built-in commands, is to define a
+//! [`CommandFunc`] and register it with the interpreter using the
+//! [`Interp::add_command`](struct.Interp.html#method.add_command) method:
+//!
+//! ```pub type CommandFunc = fn(&mut Interp, &[Value]) -> MoltResult;```
+//!
+//! A `CommandFunc` is simply a Rust function that accepts an interpreter and a slice of Molt
+//! [`Value`] objects and returns a [`MoltResult`].  The slice of [`Value`] objects represents
+//! the name of the command and its arguments, which the function may interpret in any way it
+//! desires.
+//!
+//! TODO: describe context commands and command objects.
+//!
+//! TODO: flesh out Molt's ensemble command API, and then describe how to define ensemble commands.
+//!
+//! [`MoltResult`]: ../types/struct.MoltResult.html
+//! [`ResultCode`]: ../types/struct.ResultCode.html
+//! [`CommandFunc`]: ../types/struct.CommandFunc.html
+//! [`Value`]: ../Value/struct.Value.html
 //! [`Interp`]: struct.Interp.html
 
 use crate::commands;
@@ -302,8 +392,6 @@ impl Interp {
     /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html) and
     /// returns its value.  The expression is passed a `Value` which is interpreted as a `String`.
     ///
-    /// TODO: Consider adding expr_int and expr_float.
-    ///
     /// # Example
     /// ```
     /// use molt::Interp;
@@ -387,6 +475,101 @@ impl Interp {
     /// ```
     pub fn expr_float(&mut self, expr: &Value) -> Result<MoltFloat, ResultCode> {
         expr::expr(self, expr)?.as_float()
+    }
+
+    //--------------------------------------------------------------------------------------------
+    // Command Definition and Handling
+
+    /// Adds a command defined by a `CommandFunc` to the interpreter. This is the normal way to
+    /// add commands to the interpreter.
+    ///
+    /// # Accessing Application Data
+    ///
+    /// When embedding Molt in an application, it is common to define commands that require
+    /// mutable or immutable access to application data.  If the command requires
+    /// access to data other than that provided by the `Interp` itself, e.g., application data,
+    /// consider adding the relevant data structure to the context cache and then use
+    /// [`add_context_command`](#method.add_context_command).  Alternatively, define a struct that
+    /// implements `Command` and use [`add_command_object`](#method.add_command_object).
+    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
+        let command = CommandFuncWrapper::new(func);
+        self.add_command_object(name, command);
+    }
+
+    /// Adds a command defined by a `ContextCommandFunc` to the interpreter.
+    ///
+    /// This is the normal way to add commands requiring application context to
+    /// the interpreter.  It is up to the module creating the context to free it when it is
+    /// no longer required.
+    ///
+    /// **Warning**: Do not use this method to define a TCL object, i.e., a command with
+    /// its own data and lifetime.  Use a type that implements `Command` and `Drop`.
+    pub fn add_context_command(
+        &mut self,
+        name: &str,
+        func: ContextCommandFunc,
+        context_id: ContextID,
+    ) {
+        let command = ContextCommandFuncWrapper::new(func, context_id);
+        self.add_command_object(name, command);
+    }
+
+    /// Adds a procedure to the interpreter.
+    ///
+    /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
+    /// as for the `proc` command and the `commands::cmd_proc` function.
+    pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &str) {
+        let command = CommandProc {
+            args: args.to_owned(),
+            body: body.to_string(),
+        };
+
+        self.add_command_object(name, command);
+    }
+
+    /// Adds a command to the interpreter using a `Command` object.
+    ///
+    /// Use this when defining a command that requires application context.
+    pub fn add_command_object<T: 'static + Command>(&mut self, name: &str, command: T) {
+        self.commands.insert(name.into(), Rc::new(command));
+    }
+
+    /// Determines whether the interpreter contains a command with the given
+    /// name.
+    pub fn has_command(&self, name: &str) -> bool {
+        self.commands.contains_key(name)
+    }
+
+    /// Renames the command.
+    ///
+    /// **Note:** This does not update procedures that reference the command under the old
+    /// name.  This is intentional: it is a common TCL programming technique to wrap an
+    /// existing command by renaming it and defining a new command with the old name that
+    /// calls the original command at its new name.
+    pub fn rename_command(&mut self, old_name: &str, new_name: &str) {
+        if let Some(cmd) = self.commands.get(old_name) {
+            let cmd = Rc::clone(cmd);
+            self.commands.remove(old_name);
+            self.commands.insert(new_name.into(), cmd);
+        }
+    }
+
+    /// Removes the command with the given name.
+    pub fn remove_command(&mut self, name: &str) {
+        self.commands.remove(name);
+    }
+
+    /// Gets a vector of the names of the existing commands.
+    ///
+    pub fn command_names(&self) -> MoltList {
+        let vec: MoltList = self
+            .commands
+            .keys()
+            .cloned()
+            .map(|x| Value::from(&x))
+            .collect();
+
+        vec
     }
 
     //--------------------------------------------------------------------------------------------
@@ -546,97 +729,6 @@ impl Interp {
     /// ```
     pub fn set_context<T: 'static>(&mut self, id: ContextID, data: T) {
         self.context_map.insert(id, Box::new(data));
-    }
-
-    //--------------------------------------------------------------------------------------------
-    // Command Definition and Handling
-
-    /// Adds a command defined by a `CommandFunc` to the interpreter.
-    ///
-    /// This is the normal way to add commands to
-    /// the interpreter.  If the command requires context other than the interpreter itself,
-    /// add the context data to the context cache and use
-    /// [`add_context_command`](#method.add_context_command), or define a struct that
-    /// implements `Command` and use [`add_command_object`](#method.add_command_object).
-    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
-        let command = CommandFuncWrapper::new(func);
-        self.add_command_object(name, command);
-    }
-
-    /// Adds a command defined by a `ContextCommandFunc` to the interpreter.
-    ///
-    /// This is the normal way to add commands requiring application context to
-    /// the interpreter.  It is up to the module creating the context to free it when it is
-    /// no longer required.
-    ///
-    /// **Warning**: Do not use this method to define a TCL object, i.e., a command with
-    /// its own data and lifetime.  Use a type that implements `Command` and `Drop`.
-    pub fn add_context_command(
-        &mut self,
-        name: &str,
-        func: ContextCommandFunc,
-        context_id: ContextID,
-    ) {
-        let command = ContextCommandFuncWrapper::new(func, context_id);
-        self.add_command_object(name, command);
-    }
-
-    /// Adds a procedure to the interpreter.
-    ///
-    /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
-    /// as for the `proc` command and the `commands::cmd_proc` function.
-    pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &str) {
-        let command = CommandProc {
-            args: args.to_owned(),
-            body: body.to_string(),
-        };
-
-        self.add_command_object(name, command);
-    }
-
-    /// Adds a command to the interpreter using a `Command` object.
-    ///
-    /// Use this when defining a command that requires application context.
-    pub fn add_command_object<T: 'static + Command>(&mut self, name: &str, command: T) {
-        self.commands.insert(name.into(), Rc::new(command));
-    }
-
-    /// Determines whether the interpreter contains a command with the given
-    /// name.
-    pub fn has_command(&self, name: &str) -> bool {
-        self.commands.contains_key(name)
-    }
-
-    /// Renames the command.
-    ///
-    /// **Note:** This does not update procedures that reference the command under the old
-    /// name.  This is intentional: it is a common TCL programming technique to wrap an
-    /// existing command by renaming it and defining a new command with the old name that
-    /// calls the original command at its new name.
-    pub fn rename_command(&mut self, old_name: &str, new_name: &str) {
-        if let Some(cmd) = self.commands.get(old_name) {
-            let cmd = Rc::clone(cmd);
-            self.commands.remove(old_name);
-            self.commands.insert(new_name.into(), cmd);
-        }
-    }
-
-    /// Removes the command with the given name.
-    pub fn remove_command(&mut self, name: &str) {
-        self.commands.remove(name);
-    }
-
-    /// Gets a vector of the names of the existing commands.
-    ///
-    pub fn command_names(&self) -> MoltList {
-        let vec: MoltList = self
-            .commands
-            .keys()
-            .cloned()
-            .map(|x| Value::from(&x))
-            .collect();
-
-        vec
     }
 
     //--------------------------------------------------------------------------------------------
@@ -1383,7 +1475,7 @@ mod tests {
         let val = interp.expr_float(&Value::from("1.1 + 2.2")).expect("floating point value");
 
         assert!((val - 3.3).abs() < 0.001);
-        
+
         assert_eq!(
             interp.expr_float(&Value::from("a")),
             Err(ResultCode::Error(Value::from(

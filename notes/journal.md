@@ -2,8 +2,6 @@
 
 Things to remember to do soon:
 
-*   Change `Interp::bool_expr` to `Interp::expr_bool`, and add `Interp::expr_int` and
-    `Interp::expr_float`.
 *   Try using the `once_cell` crate (or some simpler code using the same pattern) for
     `Value::string_rep`.
 *   Flesh out the interp.rs test suite and rustdocs.
@@ -51,6 +49,8 @@ Things to remember to do soon:
     *   Happy if there's a canonical implementation; or even a simple `unsafe` solution.
     *   And if there is, I might be able to use it for the `data_rep` as well, if I use an
         "any map" and keep *all* of the computed data reps.
+*   Changed `Interp::bool_expr` to `Interp::expr_bool`, and added `Interp::expr_int` and
+    `Interp::expr_float`.
 
 ### 2019-07-06 (Saturday)
 *   Reworking the `Value` internals

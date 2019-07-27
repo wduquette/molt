@@ -333,13 +333,13 @@ impl Interp {
     /// let mut interp = Interp::new();
     ///
     /// let expr = Value::from("1 < 2");
-    /// let flag: bool = interp.bool_expr(&expr)?;
+    /// let flag: bool = interp.expr_bool(&expr)?;
     ///
     /// assert!(flag);
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    pub fn bool_expr(&mut self, expr: &Value) -> Result<bool, ResultCode> {
+    pub fn expr_bool(&mut self, expr: &Value) -> Result<bool, ResultCode> {
         expr::bool_expr(self, expr)
     }
 
@@ -1309,10 +1309,10 @@ mod tests {
     #[test]
     fn test_expr_bool() {
         let mut interp = Interp::new();
-        assert_eq!(interp.bool_expr(&Value::from("1")), Ok(true));
-        assert_eq!(interp.bool_expr(&Value::from("0")), Ok(false));
+        assert_eq!(interp.expr_bool(&Value::from("1")), Ok(true));
+        assert_eq!(interp.expr_bool(&Value::from("0")), Ok(false));
         assert_eq!(
-            interp.bool_expr(&Value::from("a")),
+            interp.expr_bool(&Value::from("a")),
             Err(ResultCode::Error(Value::from(
                 "unknown math function \"a\""
             )))

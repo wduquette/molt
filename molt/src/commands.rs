@@ -154,7 +154,7 @@ pub fn cmd_for(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     // Start
     interp.eval_value(start)?;
 
-    while interp.bool_expr(test)? {
+    while interp.expr_bool(test)? {
         let result = interp.eval_body(command);
 
         match result {
@@ -264,7 +264,7 @@ pub fn cmd_if(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     while argi < argv.len() {
         match wants {
             IfWants::Expr => {
-                wants = if interp.bool_expr(&argv[argi])? {
+                wants = if interp.expr_bool(&argv[argi])? {
                     IfWants::ThenBody
                 } else {
                     IfWants::SkipThenClause
@@ -658,7 +658,7 @@ pub fn cmd_unset(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 pub fn cmd_while(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 3, 3, "test command")?;
 
-    while interp.bool_expr(&argv[1])? {
+    while interp.expr_bool(&argv[1])? {
         let result = interp.eval_body(&argv[2]);
 
         match result {

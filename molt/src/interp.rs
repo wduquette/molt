@@ -340,7 +340,53 @@ impl Interp {
     /// # }
     /// ```
     pub fn expr_bool(&mut self, expr: &Value) -> Result<bool, ResultCode> {
-        expr::bool_expr(self, expr)
+        expr::expr(self, expr)?.as_bool()
+    }
+
+    /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
+    /// and returns its value as an integer, or an error if it couldn't be interpreted as an
+    /// integer.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// # fn dummy() -> Result<String,ResultCode> {
+    /// let mut interp = Interp::new();
+    ///
+    /// let expr = Value::from("1 + 2");
+    /// let val: MoltInt = interp.expr_int(&expr)?;
+    ///
+    /// assert_eq!(val, 3);
+    /// # Ok("dummy".to_string())
+    /// # }
+    /// ```
+    pub fn expr_int(&mut self, expr: &Value) -> Result<MoltInt, ResultCode> {
+        expr::expr(self, expr)?.as_int()
+    }
+
+    /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
+    /// and returns its value as a float, or an error if it couldn't be interpreted as a
+    /// float.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// # fn dummy() -> Result<String,ResultCode> {
+    /// let mut interp = Interp::new();
+    ///
+    /// let expr = Value::from("1.1 + 2.2");
+    /// let val: MoltFloat = interp.expr_float(&expr)?;
+    ///
+    /// assert_eq!(val, 3.3);
+    /// # Ok("dummy".to_string())
+    /// # }
+    /// ```
+    pub fn expr_float(&mut self, expr: &Value) -> Result<MoltFloat, ResultCode> {
+        expr::expr(self, expr)?.as_float()
     }
 
     //--------------------------------------------------------------------------------------------
@@ -1313,6 +1359,33 @@ mod tests {
         assert_eq!(interp.expr_bool(&Value::from("0")), Ok(false));
         assert_eq!(
             interp.expr_bool(&Value::from("a")),
+            Err(ResultCode::Error(Value::from(
+                "unknown math function \"a\""
+            )))
+        );
+    }
+
+    #[test]
+    fn test_expr_int() {
+        let mut interp = Interp::new();
+        assert_eq!(interp.expr_int(&Value::from("1 + 2")), Ok(3));
+        assert_eq!(
+            interp.expr_int(&Value::from("a")),
+            Err(ResultCode::Error(Value::from(
+                "unknown math function \"a\""
+            )))
+        );
+    }
+
+    #[test]
+    fn test_expr_float() {
+        let mut interp = Interp::new();
+        let val = interp.expr_float(&Value::from("1.1 + 2.2")).expect("floating point value");
+
+        assert!((val - 3.3).abs() < 0.001);
+        
+        assert_eq!(
+            interp.expr_float(&Value::from("a")),
             Err(ResultCode::Error(Value::from(
                 "unknown math function \"a\""
             )))

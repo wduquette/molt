@@ -455,26 +455,29 @@ impl Value {
     /// # }
     /// ```
     pub fn as_bool(&self) -> Result<bool, ResultCode> {
-        let mut iref = self.inner.data_rep.borrow_mut();
+        // Extra block, so that the dref is dropped before we borrow mutably.
+        {
+            let data_ref = self.inner.data_rep.borrow();
 
-        // FIRST, if we have a boolean then just return it.
-        if let DataRep::Bool(flag) = *iref {
-            return Ok(flag);
-        }
+            // FIRST, if we have a boolean then just return it.
+            if let DataRep::Bool(flag) = *data_ref {
+                return Ok(flag);
+            }
 
-        // NEXT, if we have a number return whether it's zero or not.
-        if let DataRep::Int(int) = *iref {
-            return Ok(int != 0);
-        }
+            // NEXT, if we have a number return whether it's zero or not.
+            if let DataRep::Int(int) = *data_ref {
+                return Ok(int != 0);
+            }
 
-        if let DataRep::Flt(flt) = *iref {
-            return Ok(flt != 0.0);
+            if let DataRep::Flt(flt) = *data_ref {
+                return Ok(flt != 0.0);
+            }
         }
 
         // NEXT, Try to parse the string_rep as a boolean
         let str = self.as_string2();
         let flag = Value::get_bool(str)?;
-        *iref = DataRep::Bool(flag);
+        *(self.inner.data_rep.borrow_mut()) = DataRep::Bool(flag);
         Ok(flag)
     }
 
@@ -539,17 +542,15 @@ impl Value {
     /// # }
     /// ```
     pub fn as_int(&self) -> Result<MoltInt, ResultCode> {
-        let mut iref = self.inner.data_rep.borrow_mut();
-
         // FIRST, if we have an integer then just return it.
-        if let DataRep::Int(int) = *iref {
+        if let DataRep::Int(int) = *self.inner.data_rep.borrow() {
             return Ok(int);
         }
 
         // NEXT, Try to parse the string_rep as an integer
         let str = self.as_string2();
         let int = Value::get_int(str)?;
-        *iref = DataRep::Int(int);
+        *self.inner.data_rep.borrow_mut() = DataRep::Int(int);
         Ok(int)
     }
 
@@ -619,17 +620,15 @@ impl Value {
     /// # }
     /// ```
     pub fn as_float(&self) -> Result<MoltFloat, ResultCode> {
-        let mut iref = self.inner.data_rep.borrow_mut();
-
         // FIRST, if we have a float then just return it.
-        if let DataRep::Flt(flt) = *iref {
+        if let DataRep::Flt(flt) = *self.inner.data_rep.borrow() {
             return Ok(flt);
         }
 
         // NEXT, Try to parse the string_rep as a float
         let str = self.as_string2();
         let flt = Value::get_float(str)?;
-        *iref = DataRep::Flt(flt);
+        *self.inner.data_rep.borrow_mut() = DataRep::Flt(flt);
         Ok(flt)
     }
 
@@ -698,17 +697,15 @@ impl Value {
     /// # }
     /// ```
     pub fn as_list(&self) -> Result<Rc<MoltList>, ResultCode> {
-        let mut iref = self.inner.data_rep.borrow_mut();
-
         // FIRST, if we have the desired type, return it.
-        if let DataRep::List(list) = &*iref {
+        if let DataRep::List(list) = &*self.inner.data_rep.borrow() {
             return Ok(list.clone());
         }
 
         // NEXT, try to parse the string_rep as a list.
         let str = self.as_string2();
         let list = Rc::new(get_list(str)?);
-        *iref = DataRep::List(list.clone());
+        *self.inner.data_rep.borrow_mut() = DataRep::List(list.clone());
 
         Ok(list)
     }
@@ -810,10 +807,8 @@ impl Value {
     where
         T: Display + Debug + FromStr,
     {
-        let mut iref = self.inner.data_rep.borrow_mut();
-
         // FIRST, if we have the desired type, return it.
-        if let DataRep::Other(other) = &*iref {
+        if let DataRep::Other(other) = &*self.inner.data_rep.borrow() {
             // other is an &Rc<MoltAny>
             let result = other.clone().downcast::<T>();
 
@@ -831,7 +826,7 @@ impl Value {
         if let Ok(tval) = str.parse::<T>() {
             let tval = Rc::new(tval);
             let out = tval.clone();
-            *iref = DataRep::Other(Rc::new(tval));
+            *self.inner.data_rep.borrow_mut() = DataRep::Other(Rc::new(tval));
             return Some(out);
         }
 
@@ -875,10 +870,8 @@ impl Value {
     where
         T: Display + Debug + FromStr + Copy,
     {
-        let mut iref = self.inner.data_rep.borrow_mut();
-
         // FIRST, if we have the desired type, return it.
-        if let DataRep::Other(other) = &*iref {
+        if let DataRep::Other(other) = &*self.inner.data_rep.borrow() {
             // other is an &Rc<MoltAny>
             let result = other.clone().downcast::<T>();
 
@@ -896,7 +889,7 @@ impl Value {
         if let Ok(tval) = str.parse::<T>() {
             let tval = Rc::new(tval);
             let out = tval.clone();
-            *iref = DataRep::Other(Rc::new(tval));
+            *self.inner.data_rep.borrow_mut() = DataRep::Other(Rc::new(tval));
             return Some(*out);
         }
 
@@ -1175,14 +1168,16 @@ mod tests {
         assert_eq!(val.as_int(), molt_err!("expected integer but got \"7.8\""));
         assert_eq!(val.as_float(), Ok(7.8));
 
+        // TODO: Problem here: tries to mutably borrow the data_rep to convert from int to string
+        // while the data_rep is already mutably borrowed to convert the string to float.
         let val = Value::from(5);
         assert_eq!(val.as_float(), Ok(5.0));
-        //
-        // let val = Value::from("abc");
-        // assert_eq!(
-        //     val.as_float(),
-        //     molt_err!("expected floating-point number but got \"abc\"")
-        // );
+
+        let val = Value::from("abc");
+        assert_eq!(
+            val.as_float(),
+            molt_err!("expected floating-point number but got \"abc\"")
+        );
     }
 
     #[test]

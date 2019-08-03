@@ -11,3 +11,4 @@ readme = "README.md"
 keywords = ["language", "script", "scripting", "tcl"]
 
 [dependencies]
+once_cell = "0.2.4"

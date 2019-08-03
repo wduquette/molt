@@ -184,12 +184,12 @@ mod tests {
         ss.set("a", Value::from("1"));
         let out = ss.get("a");
         assert!(out.is_some());
-        assert_eq!(&*out.unwrap().as_string(), "1");
+        assert_eq!(out.unwrap().as_string(), "1");
 
         ss.set("b", Value::from("2"));
         let out = ss.get("b");
         assert!(out.is_some());
-        assert_eq!(&*out.unwrap().as_string(), "2");
+        assert_eq!(out.unwrap().as_string(), "2");
 
         assert!(ss.get("c").is_none());
     }
@@ -262,13 +262,13 @@ mod tests {
         ss.set("a", Value::from("3"));
         ss.set("b", Value::from("4"));
         ss.set("c", Value::from("5"));
-        assert_eq!(&*ss.get("a").unwrap().as_string(), "3");
-        assert_eq!(&*ss.get("b").unwrap().as_string(), "4");
-        assert_eq!(&*ss.get("c").unwrap().as_string(), "5");
+        assert_eq!(ss.get("a").unwrap().as_string(), "3");
+        assert_eq!(ss.get("b").unwrap().as_string(), "4");
+        assert_eq!(ss.get("c").unwrap().as_string(), "5");
 
         ss.pop();
-        assert_eq!(&*ss.get("a").unwrap().as_string(), "1");
-        assert_eq!(&*ss.get("b").unwrap().as_string(), "2");
+        assert_eq!(ss.get("a").unwrap().as_string(), "1");
+        assert_eq!(ss.get("b").unwrap().as_string(), "2");
         assert!(ss.get("c").is_none());
     }
 
@@ -281,17 +281,17 @@ mod tests {
 
         ss.push();
         ss.upvar(0, "a");
-        assert_eq!(&*ss.get("a").unwrap().as_string(), "1");
+        assert_eq!(ss.get("a").unwrap().as_string(), "1");
         assert!(ss.get("b").is_none());
 
         ss.set("a", Value::from("3"));
         ss.set("b", Value::from("4"));
-        assert_eq!(&*ss.get("a").unwrap().as_string(), "3");
-        assert_eq!(&*ss.get("b").unwrap().as_string(), "4");
+        assert_eq!(ss.get("a").unwrap().as_string(), "3");
+        assert_eq!(ss.get("b").unwrap().as_string(), "4");
 
         ss.pop();
-        assert_eq!(&*ss.get("a").unwrap().as_string(), "3");
-        assert_eq!(&*ss.get("b").unwrap().as_string(), "2");
+        assert_eq!(ss.get("a").unwrap().as_string(), "3");
+        assert_eq!(ss.get("b").unwrap().as_string(), "2");
     }
 
     #[test]
@@ -308,8 +308,8 @@ mod tests {
         ss.unset("b"); // Was not set in this scope
 
         ss.pop();
-        assert_eq!(&*ss.get("a").unwrap().as_string(), "1");
-        assert_eq!(&*ss.get("b").unwrap().as_string(), "2");
+        assert_eq!(ss.get("a").unwrap().as_string(), "1");
+        assert_eq!(ss.get("b").unwrap().as_string(), "2");
     }
 
     #[test]

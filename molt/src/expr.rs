@@ -247,7 +247,7 @@ const OP_STRINGS: [&str; 36] = [
 
 /// Evaluates an expression and returns its value.
 pub fn expr(interp: &mut Interp, expr: &Value) -> MoltResult {
-    let value = expr_top_level(interp, &*expr.as_string())?;
+    let value = expr_top_level(interp, expr.as_string())?;
 
     match value.vtype {
         Type::Int => molt_ok!(Value::from(value.int)),
@@ -884,7 +884,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             } else {
                 // Note: we got a Value, but since it was parsed from a quoted string,
                 // it won't already be numeric.
-                expr_parse_string(&*val.as_string())
+                expr_parse_string(val.as_string())
             }
         }
         Some('{') => {
@@ -898,7 +898,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             } else {
                 // Note: we got a Value, but since it was parsed from a braced string,
                 // it won't already be numeric.
-                expr_parse_string(&*val.as_string())
+                expr_parse_string(val.as_string())
             }
         }
         Some('(') => {
@@ -1199,7 +1199,7 @@ fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc, ResultCode> {
 fn expr_parse_value(value: &Value) -> DatumResult {
     match value.already_number() {
         Some(datum) => Ok(datum),
-        _ => expr_parse_string(&*value.as_string()),
+        _ => expr_parse_string(value.as_string()),
     }
 }
 
@@ -1454,7 +1454,7 @@ mod tests {
 
         let result = expr(&mut interp, &Value::from("[set x foo]"));
         assert!(result.is_ok());
-        assert_eq!(&*result.unwrap().as_string(), "foo");
+        assert_eq!(result.unwrap().as_string(), "foo");
     }
 
     fn near(x: MoltFloat, target: MoltFloat) -> bool {

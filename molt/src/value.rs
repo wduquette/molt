@@ -153,6 +153,7 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::rc::Rc;
 use std::str::FromStr;
+use once_cell::unsync::OnceCell;
 
 //-----------------------------------------------------------------------------
 // Public Data Types
@@ -160,22 +161,40 @@ use std::str::FromStr;
 /// The `Value` type. See [the module level documentation](index.html) for more.
 #[derive(Clone, Debug)]
 pub struct Value {
-    inner: Rc<RefCell<InnerValue>>,
-}
-
-impl Value {
-    fn make(inner: InnerValue) -> Self {
-        Self {
-            inner: Rc::new(RefCell::new(inner)),
-        }
-    }
+    inner: Rc<InnerValue>,
 }
 
 #[derive(Clone, Debug)]
 struct InnerValue {
-    string_rep: Option<Rc<String>>,
-    data_rep: DataRep,
+    string_rep: OnceCell<String>,
+    data_rep: RefCell<DataRep>,
 }
+
+impl Value {
+    fn inner_from_string(str: String) -> Self {
+        let inner = InnerValue {
+            string_rep: OnceCell::new(),
+            data_rep: RefCell::new(DataRep::None),
+        };
+        let _ = inner.string_rep.set(str);
+
+        Self {
+            inner: Rc::new(inner),
+        }
+    }
+
+    fn inner_from_data(data: DataRep) -> Self {
+        let inner = InnerValue {
+            string_rep: OnceCell::new(),
+            data_rep: RefCell::new(data),
+        };
+
+        Self {
+            inner: Rc::new(inner),
+        }
+    }
+}
+
 
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -186,7 +205,7 @@ impl Display for Value {
 impl PartialEq for Value {
     // Two Values are equal if their string representations are equal.
     fn eq(&self, other: &Self) -> bool {
-        *self.as_string() == *other.as_string()
+        self.as_string() == other.as_string()
     }
 }
 
@@ -201,14 +220,10 @@ impl From<String> for Value {
     /// use molt::types::Value;
     /// let string = String::from("My New String");
     /// let value = Value::from(string);
-    /// assert_eq!(&*value.as_string(), "My New String");
+    /// assert_eq!(value.as_string(), "My New String");
     /// ```
     fn from(str: String) -> Self {
-        let inner = InnerValue {
-            string_rep: Some(Rc::new(str)),
-            data_rep: DataRep::None,
-        };
-        Value::make(inner)
+        Value::inner_from_string(str)
     }
 }
 
@@ -220,14 +235,10 @@ impl From<&str> for Value {
     /// ```
     /// use molt::types::Value;
     /// let value = Value::from("My String Slice");
-    /// assert_eq!(&*value.as_string(), "My String Slice");
+    /// assert_eq!(value.as_string(), "My String Slice");
     /// ```
     fn from(str: &str) -> Self {
-        let inner = InnerValue {
-            string_rep: Some(Rc::new(str.to_string())),
-            data_rep: DataRep::None,
-        };
-        Value::make(inner)
+        Value::inner_from_string(str.to_string())
     }
 }
 
@@ -241,14 +252,10 @@ impl From<&String> for Value {
     /// ```
     /// use molt::types::Value;
     /// let value = Value::from("My String Slice");
-    /// assert_eq!(&*value.as_string(), "My String Slice");
+    /// assert_eq!(value.as_string(), "My String Slice");
     /// ```
     fn from(str: &String) -> Self {
-        let inner = InnerValue {
-            string_rep: Some(Rc::new(str.to_string())),
-            data_rep: DataRep::None,
-        };
-        Value::make(inner)
+        Value::inner_from_string(str.to_string())
     }
 }
 
@@ -261,17 +268,13 @@ impl From<bool> for Value {
     /// ```
     /// use molt::types::Value;
     /// let value = Value::from(true);
-    /// assert_eq!(&*value.as_string(), "1");
+    /// assert_eq!(value.as_string(), "1");
     ///
     /// let value = Value::from(false);
-    /// assert_eq!(&*value.as_string(), "0");
+    /// assert_eq!(value.as_string(), "0");
     /// ```
     fn from(flag: bool) -> Self {
-        let inner = InnerValue {
-            string_rep: None,
-            data_rep: DataRep::Bool(flag),
-        };
-        Value::make(inner)
+        Value::inner_from_data(DataRep::Bool(flag))
     }
 }
 
@@ -284,14 +287,10 @@ impl From<MoltInt> for Value {
     /// use molt::types::Value;
     ///
     /// let value = Value::from(123);
-    /// assert_eq!(&*value.as_string(), "123");
+    /// assert_eq!(value.as_string(), "123");
     /// ```
     fn from(int: MoltInt) -> Self {
-        let inner = InnerValue {
-            string_rep: None,
-            data_rep: DataRep::Int(int),
-        };
-        Value::make(inner)
+        Value::inner_from_data(DataRep::Int(int))
     }
 }
 
@@ -312,14 +311,10 @@ impl From<MoltFloat> for Value {
     /// use molt::types::Value;
     ///
     /// let value = Value::from(12.34);
-    /// assert_eq!(&*value.as_string(), "12.34");
+    /// assert_eq!(value.as_string(), "12.34");
     /// ```
     fn from(flt: MoltFloat) -> Self {
-        let inner = InnerValue {
-            string_rep: None,
-            data_rep: DataRep::Flt(flt),
-        };
-        Value::make(inner)
+        Value::inner_from_data(DataRep::Flt(flt))
     }
 }
 
@@ -333,14 +328,10 @@ impl From<MoltList> for Value {
     ///
     /// let list = vec![Value::from(1234), Value::from("abc")];
     /// let value = Value::from(list);
-    /// assert_eq!(&*value.as_string(), "1234 abc");
+    /// assert_eq!(value.as_string(), "1234 abc");
     /// ```
     fn from(list: MoltList) -> Self {
-        let inner = InnerValue {
-            string_rep: None,
-            data_rep: DataRep::List(Rc::new(list)),
-        };
-        Value::make(inner)
+        Value::inner_from_data(DataRep::List(Rc::new(list)))
     }
 }
 
@@ -354,23 +345,20 @@ impl From<&[Value]> for Value {
     ///
     /// let values = [Value::from(1234), Value::from("abc")];
     /// let value = Value::from(&values[..]);
-    /// assert_eq!(&*value.as_string(), "1234 abc");
+    /// assert_eq!(value.as_string(), "1234 abc");
     /// ```
     fn from(list: &[Value]) -> Self {
-        let list = list.to_vec();
-        let inner = InnerValue {
-            string_rep: None,
-            data_rep: DataRep::List(Rc::new(list)),
-        };
-        Value::make(inner)
+        Value::inner_from_data(DataRep::List(Rc::new(list.to_vec())))
     }
 }
 
 impl Value {
     /// Returns the empty `Value`, a value whose string representation is the empty
     /// string.
+    ///
+    /// TODO: This should really be a constant.
     pub fn empty() -> Value {
-        Value::from("")
+        Value::inner_from_string("".into())
     }
 
     /// Returns the value's string representation as a reference-counted
@@ -384,23 +372,11 @@ impl Value {
     /// ```
     /// use molt::types::Value;
     /// let value = Value::from(123);
-    /// assert_eq!(&*value.as_string(), "123");
+    /// assert_eq!(value.as_string(), "123");
     /// ```
-    pub fn as_string(&self) -> Rc<String> {
-        // FIRST, if there's already a string, return it.
-        let mut iref = self.inner.borrow_mut();
-
-        if let Some(str) = &iref.string_rep {
-            return Rc::clone(str);
-        }
-
-        // NEXT, if there's no string there must be data.  Convert the data to a string,
-        // and save it for next time.
-        let new_string = Rc::new((iref.data_rep).to_string());
-
-        iref.string_rep = Some(new_string.clone());
-
-        new_string
+    pub fn as_string(&self) -> &str {
+        // FIRST, get the string rep, computing it from the data_rep if necessary.
+        self.inner.string_rep.get_or_init(|| (self.inner.data_rep.borrow()).to_string())
     }
 
     /// Tries to return the `Value` as a `bool`, parsing the
@@ -454,32 +430,29 @@ impl Value {
     /// # }
     /// ```
     pub fn as_bool(&self) -> Result<bool, ResultCode> {
-        let mut iref = self.inner.borrow_mut();
+        // Extra block, so that the dref is dropped before we borrow mutably.
+        {
+            let data_ref = self.inner.data_rep.borrow();
 
-        // FIRST, if we have a boolean then just return it.
-        if let DataRep::Bool(flag) = iref.data_rep {
-            return Ok(flag);
-        }
+            // FIRST, if we have a boolean then just return it.
+            if let DataRep::Bool(flag) = *data_ref {
+                return Ok(flag);
+            }
 
-        // NEXT, if we have a number return whether it's zero or not.
-        if let DataRep::Int(int) = iref.data_rep {
-            return Ok(int != 0);
-        }
+            // NEXT, if we have a number return whether it's zero or not.
+            if let DataRep::Int(int) = *data_ref {
+                return Ok(int != 0);
+            }
 
-        if let DataRep::Flt(flt) = iref.data_rep {
-            return Ok(flt != 0.0);
-        }
-
-        // NEXT, if we don't have a string_rep, get one from the current
-        // data_rep.
-        if iref.string_rep.is_none() {
-            iref.string_rep = Some(Rc::new(iref.data_rep.to_string()));
+            if let DataRep::Flt(flt) = *data_ref {
+                return Ok(flt != 0.0);
+            }
         }
 
         // NEXT, Try to parse the string_rep as a boolean
-        let str = iref.string_rep.as_ref().unwrap();
-        let flag = Value::get_bool(&*str)?;
-        iref.data_rep = DataRep::Bool(flag);
+        let str = self.as_string();
+        let flag = Value::get_bool(str)?;
+        *(self.inner.data_rep.borrow_mut()) = DataRep::Bool(flag);
         Ok(flag)
     }
 
@@ -544,23 +517,15 @@ impl Value {
     /// # }
     /// ```
     pub fn as_int(&self) -> Result<MoltInt, ResultCode> {
-        let mut iref = self.inner.borrow_mut();
-
         // FIRST, if we have an integer then just return it.
-        if let DataRep::Int(int) = iref.data_rep {
+        if let DataRep::Int(int) = *self.inner.data_rep.borrow() {
             return Ok(int);
         }
 
-        // NEXT, if we don't have a string_rep, get one from the current
-        // data_rep.
-        if iref.string_rep.is_none() {
-            iref.string_rep = Some(Rc::new(iref.data_rep.to_string()));
-        }
-
         // NEXT, Try to parse the string_rep as an integer
-        let str = iref.string_rep.as_ref().unwrap();
-        let int = Value::get_int(&*str)?;
-        iref.data_rep = DataRep::Int(int);
+        let str = self.as_string();
+        let int = Value::get_int(str)?;
+        *self.inner.data_rep.borrow_mut() = DataRep::Int(int);
         Ok(int)
     }
 
@@ -630,23 +595,15 @@ impl Value {
     /// # }
     /// ```
     pub fn as_float(&self) -> Result<MoltFloat, ResultCode> {
-        let mut iref = self.inner.borrow_mut();
-
         // FIRST, if we have a float then just return it.
-        if let DataRep::Flt(flt) = iref.data_rep {
+        if let DataRep::Flt(flt) = *self.inner.data_rep.borrow() {
             return Ok(flt);
         }
 
-        // NEXT, if we don't have a string_rep, get one from the current
-        // data rep.
-        if iref.string_rep.is_none() {
-            iref.string_rep = Some(Rc::new(iref.data_rep.to_string()));
-        }
-
         // NEXT, Try to parse the string_rep as a float
-        let str = iref.string_rep.as_ref().unwrap();
-        let flt = Value::get_float(&*str)?;
-        iref.data_rep = DataRep::Flt(flt);
+        let str = self.as_string();
+        let flt = Value::get_float(str)?;
+        *self.inner.data_rep.borrow_mut() = DataRep::Flt(flt);
         Ok(flt)
     }
 
@@ -715,23 +672,15 @@ impl Value {
     /// # }
     /// ```
     pub fn as_list(&self) -> Result<Rc<MoltList>, ResultCode> {
-        let mut iref = self.inner.borrow_mut();
-
         // FIRST, if we have the desired type, return it.
-        if let DataRep::List(list) = &iref.data_rep {
+        if let DataRep::List(list) = &*self.inner.data_rep.borrow() {
             return Ok(list.clone());
         }
 
-        // NEXT, if we don't have a string_rep, get one from the current
-        // data rep.
-        if iref.string_rep.is_none() {
-            iref.string_rep = Some(Rc::new(iref.data_rep.to_string()));
-        }
-
         // NEXT, try to parse the string_rep as a list.
-        let str = iref.string_rep.as_ref().unwrap();
+        let str = self.as_string();
         let list = Rc::new(get_list(str)?);
-        iref.data_rep = DataRep::List(list.clone());
+        *self.inner.data_rep.borrow_mut() = DataRep::List(list.clone());
 
         Ok(list)
     }
@@ -780,7 +729,7 @@ impl Value {
     /// let value = Value::from_other(color);
     ///
     /// // Retrieve the value's string rep.
-    /// assert_eq!(&*value.as_string(), "#112233");
+    /// assert_eq!(value.as_string(), "#112233");
     /// ```
     ///
     /// See [`Value::as_other`](#method.as_other) and
@@ -790,11 +739,7 @@ impl Value {
     where
         T: Display + Debug,
     {
-        let inner = InnerValue {
-            string_rep: None,
-            data_rep: DataRep::Other(Rc::new(value)),
-        };
-        Value::make(inner)
+        Value::inner_from_data(DataRep::Other(Rc::new(value)))
     }
 
     /// Tries to interpret the `Value` as a value of external type `T`, parsing
@@ -837,10 +782,8 @@ impl Value {
     where
         T: Display + Debug + FromStr,
     {
-        let mut iref = self.inner.borrow_mut();
-
         // FIRST, if we have the desired type, return it.
-        if let DataRep::Other(other) = &iref.data_rep {
+        if let DataRep::Other(other) = &*self.inner.data_rep.borrow() {
             // other is an &Rc<MoltAny>
             let result = other.clone().downcast::<T>();
 
@@ -851,20 +794,15 @@ impl Value {
             }
         }
 
-        // NEXT, if we don't have a string_rep, get one.
-        if iref.string_rep.is_none() {
-            iref.string_rep = Some(Rc::new(iref.data_rep.to_string()));
-        }
-
         // NEXT, can we parse it as a T?  If so, save it back to
         // the data_rep, and return it.
-        if let Some(str) = &iref.string_rep {
-            if let Ok(tval) = str.parse::<T>() {
-                let tval = Rc::new(tval);
-                let out = tval.clone();
-                iref.data_rep = DataRep::Other(Rc::new(tval));
-                return Some(out);
-            }
+        let str = self.as_string();
+
+        if let Ok(tval) = str.parse::<T>() {
+            let tval = Rc::new(tval);
+            let out = tval.clone();
+            *self.inner.data_rep.borrow_mut() = DataRep::Other(Rc::new(tval));
+            return Some(out);
         }
 
         // NEXT, we couldn't do it.
@@ -907,10 +845,8 @@ impl Value {
     where
         T: Display + Debug + FromStr + Copy,
     {
-        let mut iref = self.inner.borrow_mut();
-
         // FIRST, if we have the desired type, return it.
-        if let DataRep::Other(other) = &iref.data_rep {
+        if let DataRep::Other(other) = &*self.inner.data_rep.borrow() {
             // other is an &Rc<MoltAny>
             let result = other.clone().downcast::<T>();
 
@@ -921,20 +857,15 @@ impl Value {
             }
         }
 
-        // NEXT, if we don't have a string_rep, get one.
-        if iref.string_rep.is_none() {
-            iref.string_rep = Some(Rc::new(iref.data_rep.to_string()));
-        }
-
         // NEXT, can we parse it as a T?  If so, save it back to
         // the data_rep, and return it.
-        if let Some(str) = &iref.string_rep {
-            if let Ok(tval) = str.parse::<T>() {
-                let tval = Rc::new(tval);
-                let out = tval.clone();
-                iref.data_rep = DataRep::Other(Rc::new(tval));
-                return Some(*out);
-            }
+        let str = self.as_string();
+
+        if let Ok(tval) = str.parse::<T>() {
+            let tval = Rc::new(tval);
+            let out = tval.clone();
+            *self.inner.data_rep.borrow_mut() = DataRep::Other(Rc::new(tval));
+            return Some(*out);
         }
 
         // NEXT, we couldn't do it.
@@ -943,9 +874,9 @@ impl Value {
 
     /// For use by `expr::expr` in parsing out `Values`.
     pub(crate) fn already_number(&self) -> Option<Datum> {
-        let iref = self.inner.borrow();
+        let iref = self.inner.data_rep.borrow();
 
-        match iref.data_rep {
+        match *iref {
             DataRep::Flt(flt) => Some(Datum::float(flt)),
             DataRep::Int(int) => Some(Datum::int(int)),
             _ => None,
@@ -1040,22 +971,22 @@ mod tests {
     fn from_string() {
         // Using From<String>
         let val = Value::from("xyz".to_string());
-        assert_eq!(&*val.to_string(), "xyz");
+        assert_eq!(&val.to_string(), "xyz");
 
         // Using Into
         let val: Value = String::from("Fred").into();
-        assert_eq!(&*val.to_string(), "Fred");
+        assert_eq!(&val.to_string(), "Fred");
     }
 
     #[test]
     fn from_str_ref() {
         // Using From<&str>
         let val = Value::from("xyz");
-        assert_eq!(&*val.to_string(), "xyz");
+        assert_eq!(&val.to_string(), "xyz");
 
         // Using Into
         let val: Value = "Fred".into();
-        assert_eq!(&*val.to_string(), "Fred");
+        assert_eq!(&val.to_string(), "Fred");
     }
 
     #[test]
@@ -1069,10 +1000,10 @@ mod tests {
     #[test]
     fn as_string() {
         let val = Value::from("abc");
-        assert_eq!(*val.as_string(), "abc".to_string());
+        assert_eq!(val.as_string(), "abc");
 
         let val2 = val.clone();
-        assert_eq!(*val.as_string(), *val2.to_string());
+        assert_eq!(val.as_string(), val2.as_string());
     }
 
     #[test]
@@ -1089,10 +1020,10 @@ mod tests {
     fn from_bool() {
         // Using From<bool>
         let val = Value::from(true);
-        assert_eq!(&*val.to_string(), "1");
+        assert_eq!(&val.to_string(), "1");
 
         let val = Value::from(false);
-        assert_eq!(&*val.to_string(), "0");
+        assert_eq!(&val.to_string(), "0");
     }
 
     #[test]
@@ -1146,12 +1077,12 @@ mod tests {
     #[test]
     fn from_as_int() {
         let val = Value::from(5);
-        assert_eq!(&*val.as_string(), "5");
+        assert_eq!(val.as_string(), "5");
         assert_eq!(val.as_int(), Ok(5));
         assert_eq!(val.as_float(), Ok(5.0));
 
         let val = Value::from("7");
-        assert_eq!(&*val.as_string(), "7");
+        assert_eq!(val.as_string(), "7");
         assert_eq!(val.as_int(), Ok(7));
         assert_eq!(val.as_float(), Ok(7.0));
 
@@ -1159,7 +1090,7 @@ mod tests {
         // In Standard TCL, its string_rep would be "7.0".  Need to address
         // MoltFloat formatting/parsing.
         let val = Value::from(7.0);
-        assert_eq!(&*val.as_string(), "7");
+        assert_eq!(val.as_string(), "7");
         assert_eq!(val.as_int(), Ok(7));
         assert_eq!(val.as_float(), Ok(7.0));
 
@@ -1203,15 +1134,17 @@ mod tests {
     #[test]
     fn from_as_float() {
         let val = Value::from(12.5);
-        assert_eq!(&*val.as_string(), "12.5");
+        assert_eq!(val.as_string(), "12.5");
         assert_eq!(val.as_int(), molt_err!("expected integer but got \"12.5\""));
         assert_eq!(val.as_float(), Ok(12.5));
 
         let val = Value::from("7.8");
-        assert_eq!(&*val.as_string(), "7.8");
+        assert_eq!(val.as_string(), "7.8");
         assert_eq!(val.as_int(), molt_err!("expected integer but got \"7.8\""));
         assert_eq!(val.as_float(), Ok(7.8));
 
+        // TODO: Problem here: tries to mutably borrow the data_rep to convert from int to string
+        // while the data_rep is already mutably borrowed to convert the string to float.
         let val = Value::from(5);
         assert_eq!(val.as_float(), Ok(5.0));
 
@@ -1248,7 +1181,7 @@ mod tests {
         // We *are* testing that Value will use the list.rs code to convert strings to lists
         // and back again.
         let listval = Value::from(vec![Value::from("abc"), Value::from("def")]);
-        assert_eq!(&*listval.as_string(), "abc def");
+        assert_eq!(listval.as_string(), "abc def");
 
         let listval = Value::from("qrs xyz");
         let result = listval.as_list();
@@ -1282,7 +1215,7 @@ mod tests {
         // and back again.
         let array = [Value::from("abc"), Value::from("def")];
         let listval = Value::from(&array[..]);
-        assert_eq!(&*listval.as_string(), "abc def");
+        assert_eq!(listval.as_string(), "abc def");
     }
 
     #[test]

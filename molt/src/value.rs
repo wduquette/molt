@@ -153,7 +153,7 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::rc::Rc;
 use std::str::FromStr;
-use once_cell::unsync::OnceCell;
+use std::cell::UnsafeCell;
 
 //-----------------------------------------------------------------------------
 // Public Data Types
@@ -164,19 +164,18 @@ pub struct Value {
     inner: Rc<InnerValue>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 struct InnerValue {
-    string_rep: OnceCell<String>,
+    string_rep: UnsafeCell<Option<String>>,
     data_rep: RefCell<DataRep>,
 }
 
 impl Value {
     fn inner_from_string(str: String) -> Self {
         let inner = InnerValue {
-            string_rep: OnceCell::new(),
+            string_rep: UnsafeCell::new(Some(str)),
             data_rep: RefCell::new(DataRep::None),
         };
-        let _ = inner.string_rep.set(str);
 
         Self {
             inner: Rc::new(inner),
@@ -185,7 +184,7 @@ impl Value {
 
     fn inner_from_data(data: DataRep) -> Self {
         let inner = InnerValue {
-            string_rep: OnceCell::new(),
+            string_rep: UnsafeCell::new(None),
             data_rep: RefCell::new(data),
         };
 
@@ -376,7 +375,23 @@ impl Value {
     /// ```
     pub fn as_string(&self) -> &str {
         // FIRST, get the string rep, computing it from the data_rep if necessary.
-        self.inner.string_rep.get_or_init(|| (self.inner.data_rep.borrow()).to_string())
+        // self.inner.string_rep.get_or_init(|| (self.inner.data_rep.borrow()).to_string())
+
+        // NOTE: This method is the only place where the string_rep is queried.
+        let slot = unsafe {&*self.inner.string_rep.get()};
+
+        if slot.is_some() {
+            return slot.as_ref().expect("string rep");
+        }
+
+        // NOTE: This is the only place where the string_rep is set.
+        // Because we returned it if it was Some, it is only ever set once.
+        // Thus, this is safe: as_string() is the only way to retrieve the string_rep,
+        // and it computes the string_rep lazily after which it is immutable. 
+        let slot = unsafe {&mut*self.inner.string_rep.get()};
+        *slot = Some((self.inner.data_rep.borrow()).to_string());
+
+        slot.as_ref().expect("string rep")
     }
 
     /// Tries to return the `Value` as a `bool`, parsing the

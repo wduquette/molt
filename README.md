@@ -127,4 +127,5 @@ I've gotten help from many people in this endeavor; here's a (necessarily partia
 * Jonathan Castello, for general Rust info
 * Kevin Kenny, for help with TCL numerics
 * Don Porter, for help with TCL parsing
-* Krishna Sannasi, for help getting MoltValues to work with arbitrary user data types
+* Krishna Sannasi, for help getting `Value` to work with arbitrary user data types
+* Yandros, for pointing me at `OnceCell` and `UnsafeCell`.

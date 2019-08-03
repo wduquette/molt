@@ -58,6 +58,25 @@ Things to remember to do soon:
             because `&*value.as_string()` is the same as `value.as_string()`.
         *   But I changed them anyway, because ugly.
         *   DONE!
+*   Reran the current benchmarks before and after the change; this change helped a lot.
+    *   Before
+```
+Micros     Norm -- Benchmark
+  0.97     1.00 -- ok-1.1 ok, no arguments
+  1.36     1.41 -- ok-1.2 ok, one argument
+  1.90     1.95 -- ok-1.3 ok, two arguments
+  1.46     1.50 -- ident-1.1 ident, simple argument
+  1.71     1.76 -- incr-1.1 incr a
+```
+    *   After
+```
+Micros     Norm -- Benchmark
+  0.62     1.00 -- ok-1.1 ok, no arguments
+  0.91     1.48 -- ok-1.2 ok, one argument
+  1.33     2.16 -- ok-1.3 ok, two arguments
+  1.02     1.66 -- ident-1.1 ident, simple argument
+  1.20     1.95 -- incr-1.1 incr a
+```
 
 ### 2019-07-27 (Saturday)
 *   Looked into whether a Command struct could have mutable access to its fields, so that an

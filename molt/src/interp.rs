@@ -324,7 +324,7 @@ impl Interp {
     pub fn eval_value(&mut self, script: &Value) -> MoltResult {
         // TODO: Could probably do better, here.  If the value is already a list, for
         // example, can maybe evaluate it as a command without parsing the string.
-        self.eval(&*script.as_string())
+        self.eval(script.as_string())
     }
 
     /// Evaluates a script one command at a time, returning whatever
@@ -360,8 +360,7 @@ impl Interp {
     /// molt_ok!()
     /// ```
     pub fn eval_body(&mut self, script: &Value) -> MoltResult {
-        let script = script.as_string();
-        let mut ctx = EvalPtr::new(&*script);
+        let mut ctx = EvalPtr::new(script.as_string());
 
         self.eval_context(&mut ctx)
     }
@@ -852,7 +851,7 @@ impl Interp {
             }
 
             // FIRST, convert to Vec<&str>
-            let name = &*words[0].as_string();
+            let name = words[0].as_string();
             if let Some(cmd) = self.commands.get(name) {
                 let cmd = Rc::clone(cmd);
                 let result = cmd.execute(self, words.as_slice());
@@ -978,9 +977,9 @@ impl Interp {
         while !ctx.at_end() {
             // Note: the while condition ensures that there's a character.
             if ctx.next_is('[') {
-                word.push_str(&*self.parse_script(ctx)?.as_string());
+                word.push_str(self.parse_script(ctx)?.as_string());
             } else if ctx.next_is('$') {
-                word.push_str(&*self.parse_variable(ctx)?.as_string());
+                word.push_str(self.parse_variable(ctx)?.as_string());
             } else if ctx.next_is('\\') {
                 subst_backslash(ctx, &mut word);
             } else if !ctx.next_is('"') {
@@ -1001,9 +1000,9 @@ impl Interp {
         while !ctx.at_end_of_command() && !ctx.next_is_line_white() {
             // Note: the while condition ensures that there's a character.
             if ctx.next_is('[') {
-                word.push_str(&*self.parse_script(ctx)?.as_string());
+                word.push_str(self.parse_script(ctx)?.as_string());
             } else if ctx.next_is('$') {
-                word.push_str(&*self.parse_variable(ctx)?.as_string());
+                word.push_str(self.parse_variable(ctx)?.as_string());
             } else if ctx.next_is('\\') {
                 subst_backslash(ctx, &mut word);
             } else {
@@ -1055,7 +1054,7 @@ impl Interp {
             }
         } else if ctx.next_is('{') {
             ctx.skip_char('{');
-            varname.push_str(&*self.parse_braced_varname(ctx)?.as_string());
+            varname.push_str(self.parse_braced_varname(ctx)?.as_string());
         }
 
         Ok(self.var(&varname)?)
@@ -1123,7 +1122,7 @@ struct CommandProc {
 // best efficiency.
 impl Command for CommandProc {
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        let name = &*argv[0].as_string();
+        let name = argv[0].as_string();
 
         // FIRST, push the proc's local scope onto the stack.
         interp.push_scope();
@@ -1140,7 +1139,7 @@ impl Command for CommandProc {
             // NEXT, if this is the args parameter, give the remaining args,
             // if any.  Note that "args" has special meaning only if it's the
             // final arg spec in the list.
-            if &*vec[0].as_string() == "args" && speci == self.args.len() - 1 {
+            if vec[0].as_string() == "args" && speci == self.args.len() - 1 {
                 interp.set_and_return("args", Value::from(&argv[argi..]));
 
                 // We've processed all of the args
@@ -1151,14 +1150,14 @@ impl Command for CommandProc {
             // NEXT, do we have a matching argument?
             if argi < argv.len() {
                 // Pair them up
-                interp.set_var(&*vec[0].as_string(), &argv[argi]);
+                interp.set_var(vec[0].as_string(), &argv[argi]);
                 argi += 1;
                 continue;
             }
 
             // NEXT, do we have a default value?
             if vec.len() == 2 {
-                interp.set_var(&*vec[0].as_string(), &vec[1]);
+                interp.set_var(vec[0].as_string(), &vec[1]);
             } else {
                 // We don't; we're missing a required argument.
                 return self.wrong_num_args(name);
@@ -1196,7 +1195,7 @@ impl CommandProc {
             msg.push(' ');
 
             // "args" has special meaning only in the last place.
-            if *arg.as_string() == "args" && i == self.args.len() - 1 {
+            if arg.as_string() == "args" && i == self.args.len() - 1 {
                 msg.push_str("?arg ...?");
                 break;
             }
@@ -1204,10 +1203,10 @@ impl CommandProc {
             let vec = arg.as_list().expect("error in proc arglist validation!");
 
             if vec.len() == 1 {
-                msg.push_str(&*vec[0].as_string());
+                msg.push_str(vec[0].as_string());
             } else {
                 msg.push('?');
-                msg.push_str(&*vec[0].as_string());
+                msg.push_str(vec[0].as_string());
                 msg.push('?');
             }
         }

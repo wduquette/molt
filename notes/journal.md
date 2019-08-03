@@ -2,8 +2,8 @@
 
 Things to remember to do soon:
 
-*   Try using the `once_cell` crate (or some simpler code using the same pattern) for
-    `Value::string_rep`.
+*   Since our use of OnceCell is extremely limited, see about replacing it with
+    a minimum of code around UnsafeCell.
 *   Flesh out the interp.rs test suite and rustdocs.
 *   Review test_harness to use `Value` where appropriate.
 *   Review the context cache; make sure that "object commands" that use the context cache
@@ -32,13 +32,32 @@ Things to remember to do soon:
     *   Would allow Molt to be used in embedded code.
 
 ### 2019-08-03 (Saturday)
-*   Converted Value to use OnceCell.
+*   Converting Value to use OnceCell.
+    *   Step 1: Update just in value.rs, retaining the current API.
+        *   `Value::as_string2()` returns a `&str`.
+        *   `Value::as_string()` copies that to a new `Rc<String>` to preserve the existing API.
     *   Issue in as_float(): I'm getting a failure because of a double mutable borrow of the
         data_rep.
-        *   `let val = Value::from(5);`, so that the data_rep is integer.
-        *   `let flt = val.as_float()?;`, so needs to convert the integer to a string, then
-            convert the string to a float.
-        *   But converting the integer to a string requires borrowing the integer.
+        *   Cause
+            *   `let val = Value::from(5);`, so that the data_rep is integer.
+            *   `let flt = val.as_float()?;`, so needs to convert the integer to a string, then
+                convert the string to a float.
+            *   But converting the integer to a string requires borrowing the integer.
+        *   The fix is easy: reduce the scope of each borrow, if possible to a single statement.
+            *   In particular, don't be borrowing the data_rep when we compute the string rep
+                for parsing.
+        *   In `Value::as_int`, for example, try to retrieve and return a `borrow()` without
+            assigning the `Ref<_>` to a variable.  Then, if the data_rep is computed,
+            `borrow_mut()` just long enough to save the new data_rep.
+        *   The only issue is `Value::as_bool`, where we look at three different data reps.  But
+            even here, wrapping that section in a pair of braces causes the immutable borrow to
+            be dropped before we get to computing the new data_rep.
+        *   Fixed.
+    *   Step 2: Change `Value::as_string` to return `&str`, and delete `Value::as_string2`.
+        *   Interesting: most of the old calls didn't need to be changed,
+            because `&*value.as_string()` is the same as `value.as_string()`.
+        *   But I changed them anyway, because ugly.
+        *   DONE!
 
 ### 2019-07-27 (Saturday)
 *   Looked into whether a Command struct could have mutable access to its fields, so that an

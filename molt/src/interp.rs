@@ -1,16 +1,106 @@
 //! The Molt Interpreter
 //!
+//! TODO: This should be primary documentation on using the Molt Interp.
+//!
 //! The [`Interp`] struct is the primary API for embedding Molt into a Rust application.
+//! Given an `Interp`, the application may:
 //!
-//! TODO: This should be primary documentation on using the Molt Interp.  Topics should
-//! include:
+//! * Evaluate scripts
+//! * Check scripts for completeness
+//! * Extend the language by defining new Molt commands in Rust
+//! * Set and get Molt variables in command bodies
+//! * Interpret Molt values as a variety of data types.
+//! * Access application data the context cache
 //!
-//! * Evaluating scripts
-//! * Checking scripts for completeness
-//! * Defining commands
-//! * Using the context cache
-//! * Setting and getting variables in command bodies
+//! The following describes the features of the [`Interp`] in general; follow the links for
+//! specifics of the various types and methods.
 //!
+//! # Creating an Interpreter
+//!
+//! There are two ways to create an interpreter.  The usual way is to call
+//! [`Interp::new`](struct.Interp.html#method.new), which creates an interpreter and populates
+//! it with all of the standard Molt commands.  Alternatively,
+//! [`Interp::empty`](struct.Interp.html#method.empty) creates an interpreter with no commands,
+//! allowing the application to define only those commands it needs.  This is useful when the goal
+//! is to provide the application with a simple, non-scriptable console command set.
+//!
+//! TODO: Define a way to add various subsets of the standard commands to an initially
+//! empty interpreter.
+//!
+//! ```
+//! use molt::Interp;
+//! let mut interp = Interp::new();
+//! // ...
+//! ```
+//!
+//! # Evaluating Scripts
+//!
+//! There are a number of ways to evaluate Molt scripts, all of which return [`MoltResult`]:
+//!
+//! ```
+//! pub type MoltResult = Result<Value, ResultCode>;
+//! ```
+//!
+//! [`Value`] is the type of all Molt values (i.e., values that can be passed as parameters and
+//! stored in variables).  [`ResultCode`] is an enum that encompasses all of the kinds of
+//! exceptional return from Molt code, including errors, `return`, `break`, and `continue`.
+//!
+//! [`Interp::eval`](struct.Interp.html#method.eval) and
+//! [`Interp::eval_value`](struct.Interp.html#method.eval_value) evaluate a string as a Molt
+//! script, and return either a normal `Value` or a Molt error.  The script is evaluated in
+//! the caller's context: if called at the application level, the script will be evaluated in
+//! the interpreter's global scope; if called by a Molt command, it will be evaluated in the
+//! scope in which that command is executing.
+//!
+//! [`Interp::eval_body`](struct.Interp.html#method.eval_body) is used to evaluate the body
+//! of loops and other control structures.  Unlike `Interp::eval`, it passes the
+//! `return`, `break`, and `continue` result codes back to the caller for handling.
+//!
+//! # Evaluating Expressions
+//!
+//! In Molt, as in Standard Tcl, algebraic expressions are evaluated by the `expr` command.  At
+//! the Rust level this feature is provided by the
+//! [`Interp::expr`](struct.Interp.html#method.expr) method, which takes the expression as a
+//! [`Value`] and returns the computed `Value` or an error.
+//!
+//! There are three convenience methods,
+//! [`Interp::expr_bool`](struct.Interp.html#method.expr_bool),
+//! [`Interp::expr_int`](struct.Interp.html#method.expr_int), and
+//! [`Interp::expr_float`](struct.Interp.html#method.expr_float), which streamline the computation
+//! of a particular kind of value, and return an error if the computed result is not of that type.
+//!
+//! # Checking Scripts for Completeness
+//!
+//! The [`Interp::complete`](struct.Interp.html#method.complete) checks whether a Molt script is
+//! complete: i.e., that it contains no unterminated quoted or braced strings that
+//! would prevent it from being evaluated as Molt code.  This is primarily useful when
+//! implementing a Read-Eval-Print-Loop, as it allows the REPL to easily determine whether it
+//! should evaluate the input immediately or ask for an additional line of input.
+//!
+//! # Defining New Commands
+//!
+//! The usual reason for embedding Molt in an application is to extend it with
+//! application-specific commands.  There are a number of ways to do this.
+//!
+//! The simplest method, and the one used by most of Molt's built-in commands, is to define a
+//! [`CommandFunc`] and register it with the interpreter using the
+//! [`Interp::add_command`](struct.Interp.html#method.add_command) method:
+//!
+//! ```pub type CommandFunc = fn(&mut Interp, &[Value]) -> MoltResult;```
+//!
+//! A `CommandFunc` is simply a Rust function that accepts an interpreter and a slice of Molt
+//! [`Value`] objects and returns a [`MoltResult`].  The slice of [`Value`] objects represents
+//! the name of the command and its arguments, which the function may interpret in any way it
+//! desires.
+//!
+//! TODO: describe context commands and command objects.
+//!
+//! TODO: flesh out Molt's ensemble command API, and then describe how to define ensemble commands.
+//!
+//! [`MoltResult`]: ../types/struct.MoltResult.html
+//! [`ResultCode`]: ../types/struct.ResultCode.html
+//! [`CommandFunc`]: ../types/struct.CommandFunc.html
+//! [`Value`]: ../Value/struct.Value.html
 //! [`Interp`]: struct.Interp.html
 
 use crate::commands;
@@ -43,7 +133,6 @@ use std::rc::Rc;
 /// # use molt::types::*;
 /// # use molt::Interp;
 /// # use molt::molt_ok;
-/// # use molt::Value;
 /// # fn dummy() -> MoltResult {
 /// let mut interp = Interp::new();
 /// let four = interp.eval("expr {2 + 2}")?;
@@ -73,13 +162,24 @@ pub struct Interp {
     num_levels: usize,
 }
 
+// NOTE: The order of methods in the generated RustDoc depends on the order in this block.
+// Consequently, methods are ordered pedagogically.
 impl Interp {
     //--------------------------------------------------------------------------------------------
     // Constructors
 
     /// Creates a new Molt interpreter with no commands defined.  Use this when crafting
     /// command languages that shouldn't include the normal TCL commands, or as a base
-    /// for adding specific command sets.
+    /// to which specific Molt command sets can be added.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::interp::Interp;
+    /// let mut interp = Interp::empty();
+    /// assert!(interp.command_names().is_empty());
+    /// ```
+
     pub fn empty() -> Self {
         Self {
             recursion_limit: 1000,
@@ -92,19 +192,38 @@ impl Interp {
     }
 
     /// Creates a new Molt interpreter, pre-populated with the standard Molt commands.
-    /// Use `info commands` to retrieve the full list.
+    /// Use [`command_names`](#method.command_names) (or the `info commands` Molt command)
+    /// to retrieve the full list, and the [`add_command`](#method.add_command) family of
+    /// methods to extend the interpreter with new commands.
+    ///
     /// TODO: Define command sets (sets of commands that go together, so that clients can
     /// add or remove them in groups).
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::Interp;
+    /// # use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    /// let four = interp.eval("expr {2 + 2}")?;
+    /// assert_eq!(four, Value::from(4));
+    /// # molt_ok!()
+    /// # }
+    /// ```
+    ///
     pub fn new() -> Self {
         let mut interp = Interp::empty();
 
+        // TODO: These commands affect the interpreter only, not the external environment.
+        // It might be desirable to subdivide them further, into those that can cause
+        // denial-of-service kinds of problems, e.g., for, while, proc, rename, and those
+        // that can't.
         interp.add_command("append", commands::cmd_append);
         interp.add_command("assert_eq", commands::cmd_assert_eq);
         interp.add_command("break", commands::cmd_break);
         interp.add_command("catch", commands::cmd_catch);
         interp.add_command("continue", commands::cmd_continue);
         interp.add_command("error", commands::cmd_error);
-        interp.add_command("exit", commands::cmd_exit);
         interp.add_command("expr", commands::cmd_expr);
         interp.add_command("for", commands::cmd_for);
         interp.add_command("foreach", commands::cmd_foreach);
@@ -122,11 +241,335 @@ impl Interp {
         interp.add_command("rename", commands::cmd_rename);
         interp.add_command("return", commands::cmd_return);
         interp.add_command("set", commands::cmd_set);
-        interp.add_command("source", commands::cmd_source);
         interp.add_command("time", commands::cmd_time);
         interp.add_command("unset", commands::cmd_unset);
         interp.add_command("while", commands::cmd_while);
+
+        // TODO: Requires file access.  Ultimately, might go in an extension crate if
+        // the necessary operations aren't available in core::.
+        interp.add_command("source", commands::cmd_source);
+
+        // TODO: Useful for entire programs written in Molt; but not necessarily wanted in
+        // extension scripts.
+        interp.add_command("exit", commands::cmd_exit);
+
         interp
+    }
+
+    //--------------------------------------------------------------------------------------------
+    // Script and Expression Evaluation
+
+    /// Evaluates a script one command at a time.  Returns the [`Value`](../value/struct.Value.html)
+    /// of the last command in the script, or the value of any explicit `return` call in the
+    /// script, or any error thrown by the script.  Other
+    /// [`ResultCode`](../types/enum.ResultCode.html) values are converted to normal errors.
+    ///
+    /// Use this method (or [`eval_value`](#method.eval_value) to evaluate arbitrary scripts.
+    /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
+    ///
+    /// # Example
+    ///
+    /// The following code shows how to evaluate a script and handle the result, whether
+    /// it's a computed `Value` or an error message (which is also a `Value`).
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::Interp;
+    /// let mut interp = Interp::new();
+    /// let input = "set a 1";
+    /// match interp.eval(input) {
+    ///    Ok(val) => {
+    ///        // Computed a Value
+    ///        println!("Value: {}", val);
+    ///    }
+    ///    Err(ResultCode::Error(msg)) => {
+    ///        // Got an error; print it out.
+    ///        println!("Error: {}", msg);
+    ///    }
+    ///    _ => {
+    ///        // Won't ever happen, but the compiler doesn't know that.
+    ///        // panic!() if you like.
+    ///    }
+    /// }
+    /// ```
+    pub fn eval(&mut self, script: &str) -> MoltResult {
+        // FIRST, check the number of nesting levels
+        self.num_levels += 1;
+
+        if self.num_levels > self.recursion_limit {
+            self.num_levels -= 1;
+            return molt_err!("too many nested calls to Interp::eval (infinite loop?)");
+        }
+
+        // NEXT, evaluate the script and translate the result to Ok or Error
+        let mut ctx = EvalPtr::new(script);
+
+        let result = self.eval_context(&mut ctx);
+
+        // NEXT, decrement the number of nesting levels.
+        self.num_levels -= 1;
+
+        // NEXT, translate and return the result.
+        match result {
+            Err(ResultCode::Return(value)) => molt_ok!(value),
+            Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
+            Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
+            _ => result,
+        }
+    }
+
+    /// Evaluates a script one command at a time, where the script is passed as a
+    /// `Value`.  Except for the signature, this command is semantically equivalent to
+    /// [`eval`](#method.eval).
+    pub fn eval_value(&mut self, script: &Value) -> MoltResult {
+        // TODO: Could probably do better, here.  If the value is already a list, for
+        // example, can maybe evaluate it as a command without parsing the string.
+        self.eval(&*script.as_string())
+    }
+
+    /// Evaluates a script one command at a time, returning whatever
+    /// [`MoltResult`](../types/type.MoltResult.html) arises.
+    ///
+    /// This is the method to use when evaluating a control structure's
+    /// script body; the control structure must handle the special
+    /// result codes appropriately.
+    ///
+    /// # Example
+    ///
+    /// The following code could be used to process the body of one of the Molt looping
+    /// commands, e.g., `while` or
+    /// `foreach`.  [`ResultCode`](../types/enum.ResultCode.html)`::Return` and `ResultCode::Error`
+    /// return out of the looping command altogether, returning control to the caller.
+    /// `ResultCode::Break` breaks out of the loop.  `Ok` and `ResultCode::Continue`
+    /// continue with the next iteration.
+    ///
+    /// ```ignore
+    /// ...
+    /// while (...) {
+    ///     let result = interp.eval_body(&body);
+    ///
+    ///     match result {
+    ///         Ok(_) => (),
+    ///         Err(ResultCode::Return(_)) => return result,
+    ///         Err(ResultCode::Error(_)) => return result,
+    ///         Err(ResultCode::Break) => break,
+    ///         Err(ResultCode::Continue) => (),
+    ///     }
+    /// }
+    ///
+    /// molt_ok!()
+    /// ```
+    pub fn eval_body(&mut self, script: &Value) -> MoltResult {
+        let script = script.as_string();
+        let mut ctx = EvalPtr::new(&*script);
+
+        self.eval_context(&mut ctx)
+    }
+
+    /// Determines whether or not the script is syntactically complete,
+    /// e.g., has no unmatched quotes, brackets, or braces.
+    ///
+    /// REPLs use this to determine whether or not to ask for another line of
+    /// input.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::interp::Interp;
+    /// let mut interp = Interp::new();
+    /// assert!(interp.complete("set a [expr {1+1}]"));
+    /// assert!(!interp.complete("set a [expr {1+1"));
+    /// ```
+
+    pub fn complete(&mut self, script: &str) -> bool {
+        let mut ctx = EvalPtr::new(script);
+        ctx.set_no_eval(true);
+
+        self.eval_context(&mut ctx).is_ok()
+    }
+
+    /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html) and
+    /// returns its value.  The expression is passed a `Value` which is interpreted as a `String`.
+    ///
+    /// # Example
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// # fn dummy() -> Result<String,ResultCode> {
+    /// let mut interp = Interp::new();
+    /// let expr = Value::from("2 + 2");
+    /// let sum = interp.expr(&expr)?.as_int()?;
+    ///
+    /// assert_eq!(sum, 4);
+    /// # Ok("dummy".to_string())
+    /// # }
+    /// ```
+    pub fn expr(&mut self, expr: &Value) -> MoltResult {
+        expr::expr(self, expr)
+    }
+
+    /// Evaluates a boolean [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
+    /// and returns its value, or an error if it couldn't be interpreted as a boolean.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// # fn dummy() -> Result<String,ResultCode> {
+    /// let mut interp = Interp::new();
+    ///
+    /// let expr = Value::from("1 < 2");
+    /// let flag: bool = interp.expr_bool(&expr)?;
+    ///
+    /// assert!(flag);
+    /// # Ok("dummy".to_string())
+    /// # }
+    /// ```
+    pub fn expr_bool(&mut self, expr: &Value) -> Result<bool, ResultCode> {
+        expr::expr(self, expr)?.as_bool()
+    }
+
+    /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
+    /// and returns its value as an integer, or an error if it couldn't be interpreted as an
+    /// integer.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// # fn dummy() -> Result<String,ResultCode> {
+    /// let mut interp = Interp::new();
+    ///
+    /// let expr = Value::from("1 + 2");
+    /// let val: MoltInt = interp.expr_int(&expr)?;
+    ///
+    /// assert_eq!(val, 3);
+    /// # Ok("dummy".to_string())
+    /// # }
+    /// ```
+    pub fn expr_int(&mut self, expr: &Value) -> Result<MoltInt, ResultCode> {
+        expr::expr(self, expr)?.as_int()
+    }
+
+    /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
+    /// and returns its value as a float, or an error if it couldn't be interpreted as a
+    /// float.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// # fn dummy() -> Result<String,ResultCode> {
+    /// let mut interp = Interp::new();
+    ///
+    /// let expr = Value::from("1.1 + 2.2");
+    /// let val: MoltFloat = interp.expr_float(&expr)?;
+    ///
+    /// assert_eq!(val, 3.3);
+    /// # Ok("dummy".to_string())
+    /// # }
+    /// ```
+    pub fn expr_float(&mut self, expr: &Value) -> Result<MoltFloat, ResultCode> {
+        expr::expr(self, expr)?.as_float()
+    }
+
+    //--------------------------------------------------------------------------------------------
+    // Command Definition and Handling
+
+    /// Adds a command defined by a `CommandFunc` to the interpreter. This is the normal way to
+    /// add commands to the interpreter.
+    ///
+    /// # Accessing Application Data
+    ///
+    /// When embedding Molt in an application, it is common to define commands that require
+    /// mutable or immutable access to application data.  If the command requires
+    /// access to data other than that provided by the `Interp` itself, e.g., application data,
+    /// consider adding the relevant data structure to the context cache and then use
+    /// [`add_context_command`](#method.add_context_command).  Alternatively, define a struct that
+    /// implements `Command` and use [`add_command_object`](#method.add_command_object).
+    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
+        let command = CommandFuncWrapper::new(func);
+        self.add_command_object(name, command);
+    }
+
+    /// Adds a command defined by a `ContextCommandFunc` to the interpreter.
+    ///
+    /// This is the normal way to add commands requiring application context to
+    /// the interpreter.  It is up to the module creating the context to free it when it is
+    /// no longer required.
+    ///
+    /// **Warning**: Do not use this method to define a TCL object, i.e., a command with
+    /// its own data and lifetime.  Use a type that implements `Command` and `Drop`.
+    pub fn add_context_command(
+        &mut self,
+        name: &str,
+        func: ContextCommandFunc,
+        context_id: ContextID,
+    ) {
+        let command = ContextCommandFuncWrapper::new(func, context_id);
+        self.add_command_object(name, command);
+    }
+
+    /// Adds a procedure to the interpreter.
+    ///
+    /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
+    /// as for the `proc` command and the `commands::cmd_proc` function.
+    pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &str) {
+        let command = CommandProc {
+            args: args.to_owned(),
+            body: body.to_string(),
+        };
+
+        self.add_command_object(name, command);
+    }
+
+    /// Adds a command to the interpreter using a `Command` object.
+    ///
+    /// Use this when defining a command that requires application context.
+    pub fn add_command_object<T: 'static + Command>(&mut self, name: &str, command: T) {
+        self.commands.insert(name.into(), Rc::new(command));
+    }
+
+    /// Determines whether the interpreter contains a command with the given
+    /// name.
+    pub fn has_command(&self, name: &str) -> bool {
+        self.commands.contains_key(name)
+    }
+
+    /// Renames the command.
+    ///
+    /// **Note:** This does not update procedures that reference the command under the old
+    /// name.  This is intentional: it is a common TCL programming technique to wrap an
+    /// existing command by renaming it and defining a new command with the old name that
+    /// calls the original command at its new name.
+    pub fn rename_command(&mut self, old_name: &str, new_name: &str) {
+        if let Some(cmd) = self.commands.get(old_name) {
+            let cmd = Rc::clone(cmd);
+            self.commands.remove(old_name);
+            self.commands.insert(new_name.into(), cmd);
+        }
+    }
+
+    /// Removes the command with the given name.
+    pub fn remove_command(&mut self, name: &str) {
+        self.commands.remove(name);
+    }
+
+    /// Gets a vector of the names of the existing commands.
+    ///
+    pub fn command_names(&self) -> MoltList {
+        let vec: MoltList = self
+            .commands
+            .keys()
+            .cloned()
+            .map(|x| Value::from(&x))
+            .collect();
+
+        vec
     }
 
     //--------------------------------------------------------------------------------------------
@@ -289,93 +732,6 @@ impl Interp {
     }
 
     //--------------------------------------------------------------------------------------------
-    // Command Definition and Handling
-
-    /// Adds a command defined by a `CommandFunc` to the interpreter.
-    ///
-    /// This is the normal way to add commands to
-    /// the interpreter.  If the command requires context other than the interpreter itself,
-    /// add the context data to the context cache and use
-    /// [`add_context_command`](#method.add_context_command), or define a struct that
-    /// implements `Command` and use [`add_command_object`](#method.add_command_object).
-    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
-        let command = CommandFuncWrapper::new(func);
-        self.add_command_object(name, command);
-    }
-
-    /// Adds a command defined by a `ContextCommandFunc` to the interpreter.
-    ///
-    /// This is the normal way to add commands requiring application context to
-    /// the interpreter.
-    pub fn add_context_command(
-        &mut self,
-        name: &str,
-        func: ContextCommandFunc,
-        context_id: ContextID,
-    ) {
-        let command = ContextCommandFuncWrapper::new(func, context_id);
-        self.add_command_object(name, command);
-    }
-
-    /// Adds a procedure to the interpreter.
-    ///
-    /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
-    /// as for the `proc` command and the `commands::cmd_proc` function.
-    pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &str) {
-        let command = CommandProc {
-            args: args.to_owned(),
-            body: body.to_string(),
-        };
-
-        self.add_command_object(name, command);
-    }
-
-    /// Adds a command to the interpreter using a `Command` object.
-    ///
-    /// Use this when defining a command that requires application context.
-    pub fn add_command_object<T: 'static + Command>(&mut self, name: &str, command: T) {
-        self.commands.insert(name.into(), Rc::new(command));
-    }
-
-    /// Determines whether the interpreter contains a command with the given
-    /// name.
-    pub fn has_command(&self, name: &str) -> bool {
-        self.commands.contains_key(name)
-    }
-
-    /// Renames the command.
-    ///
-    /// **Note:** This does not update procedures that reference the command under the old
-    /// name.  This is intentional: it is a common TCL programming technique to wrap an
-    /// existing command by renaming it and defining a new command with the old name that
-    /// calls the original command at its new name.
-    pub fn rename_command(&mut self, old_name: &str, new_name: &str) {
-        if let Some(cmd) = self.commands.get(old_name) {
-            let cmd = Rc::clone(cmd);
-            self.commands.remove(old_name);
-            self.commands.insert(new_name.into(), cmd);
-        }
-    }
-
-    /// Removes the command with the given name.
-    pub fn remove_command(&mut self, name: &str) {
-        self.commands.remove(name);
-    }
-
-    /// Gets a vector of the names of the existing commands.
-    ///
-    pub fn command_names(&self) -> MoltList {
-        let vec: MoltList = self
-            .commands
-            .keys()
-            .cloned()
-            .map(|x| Value::from(&x))
-            .collect();
-
-        vec
-    }
-
-    //--------------------------------------------------------------------------------------------
     // Variable Handling
 
     /// Retrieves the value of the named variable in the current scope, if any.
@@ -386,18 +742,8 @@ impl Interp {
         }
     }
 
-    // /// Sets the value of the named variable in the current scope, creating the variable
-    // /// if necessary.
-    // ///
-    // /// TODO: Remove, and rename set_and_return.
-    // pub fn set_var(&mut self, name: &str, value: &str) {
-    //     self.scopes.set(name, Value::from(value));
-    // }
-
     /// Sets the value of the named variable in the current scope, creating the variable
     /// if necessary, and returning the value.
-    ///
-    /// TODO: Ultimately, this should be set_and_return.
     pub fn set_and_return(&mut self, name: &str, value: Value) -> Value {
         self.scopes.set(name, value.clone());
 
@@ -442,85 +788,6 @@ impl Interp {
     pub fn upvar(&mut self, level: usize, name: &str) {
         assert!(level <= self.scopes.current(), "Invalid scope level");
         self.scopes.upvar(level, name);
-    }
-
-    //--------------------------------------------------------------------------------------------
-    // Script and Expression Evaluation
-
-    /// Evaluates a script one command at a time, returning the
-    /// value of the last command in the script, the value of an explicit
-    /// `return` command, or an error.
-    ///
-    /// `break` and `continue` results are converted to errors.
-    ///
-    /// This is the method to use when evaluating an entire script.
-    pub fn eval(&mut self, script: &str) -> MoltResult {
-        // FIRST, check the number of nesting levels
-        self.num_levels += 1;
-
-        if self.num_levels > self.recursion_limit {
-            self.num_levels -= 1;
-            return molt_err!("too many nested calls to Interp::eval (infinite loop?)");
-        }
-
-        // NEXT, evaluate the script and translate the result to Ok or Error
-        let mut ctx = EvalPtr::new(script);
-
-        let result = self.eval_context(&mut ctx);
-
-        // NEXT, decrement the number of nesting levels.
-        self.num_levels -= 1;
-
-        // NEXT, translate and return the result.
-        match result {
-            Err(ResultCode::Return(value)) => molt_ok!(value),
-            Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
-            Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
-            _ => result,
-        }
-    }
-
-    /// Evaluates a script one command at a time, returning whatever
-    /// MoltResult arises.
-    ///
-    /// This is the method to use when evaluating a control structure's
-    /// script body; the control structure must handle the special
-    /// result codes appropriately.
-    pub fn eval_body(&mut self, script: &str) -> MoltResult {
-        let mut ctx = EvalPtr::new(script);
-
-        self.eval_context(&mut ctx)
-    }
-
-    /// Determines whether or not the script is syntactically complete,
-    /// e.g., has no unmatched quotes, brackets, or braces.
-    ///
-    /// REPLs use this to determine whether or not to ask for another line of
-    /// input.
-    ///
-    /// # Example
-    /// ```
-    /// # use molt::types::*;
-    /// # use molt::interp::Interp;
-    /// let mut interp = Interp::new();
-    /// assert!(interp.complete("set a [expr {1+1}]"));
-    /// assert!(!interp.complete("set a [expr {1+1"));
-    /// ```
-
-    pub fn complete(&mut self, script: &str) -> bool {
-        let mut ctx = EvalPtr::new(script);
-        ctx.set_no_eval(true);
-
-        self.eval_context(&mut ctx).is_ok()
-    }
-
-    // Evaluates an expression and returns its value.
-    pub fn expr(&mut self, expr: &Value) -> MoltResult {
-        expr::expr(self, expr)
-    }
-
-    pub fn bool_expr(&mut self, expr: &Value) -> Result<bool, ResultCode> {
-        expr::bool_expr(self, expr)
     }
 
     //--------------------------------------------------------------------------------------------
@@ -1056,6 +1323,168 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_empty() {
+        let interp = Interp::empty();
+        // Interpreter is empty
+        assert!(interp.command_names().is_empty());
+    }
+
+    #[test]
+    fn test_new() {
+        let interp = Interp::new();
+
+        // Interpreter is not empty
+        assert!(!interp.command_names().is_empty());
+
+        // Note: in theory, we should test here that the normal set of commands is present.
+        // In fact, that should be tested by the `molt test` suite.
+    }
+
+    #[test]
+    fn test_eval() {
+        let mut interp = Interp::new();
+
+        assert_eq!(interp.eval("set a 1"), Ok(Value::from("1")));
+        assert_eq!(
+            interp.eval("error 2"),
+            Err(ResultCode::Error(Value::from("2")))
+        );
+        assert_eq!(interp.eval("return 3"), Ok(Value::from("3")));
+        assert_eq!(
+            interp.eval("break"),
+            Err(ResultCode::Error(Value::from(
+                "invoked \"break\" outside of a loop"
+            )))
+        );
+        assert_eq!(
+            interp.eval("continue"),
+            Err(ResultCode::Error(Value::from(
+                "invoked \"continue\" outside of a loop"
+            )))
+        );
+    }
+
+    #[test]
+    fn test_eval_value() {
+        let mut interp = Interp::new();
+
+        assert_eq!(
+            interp.eval_value(&Value::from("set a 1")),
+            Ok(Value::from("1"))
+        );
+        assert_eq!(
+            interp.eval_value(&Value::from("error 2")),
+            Err(ResultCode::Error(Value::from("2")))
+        );
+        assert_eq!(
+            interp.eval_value(&Value::from("return 3")),
+            Ok(Value::from("3"))
+        );
+        assert_eq!(
+            interp.eval_value(&Value::from("break")),
+            Err(ResultCode::Error(Value::from(
+                "invoked \"break\" outside of a loop"
+            )))
+        );
+        assert_eq!(
+            interp.eval_value(&Value::from("continue")),
+            Err(ResultCode::Error(Value::from(
+                "invoked \"continue\" outside of a loop"
+            )))
+        );
+    }
+
+    #[test]
+    fn test_eval_body() {
+        let mut interp = Interp::new();
+
+        assert_eq!(
+            interp.eval_body(&Value::from("set a 1")),
+            Ok(Value::from("1"))
+        );
+        assert_eq!(
+            interp.eval_body(&Value::from("error 2")),
+            Err(ResultCode::Error(Value::from("2")))
+        );
+        assert_eq!(
+            interp.eval_body(&Value::from("return 3")),
+            Err(ResultCode::Return(Value::from("3")))
+        );
+        assert_eq!(
+            interp.eval_body(&Value::from("break")),
+            Err(ResultCode::Break)
+        );
+        assert_eq!(
+            interp.eval_body(&Value::from("continue")),
+            Err(ResultCode::Continue)
+        );
+    }
+
+    #[test]
+    fn test_complete() {
+        let mut interp = Interp::new();
+
+        assert!(interp.complete("abc"));
+        assert!(interp.complete("a {bc} [def] \"ghi\" xyz"));
+
+        assert!(!interp.complete("a {bc"));
+        assert!(!interp.complete("a [bc"));
+        assert!(!interp.complete("a \"bc"));
+    }
+
+    #[test]
+    fn test_expr() {
+        let mut interp = Interp::new();
+        assert_eq!(interp.expr(&Value::from("1 + 2")), Ok(Value::from(3)));
+        assert_eq!(
+            interp.expr(&Value::from("a + b")),
+            Err(ResultCode::Error(Value::from(
+                "unknown math function \"a\""
+            )))
+        );
+    }
+
+    #[test]
+    fn test_expr_bool() {
+        let mut interp = Interp::new();
+        assert_eq!(interp.expr_bool(&Value::from("1")), Ok(true));
+        assert_eq!(interp.expr_bool(&Value::from("0")), Ok(false));
+        assert_eq!(
+            interp.expr_bool(&Value::from("a")),
+            Err(ResultCode::Error(Value::from(
+                "unknown math function \"a\""
+            )))
+        );
+    }
+
+    #[test]
+    fn test_expr_int() {
+        let mut interp = Interp::new();
+        assert_eq!(interp.expr_int(&Value::from("1 + 2")), Ok(3));
+        assert_eq!(
+            interp.expr_int(&Value::from("a")),
+            Err(ResultCode::Error(Value::from(
+                "unknown math function \"a\""
+            )))
+        );
+    }
+
+    #[test]
+    fn test_expr_float() {
+        let mut interp = Interp::new();
+        let val = interp.expr_float(&Value::from("1.1 + 2.2")).expect("floating point value");
+
+        assert!((val - 3.3).abs() < 0.001);
+
+        assert_eq!(
+            interp.expr_float(&Value::from("a")),
+            Err(ResultCode::Error(Value::from(
+                "unknown math function \"a\""
+            )))
+        );
+    }
+
+    #[test]
     fn test_recursion_limit() {
         let mut interp = Interp::new();
 
@@ -1068,19 +1497,6 @@ mod tests {
             interp.eval("myproc"),
             molt_err!("too many nested calls to Interp::eval (infinite loop?)")
         );
-    }
-
-    #[test]
-    fn test_complete() {
-        // This function tests the function by testing the Interp method
-        let mut interp = Interp::new();
-
-        assert!(interp.complete("abc"));
-        assert!(interp.complete("a {bc} [def] \"ghi\" xyz"));
-
-        assert!(!interp.complete("a {bc"));
-        assert!(!interp.complete("a [bc"));
-        assert!(!interp.complete("a \"bc"));
     }
 
     #[test]

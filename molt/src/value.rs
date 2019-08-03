@@ -165,7 +165,9 @@ pub struct Value {
 
 impl Value {
     fn make(inner: InnerValue) -> Self {
-        Self { inner: Rc::new(RefCell::new(inner)) }
+        Self {
+            inner: Rc::new(RefCell::new(inner)),
+        }
     }
 }
 
@@ -174,7 +176,6 @@ struct InnerValue {
     string_rep: Option<Rc<String>>,
     data_rep: DataRep,
 }
-
 
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -691,19 +692,20 @@ impl Value {
         }
     }
 
-    /// Tries to return the `Value` as a `MoltList`, parsing the
+    /// Tries to return the `Value` as an `Rc<MoltList>`, parsing the
     /// value's string representation if necessary.
     ///
     /// # Example
     ///
     /// ```
+    /// use std::rc::Rc;
     /// use molt::types::Value;
     /// use molt::types::MoltList;
     /// use molt::types::ResultCode;
     /// # fn dummy() -> Result<String,ResultCode> {
     ///
     /// let value = Value::from("1234 abc");
-    /// let list = value.as_list()?;
+    /// let list: Rc<MoltList> = value.as_list()?;
     /// assert_eq!(list.len(), 2);
     ///
     /// assert_eq!(list[0], Value::from("1234"));
@@ -732,6 +734,34 @@ impl Value {
         iref.data_rep = DataRep::List(list.clone());
 
         Ok(list)
+    }
+
+    /// Tries to return the `Value` as a `MoltList`, parsing the
+    /// value's string representation if necessary.
+    ///
+    /// Use [`as_list`](#method.as_list) when simply referring to the list's content;
+    /// use this method when constructing a new list from the old one.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::Value;
+    /// use molt::types::MoltList;
+    /// use molt::types::ResultCode;
+    /// # fn dummy() -> Result<String,ResultCode> {
+    ///
+    /// let value = Value::from("1234 abc");
+    /// let list: MoltList = value.to_list()?;
+    /// assert_eq!(list.len(), 2);
+    ///
+    /// assert_eq!(list[0], Value::from("1234"));
+    /// assert_eq!(list[1], Value::from("abc"));
+    ///
+    /// # Ok("dummy".to_string())
+    /// # }
+    /// ```
+    pub fn to_list(&self) -> Result<MoltList, ResultCode> {
+        Ok((&*self.as_list()?).to_owned())
     }
 
     /// Creates a new `Value` containing the given value of some user type.
@@ -1230,6 +1260,19 @@ mod tests {
             assert_eq!(rclist[0].to_string(), "qrs".to_string());
             assert_eq!(rclist[1].to_string(), "xyz".to_string());
         }
+    }
+
+    #[test]
+    fn to_list() {
+        let listval = Value::from(vec![Value::from("abc"), Value::from("def")]);
+        let result = listval.to_list();
+
+        assert!(result.is_ok());
+        let list: MoltList = result.expect("an owned list");
+
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].to_string(), "abc".to_string());
+        assert_eq!(list[1].to_string(), "def".to_string());
     }
 
     #[test]

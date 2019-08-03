@@ -2,7 +2,15 @@
 
 Things to remember to do soon:
 
-*   See about optimization levels.
+*   Try using the `once_cell` crate (or some simpler code using the same pattern) for
+    `Value::string_rep`.
+*   Flesh out the interp.rs test suite and rustdocs.
+*   Review test_harness to use `Value` where appropriate.
+*   Review the context cache; make sure that "object commands" that use the context cache
+    can easily drop the context if they are destroyed by `rename $cmd ""`.
+    *   If an "object command" is the only thing looking at its data, could we provide this
+        by allowing the `Command` struct to edit its own data?
+    *   It's getting a mutable interp; can it also have a mutable self?
 *   Document "Custom Shell Applications" in chapter 4 of the Molt Book.
 *   Before Tcl 2019:
     *   Publish Molt crates to crates.io.
@@ -10,8 +18,6 @@ Things to remember to do soon:
 *   Revise test_harness to use the context cache.
 *   expr::expr_parse_value should probably try as_int and as_float, to convert string values
     to numbers.
-*   Look at the standard ways we use `Value` in commands.rs, and see if we can't
-    make things simpler.
 *   Consider implementing `TryInto<T>` for the standard data reps.
     *   Can't implement `TryFrom<T>` because I don't own the data reps.  If I define
         MoltList as a newtype, I could define `TryFrom<Value>` for MoltList.
@@ -23,6 +29,28 @@ Things to remember to do soon:
 *   MoltList should maybe be a newtype with helper methods.
     *   Or, possibly, Value should have additional helper methods and `From<T>` implementations,
         e.g., `From<&MoltValue>`, `From<&Vec<String>>`
+*   Question: What would it take to implement core `molt` in `no_std` mode, now that the
+    `alloc` crate exists?
+    *   Is this a reasonable goal?
+    *   Would allow Molt to be used in embedded code.
+
+### 2019-07-27 (Saturday)
+*   Looked into whether a Command struct could have mutable access to its fields, so that an
+    "object command" could simply be a struct implementing Command.
+    *   The answer, at least given the current implementation, is no: commands are
+        reference-counted using `Rc<T>`, and so cannot be mutably borrowed.
+    *   And commands need to be reference counted, so that a proc can rename itself.
+    *   I'm not prepared to say that it can't be done, but interior mutability is probably
+        a better way to go.
+*   Question: is there a good way to lazily compute `Value`'s `string_rep` that doesn't involve
+    using `RefCell`?  
+    *   Asked on the forum: https://users.rust-lang.org/t/lazy-initialization-vs-interior-mutability/30742
+        *   Yandros suggests the `once_cell` crate.
+    *   Happy if there's a canonical implementation; or even a simple `unsafe` solution.
+    *   And if there is, I might be able to use it for the `data_rep` as well, if I use an
+        "any map" and keep *all* of the computed data reps.
+*   Changed `Interp::bool_expr` to `Interp::expr_bool`, and added `Interp::expr_int` and
+    `Interp::expr_float`.
 
 ### 2019-07-06 (Saturday)
 *   Reworking the `Value` internals

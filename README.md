@@ -40,24 +40,19 @@ $ cargo run test test/all.tcl
     *   Look at how to best store proc details for efficient execution.
     *   Ponder the MoltList API, and consider how to make it cleaner
         *   list! macro to build lists from things that implement `Into<Value>`?
-    *   Consider whether to replace Value's two RefCell's with one.
-    *   Consider whether Value should have a top `Rc<InnerValue>` to make cloning
-        quicker (almost certainly).
     *   Consider whether var names should be stored as Values.
     *   Consider whether molt::MoltFloat, molt::MoltInt, and molt::MoltList should be
         molt::Float, molt::Int, and molt::List.
         *   Yeah, probably.
+*   Add Interp::eval_file(), and implement `source` in terms of it.
 *   Investigate performance of basic benchmarks.
 *   Issues from wduquette/molt.
 *   Add complete tests for the existing Tcl commands.
-    *   "catch"
     *   "foreach"
     *   "global"
-    *   "incr"
     *   "join"
     *   "lindex"
     *   "list"
-    *   "llength"
     *   "set"
     *   "unset"
     *   Test expression parser thoroughly
@@ -75,7 +70,7 @@ $ cargo run test test/all.tcl
 * Add costly features to core molt (e.g., regexp, glob) as Rust features.
   * `molt test` needs to be able to filter tests based on the available
     features.
-* Revise main parser to use CharPtr.
+* Review main parser implementation; look for more idiomatic, less expensive code.
 * On-going:
     * Document Molt's TCL dialect using mdbook, and publish to GitHub pages.
 * Consider generalizing the Subcommand array mechanism; standard command sets

@@ -8,9 +8,6 @@ Things to remember to do soon:
 *   Review test_harness to use `Value` where appropriate.
 *   Review the context cache; make sure that "object commands" that use the context cache
     can easily drop the context if they are destroyed by `rename $cmd ""`.
-    *   If an "object command" is the only thing looking at its data, could we provide this
-        by allowing the `Command` struct to edit its own data?
-    *   It's getting a mutable interp; can it also have a mutable self?
 *   Document "Custom Shell Applications" in chapter 4 of the Molt Book.
 *   Before Tcl 2019:
     *   Publish Molt crates to crates.io.
@@ -33,6 +30,15 @@ Things to remember to do soon:
     `alloc` crate exists?
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
+
+### 2019-08-03 (Saturday)
+*   Converted Value to use OnceCell.
+    *   Issue in as_float(): I'm getting a failure because of a double mutable borrow of the
+        data_rep.
+        *   `let val = Value::from(5);`, so that the data_rep is integer.
+        *   `let flt = val.as_float()?;`, so needs to convert the integer to a string, then
+            convert the string to a float.
+        *   But converting the integer to a string requires borrowing the integer.
 
 ### 2019-07-27 (Saturday)
 *   Looked into whether a Command struct could have mutable access to its fields, so that an

@@ -2,8 +2,6 @@
 
 Things to remember to do soon:
 
-*   Since our use of OnceCell is extremely limited, see about replacing it with
-    a minimum of code around UnsafeCell.
 *   Flesh out the interp.rs test suite and rustdocs.
 *   Review test_harness to use `Value` where appropriate.
 *   Review the context cache; make sure that "object commands" that use the context cache
@@ -77,6 +75,8 @@ Micros     Norm -- Benchmark
   1.02     1.66 -- ident-1.1 ident, simple argument
   1.20     1.95 -- incr-1.1 incr a
 ```
+*   Replaced OnceCell with a simple use of UnsafeCell.
+    *   All tests pass.
 
 ### 2019-07-27 (Saturday)
 *   Looked into whether a Command struct could have mutable access to its fields, so that an

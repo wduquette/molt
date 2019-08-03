@@ -37,7 +37,7 @@
 //!
 //! There are a number of ways to evaluate Molt scripts, all of which return [`MoltResult`]:
 //!
-//! ```
+//! ```ignore
 //! pub type MoltResult = Result<Value, ResultCode>;
 //! ```
 //!

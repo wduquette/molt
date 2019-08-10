@@ -56,12 +56,13 @@ let text: String = value.to_string();
 assert_eq!(&text, "5");
 ```
 
-The `to_string` method creates a brand new `String` in the usual way; it is often better to use `as_string`, which returns the `Value`'s actual string rep as an `Rc<String>`:
+The `to_string` method creates a brand new `String` in the usual way; it is usually better to
+use `as_str`, which returns an `&str`:
 
 ```
 let value = Value::from(5);
-let text: Rc<String> = value.as_string();
-assert_eq!(&*text, "5");
+let text = value.as_str();
+assert_eq!(text, "5");
 ```
 
 It is also possible to retrieve data representations; but since this isn't guaranteed to

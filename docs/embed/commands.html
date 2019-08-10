@@ -211,7 +211,7 @@ fn cmd_whatsit(interp: &amp;mut Interp, context_id: ContextID, argv: &amp;[Value
     let ctx = interp.context::&lt;AppContext&gt;(context_id);
 
     // Save the first argument to the AppContext's text field.
-    ctx.text.push_str(&amp;*argv[1].as_string());
+    ctx.text.push_str(argv[1].as_str());
 
     molt_ok!()
 }

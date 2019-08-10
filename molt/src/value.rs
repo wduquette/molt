@@ -197,14 +197,14 @@ impl Value {
 
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.as_string())
+        write!(f, "{}", self.as_str())
     }
 }
 
 impl PartialEq for Value {
     // Two Values are equal if their string representations are equal.
     fn eq(&self, other: &Self) -> bool {
-        self.as_string() == other.as_string()
+        self.as_str() == other.as_str()
     }
 }
 
@@ -219,7 +219,7 @@ impl From<String> for Value {
     /// use molt::types::Value;
     /// let string = String::from("My New String");
     /// let value = Value::from(string);
-    /// assert_eq!(value.as_string(), "My New String");
+    /// assert_eq!(value.as_str(), "My New String");
     /// ```
     fn from(str: String) -> Self {
         Value::inner_from_string(str)
@@ -234,7 +234,7 @@ impl From<&str> for Value {
     /// ```
     /// use molt::types::Value;
     /// let value = Value::from("My String Slice");
-    /// assert_eq!(value.as_string(), "My String Slice");
+    /// assert_eq!(value.as_str(), "My String Slice");
     /// ```
     fn from(str: &str) -> Self {
         Value::inner_from_string(str.to_string())
@@ -251,7 +251,7 @@ impl From<&String> for Value {
     /// ```
     /// use molt::types::Value;
     /// let value = Value::from("My String Slice");
-    /// assert_eq!(value.as_string(), "My String Slice");
+    /// assert_eq!(value.as_str(), "My String Slice");
     /// ```
     fn from(str: &String) -> Self {
         Value::inner_from_string(str.to_string())
@@ -267,10 +267,10 @@ impl From<bool> for Value {
     /// ```
     /// use molt::types::Value;
     /// let value = Value::from(true);
-    /// assert_eq!(value.as_string(), "1");
+    /// assert_eq!(value.as_str(), "1");
     ///
     /// let value = Value::from(false);
-    /// assert_eq!(value.as_string(), "0");
+    /// assert_eq!(value.as_str(), "0");
     /// ```
     fn from(flag: bool) -> Self {
         Value::inner_from_data(DataRep::Bool(flag))
@@ -286,7 +286,7 @@ impl From<MoltInt> for Value {
     /// use molt::types::Value;
     ///
     /// let value = Value::from(123);
-    /// assert_eq!(value.as_string(), "123");
+    /// assert_eq!(value.as_str(), "123");
     /// ```
     fn from(int: MoltInt) -> Self {
         Value::inner_from_data(DataRep::Int(int))
@@ -310,7 +310,7 @@ impl From<MoltFloat> for Value {
     /// use molt::types::Value;
     ///
     /// let value = Value::from(12.34);
-    /// assert_eq!(value.as_string(), "12.34");
+    /// assert_eq!(value.as_str(), "12.34");
     /// ```
     fn from(flt: MoltFloat) -> Self {
         Value::inner_from_data(DataRep::Flt(flt))
@@ -327,7 +327,7 @@ impl From<MoltList> for Value {
     ///
     /// let list = vec![Value::from(1234), Value::from("abc")];
     /// let value = Value::from(list);
-    /// assert_eq!(value.as_string(), "1234 abc");
+    /// assert_eq!(value.as_str(), "1234 abc");
     /// ```
     fn from(list: MoltList) -> Self {
         Value::inner_from_data(DataRep::List(Rc::new(list)))
@@ -344,7 +344,7 @@ impl From<&[Value]> for Value {
     ///
     /// let values = [Value::from(1234), Value::from("abc")];
     /// let value = Value::from(&values[..]);
-    /// assert_eq!(value.as_string(), "1234 abc");
+    /// assert_eq!(value.as_str(), "1234 abc");
     /// ```
     fn from(list: &[Value]) -> Self {
         Value::inner_from_data(DataRep::List(Rc::new(list.to_vec())))
@@ -371,9 +371,9 @@ impl Value {
     /// ```
     /// use molt::types::Value;
     /// let value = Value::from(123);
-    /// assert_eq!(value.as_string(), "123");
+    /// assert_eq!(value.as_str(), "123");
     /// ```
-    pub fn as_string(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         // FIRST, get the string rep, computing it from the data_rep if necessary.
         // self.inner.string_rep.get_or_init(|| (self.inner.data_rep.borrow()).to_string())
 
@@ -386,8 +386,8 @@ impl Value {
 
         // NOTE: This is the only place where the string_rep is set.
         // Because we returned it if it was Some, it is only ever set once.
-        // Thus, this is safe: as_string() is the only way to retrieve the string_rep,
-        // and it computes the string_rep lazily after which it is immutable. 
+        // Thus, this is safe: as_str() is the only way to retrieve the string_rep,
+        // and it computes the string_rep lazily after which it is immutable.
         let slot = unsafe {&mut*self.inner.string_rep.get()};
         *slot = Some((self.inner.data_rep.borrow()).to_string());
 
@@ -465,7 +465,7 @@ impl Value {
         }
 
         // NEXT, Try to parse the string_rep as a boolean
-        let str = self.as_string();
+        let str = self.as_str();
         let flag = Value::get_bool(str)?;
         *(self.inner.data_rep.borrow_mut()) = DataRep::Bool(flag);
         Ok(flag)
@@ -538,7 +538,7 @@ impl Value {
         }
 
         // NEXT, Try to parse the string_rep as an integer
-        let str = self.as_string();
+        let str = self.as_str();
         let int = Value::get_int(str)?;
         *self.inner.data_rep.borrow_mut() = DataRep::Int(int);
         Ok(int)
@@ -616,7 +616,7 @@ impl Value {
         }
 
         // NEXT, Try to parse the string_rep as a float
-        let str = self.as_string();
+        let str = self.as_str();
         let flt = Value::get_float(str)?;
         *self.inner.data_rep.borrow_mut() = DataRep::Flt(flt);
         Ok(flt)
@@ -693,7 +693,7 @@ impl Value {
         }
 
         // NEXT, try to parse the string_rep as a list.
-        let str = self.as_string();
+        let str = self.as_str();
         let list = Rc::new(get_list(str)?);
         *self.inner.data_rep.borrow_mut() = DataRep::List(list.clone());
 
@@ -744,7 +744,7 @@ impl Value {
     /// let value = Value::from_other(color);
     ///
     /// // Retrieve the value's string rep.
-    /// assert_eq!(value.as_string(), "#112233");
+    /// assert_eq!(value.as_str(), "#112233");
     /// ```
     ///
     /// See [`Value::as_other`](#method.as_other) and
@@ -811,7 +811,7 @@ impl Value {
 
         // NEXT, can we parse it as a T?  If so, save it back to
         // the data_rep, and return it.
-        let str = self.as_string();
+        let str = self.as_str();
 
         if let Ok(tval) = str.parse::<T>() {
             let tval = Rc::new(tval);
@@ -874,7 +874,7 @@ impl Value {
 
         // NEXT, can we parse it as a T?  If so, save it back to
         // the data_rep, and return it.
-        let str = self.as_string();
+        let str = self.as_str();
 
         if let Ok(tval) = str.parse::<T>() {
             let tval = Rc::new(tval);
@@ -1013,12 +1013,12 @@ mod tests {
     }
 
     #[test]
-    fn as_string() {
+    fn as_str() {
         let val = Value::from("abc");
-        assert_eq!(val.as_string(), "abc");
+        assert_eq!(val.as_str(), "abc");
 
         let val2 = val.clone();
-        assert_eq!(val.as_string(), val2.as_string());
+        assert_eq!(val.as_str(), val2.as_str());
     }
 
     #[test]
@@ -1092,12 +1092,12 @@ mod tests {
     #[test]
     fn from_as_int() {
         let val = Value::from(5);
-        assert_eq!(val.as_string(), "5");
+        assert_eq!(val.as_str(), "5");
         assert_eq!(val.as_int(), Ok(5));
         assert_eq!(val.as_float(), Ok(5.0));
 
         let val = Value::from("7");
-        assert_eq!(val.as_string(), "7");
+        assert_eq!(val.as_str(), "7");
         assert_eq!(val.as_int(), Ok(7));
         assert_eq!(val.as_float(), Ok(7.0));
 
@@ -1105,7 +1105,7 @@ mod tests {
         // In Standard TCL, its string_rep would be "7.0".  Need to address
         // MoltFloat formatting/parsing.
         let val = Value::from(7.0);
-        assert_eq!(val.as_string(), "7");
+        assert_eq!(val.as_str(), "7");
         assert_eq!(val.as_int(), Ok(7));
         assert_eq!(val.as_float(), Ok(7.0));
 
@@ -1149,12 +1149,12 @@ mod tests {
     #[test]
     fn from_as_float() {
         let val = Value::from(12.5);
-        assert_eq!(val.as_string(), "12.5");
+        assert_eq!(val.as_str(), "12.5");
         assert_eq!(val.as_int(), molt_err!("expected integer but got \"12.5\""));
         assert_eq!(val.as_float(), Ok(12.5));
 
         let val = Value::from("7.8");
-        assert_eq!(val.as_string(), "7.8");
+        assert_eq!(val.as_str(), "7.8");
         assert_eq!(val.as_int(), molt_err!("expected integer but got \"7.8\""));
         assert_eq!(val.as_float(), Ok(7.8));
 
@@ -1196,7 +1196,7 @@ mod tests {
         // We *are* testing that Value will use the list.rs code to convert strings to lists
         // and back again.
         let listval = Value::from(vec![Value::from("abc"), Value::from("def")]);
-        assert_eq!(listval.as_string(), "abc def");
+        assert_eq!(listval.as_str(), "abc def");
 
         let listval = Value::from("qrs xyz");
         let result = listval.as_list();
@@ -1230,7 +1230,7 @@ mod tests {
         // and back again.
         let array = [Value::from("abc"), Value::from("def")];
         let listval = Value::from(&array[..]);
-        assert_eq!(listval.as_string(), "abc def");
+        assert_eq!(listval.as_str(), "abc def");
     }
 
     #[test]

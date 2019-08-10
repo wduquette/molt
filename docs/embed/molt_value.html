@@ -181,10 +181,11 @@ with reference counting via the standard <code>Rc</code> type.</p>
 let text: String = value.to_string();
 assert_eq!(&amp;text, &quot;5&quot;);
 </code></pre>
-<p>The <code>to_string</code> method creates a brand new <code>String</code> in the usual way; it is often better to use <code>as_string</code>, which returns the <code>Value</code>'s actual string rep as an <code>Rc&lt;String&gt;</code>:</p>
+<p>The <code>to_string</code> method creates a brand new <code>String</code> in the usual way; it is usually better to
+use <code>as_str</code>, which returns an <code>&amp;str</code>:</p>
 <pre><code>let value = Value::from(5);
-let text: Rc&lt;String&gt; = value.as_string();
-assert_eq!(&amp;*text, &quot;5&quot;);
+let text = value.as_str();
+assert_eq!(text, &quot;5&quot;);
 </code></pre>
 <p>It is also possible to retrieve data representations; but since this isn't guaranteed to
 work the relevant methods all return <code>Result&lt;_,ResultCode&gt;</code>.  (See

@@ -70,7 +70,7 @@ fn cmd_whatsit(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mo
     let ctx = interp.context::<AppContext>(context_id);
 
     // Save the first argument to the AppContext's text field.
-    ctx.text.push_str(&*argv[1].as_string());
+    ctx.text.push_str(argv[1].as_str());
 
     molt_ok!()
 }

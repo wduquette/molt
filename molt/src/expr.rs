@@ -247,7 +247,7 @@ const OP_STRINGS: [&str; 36] = [
 
 /// Evaluates an expression and returns its value.
 pub fn expr(interp: &mut Interp, expr: &Value) -> MoltResult {
-    let value = expr_top_level(interp, expr.as_string())?;
+    let value = expr_top_level(interp, expr.as_str())?;
 
     match value.vtype {
         Type::Int => molt_ok!(Value::from(value.int)),
@@ -529,11 +529,11 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             LESS | GREATER | LEQ | GEQ | EQUAL | NEQ => {
                 if value.vtype == Type::String {
                     if value2.vtype != Type::String {
-                        value2 = expr_as_string(value2);
+                        value2 = expr_as_str(value2);
                     }
                 } else if value2.vtype == Type::String {
                     if value.vtype != Type::String {
-                        value = expr_as_string(value);
+                        value = expr_as_str(value);
                     }
                 } else if value.vtype == Type::Float {
                     if value2.vtype == Type::Int {
@@ -551,10 +551,10 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             // as part of evaluation.
             STRING_EQ | STRING_NE | IN | NI => {
                 if value.vtype != Type::String {
-                    value = expr_as_string(value);
+                    value = expr_as_str(value);
                 }
                 if value2.vtype != Type::String {
-                    value2 = expr_as_string(value2);
+                    value2 = expr_as_str(value2);
                 }
             }
 
@@ -884,7 +884,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             } else {
                 // Note: we got a Value, but since it was parsed from a quoted string,
                 // it won't already be numeric.
-                expr_parse_string(val.as_string())
+                expr_parse_string(val.as_str())
             }
         }
         Some('{') => {
@@ -898,7 +898,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             } else {
                 // Note: we got a Value, but since it was parsed from a braced string,
                 // it won't already be numeric.
-                expr_parse_string(val.as_string())
+                expr_parse_string(val.as_str())
             }
         }
         Some('(') => {
@@ -1199,7 +1199,7 @@ fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc, ResultCode> {
 fn expr_parse_value(value: &Value) -> DatumResult {
     match value.already_number() {
         Some(datum) => Ok(datum),
-        _ => expr_parse_string(value.as_string()),
+        _ => expr_parse_string(value.as_str()),
     }
 }
 
@@ -1253,7 +1253,7 @@ fn expr_parse_string(string: &str) -> DatumResult {
 }
 
 // Converts values to strings for string comparisons.
-fn expr_as_string(value: Datum) -> Datum {
+fn expr_as_str(value: Datum) -> Datum {
     match value.vtype {
         Type::Int => Datum::string(&format!("{}", value.int)),
         Type::Float => Datum::string(&format!("{}", value.flt)),
@@ -1454,7 +1454,7 @@ mod tests {
 
         let result = expr(&mut interp, &Value::from("[set x foo]"));
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().as_string(), "foo");
+        assert_eq!(result.unwrap().as_str(), "foo");
     }
 
     fn near(x: MoltFloat, target: MoltFloat) -> bool {

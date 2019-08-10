@@ -53,7 +53,7 @@ fn my_cmd(interp: &mut Interp, argv: &[Value]) -> MoltResult {
         ...
 
         // Evaluate the loop body
-        let result = interp.eval_body(&*body.as_string());
+        let result = interp.eval_body(body.as_str());
 
         match result {
             Ok(value) => {

@@ -43,7 +43,7 @@ pub fn repl(interp: &mut Interp, prompt: &str) {
                             rl.add_history_entry(line);
 
                             // Don't output empty values.
-                            if !value.as_string().is_empty() {
+                            if !value.as_str().is_empty() {
                                 println!("{}", value);
                             }
                         }

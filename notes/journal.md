@@ -52,6 +52,10 @@ Things to remember to do soon:
     the standard Rust naming convention.
     *   And updated the Molt Book, which still described `Interp::as_string` as returning
         `Rc<String>`.  It's now correct.
+*   Using `Chars` iterator subtraction for parsing strings.
+    *   https://users.rust-lang.org/t/takewhile-iterator-over-chars-to-string-slice/11014
+    *   Tried this in repo `slice-parse`.  Works like a charm.
+    *   Wrote a quick blog post: https://wduquette.github.io/parsing-strings-into-slices/.
 
 ### 2019-08-03 (Saturday)
 *   Converting Value to use OnceCell.

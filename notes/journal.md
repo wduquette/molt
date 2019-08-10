@@ -2,6 +2,10 @@
 
 Things to remember to do soon:
 
+*   `Interp::as_string` should be `Interp::as_str` now that it's returning `&str`.
+*   Revise the parsing code to use iterator subtraction to extract slices, rather than
+    building up small strings a character at a time.
+    *   https://users.rust-lang.org/t/takewhile-iterator-over-chars-to-string-slice/11014
 *   Flesh out the interp.rs test suite and rustdocs.
 *   Review test_harness to use `Value` where appropriate.
 *   Review the context cache; make sure that "object commands" that use the context cache
@@ -28,6 +32,23 @@ Things to remember to do soon:
     `alloc` crate exists?
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
+
+### 2019-08-10 (Saturday)
+*   Returning data_rep as `Ref<T>`.
+    *   With help from jethrogb@users.rust-lang.org.
+        *   https://users.rust-lang.org/t/using-ref-map/30986/4
+    *   Tried this, and got it to work (somewhat).
+        *   Returning `Ref<T>` complicates the client's logic (see the changes to "lindex"),
+            which is a burden on the user.
+        *   In my tests, in an unrelated area (the recursion limit test) I immediately got a
+            "BorrowMutError" panic.  I presume that `Value` was computing a string_rep from
+            a list data_rep and the data_rep was already borrowed.  This is not good.
+    *   I've not tracked down the precise cause of the BorrowMutError.  But this much is clear:
+        *   It has to do with how the `Ref<MoltList>` is being used.
+        *   It's something that could happen to a developer using the API.
+        *   It's subtle; the precise error would not be obvious.
+    *   So the hell with it; it isn't worth it.
+    *   BAD IDEA.
 
 ### 2019-08-03 (Saturday)
 *   Converting Value to use OnceCell.

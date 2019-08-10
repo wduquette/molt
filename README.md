@@ -127,5 +127,9 @@ I've gotten help from many people in this endeavor; here's a (necessarily partia
 * Jonathan Castello, for general Rust info
 * Kevin Kenny, for help with TCL numerics
 * Don Porter, for help with TCL parsing
-* Krishna Sannasi, for help getting `Value` to work with arbitrary user data types
-* Yandros, for pointing me at `OnceCell` and `UnsafeCell`.
+* Various folks from users.rust-lang.org who have answered my questions:
+    * Krishna Sannasi, for help getting `Value` to work with arbitrary user data types
+    * Yandros, for pointing me at `OnceCell` and `UnsafeCell`.
+    * jethrogb, for help on how to use `Ref::map` to return a `Ref<T>` of a component deep within
+      a `RefCell<S>` from a function.  (Mind you, once I got it working and gave it a try I
+      tore it out again, because of `BorrowMutError` panics.  But I had to try it.)

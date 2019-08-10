@@ -2,7 +2,6 @@
 
 Things to remember to do soon:
 
-*   `Interp::as_string` should be `Interp::as_str` now that it's returning `&str`.
 *   Revise the parsing code to use iterator subtraction to extract slices, rather than
     building up small strings a character at a time.
     *   https://users.rust-lang.org/t/takewhile-iterator-over-chars-to-string-slice/11014
@@ -49,6 +48,10 @@ Things to remember to do soon:
         *   It's subtle; the precise error would not be obvious.
     *   So the hell with it; it isn't worth it.
     *   BAD IDEA.
+*   Changed `Interp::as_string` to `Interp::as_str` now that it's returning `&str`, since that's
+    the standard Rust naming convention.
+    *   And updated the Molt Book, which still described `Interp::as_string` as returning
+        `Rc<String>`.  It's now correct.
 
 ### 2019-08-03 (Saturday)
 *   Converting Value to use OnceCell.

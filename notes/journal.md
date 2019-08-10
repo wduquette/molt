@@ -64,6 +64,11 @@ Things to remember to do soon:
             be sure I was getting it right.
     *   Can we do without it by marking before we peek, with `backup` as a last resort?
         *   Maybe?
+    *   Some alternatives to what I'm trying:
+        *   Parsing functions:
+            *   Like nom: given a `&str`, return two `&str`, the token and the next character.
+            *   Seems like it would involve creating a new Chars iterator in each function,
+                though.
 
 ### 2019-08-03 (Saturday)
 *   Converting Value to use OnceCell.

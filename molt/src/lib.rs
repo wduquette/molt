@@ -10,6 +10,8 @@ pub use crate::types::*;
 
 #[allow(dead_code)] // Temporary
 mod char_ptr;
+#[allow(dead_code)] // Temporary
+mod char_star;
 mod commands;
 mod eval_ptr;
 #[allow(dead_code)] // Temporary

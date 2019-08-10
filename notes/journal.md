@@ -56,6 +56,14 @@ Things to remember to do soon:
     *   https://users.rust-lang.org/t/takewhile-iterator-over-chars-to-string-slice/11014
     *   Tried this in repo `slice-parse`.  Works like a charm.
     *   Wrote a quick blog post: https://wduquette.github.io/parsing-strings-into-slices/.
+*   Working out my parsing infrastructure:
+    *   See char_star.rs, list2.rs, which contain my experiments.
+    *   Can't use `Peekable<Chars>`, as it doesn't support `as_str`.  Damn, that's annoying.
+    *   Implementing peeking is tricky.
+        *   Tried something and backed it out because it was getting complicated and I couldn't
+            be sure I was getting it right.
+    *   Can we do without it by marking before we peek, with `backup` as a last resort?
+        *   Maybe?
 
 ### 2019-08-03 (Saturday)
 *   Converting Value to use OnceCell.

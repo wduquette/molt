@@ -148,7 +148,7 @@ fn parse_bare_item(ctx: &mut EvalPtr) -> MoltResult {
 pub fn list_to_string(list: &[Value]) -> String {
     let mut vec: Vec<String> = Vec::new();
 
-    let mut hash = !list.is_empty() && list[0].as_string().starts_with('#');
+    let mut hash = !list.is_empty() && list[0].as_str().starts_with('#');
 
     for item in list {
         let item = item.to_string();

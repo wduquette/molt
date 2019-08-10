@@ -975,10 +975,11 @@ with reference counting via the standard <code>Rc</code> type.</p>
 let text: String = value.to_string();
 assert_eq!(&amp;text, &quot;5&quot;);
 </code></pre>
-<p>The <code>to_string</code> method creates a brand new <code>String</code> in the usual way; it is often better to use <code>as_string</code>, which returns the <code>Value</code>'s actual string rep as an <code>Rc&lt;String&gt;</code>:</p>
+<p>The <code>to_string</code> method creates a brand new <code>String</code> in the usual way; it is usually better to
+use <code>as_str</code>, which returns an <code>&amp;str</code>:</p>
 <pre><code>let value = Value::from(5);
-let text: Rc&lt;String&gt; = value.as_string();
-assert_eq!(&amp;*text, &quot;5&quot;);
+let text = value.as_str();
+assert_eq!(text, &quot;5&quot;);
 </code></pre>
 <p>It is also possible to retrieve data representations; but since this isn't guaranteed to
 work the relevant methods all return <code>Result&lt;_,ResultCode&gt;</code>.  (See
@@ -1148,7 +1149,7 @@ fn cmd_whatsit(interp: &amp;mut Interp, context_id: ContextID, argv: &amp;[Value
     let ctx = interp.context::&lt;AppContext&gt;(context_id);
 
     // Save the first argument to the AppContext's text field.
-    ctx.text.push_str(&amp;*argv[1].as_string());
+    ctx.text.push_str(argv[1].as_str());
 
     molt_ok!()
 }
@@ -1274,7 +1275,7 @@ fn my_cmd(interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
         ...
 
         // Evaluate the loop body
-        let result = interp.eval_body(&amp;*body.as_string());
+        let result = interp.eval_body(body.as_str());
 
         match result {
             Ok(value) =&gt; {

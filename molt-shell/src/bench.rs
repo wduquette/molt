@@ -102,7 +102,7 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
 
     // NEXT, load the benchmark Tcl library
     if let Err(ResultCode::Error(value)) = interp.eval(include_str!("bench.tcl")) {
-        panic!("Error in benchmark Tcl library: {}", value.as_string());
+        panic!("Error in benchmark Tcl library: {}", value.as_str());
     }
 
     // NEXT, execute the script.

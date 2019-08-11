@@ -4,7 +4,7 @@ use std::str::Chars;
 pub struct CharStar<'a> {
     input: &'a str,
     mark: &'a str,
-    head: Chars<'a>,
+    chars: Chars<'a>,
 }
 
 impl<'a> CharStar<'a> {
@@ -13,7 +13,7 @@ impl<'a> CharStar<'a> {
         Self {
             input,
             mark: input,
-            head: input.chars(),
+            chars: input.chars(),
         }
     }
 
@@ -29,37 +29,37 @@ impl<'a> CharStar<'a> {
 
     // Return the remainder as a &str
     pub fn head(&self) -> &str {
-        self.head.as_str()
+        self.chars.as_str()
     }
 
     // Return the next character. If we've peeked, return the peeked character.
     // Otherwise just get the next one.
     pub fn next(&mut self) -> Option<char> {
-        self.head.next()
+        self.chars.next()
     }
 
     // Start parsing a new token at the current head
     pub fn mark_head(&mut self) {
-        self.mark = self.head.as_str();
+        self.mark = self.chars.as_str();
     }
 
     // Get the token between the mark and the head.
     pub fn token(&self) -> &str {
-        let head_len = self.head.as_str().len();
+        let head_len = self.chars.as_str().len();
         &self.mark[..self.mark.len() - head_len]
     }
 
     // Get the token between the mark and the head, and update the mark.
     pub fn next_token(&mut self) -> &str {
-        let head_len = self.head.as_str().len();
+        let head_len = self.chars.as_str().len();
         let token = &self.mark[..self.mark.len() - head_len];
-        self.mark = self.head.as_str();
+        self.mark = self.chars.as_str();
         token
     }
 
     // Resets the head to the mark.
     pub fn backup(&mut self) {
-        self.head = self.mark.chars();
+        self.chars = self.mark.chars();
     }
 }
 

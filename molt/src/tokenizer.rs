@@ -1,6 +1,18 @@
+//! Tokenizer is a type used for parsing a `&str` into slices in a way not easily
+//! supported by the `Peekable<Chars>` iterator.  The basic procedure is as follows:
+//!
+//! * Use `next` and `peek` to query the iterator in the usual way.
+//! * Detect the beginning of a token and mark it using `mark_head`.
+//! * Skip just past the end of the token using `next`, `skip`, etc.
+//! * Use `token` to retrieve a slice from the mark to the head.
+//!
+//! The `next_token` method retrieve the token and sets the mark to the head.
+
 use std::iter::Peekable;
 use std::str::Chars;
 
+
+/// The Tokenizer type.  See the module-level documentation.
 #[derive(Clone,Debug)]
 pub struct Tokenizer<'a> {
     // The string being parsed.
@@ -17,7 +29,7 @@ pub struct Tokenizer<'a> {
 }
 
 impl<'a> Tokenizer<'a> {
-    // Create a new struct for the given input.
+    /// Creates a new tokenizer for the given input.
     pub fn new(input: &'a str) -> Self {
         Self {
             input,
@@ -27,24 +39,23 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    // Return the input.
+    /// Returns the entire input.
     pub fn input(&self) -> &str {
         self.input
     }
 
-    // Return from the mark to the end.
+    /// Returns the remainder of the input starting at the mark.
     pub fn mark(&self) -> &str {
         &self.input[self.mark_index..]
     }
 
-    // Return the remainder as a &str
+    // Returns the remainder of the input starting at the head.
     pub fn head(&self) -> &str {
         // self.chars.as_str()
         &self.input[self.head_index..]
     }
 
-    // Return the next character. If we've peeked, return the peeked character.
-    // Otherwise just get the next one.
+    /// Returns the next character and updates the head.
     pub fn next(&mut self) -> Option<char> {
         let ch = self.chars.next();
 
@@ -55,16 +66,18 @@ impl<'a> Tokenizer<'a> {
         ch
     }
 
+    /// Returns the next character without updating the head.
     pub fn peek(&mut self) -> Option<char> {
         self.chars.peek().copied()
     }
 
-    // Start parsing a new token at the current head
+    /// Marks the current head as the start of the next token.
     pub fn mark_head(&mut self) {
         self.mark_index = self.head_index;
     }
 
-    // Get the token between the mark and the head.
+    /// Get the token between the mark and the head.  Returns None if we're at the
+    /// end or mark == head.
     pub fn token(&self) -> Option<&str> {
         if self.mark_index != self.head_index {
             Some(&self.input[self.mark_index..self.head_index])
@@ -73,7 +86,8 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    // Get the token between the mark and the head, and update the mark.
+    /// Gets the token between the mark and the head, and marks the head.
+    /// Returns None if we're at the end, or mark == head.
     pub fn next_token(&mut self) -> Option<&str> {
         if self.mark_index != self.head_index {
             let token = &self.input[self.mark_index..self.head_index];
@@ -84,13 +98,14 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    // Resets the head to the mark.
+    /// Resets the head to the mark.  Use this when it's necessary to look ahead more
+    /// than one character.
     pub fn backup(&mut self) {
         self.head_index = self.mark_index;
         self.chars = self.input[self.head_index..].chars().peekable();
     }
 
-    // Is the next character the given character?
+    /// Is the next character the given character?  Does not update the head.
     pub fn is(&mut self, ch: char) -> bool {
         if let Some(c) = self.chars.peek() {
             *c == ch
@@ -99,6 +114,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    /// Is the predicate true for the next character? Does not update the head.
     pub fn has<P>(&mut self, predicate: P) -> bool
     where
         P: Fn(&char) -> bool,
@@ -110,18 +126,20 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    // Is there anything left in the input?
+    /// Is there anything left in the input?
     #[allow(clippy::wrong_self_convention)]
     pub fn at_end(&mut self) -> bool {
         // &mut is needed because peek() can mutate the iterator
         self.chars.peek().is_none()
     }
 
+    /// Skip over the next character, updating the head.  This is equivalent to
+    /// `next`, but communicates better.
     pub fn skip(&mut self) {
         self.chars.next();
     }
 
-    /// Skips the given number of characters.
+    /// Skips the given number of characters, updating the head.
     /// It is not an error if the iterator doesn't contain that many.
     pub fn skip_over(&mut self, num_chars: usize) {
         for _ in 0..num_chars {
@@ -129,6 +147,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    /// Skips over characters while the predicate is true.  Updates the head.
     pub fn skip_while<P>(&mut self, predicate: P)
     where
         P: Fn(&char) -> bool,

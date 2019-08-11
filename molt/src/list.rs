@@ -17,6 +17,19 @@ pub(crate) fn get_list(str: &str) -> Result<MoltList, ResultCode> {
     parse_list(&mut ctx)
 }
 
+// Is the character is valid list whitespace character?
+// fn is_list_white(ch: Option<char>) -> bool {
+//     match ch {
+//         Some(' ') => true,
+//         Some('\n') => true,
+//         Some('\r') => true,
+//         Some('\t') => true,
+//         Some('\x0B') => true, // Vertical Tab
+//         Some('\x0C') => true, // Form Feed
+//         _ => false,
+//     }
+// }
+
 fn parse_list(ctx: &mut EvalPtr) -> Result<MoltList, ResultCode> {
     // FIRST, skip any list whitespace.
     ctx.skip_list_white();

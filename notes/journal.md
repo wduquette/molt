@@ -53,7 +53,38 @@ Things to remember to do soon:
         `Peekable<Chars>` at this point.
     *   CharStar now uses a `Peekable<Char>` and provides `peek()`.  Also, the token
         methods return `Option<&str>` so that they can return `None` when there's no token
-        instead of `""`.
+    *   Renamed CharStar to Tokenizer.
+*   The next question is what features do I want to add to Tokenizer?
+    *   How much should it know about Molt-specific characters?  I.e., what predicates
+        should it support?
+    *   Or, should I define a set of standard predicates, and just provide the "has" method
+        from char_ptr?
+        *   I'm thinking this.
+    *   What features of EvalPtr does list.rs use?
+        *   skip_list_white
+            *   Use char_ptr's `skip_while` with a predicate.
+        *   next_is_list_white
+            *   Use char_ptr's `has` with a predicate.
+        *   at_end_of_command
+            *   I'm not at all sure that list.rs should be using this; I think it will
+                exclude ";" from the list.
+            *   Yeah, this is a bug:
+```tcl
+set a {a b ;c d}
+
+# Prints only a and b
+foreach item $a {puts $item}
+```
+            *   Wrote Issue #43.
+        *   next_is
+            *   Use char_ptr's `is`
+        *   at_end
+            *   Same as char_ptr's `is_none`, but `at_end` is better.
+        *   skip_char
+            *   Like char_ptr's `skip`, but with assertion that we're skipping what
+                we expected to skip.
+            *   Can add it if it seems necessary.
+
 
 ### 2019-08-10 (Saturday)
 *   Returning data_rep as `Ref<T>`.

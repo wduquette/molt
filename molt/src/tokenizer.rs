@@ -89,6 +89,58 @@ impl<'a> Tokenizer<'a> {
         self.head_index = self.mark_index;
         self.chars = self.input[self.head_index..].chars().peekable();
     }
+
+    // Is the next character the given character?
+    pub fn is(&mut self, ch: char) -> bool {
+        if let Some(c) = self.chars.peek() {
+            *c == ch
+        } else {
+            false
+        }
+    }
+
+    pub fn has<P>(&mut self, predicate: P) -> bool
+    where
+        P: Fn(&char) -> bool,
+    {
+        if let Some(ch) = self.chars.peek() {
+            predicate(ch)
+        } else {
+            false
+        }
+    }
+
+    // Is there anything left in the input?
+    #[allow(clippy::wrong_self_convention)]
+    pub fn at_end(&mut self) -> bool {
+        // &mut is needed because peek() can mutate the iterator
+        self.chars.peek().is_none()
+    }
+
+    pub fn skip(&mut self) {
+        self.chars.next();
+    }
+
+    /// Skips the given number of characters.
+    /// It is not an error if the iterator doesn't contain that many.
+    pub fn skip_over(&mut self, num_chars: usize) {
+        for _ in 0..num_chars {
+            self.chars.next();
+        }
+    }
+
+    pub fn skip_while<P>(&mut self, predicate: P)
+    where
+        P: Fn(&char) -> bool,
+    {
+        while let Some(ch) = self.chars.peek() {
+            if predicate(ch) {
+                self.chars.next();
+            } else {
+                break;
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -218,4 +270,53 @@ mod tests {
         assert_eq!(ptr.head(), "cdef");
         assert_eq!(ptr.peek(), Some('c'));
     }
+
+    #[test]
+    fn test_is() {
+        let mut ptr = Tokenizer::new("a");
+        assert!(ptr.is('a'));
+        assert!(!ptr.is('b'));
+        ptr.next();
+        assert!(!ptr.is('a'));
+    }
+
+    #[test]
+    fn test_has() {
+        let mut ptr = Tokenizer::new("a1");
+        assert!(ptr.has(|c| c.is_alphabetic()));
+        ptr.skip();
+        assert!(!ptr.has(|c| c.is_alphabetic()));
+        ptr.skip();
+        assert!(!ptr.has(|c| c.is_alphabetic()));
+    }
+
+    #[test]
+    fn test_skip() {
+        let mut ptr = Tokenizer::new("abc");
+
+        assert_eq!(Some('a'), ptr.peek());
+        ptr.skip();
+        assert_eq!(Some('b'), ptr.peek());
+        ptr.skip();
+        assert_eq!(Some('c'), ptr.peek());
+        ptr.skip();
+        assert_eq!(None, ptr.peek());
+    }
+
+    #[test]
+    fn test_skip_over() {
+        let mut ptr = Tokenizer::new("abc");
+        ptr.skip_over(2);
+        assert_eq!(Some('c'), ptr.peek());
+
+        let mut ptr = Tokenizer::new("abc");
+        ptr.skip_over(3);
+        assert_eq!(None, ptr.peek());
+
+        let mut ptr = Tokenizer::new("abc");
+        ptr.skip_over(6);
+        assert_eq!(None, ptr.peek());
+    }
+
+
 }

@@ -55,6 +55,10 @@ impl<'a> CharStar<'a> {
         ch
     }
 
+    pub fn peek(&mut self) -> Option<char> {
+        self.chars.peek().copied()
+    }
+
     // Start parsing a new token at the current head
     pub fn mark_head(&mut self) {
         self.mark_index = self.head_index;
@@ -90,6 +94,7 @@ mod tests {
         assert_eq!(ptr.input(), "abcdefghijklmnopqrstuvwxyz");
         assert_eq!(ptr.mark(), "abcdefghijklmnopqrstuvwxyz");
         assert_eq!(ptr.head(), "abcdefghijklmnopqrstuvwxyz");
+        assert_eq!(ptr.peek(), Some('a'));
 
         // Skip three characters
         ptr.next();
@@ -98,12 +103,14 @@ mod tests {
         assert_eq!(ptr.input(), "abcdefghijklmnopqrstuvwxyz");
         assert_eq!(ptr.mark(), "abcdefghijklmnopqrstuvwxyz");
         assert_eq!(ptr.head(), "defghijklmnopqrstuvwxyz");
+        assert_eq!(ptr.peek(), Some('d'));
 
         // Mark the current spot
         ptr.mark_head();
         assert_eq!(ptr.input(), "abcdefghijklmnopqrstuvwxyz");
         assert_eq!(ptr.mark(), "defghijklmnopqrstuvwxyz");
         assert_eq!(ptr.head(), "defghijklmnopqrstuvwxyz");
+        assert_eq!(ptr.peek(), Some('d'));
 
         // Skip three more characters
         ptr.next();
@@ -113,6 +120,7 @@ mod tests {
         assert_eq!(ptr.mark(), "defghijklmnopqrstuvwxyz");
         assert_eq!(ptr.head(), "ghijklmnopqrstuvwxyz");
         assert_eq!(ptr.token(), "def");
+        assert_eq!(ptr.peek(), Some('g'));
 
         // next_token
         assert_eq!(ptr.next_token(), "def");
@@ -120,6 +128,7 @@ mod tests {
         assert_eq!(ptr.mark(), "ghijklmnopqrstuvwxyz");
         assert_eq!(ptr.head(), "ghijklmnopqrstuvwxyz");
         assert_eq!(ptr.token(), "");
+        assert_eq!(ptr.peek(), Some('g'));
 
         // backup
         ptr.next();
@@ -128,9 +137,11 @@ mod tests {
         assert_eq!(ptr.mark(), "ghijklmnopqrstuvwxyz");
         assert_eq!(ptr.head(), "jklmnopqrstuvwxyz");
         assert_eq!(ptr.token(), "ghi");
+        assert_eq!(ptr.peek(), Some('j'));
 
         ptr.backup();
         assert_eq!(ptr.token(), "");
         assert_eq!(ptr.head(), "ghijklmnopqrstuvwxyz");
+        assert_eq!(ptr.peek(), Some('g'));
     }
 }

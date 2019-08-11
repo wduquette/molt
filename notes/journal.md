@@ -75,7 +75,7 @@ set a {a b ;c d}
 # Prints only a and b
 foreach item $a {puts $item}
 ```
-            *   Wrote Issue #43.
+            *   Wrote Issue #43. (Now fixed.)
         *   next_is
             *   Use char_ptr's `is`
         *   at_end
@@ -84,6 +84,7 @@ foreach item $a {puts $item}
             *   Like char_ptr's `skip`, but with assertion that we're skipping what
                 we expected to skip.
             *   Can add it if it seems necessary.
+*   At this point, I think Tokenizer is ready for the list conversion.
 
 
 ### 2019-08-10 (Saturday)

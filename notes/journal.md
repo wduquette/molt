@@ -45,6 +45,10 @@ Things to remember to do soon:
         `next()` is called.
     *   Note: I've asked on user.rust-lang-org whether there's a way to get `as_str` from a
         `Peekable<Chars>`.  I'm expecting not.
+    *   Revised CharStar (I need a better name!) to track the head and mark using integer
+        indices.  The code no longer uses `as_str` at all.  The `chars` iterator is
+        recreated only on `backup`.  I don't think there's any reason not to use a
+        `Peekable<Chars>` at this point.
 
 
 ### 2019-08-10 (Saturday)

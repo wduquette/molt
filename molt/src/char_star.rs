@@ -2,20 +2,27 @@ use std::str::Chars;
 
 #[derive(Clone,Debug)]
 pub struct CharStar<'a> {
+    // The string being parsed.
     input: &'a str,
-    chars: Chars<'a>,
+
+    // The starting index of the next character.
     head_index: usize,
+
+    // The starting index of the marked character
     mark_index: usize,
+
+    // The iterator used to extract characters from the input
+    chars: Chars<'a>,
 }
 
 impl<'a> CharStar<'a> {
-    // Create a new one for the given input.
+    // Create a new struct for the given input.
     pub fn new(input: &'a str) -> Self {
         Self {
             input,
-            chars: input.chars(),
             head_index: 0,
             mark_index: 0,
+            chars: input.chars(),
         }
     }
 

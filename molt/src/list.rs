@@ -23,7 +23,7 @@ fn parse_list(ctx: &mut EvalPtr) -> Result<MoltList, ResultCode> {
 
     // Read words until we get to the end of the input or hit an error
     let mut items = Vec::new();
-    while !ctx.at_end_of_command() {
+    while !ctx.at_end() {
         // FIRST, get the next item; there has to be one.
         // Throw an error if there's a formatting problem.
         items.push(parse_item(ctx)?);
@@ -287,5 +287,15 @@ mod tests {
             list_to_string(&[Value::from("{ "), Value::from("abc")]),
             r#"\{\  abc"#
         );
+    }
+
+    // Most list parsing is tested in the Molt test suite.
+
+    #[test]
+    fn test_issue_43() {
+        let list = get_list("a ;b c").unwrap();
+
+        // If the list breaks on the semi-colon, the bug still exists.
+        assert_eq!(list.len(), 3);
     }
 }

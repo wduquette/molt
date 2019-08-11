@@ -1,3 +1,4 @@
+use std::iter::Peekable;
 use std::str::Chars;
 
 #[derive(Clone,Debug)]
@@ -12,7 +13,7 @@ pub struct CharStar<'a> {
     mark_index: usize,
 
     // The iterator used to extract characters from the input
-    chars: Chars<'a>,
+    chars: Peekable<Chars<'a>>,
 }
 
 impl<'a> CharStar<'a> {
@@ -22,7 +23,7 @@ impl<'a> CharStar<'a> {
             input,
             head_index: 0,
             mark_index: 0,
-            chars: input.chars(),
+            chars: input.chars().peekable(),
         }
     }
 
@@ -74,7 +75,7 @@ impl<'a> CharStar<'a> {
     // Resets the head to the mark.
     pub fn backup(&mut self) {
         self.head_index = self.mark_index;
-        self.chars = self.input[self.head_index..].chars();
+        self.chars = self.input[self.head_index..].chars().peekable();
     }
 }
 

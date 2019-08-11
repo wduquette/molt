@@ -90,58 +90,124 @@ mod tests {
     #[test]
     fn test_basics() {
         // Create the iterator
-        let mut ptr = CharStar::new("abcdefghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.input(), "abcdefghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.mark(), "abcdefghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.head(), "abcdefghijklmnopqrstuvwxyz");
+        let mut ptr = CharStar::new("abc");
+
+        // Initial state
+        assert_eq!(ptr.input(), "abc");
+        assert_eq!(ptr.mark(), "abc");
+        assert_eq!(ptr.head(), "abc");
+        assert_eq!(ptr.peek(), Some('a'));
+        assert_eq!(ptr.token(), "");
+    }
+
+    #[test]
+    fn test_next() {
+        // Create the iterator
+        let mut ptr = CharStar::new("abc");
+
+        assert_eq!(ptr.next(), Some('a'));
+        assert_eq!(ptr.mark(), "abc");
+        assert_eq!(ptr.head(), "bc");
+
+        assert_eq!(ptr.next(), Some('b'));
+        assert_eq!(ptr.mark(), "abc");
+        assert_eq!(ptr.head(), "c");
+
+        assert_eq!(ptr.next(), Some('c'));
+        assert_eq!(ptr.mark(), "abc");
+        assert_eq!(ptr.head(), "");
+
+        assert_eq!(ptr.next(), None);
+    }
+
+    #[test]
+    fn test_mark_head() {
+        // Create the iterator
+        let mut ptr = CharStar::new("abcdef");
+
+        ptr.next();
+        ptr.next();
+        ptr.mark_head();
+
+        assert_eq!(ptr.mark(), "cdef");
+        assert_eq!(ptr.head(), "cdef");
+
+        ptr.next();
+        ptr.next();
+        assert_eq!(ptr.mark(), "cdef");
+        assert_eq!(ptr.head(), "ef");
+    }
+
+    #[test]
+    fn test_token() {
+        // Create the iterator
+        let mut ptr = CharStar::new("abcdef");
+
+        ptr.next();
+        ptr.next();
+        assert_eq!(ptr.token(), "ab");
+        assert_eq!(ptr.head(), "cdef");
+
+        ptr.mark_head();
+        ptr.next();
+        ptr.next();
+
+        assert_eq!(ptr.token(), "cd");
+        assert_eq!(ptr.head(), "ef");
+    }
+
+    #[test]
+    fn test_next_token() {
+        // Create the iterator
+        let mut ptr = CharStar::new("abcdef");
+
+        ptr.next();
+        ptr.next();
+        assert_eq!(ptr.next_token(), "ab");
+        assert_eq!(ptr.mark(), "cdef");
+
+        ptr.next();
+        ptr.next();
+        assert_eq!(ptr.next_token(), "cd");
+        assert_eq!(ptr.mark(), "ef");
+    }
+
+    #[test]
+    fn test_peek() {
+        let mut ptr = CharStar::new("abcdef");
+
+        assert_eq!(ptr.peek(), Some('a'));
+        assert_eq!(ptr.head(), "abcdef");
+
+        ptr.next();
+        ptr.next();
+
+        assert_eq!(ptr.peek(), Some('c'));
+        assert_eq!(ptr.head(), "cdef");
+    }
+
+    #[test]
+    fn test_backup() {
+        let mut ptr = CharStar::new("abcdef");
+
+        ptr.next();
+        ptr.next();
+        ptr.backup();
+
+        assert_eq!(ptr.mark(), "abcdef");
+        assert_eq!(ptr.head(), "abcdef");
         assert_eq!(ptr.peek(), Some('a'));
 
-        // Skip three characters
         ptr.next();
         ptr.next();
-        ptr.next();
-        assert_eq!(ptr.input(), "abcdefghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.mark(), "abcdefghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.head(), "defghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.peek(), Some('d'));
-
-        // Mark the current spot
         ptr.mark_head();
-        assert_eq!(ptr.input(), "abcdefghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.mark(), "defghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.head(), "defghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.peek(), Some('d'));
-
-        // Skip three more characters
         ptr.next();
         ptr.next();
-        ptr.next();
-        assert_eq!(ptr.input(), "abcdefghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.mark(), "defghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.head(), "ghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.token(), "def");
-        assert_eq!(ptr.peek(), Some('g'));
-
-        // next_token
-        assert_eq!(ptr.next_token(), "def");
-        assert_eq!(ptr.input(), "abcdefghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.mark(), "ghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.head(), "ghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.token(), "");
-        assert_eq!(ptr.peek(), Some('g'));
-
-        // backup
-        ptr.next();
-        ptr.next();
-        ptr.next();
-        assert_eq!(ptr.mark(), "ghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.head(), "jklmnopqrstuvwxyz");
-        assert_eq!(ptr.token(), "ghi");
-        assert_eq!(ptr.peek(), Some('j'));
-
         ptr.backup();
-        assert_eq!(ptr.token(), "");
-        assert_eq!(ptr.head(), "ghijklmnopqrstuvwxyz");
-        assert_eq!(ptr.peek(), Some('g'));
+
+        assert_eq!(ptr.mark(), "cdef");
+        assert_eq!(ptr.head(), "cdef");
+        assert_eq!(ptr.peek(), Some('c'));
     }
+
 }

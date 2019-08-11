@@ -32,6 +32,21 @@ Things to remember to do soon:
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
 
+### 2019-08-11 (Sunday)
+*   Parsing with string slices.
+    *   On reflection, CharStar (or whatever I finally call it) really needs to support
+        peeking efficiently, because I use that constantly.  There's no good way to
+        implement `skip_while`, etc., without it.
+    *   The best solution I've come up with so far (if it works) is to maintain the
+        "head" index myself, by accumulating the lengths of the `next` characters as I
+        extract them.
+        *   And then, `head()` is `&input[head_index..]`.  If that works.
+    *   And then peeking is neither here nor there; the `head_index` doesn't change until
+        `next()` is called.
+    *   Note: I've asked on user.rust-lang-org whether there's a way to get `as_str` from a
+        `Peekable<Chars>`.  I'm expecting not.
+
+
 ### 2019-08-10 (Saturday)
 *   Returning data_rep as `Ref<T>`.
     *   With help from jethrogb@users.rust-lang.org.

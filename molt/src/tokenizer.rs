@@ -2,7 +2,7 @@ use std::iter::Peekable;
 use std::str::Chars;
 
 #[derive(Clone,Debug)]
-pub struct CharStar<'a> {
+pub struct Tokenizer<'a> {
     // The string being parsed.
     input: &'a str,
 
@@ -16,7 +16,7 @@ pub struct CharStar<'a> {
     chars: Peekable<Chars<'a>>,
 }
 
-impl<'a> CharStar<'a> {
+impl<'a> Tokenizer<'a> {
     // Create a new struct for the given input.
     pub fn new(input: &'a str) -> Self {
         Self {
@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn test_basics() {
         // Create the iterator
-        let mut ptr = CharStar::new("abc");
+        let mut ptr = Tokenizer::new("abc");
 
         // Initial state
         assert_eq!(ptr.input(), "abc");
@@ -111,7 +111,7 @@ mod tests {
     #[test]
     fn test_next() {
         // Create the iterator
-        let mut ptr = CharStar::new("abc");
+        let mut ptr = Tokenizer::new("abc");
 
         assert_eq!(ptr.next(), Some('a'));
         assert_eq!(ptr.mark(), "abc");
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn test_mark_head() {
         // Create the iterator
-        let mut ptr = CharStar::new("abcdef");
+        let mut ptr = Tokenizer::new("abcdef");
 
         ptr.next();
         ptr.next();
@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn test_token() {
         // Create the iterator
-        let mut ptr = CharStar::new("abcdef");
+        let mut ptr = Tokenizer::new("abcdef");
 
         ptr.next();
         ptr.next();
@@ -167,7 +167,7 @@ mod tests {
     #[test]
     fn test_next_token() {
         // Create the iterator
-        let mut ptr = CharStar::new("abcdef");
+        let mut ptr = Tokenizer::new("abcdef");
         assert_eq!(ptr.next_token(), None);
 
         ptr.next();
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_peek() {
-        let mut ptr = CharStar::new("abcdef");
+        let mut ptr = Tokenizer::new("abcdef");
 
         assert_eq!(ptr.peek(), Some('a'));
         assert_eq!(ptr.head(), "abcdef");
@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_backup() {
-        let mut ptr = CharStar::new("abcdef");
+        let mut ptr = Tokenizer::new("abcdef");
 
         ptr.next();
         ptr.next();

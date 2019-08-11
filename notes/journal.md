@@ -2,6 +2,8 @@
 
 Things to remember to do soon:
 
+*   Revise Value per Yandros' style comments here:
+    https://users.rust-lang.org/t/lazy-initialization-vs-interior-mutability/30742/7
 *   Revise the parsing code to use iterator subtraction to extract slices, rather than
     building up small strings a character at a time.
     *   https://users.rust-lang.org/t/takewhile-iterator-over-chars-to-string-slice/11014
@@ -49,7 +51,9 @@ Things to remember to do soon:
         indices.  The code no longer uses `as_str` at all.  The `chars` iterator is
         recreated only on `backup`.  I don't think there's any reason not to use a
         `Peekable<Chars>` at this point.
-
+    *   CharStar now uses a `Peekable<Char>` and provides `peek()`.  Also, the token
+        methods return `Option<&str>` so that they can return `None` when there's no token
+        instead of `""`.
 
 ### 2019-08-10 (Saturday)
 *   Returning data_rep as `Ref<T>`.

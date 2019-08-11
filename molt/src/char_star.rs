@@ -65,15 +65,23 @@ impl<'a> CharStar<'a> {
     }
 
     // Get the token between the mark and the head.
-    pub fn token(&self) -> &str {
-        &self.input[self.mark_index..self.head_index]
+    pub fn token(&self) -> Option<&str> {
+        if self.mark_index != self.head_index {
+            Some(&self.input[self.mark_index..self.head_index])
+        } else {
+            None
+        }
     }
 
     // Get the token between the mark and the head, and update the mark.
-    pub fn next_token(&mut self) -> &str {
-        let token = &self.input[self.mark_index..self.head_index];
-        self.mark_index = self.head_index;
-        token
+    pub fn next_token(&mut self) -> Option<&str> {
+        if self.mark_index != self.head_index {
+            let token = &self.input[self.mark_index..self.head_index];
+            self.mark_index = self.head_index;
+            Some(token)
+        } else {
+            None
+        }
     }
 
     // Resets the head to the mark.
@@ -97,7 +105,7 @@ mod tests {
         assert_eq!(ptr.mark(), "abc");
         assert_eq!(ptr.head(), "abc");
         assert_eq!(ptr.peek(), Some('a'));
-        assert_eq!(ptr.token(), "");
+        assert_eq!(ptr.token(), None);
     }
 
     #[test]
@@ -145,14 +153,14 @@ mod tests {
 
         ptr.next();
         ptr.next();
-        assert_eq!(ptr.token(), "ab");
+        assert_eq!(ptr.token(), Some("ab"));
         assert_eq!(ptr.head(), "cdef");
 
         ptr.mark_head();
         ptr.next();
         ptr.next();
 
-        assert_eq!(ptr.token(), "cd");
+        assert_eq!(ptr.token(), Some("cd"));
         assert_eq!(ptr.head(), "ef");
     }
 
@@ -160,15 +168,16 @@ mod tests {
     fn test_next_token() {
         // Create the iterator
         let mut ptr = CharStar::new("abcdef");
+        assert_eq!(ptr.next_token(), None);
 
         ptr.next();
         ptr.next();
-        assert_eq!(ptr.next_token(), "ab");
+        assert_eq!(ptr.next_token(), Some("ab"));
         assert_eq!(ptr.mark(), "cdef");
 
         ptr.next();
         ptr.next();
-        assert_eq!(ptr.next_token(), "cd");
+        assert_eq!(ptr.next_token(), Some("cd"));
         assert_eq!(ptr.mark(), "ef");
     }
 
@@ -209,5 +218,4 @@ mod tests {
         assert_eq!(ptr.head(), "cdef");
         assert_eq!(ptr.peek(), Some('c'));
     }
-
 }

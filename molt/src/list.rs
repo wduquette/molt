@@ -1,6 +1,6 @@
 //! TCL List Parsing and Formatting
 
-use crate::eval_ptr::EvalPtr;
+use crate::tokenizer::Tokenizer;
 use crate::interp::subst_backslashes;
 use crate::molt_err;
 use crate::types::*;
@@ -12,27 +12,27 @@ use crate::value::Value;
 /// Parses a list-formatted string into a vector, throwing
 /// a Molt error if the list cannot be parsed as a list.
 pub(crate) fn get_list(str: &str) -> Result<MoltList, ResultCode> {
-    let mut ctx = EvalPtr::new(str);
+    let mut ctx = Tokenizer::new(str);
 
     parse_list(&mut ctx)
 }
 
-// Is the character is valid list whitespace character?
-// fn is_list_white(ch: Option<char>) -> bool {
-//     match ch {
-//         Some(' ') => true,
-//         Some('\n') => true,
-//         Some('\r') => true,
-//         Some('\t') => true,
-//         Some('\x0B') => true, // Vertical Tab
-//         Some('\x0C') => true, // Form Feed
-//         _ => false,
-//     }
-// }
+// Is the character a valid whitespace character in list syntax?
+fn is_list_white(ch: char) -> bool {
+    match ch {
+        ' ' => true,
+        '\n' => true,
+        '\r' => true,
+        '\t' => true,
+        '\x0B' => true, // Vertical Tab
+        '\x0C' => true, // Form Feed
+        _ => false,
+    }
+}
 
-fn parse_list(ctx: &mut EvalPtr) -> Result<MoltList, ResultCode> {
+fn parse_list(ctx: &mut Tokenizer) -> Result<MoltList, ResultCode> {
     // FIRST, skip any list whitespace.
-    ctx.skip_list_white();
+    ctx.skip_while(|ch| is_list_white(*ch));
 
     // Read words until we get to the end of the input or hit an error
     let mut items = Vec::new();
@@ -42,7 +42,7 @@ fn parse_list(ctx: &mut EvalPtr) -> Result<MoltList, ResultCode> {
         items.push(parse_item(ctx)?);
 
         // NEXT, skip whitespace to the end or the next item.
-        ctx.skip_list_white();
+        ctx.skip_while(|ch| is_list_white(*ch));
     }
 
     // NEXT, return the items.
@@ -52,20 +52,24 @@ fn parse_list(ctx: &mut EvalPtr) -> Result<MoltList, ResultCode> {
 /// We're at the beginning of an item in the list.
 /// It's either a bare word, a braced string, or a quoted string--or there's
 /// an error in the input.  Whichever it is, get it.
-fn parse_item(ctx: &mut EvalPtr) -> MoltResult {
-    if ctx.next_is('{') {
+fn parse_item(ctx: &mut Tokenizer) -> MoltResult {
+    if ctx.is('{') {
         Ok(parse_braced_item(ctx)?)
-    } else if ctx.next_is('"') {
+    } else if ctx.is('"') {
         Ok(parse_quoted_item(ctx)?)
     } else {
         Ok(parse_bare_item(ctx)?)
     }
 }
 
-/// Parse a braced item.
-fn parse_braced_item(ctx: &mut EvalPtr) -> MoltResult {
+/// Parse a braced item.  We need to count braces, so that they balance; and
+/// we need to handle backslashes in the input, so that quoted braces don't count.
+fn parse_braced_item(ctx: &mut Tokenizer) -> MoltResult {
     // FIRST, we have to count braces.  Skip the first one, and count it.
+    // Also, mark the following character, as we'll be accumulating a
+    // token.
     ctx.next();
+    ctx.mark_head();
     let mut count = 1;
     let mut item = String::new();
 
@@ -94,7 +98,7 @@ fn parse_braced_item(ctx: &mut EvalPtr) -> MoltResult {
             // We've found and consumed the closing brace.  We should either
             // see more more whitespace, or we should be at the end of the list
             // Otherwise, there are incorrect characters following the close-brace.
-            if ctx.at_end() || ctx.next_is_list_white() {
+            if ctx.at_end() || ctx.has(|ch| is_list_white(*ch)) {
                 return Ok(Value::from(item));
             } else {
                 return molt_err!("extra characters after close-brace");
@@ -107,7 +111,7 @@ fn parse_braced_item(ctx: &mut EvalPtr) -> MoltResult {
 }
 
 /// Parse a quoted item.  Does *not* do backslash substitution.
-fn parse_quoted_item(ctx: &mut EvalPtr) -> MoltResult {
+fn parse_quoted_item(ctx: &mut Tokenizer) -> MoltResult {
     // FIRST, consume the the opening quote.
     ctx.next();
 
@@ -116,16 +120,16 @@ fn parse_quoted_item(ctx: &mut EvalPtr) -> MoltResult {
 
     while !ctx.at_end() {
         // Note: the while condition ensures that there's a character.
-        if ctx.next_is('\\') {
+        if ctx.is('\\') {
             // Backslash; push this character and the next.
             item.push(ctx.next().unwrap());
             if !ctx.at_end() {
                 item.push(ctx.next().unwrap());
             }
-        } else if !ctx.next_is('"') {
+        } else if !ctx.is('"') {
             item.push(ctx.next().unwrap());
         } else {
-            ctx.skip_char('"');
+            ctx.skip(); // skipping '"'
             return Ok(Value::from(subst_backslashes(&item)));
         }
     }
@@ -134,12 +138,12 @@ fn parse_quoted_item(ctx: &mut EvalPtr) -> MoltResult {
 }
 
 /// Parse a bare item.  Does *not* do backslash substitution.
-fn parse_bare_item(ctx: &mut EvalPtr) -> MoltResult {
+fn parse_bare_item(ctx: &mut Tokenizer) -> MoltResult {
     let mut item = String::new();
 
-    while !ctx.at_end() && !ctx.next_is_list_white() {
+    while !ctx.at_end() && !ctx.has(|ch| is_list_white(*ch)) {
         // Note: the while condition ensures that there's a character.
-        if ctx.next_is('\\') {
+        if ctx.is('\\') {
             // Backslash; push this character and the next.
             item.push(ctx.next().unwrap());
             if !ctx.at_end() {

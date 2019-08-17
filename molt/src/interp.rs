@@ -153,7 +153,7 @@ pub struct Interp {
     last_context_id: u64,
 
     // Context Map
-    context_map: HashMap<ContextID, Box<Any>>,
+    context_map: HashMap<ContextID, Box<dyn Any>>,
 
     // Defines the recursion limit for Interp::eval().
     recursion_limit: usize,

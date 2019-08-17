@@ -106,47 +106,39 @@ fn parse_braced_item(ctx: &mut Tokenizer) -> MoltResult {
         }
     }
 
-    //
-    // // NEXT, add characters to the item until we find the matching close-brace,
-    // // which is NOT added to the item.  It's an error if we reach the end before
-    // // finding the close-brace.
-    // let mut item = String::new();
-    // while let Some(c) = ctx.next() {
-    //     if c == '\\' {
-    //         // Backslash handling. Just include it and the next character as is.
-    //         // Note: this means that escaped '{' and '}' characters
-    //         // don't affect the count.
-    //         item.push('\\');
-    //         if !ctx.at_end() {
-    //             item.push(ctx.next().unwrap());
-    //         }
-    //         continue;
-    //     } else if c == '{' {
-    //         count += 1;
-    //     } else if c == '}' {
-    //         count -= 1;
-    //     }
-    //
-    //     if count > 0 {
-    //         item.push(c)
-    //     } else {
-    //         // We've found and consumed the closing brace.  We should either
-    //         // see more more whitespace, or we should be at the end of the list
-    //         // Otherwise, there are incorrect characters following the close-brace.
-    //         if ctx.at_end() || ctx.has(|ch| is_list_white(*ch)) {
-    //             return Ok(Value::from(item));
-    //         } else {
-    //             return molt_err!("extra characters after close-brace");
-    //         }
-    //     }
-    // }
-
     assert!(count > 0);
     molt_err!("unmatched open brace in list")
 }
 
-/// Parse a quoted item.  Does *not* do backslash substitution.
+/// Parse a quoted item.  Does backslash substitution.
 fn parse_quoted_item(ctx: &mut Tokenizer) -> MoltResult {
+    // FIRST, consume the the opening quote.
+    ctx.next();
+
+    // NEXT, add characters to the item until we reach the close quote
+    let mut item = String::new();
+
+    while !ctx.at_end() {
+        // Note: the while condition ensures that there's a character.
+        if ctx.is('\\') {
+            // Backslash; push this character and the next.
+            item.push(ctx.next().unwrap());
+            if !ctx.at_end() {
+                item.push(ctx.next().unwrap());
+            }
+        } else if !ctx.is('"') {
+            item.push(ctx.next().unwrap());
+        } else {
+            ctx.skip(); // skipping '"'
+            return Ok(Value::from(subst_backslashes(&item)));
+        }
+    }
+
+    molt_err!("unmatched open quote in list")
+}
+
+/// Parse a quoted item.  Does backslash substitution.
+fn parse_quoted_item2(ctx: &mut Tokenizer) -> MoltResult {
     // FIRST, consume the the opening quote.
     ctx.next();
 
@@ -355,6 +347,22 @@ mod tests {
     fn pbi(input: &str) -> String {
         let mut ctx = Tokenizer::new(input);
         if let Ok(val) = parse_braced_item(&mut ctx) {
+            format!("{}|{}", val.as_str(), ctx.head())
+        } else {
+            String::from("Err")
+        }
+    }
+
+    #[test]
+    fn test_parse_quoted_item() {
+        assert_eq!(pqi("\"abc\""), "abc|".to_string());
+        assert_eq!(pqi("\"abc\"  "), "abc|  ".to_string());
+        assert_eq!(pqi("\"a\\u77-\""), "aw-|".to_string());
+    }
+
+    fn pqi(input: &str) -> String {
+        let mut ctx = Tokenizer::new(input);
+        if let Ok(val) = parse_quoted_item(&mut ctx) {
             format!("{}|{}", val.as_str(), ctx.head())
         } else {
             String::from("Err")

@@ -34,6 +34,28 @@ Things to remember to do soon:
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
 
+### 2019-08-17 (Saturday)
+*   Parsing with string slices
+    *   Revised list.rs to use Tokenizer rather than EvalPtr, but naively
+        *   I.e., still builds up string output character by character.
+    *   Parsing braced items.
+        *   list.rs handles braced items by accumulating a slice.
+        *   Fixed the `Tokenizer::skip*` methods, which didn't update the head.
+    *   Parsing quoted items.
+        *   Current code accumulates the output string character by character, skipping
+            backslash escapes, then does backslash substitution...which again accumulates
+            the output string character by character.  This is *way* slow.
+        *   The quoted string consists of:
+            *   An open quote
+            *   Zero or more tokens
+            *   A close quote
+        *   The individual tokens are:
+            *   Normal strings
+            *   Substituted backslash escapes
+        *   So we are building up a string token by token rather than character by character.
+            *   And we only want to make one pass.
+
+
 ### 2019-08-11 (Sunday)
 *   Parsing with string slices.
     *   On reflection, CharStar (or whatever I finally call it) really needs to support

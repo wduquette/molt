@@ -1247,7 +1247,7 @@ fn subst_backslash(ctx: &mut EvalPtr, word: &mut String) {
             'r' => word.push('\r'),   // Carriage Return
             't' => word.push('\t'),   // Tab
             'v' => word.push('\x0b'), // Vertical Tab
-            '0'...'7' => {
+            '0'..='7' => {
                 let mut octal = String::new();
                 octal.push(c);
 

@@ -306,6 +306,25 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_parse_braced_item() {
+        assert_eq!(pbi("{abc}"), "abc|".to_string());
+        assert_eq!(pbi("{abc}  "), "abc|  ".to_string());
+        assert_eq!(pbi("{a{b}c}"), "a{b}c|".to_string());
+        assert_eq!(pbi("{a{b}{c}}"), "a{b}{c}|".to_string());
+        assert_eq!(pbi("{a{b}{c}d}"), "a{b}{c}d|".to_string());
+        assert_eq!(pbi("{a{b}{c}d} efg"), "a{b}{c}d| efg".to_string());
+    }
+
+    fn pbi(input: &str) -> String {
+        let mut ctx = Tokenizer::new(input);
+        if let Ok(val) = parse_braced_item(&mut ctx) {
+            format!("{}|{}", val.as_str(), ctx.head())
+        } else {
+            String::from("Err")
+        }
+    }
+
     // Most list parsing is tested in the Molt test suite.
 
     #[test]

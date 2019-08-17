@@ -136,14 +136,14 @@ impl<'a> Tokenizer<'a> {
     /// Skip over the next character, updating the head.  This is equivalent to
     /// `next`, but communicates better.
     pub fn skip(&mut self) {
-        self.chars.next();
+        self.next();
     }
 
     /// Skips the given number of characters, updating the head.
     /// It is not an error if the iterator doesn't contain that many.
     pub fn skip_over(&mut self, num_chars: usize) {
         for _ in 0..num_chars {
-            self.chars.next();
+            self.next();
         }
     }
 
@@ -154,7 +154,7 @@ impl<'a> Tokenizer<'a> {
     {
         while let Some(ch) = self.chars.peek() {
             if predicate(ch) {
-                self.chars.next();
+                self.next();
             } else {
                 break;
             }
@@ -313,29 +313,51 @@ mod tests {
     fn test_skip() {
         let mut ptr = Tokenizer::new("abc");
 
-        assert_eq!(Some('a'), ptr.peek());
+        assert_eq!(ptr.peek(), Some('a'));
+        assert_eq!(ptr.head(), "abc");
+
         ptr.skip();
-        assert_eq!(Some('b'), ptr.peek());
+        assert_eq!(ptr.peek(), Some('b'));
+        assert_eq!(ptr.head(), "bc");
+
         ptr.skip();
-        assert_eq!(Some('c'), ptr.peek());
+        assert_eq!(ptr.peek(), Some('c'));
+        assert_eq!(ptr.head(), "c");
+
         ptr.skip();
-        assert_eq!(None, ptr.peek());
+        assert_eq!(ptr.peek(), None);
+        assert_eq!(ptr.head(), "");
     }
 
     #[test]
     fn test_skip_over() {
         let mut ptr = Tokenizer::new("abc");
         ptr.skip_over(2);
-        assert_eq!(Some('c'), ptr.peek());
+        assert_eq!(ptr.peek(), Some('c'));
+        assert_eq!(ptr.head(), "c");
 
         let mut ptr = Tokenizer::new("abc");
         ptr.skip_over(3);
-        assert_eq!(None, ptr.peek());
+        assert_eq!(ptr.peek(), None);
+        assert_eq!(ptr.head(), "");
 
         let mut ptr = Tokenizer::new("abc");
         ptr.skip_over(6);
-        assert_eq!(None, ptr.peek());
+        assert_eq!(ptr.peek(), None);
+        assert_eq!(ptr.head(), "");
     }
 
+    #[test]
+    fn test_skip_while() {
+        let mut ptr = Tokenizer::new("aaabc");
+        ptr.skip_while(|ch| *ch == 'a');
+        assert_eq!(ptr.peek(), Some('b'));
+        assert_eq!(ptr.head(), "bc");
+
+        let mut ptr = Tokenizer::new("aaa");
+        ptr.skip_while(|ch| *ch == 'a');
+        assert_eq!(ptr.peek(), None);
+        assert_eq!(ptr.head(), "");
+    }
 
 }

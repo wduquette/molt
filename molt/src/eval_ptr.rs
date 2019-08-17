@@ -139,7 +139,7 @@ impl<'a> EvalPtr<'a> {
     /// Is the current character a valid octal digit?
     pub fn next_is_octal_digit(&mut self) -> bool {
         match self.chars.peek() {
-            Some('0'...'7') => true,
+            Some('0'..='7') => true,
             _ => false,
         }
     }
@@ -147,9 +147,9 @@ impl<'a> EvalPtr<'a> {
     /// Is the current character a valid hex digit?
     pub fn next_is_hex_digit(&mut self) -> bool {
         match self.chars.peek() {
-            Some('0'...'9') => true,
-            Some('a'...'f') => true,
-            Some('A'...'F') => true,
+            Some('0'..='9') => true,
+            Some('a'..='f') => true,
+            Some('A'..='F') => true,
             _ => false,
         }
     }

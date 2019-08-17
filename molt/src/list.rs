@@ -69,42 +69,77 @@ fn parse_braced_item(ctx: &mut Tokenizer) -> MoltResult {
     // Also, mark the following character, as we'll be accumulating a
     // token.
     ctx.next();
-    ctx.mark_head();
     let mut count = 1;
-    let mut item = String::new();
 
-    // NEXT, add characters to the item until we find the matching close-brace,
-    // which is NOT added to the item.  It's an error if we reach the end before
-    // finding the close-brace.
-    while let Some(c) = ctx.next() {
+    // NEXT, mark the start of the token, and skip characters until we find the end.
+    ctx.mark_head();
+    while let Some(c) = ctx.peek() {
         if c == '\\' {
-            // Backslash handling. Just include it and the next character as is.
+            // Backslash handling. Retain backslashes as is.
             // Note: this means that escaped '{' and '}' characters
             // don't affect the count.
-            item.push('\\');
-            if !ctx.at_end() {
-                item.push(ctx.next().unwrap());
-            }
-            continue;
+            ctx.skip();
+            ctx.skip();
         } else if c == '{' {
             count += 1;
+            ctx.skip();
         } else if c == '}' {
             count -= 1;
-        }
 
-        if count > 0 {
-            item.push(c)
-        } else {
-            // We've found and consumed the closing brace.  We should either
-            // see more more whitespace, or we should be at the end of the list
-            // Otherwise, there are incorrect characters following the close-brace.
-            if ctx.at_end() || ctx.has(|ch| is_list_white(*ch)) {
-                return Ok(Value::from(item));
+            if count > 0 {
+                ctx.skip();
             } else {
-                return molt_err!("extra characters after close-brace");
+                // We've found and consumed the closing brace.  We should either
+                // see more more whitespace, or we should be at the end of the list
+                // Otherwise, there are incorrect characters following the close-brace.
+                let result = Ok(Value::from(ctx.token().unwrap()));
+                ctx.skip(); // Skip the closing brace
+
+                if ctx.at_end() || ctx.has(|ch| is_list_white(*ch)) {
+                    return result;
+                } else {
+                    return molt_err!("extra characters after close-brace");
+                }
             }
+        } else {
+            ctx.skip();
         }
     }
+
+    //
+    // // NEXT, add characters to the item until we find the matching close-brace,
+    // // which is NOT added to the item.  It's an error if we reach the end before
+    // // finding the close-brace.
+    // let mut item = String::new();
+    // while let Some(c) = ctx.next() {
+    //     if c == '\\' {
+    //         // Backslash handling. Just include it and the next character as is.
+    //         // Note: this means that escaped '{' and '}' characters
+    //         // don't affect the count.
+    //         item.push('\\');
+    //         if !ctx.at_end() {
+    //             item.push(ctx.next().unwrap());
+    //         }
+    //         continue;
+    //     } else if c == '{' {
+    //         count += 1;
+    //     } else if c == '}' {
+    //         count -= 1;
+    //     }
+    //
+    //     if count > 0 {
+    //         item.push(c)
+    //     } else {
+    //         // We've found and consumed the closing brace.  We should either
+    //         // see more more whitespace, or we should be at the end of the list
+    //         // Otherwise, there are incorrect characters following the close-brace.
+    //         if ctx.at_end() || ctx.has(|ch| is_list_white(*ch)) {
+    //             return Ok(Value::from(item));
+    //         } else {
+    //             return molt_err!("extra characters after close-brace");
+    //         }
+    //     }
+    // }
 
     assert!(count > 0);
     molt_err!("unmatched open brace in list")
@@ -314,6 +349,7 @@ mod tests {
         assert_eq!(pbi("{a{b}{c}}"), "a{b}{c}|".to_string());
         assert_eq!(pbi("{a{b}{c}d}"), "a{b}{c}d|".to_string());
         assert_eq!(pbi("{a{b}{c}d} efg"), "a{b}{c}d| efg".to_string());
+        assert_eq!(pbi("{a\\{bc}"), "a\\{bc|".to_string());
     }
 
     fn pbi(input: &str) -> String {

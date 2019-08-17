@@ -54,6 +54,9 @@ Things to remember to do soon:
             *   Substituted backslash escapes
         *   So we are building up a string token by token rather than character by character.
             *   And we only want to make one pass.
+    *   The first step is to make a copy of `interp::subst_backslash` that consumes
+        a backslash sequence from the tokenizer and returns the resulting character.
+        *   The subst_backslash code sometimes returns more than one character.  How come?
 
 
 ### 2019-08-11 (Sunday)

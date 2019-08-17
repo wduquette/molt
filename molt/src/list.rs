@@ -115,34 +115,6 @@ fn parse_quoted_item(ctx: &mut Tokenizer) -> MoltResult {
     // FIRST, consume the the opening quote.
     ctx.next();
 
-    // NEXT, add characters to the item until we reach the close quote
-    let mut item = String::new();
-
-    while !ctx.at_end() {
-        // Note: the while condition ensures that there's a character.
-        if ctx.is('\\') {
-            // Backslash; push this character and the next.
-            item.push(ctx.next().unwrap());
-            if !ctx.at_end() {
-                item.push(ctx.next().unwrap());
-            }
-        } else if !ctx.is('"') {
-            item.push(ctx.next().unwrap());
-        } else {
-            ctx.skip(); // skipping '"'
-            return Ok(Value::from(subst_backslashes(&item)));
-        }
-    }
-
-    molt_err!("unmatched open quote in list")
-}
-
-/// Parse a quoted item.  Does backslash substitution.
-fn parse_quoted_item2(ctx: &mut Tokenizer) -> MoltResult {
-    // FIRST, consume the the opening quote.
-    ctx.next();
-
-    // NEXT, add characters to the item until we reach the close quote
     let mut item = String::new();
 
     while !ctx.at_end() {

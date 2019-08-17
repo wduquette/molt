@@ -1512,7 +1512,7 @@ mod tests {
         assert_eq!("1\t2", interp.subst_backslashes("1\\t2"));
         assert_eq!("1\x0b2", interp.subst_backslashes("1\\v2"));
         assert_eq!("1\x072", interp.subst_backslashes("1\\0072"));
-        assert_eq!("XpY", interp.subst_backslashes("X\x70Y"));
+        assert_eq!("XpY", interp.subst_backslashes("X\\x70Y"));
         assert_eq!("X\x07Y", interp.subst_backslashes("X\\u7Y"));
         assert_eq!("XwY", interp.subst_backslashes("X\\u77Y"));
         assert_eq!("XwY", interp.subst_backslashes("X\\u077Y"));

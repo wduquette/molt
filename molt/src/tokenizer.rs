@@ -28,6 +28,7 @@ pub struct Tokenizer<'a> {
     chars: Peekable<Chars<'a>>,
 }
 
+
 impl<'a> Tokenizer<'a> {
     /// Creates a new tokenizer for the given input.
     pub fn new(input: &'a str) -> Self {
@@ -105,6 +106,12 @@ impl<'a> Tokenizer<'a> {
         self.chars = self.input[self.head_index..].chars().peekable();
     }
 
+    /// Resets the head to the given index.  For internal use only.
+    fn reset(&mut self, index: usize) {
+        self.head_index = index;
+        self.chars = self.input[self.head_index..].chars().peekable();
+    }
+
     /// Is the next character the given character?  Does not update the head.
     pub fn is(&mut self, ch: char) -> bool {
         if let Some(c) = self.chars.peek() {
@@ -139,6 +146,14 @@ impl<'a> Tokenizer<'a> {
         self.next();
     }
 
+    /// Skip over the given character, updating the head.  This is equivalent to
+    /// `next`, but communicates better.  Panics if the character is not matched.
+    pub fn skip_char(&mut self, ch: char) {
+        assert!(self.is(ch));
+        self.next();
+    }
+
+
     /// Skips the given number of characters, updating the head.
     /// It is not an error if the iterator doesn't contain that many.
     pub fn skip_over(&mut self, num_chars: usize) {
@@ -158,6 +173,87 @@ impl<'a> Tokenizer<'a> {
             } else {
                 break;
             }
+        }
+    }
+
+    /// Parses a backslash-escape and returns its value. If the escape is valid,
+    /// the value will be the substituted character.  If the escape is not valid,
+    /// it will be the single character following the backslash.  Either way, the
+    /// the head will point at what's next.  If there's nothing following the backslash,
+    /// return the backslash.
+    pub fn backslash_subst(&mut self) -> char {
+        // FIRST, skip the backslash.
+        self.skip_char('\\');
+
+        // NEXT, get the next character.
+        if let Some(c) = self.next() {
+            // FIRST, mark the character following the first escaped character, in case
+            // we need to return to it.
+            let reset_index = self.head_index;
+
+            // NEXT, match the character.
+            match c {
+                // Single character escapes
+                'a' => '\x07', // Audible Alarm
+                'b' => '\x08', // Backspace
+                'f' => '\x0c', // Form Feed
+                'n' => '\n',   // New Line
+                'r' => '\r',   // Carriage Return
+                't' => '\t',   // Tab
+                'v' => '\x0b', // Vertical Tab
+
+                // 1 to 3 octal digits
+                '0'..='7' => {
+                    let start_index = reset_index - 1;
+
+                    while self.has(|ch| ch.is_digit(8)) &&
+                        self.head_index - start_index < 3
+                    {
+                        self.next();
+                    }
+
+                    let octal = &self.input[start_index..self.head_index];
+
+                    let val = u8::from_str_radix(octal, 8).unwrap();
+                    val as char
+                }
+
+                // \xhh, \uhhhh, \Uhhhhhhhh
+                'x' | 'u' | 'U' => {
+                    let max = match c {
+                        'x' => 2,
+                        'u' => 4,
+                        'U' => 8,
+                        _ => unreachable!(),
+                    };
+
+                    while self.has(|ch| ch.is_digit(16)) &&
+                        self.head_index - reset_index < max
+                    {
+                        self.next();
+                    }
+
+                    if self.head_index == reset_index {
+                        return c;
+                    }
+
+                    let hex = &self.input[reset_index..self.head_index];
+
+                    let val = u32::from_str_radix(&hex, 16).unwrap();
+                    if let Some(ch) = std::char::from_u32(val) {
+                        ch
+                    } else {
+                        self.reset(reset_index);
+                        c
+                    }
+                }
+
+                // Arbitrary single characters
+                _ => c,
+            }
+        } else {
+            // Return the backslash; no escape, since no following character.
+            '\\'
         }
     }
 }
@@ -358,6 +454,72 @@ mod tests {
         ptr.skip_while(|ch| *ch == 'a');
         assert_eq!(ptr.peek(), None);
         assert_eq!(ptr.head(), "");
+    }
+
+    #[test]
+    fn test_backslash_subst_single() {
+        // Single Character Escapes
+        assert_eq!(bsubst("\\a-"), ('\x07', Some('-')));
+        assert_eq!(bsubst("\\b-"), ('\x08', Some('-')));
+        assert_eq!(bsubst("\\f-"), ('\x0c', Some('-')));
+        assert_eq!(bsubst("\\n-"), ('\n', Some('-')));
+        assert_eq!(bsubst("\\r-"), ('\r', Some('-')));
+        assert_eq!(bsubst("\\t-"), ('\t', Some('-')));
+        assert_eq!(bsubst("\\v-"), ('\x0b', Some('-')));
+    }
+
+    fn test_backslash_subst_octal() {
+        // Octals
+        assert_eq!(bsubst("\\1-"), ('\x01', Some('-')));
+        assert_eq!(bsubst("\\17-"), ('\x0f', Some('-')));
+        assert_eq!(bsubst("\\177-"), ('\x7f', Some('-')));
+        assert_eq!(bsubst("\\1772-"), ('\x7f', Some('2')));
+        assert_eq!(bsubst("\\18-"), ('\x01', Some('8')));
+        assert_eq!(bsubst("\\8-"), ('8', Some('-')));
+    }
+
+    fn test_backslash_subst_hex2() {
+        // \xhh: One or two hex digits.
+        assert_eq!(bsubst("\\x-"), ('x', Some('-')));
+        assert_eq!(bsubst("\\x1-"), ('\x01', Some('-')));
+        assert_eq!(bsubst("\\x7f-"), ('\x7f', Some('-')));
+    }
+
+    fn test_backslash_subst_hex4() {
+        // \uhhhh: 1-4 hex digits.
+        assert_eq!(bsubst("\\u-"), ('u', Some('-')));
+        assert_eq!(bsubst("\\u7-"), ('\x07', Some('-')));
+        assert_eq!(bsubst("\\u77-"), ('w', Some('-')));
+        assert_eq!(bsubst("\\u077-"), ('w', Some('-')));
+        assert_eq!(bsubst("\\u0077-"), ('w', Some('-')));
+        assert_eq!(bsubst("\\u00077-"), ('\x07', Some('7')));
+    }
+
+    fn test_backslash_subst_hex8() {
+        // \Uhhhhhhhh: 1-8 hex digits.
+        assert_eq!(bsubst("\\U-"), ('U', Some('-')));
+        assert_eq!(bsubst("\\U7-"), ('\x07', Some('-')));
+        assert_eq!(bsubst("\\U77-"), ('w', Some('-')));
+        assert_eq!(bsubst("\\U077-"), ('w', Some('-')));
+        assert_eq!(bsubst("\\U0077-"), ('w', Some('-')));
+        assert_eq!(bsubst("\\U00077-"), ('w', Some('-')));
+        assert_eq!(bsubst("\\U000077-"), ('w', Some('-')));
+        assert_eq!(bsubst("\\U0000077-"), ('w', Some('-')));
+        assert_eq!(bsubst("\\U00000077-"), ('w', Some('-')));
+        assert_eq!(bsubst("\\U000000077-"), ('\x07', Some('7')));
+    }
+
+    fn test_backslash_subst_other() {
+        // Arbitrary Character
+        assert_eq!(bsubst("\\*-"), ('*', Some('-')));
+
+        // backslash only
+        assert_eq!(bsubst("\\"), ('\\', None));
+    }
+
+    fn bsubst(input: &str) -> (char, Option<char>) {
+        let mut ctx = Tokenizer::new(input);
+        (ctx.backslash_subst(), ctx.head().chars().next())
     }
 
 }

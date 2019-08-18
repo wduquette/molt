@@ -52,6 +52,17 @@ Things to remember to do soon:
     *   Took another look at Tcl 8.
         *   `\x` should accept one or two digits.  It returns `x` if there are
             no following hex digits.  Need to fix that.
+    *   Essential points:
+        *   Either the token is a single character, or a slice.
+        *   Either way, it's a distinct token in a quoted or bare item.  The previous
+            token ends just before the `\`, and the next token begins just after the
+            last character read.
+        *   Oh, but wait.  A backslash substitution always returns a single character:
+            either the translated character, or the character immediately following the
+            backslash.  For hex substitutions that fail, returning the hex digits as
+            part of the token *might* be an optimization; but it's certainly OK to just
+            reset parsing to the first hex digit, especially since it's rare.
+    *   Added Tokenizer::backslash_subst, which returns a single character.
 
 ### 2019-08-17 (Saturday)
 *   Parsing with string slices

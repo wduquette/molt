@@ -1263,6 +1263,7 @@ fn subst_backslash(ctx: &mut EvalPtr, word: &mut String) {
                 word.push(val as char);
             }
             // \xhh -- 2 hex digits
+            // TODO: This is wrong, as it requires 2 hex digits; Tcl allows 1 or 2.
             'x' => {
                 if !ctx.next_is_hex_digit() {
                     word.push(c);

@@ -63,6 +63,15 @@ Things to remember to do soon:
             part of the token *might* be an optimization; but it's certainly OK to just
             reset parsing to the first hex digit, especially since it's rare.
     *   Added Tokenizer::backslash_subst, which returns a single character.
+*   Thoughts on Tokenizer:
+    *   There's no need to be able to save an internal "mark".  Instead:
+        *   `index()` returns the head_index.
+        *   `token(usize)` returns the token from the given index to the head.
+        *   `tail(usize)` return the entire string from the given index to the head.
+        *   `reset(usize)` resets the iterator to the given index.
+        *   The `head_index` becomes just the `index`.
+    *   The client can then save as many "marks" as it needs, with no fear of
+        confusion.
 
 ### 2019-08-17 (Saturday)
 *   Parsing with string slices

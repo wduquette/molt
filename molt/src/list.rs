@@ -72,7 +72,7 @@ fn parse_braced_item(ctx: &mut Tokenizer) -> MoltResult {
     let mut count = 1;
 
     // NEXT, mark the start of the token, and skip characters until we find the end.
-    ctx.mark_head();
+    let mark = ctx.head_index();
     while let Some(c) = ctx.peek() {
         if c == '\\' {
             // Backslash handling. Retain backslashes as is.
@@ -92,7 +92,7 @@ fn parse_braced_item(ctx: &mut Tokenizer) -> MoltResult {
                 // We've found and consumed the closing brace.  We should either
                 // see more more whitespace, or we should be at the end of the list
                 // Otherwise, there are incorrect characters following the close-brace.
-                let result = Ok(Value::from(ctx.token().unwrap()));
+                let result = Ok(Value::from(ctx.token(mark).unwrap()));
                 ctx.skip(); // Skip the closing brace
 
                 if ctx.at_end() || ctx.has(|ch| is_list_white(*ch)) {

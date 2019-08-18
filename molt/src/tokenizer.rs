@@ -21,9 +21,6 @@ pub struct Tokenizer<'a> {
     // The starting index of the next character.
     head_index: usize,
 
-    // The starting index of the marked character
-    mark_index: usize,
-
     // The iterator used to extract characters from the input
     chars: Peekable<Chars<'a>>,
 }
@@ -35,7 +32,6 @@ impl<'a> Tokenizer<'a> {
         Self {
             input,
             head_index: 0,
-            mark_index: 0,
             chars: input.chars().peekable(),
         }
     }
@@ -45,15 +41,15 @@ impl<'a> Tokenizer<'a> {
         self.input
     }
 
-    /// Returns the remainder of the input starting at the mark.
-    pub fn mark(&self) -> &str {
-        &self.input[self.mark_index..]
-    }
-
     // Returns the remainder of the input starting at the head.
     pub fn head(&self) -> &str {
         // self.chars.as_str()
         &self.input[self.head_index..]
+    }
+
+    // Returns the head_index.
+    pub fn head_index(&self) -> usize {
+        self.head_index
     }
 
     /// Returns the next character and updates the head.
@@ -72,42 +68,18 @@ impl<'a> Tokenizer<'a> {
         self.chars.peek().copied()
     }
 
-    /// Marks the current head as the start of the next token.
-    pub fn mark_head(&mut self) {
-        self.mark_index = self.head_index;
-    }
-
     /// Get the token between the mark and the head.  Returns None if we're at the
     /// end or mark == head.
-    pub fn token(&self) -> Option<&str> {
-        if self.mark_index != self.head_index {
-            Some(&self.input[self.mark_index..self.head_index])
+    pub fn token(&self, mark: usize) -> Option<&str> {
+        if mark != self.head_index {
+            Some(&self.input[mark..self.head_index])
         } else {
             None
         }
-    }
-
-    /// Gets the token between the mark and the head, and marks the head.
-    /// Returns None if we're at the end, or mark == head.
-    pub fn next_token(&mut self) -> Option<&str> {
-        if self.mark_index != self.head_index {
-            let token = &self.input[self.mark_index..self.head_index];
-            self.mark_index = self.head_index;
-            Some(token)
-        } else {
-            None
-        }
-    }
-
-    /// Resets the head to the mark.  Use this when it's necessary to look ahead more
-    /// than one character.
-    pub fn backup(&mut self) {
-        self.head_index = self.mark_index;
-        self.chars = self.input[self.head_index..].chars().peekable();
     }
 
     /// Resets the head to the given index.  For internal use only.
-    fn reset(&mut self, index: usize) {
+    fn reset_to(&mut self, index: usize) {
         self.head_index = index;
         self.chars = self.input[self.head_index..].chars().peekable();
     }
@@ -243,7 +215,7 @@ impl<'a> Tokenizer<'a> {
                     if let Some(ch) = std::char::from_u32(val) {
                         ch
                     } else {
-                        self.reset(reset_index);
+                        self.reset_to(reset_index);
                         c
                     }
                 }
@@ -269,10 +241,8 @@ mod tests {
 
         // Initial state
         assert_eq!(ptr.input(), "abc");
-        assert_eq!(ptr.mark(), "abc");
         assert_eq!(ptr.head(), "abc");
         assert_eq!(ptr.peek(), Some('a'));
-        assert_eq!(ptr.token(), None);
     }
 
     #[test]
@@ -281,36 +251,15 @@ mod tests {
         let mut ptr = Tokenizer::new("abc");
 
         assert_eq!(ptr.next(), Some('a'));
-        assert_eq!(ptr.mark(), "abc");
         assert_eq!(ptr.head(), "bc");
 
         assert_eq!(ptr.next(), Some('b'));
-        assert_eq!(ptr.mark(), "abc");
         assert_eq!(ptr.head(), "c");
 
         assert_eq!(ptr.next(), Some('c'));
-        assert_eq!(ptr.mark(), "abc");
         assert_eq!(ptr.head(), "");
 
         assert_eq!(ptr.next(), None);
-    }
-
-    #[test]
-    fn test_mark_head() {
-        // Create the iterator
-        let mut ptr = Tokenizer::new("abcdef");
-
-        ptr.next();
-        ptr.next();
-        ptr.mark_head();
-
-        assert_eq!(ptr.mark(), "cdef");
-        assert_eq!(ptr.head(), "cdef");
-
-        ptr.next();
-        ptr.next();
-        assert_eq!(ptr.mark(), "cdef");
-        assert_eq!(ptr.head(), "ef");
     }
 
     #[test]
@@ -320,32 +269,14 @@ mod tests {
 
         ptr.next();
         ptr.next();
-        assert_eq!(ptr.token(), Some("ab"));
         assert_eq!(ptr.head(), "cdef");
 
-        ptr.mark_head();
+        let start = ptr.head_index();
         ptr.next();
         ptr.next();
 
-        assert_eq!(ptr.token(), Some("cd"));
+        assert_eq!(ptr.token(start), Some("cd"));
         assert_eq!(ptr.head(), "ef");
-    }
-
-    #[test]
-    fn test_next_token() {
-        // Create the iterator
-        let mut ptr = Tokenizer::new("abcdef");
-        assert_eq!(ptr.next_token(), None);
-
-        ptr.next();
-        ptr.next();
-        assert_eq!(ptr.next_token(), Some("ab"));
-        assert_eq!(ptr.mark(), "cdef");
-
-        ptr.next();
-        ptr.next();
-        assert_eq!(ptr.next_token(), Some("cd"));
-        assert_eq!(ptr.mark(), "ef");
     }
 
     #[test]
@@ -363,25 +294,23 @@ mod tests {
     }
 
     #[test]
-    fn test_backup() {
+    fn test_reset_to() {
         let mut ptr = Tokenizer::new("abcdef");
 
         ptr.next();
         ptr.next();
-        ptr.backup();
+        ptr.reset_to(0);
 
-        assert_eq!(ptr.mark(), "abcdef");
         assert_eq!(ptr.head(), "abcdef");
         assert_eq!(ptr.peek(), Some('a'));
 
         ptr.next();
         ptr.next();
-        ptr.mark_head();
+        let start = ptr.head_index();
         ptr.next();
         ptr.next();
-        ptr.backup();
+        ptr.reset_to(start);
 
-        assert_eq!(ptr.mark(), "cdef");
         assert_eq!(ptr.head(), "cdef");
         assert_eq!(ptr.peek(), Some('c'));
     }

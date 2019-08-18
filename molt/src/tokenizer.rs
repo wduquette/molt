@@ -2,11 +2,9 @@
 //! supported by the `Peekable<Chars>` iterator.  The basic procedure is as follows:
 //!
 //! * Use `next` and `peek` to query the iterator in the usual way.
-//! * Detect the beginning of a token and mark it using `mark_head`.
+//! * Detect the beginning of a token and get its index from `mark`.
 //! * Skip just past the end of the token using `next`, `skip`, etc.
-//! * Use `token` to retrieve a slice from the mark to the head.
-//!
-//! The `next_token` method retrieve the token and sets the mark to the head.
+//! * Use `token` to retrieve a slice from the mark to the index.
 
 use std::iter::Peekable;
 use std::str::Chars;
@@ -19,7 +17,7 @@ pub struct Tokenizer<'a> {
     input: &'a str,
 
     // The starting index of the next character.
-    head_index: usize,
+    index: usize,
 
     // The iterator used to extract characters from the input
     chars: Peekable<Chars<'a>>,
@@ -31,7 +29,7 @@ impl<'a> Tokenizer<'a> {
     pub fn new(input: &'a str) -> Self {
         Self {
             input,
-            head_index: 0,
+            index: 0,
             chars: input.chars().peekable(),
         }
     }
@@ -41,50 +39,54 @@ impl<'a> Tokenizer<'a> {
         self.input
     }
 
-    // Returns the remainder of the input starting at the head.
-    pub fn head(&self) -> &str {
-        // self.chars.as_str()
-        &self.input[self.head_index..]
+    // Returns the remainder of the input starting at the index.
+    pub fn as_str(&self) -> &str {
+        &self.input[self.index..]
     }
 
-    // Returns the head_index.
-    pub fn head_index(&self) -> usize {
-        self.head_index
+    // Returns the current index as a mark, for later use.
+    pub fn mark(&self) -> usize {
+        self.index
     }
 
-    /// Returns the next character and updates the head.
+    // Returns the remainder of the input starting at the given mark.
+    pub fn tail(&self, mark: usize) -> &str {
+        &self.input[mark..]
+    }
+
+    /// Returns the next character and updates the index.
     pub fn next(&mut self) -> Option<char> {
         let ch = self.chars.next();
 
         if let Some(c) = ch {
-            self.head_index += c.len_utf8();
+            self.index += c.len_utf8();
         }
 
         ch
     }
 
-    /// Returns the next character without updating the head.
+    /// Returns the next character without updating the index.
     pub fn peek(&mut self) -> Option<char> {
         self.chars.peek().copied()
     }
 
-    /// Get the token between the mark and the head.  Returns None if we're at the
-    /// end or mark == head.
+    /// Get the token between the mark and the index.  Returns None if we're at the
+    /// end or mark == index.
     pub fn token(&self, mark: usize) -> Option<&str> {
-        if mark != self.head_index {
-            Some(&self.input[mark..self.head_index])
+        if mark != self.index {
+            Some(&self.input[mark..self.index])
         } else {
             None
         }
     }
 
-    /// Resets the head to the given index.  For internal use only.
-    fn reset_to(&mut self, index: usize) {
-        self.head_index = index;
-        self.chars = self.input[self.head_index..].chars().peekable();
+    /// Resets the index to the given mark.  For internal use only.
+    fn reset_to(&mut self, mark: usize) {
+        self.index = mark;
+        self.chars = self.input[self.index..].chars().peekable();
     }
 
-    /// Is the next character the given character?  Does not update the head.
+    /// Is the next character the given character?  Does not update the index.
     pub fn is(&mut self, ch: char) -> bool {
         if let Some(c) = self.chars.peek() {
             *c == ch
@@ -93,7 +95,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    /// Is the predicate true for the next character? Does not update the head.
+    /// Is the predicate true for the next character? Does not update the index.
     pub fn has<P>(&mut self, predicate: P) -> bool
     where
         P: Fn(&char) -> bool,
@@ -112,13 +114,13 @@ impl<'a> Tokenizer<'a> {
         self.chars.peek().is_none()
     }
 
-    /// Skip over the next character, updating the head.  This is equivalent to
+    /// Skip over the next character, updating the index.  This is equivalent to
     /// `next`, but communicates better.
     pub fn skip(&mut self) {
         self.next();
     }
 
-    /// Skip over the given character, updating the head.  This is equivalent to
+    /// Skip over the given character, updating the index.  This is equivalent to
     /// `next`, but communicates better.  Panics if the character is not matched.
     pub fn skip_char(&mut self, ch: char) {
         assert!(self.is(ch));
@@ -126,7 +128,7 @@ impl<'a> Tokenizer<'a> {
     }
 
 
-    /// Skips the given number of characters, updating the head.
+    /// Skips the given number of characters, updating the index.
     /// It is not an error if the iterator doesn't contain that many.
     pub fn skip_over(&mut self, num_chars: usize) {
         for _ in 0..num_chars {
@@ -134,7 +136,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    /// Skips over characters while the predicate is true.  Updates the head.
+    /// Skips over characters while the predicate is true.  Updates the index.
     pub fn skip_while<P>(&mut self, predicate: P)
     where
         P: Fn(&char) -> bool,
@@ -151,19 +153,17 @@ impl<'a> Tokenizer<'a> {
     /// Parses a backslash-escape and returns its value. If the escape is valid,
     /// the value will be the substituted character.  If the escape is not valid,
     /// it will be the single character following the backslash.  Either way, the
-    /// the head will point at what's next.  If there's nothing following the backslash,
+    /// the index will point at what's next.  If there's nothing following the backslash,
     /// return the backslash.
     pub fn backslash_subst(&mut self) -> char {
         // FIRST, skip the backslash.
         self.skip_char('\\');
 
+        let start = self.mark(); // Mark the character following the backslash.
+
         // NEXT, get the next character.
         if let Some(c) = self.next() {
-            // FIRST, mark the character following the first escaped character, in case
-            // we need to return to it.
-            let reset_index = self.head_index;
-
-            // NEXT, match the character.
+            // FIRST, match the character.
             match c {
                 // Single character escapes
                 'a' => '\x07', // Audible Alarm
@@ -176,15 +176,15 @@ impl<'a> Tokenizer<'a> {
 
                 // 1 to 3 octal digits
                 '0'..='7' => {
-                    let start_index = reset_index - 1;
-
+                    // Note: only works because these digits are single bytes.
+                    // TODO: count instead.
                     while self.has(|ch| ch.is_digit(8)) &&
-                        self.head_index - start_index < 3
+                        self.index - start < 3
                     {
                         self.next();
                     }
 
-                    let octal = &self.input[start_index..self.head_index];
+                    let octal = &self.input[start..self.index];
 
                     let val = u8::from_str_radix(octal, 8).unwrap();
                     val as char
@@ -192,6 +192,8 @@ impl<'a> Tokenizer<'a> {
 
                 // \xhh, \uhhhh, \Uhhhhhhhh
                 'x' | 'u' | 'U' => {
+                    let mark = self.mark();
+
                     let max = match c {
                         'x' => 2,
                         'u' => 4,
@@ -199,23 +201,25 @@ impl<'a> Tokenizer<'a> {
                         _ => unreachable!(),
                     };
 
+                    // Note: only works because these digits are single bytes.
+                    // TODO: count instead.
                     while self.has(|ch| ch.is_digit(16)) &&
-                        self.head_index - reset_index < max
+                        self.index - mark < max
                     {
                         self.next();
                     }
 
-                    if self.head_index == reset_index {
+                    if self.index == mark {
                         return c;
                     }
 
-                    let hex = &self.input[reset_index..self.head_index];
+                    let hex = &self.input[mark..self.index];
 
                     let val = u32::from_str_radix(&hex, 16).unwrap();
                     if let Some(ch) = std::char::from_u32(val) {
                         ch
                     } else {
-                        self.reset_to(reset_index);
+                        self.reset_to(mark);
                         c
                     }
                 }
@@ -241,7 +245,7 @@ mod tests {
 
         // Initial state
         assert_eq!(ptr.input(), "abc");
-        assert_eq!(ptr.head(), "abc");
+        assert_eq!(ptr.as_str(), "abc");
         assert_eq!(ptr.peek(), Some('a'));
     }
 
@@ -251,13 +255,13 @@ mod tests {
         let mut ptr = Tokenizer::new("abc");
 
         assert_eq!(ptr.next(), Some('a'));
-        assert_eq!(ptr.head(), "bc");
+        assert_eq!(ptr.as_str(), "bc");
 
         assert_eq!(ptr.next(), Some('b'));
-        assert_eq!(ptr.head(), "c");
+        assert_eq!(ptr.as_str(), "c");
 
         assert_eq!(ptr.next(), Some('c'));
-        assert_eq!(ptr.head(), "");
+        assert_eq!(ptr.as_str(), "");
 
         assert_eq!(ptr.next(), None);
     }
@@ -269,14 +273,14 @@ mod tests {
 
         ptr.next();
         ptr.next();
-        assert_eq!(ptr.head(), "cdef");
+        assert_eq!(ptr.as_str(), "cdef");
 
-        let start = ptr.head_index();
+        let start = ptr.mark();
         ptr.next();
         ptr.next();
 
         assert_eq!(ptr.token(start), Some("cd"));
-        assert_eq!(ptr.head(), "ef");
+        assert_eq!(ptr.as_str(), "ef");
     }
 
     #[test]
@@ -284,13 +288,13 @@ mod tests {
         let mut ptr = Tokenizer::new("abcdef");
 
         assert_eq!(ptr.peek(), Some('a'));
-        assert_eq!(ptr.head(), "abcdef");
+        assert_eq!(ptr.as_str(), "abcdef");
 
         ptr.next();
         ptr.next();
 
         assert_eq!(ptr.peek(), Some('c'));
-        assert_eq!(ptr.head(), "cdef");
+        assert_eq!(ptr.as_str(), "cdef");
     }
 
     #[test]
@@ -301,17 +305,17 @@ mod tests {
         ptr.next();
         ptr.reset_to(0);
 
-        assert_eq!(ptr.head(), "abcdef");
+        assert_eq!(ptr.as_str(), "abcdef");
         assert_eq!(ptr.peek(), Some('a'));
 
         ptr.next();
         ptr.next();
-        let start = ptr.head_index();
+        let start = ptr.mark();
         ptr.next();
         ptr.next();
         ptr.reset_to(start);
 
-        assert_eq!(ptr.head(), "cdef");
+        assert_eq!(ptr.as_str(), "cdef");
         assert_eq!(ptr.peek(), Some('c'));
     }
 
@@ -339,19 +343,19 @@ mod tests {
         let mut ptr = Tokenizer::new("abc");
 
         assert_eq!(ptr.peek(), Some('a'));
-        assert_eq!(ptr.head(), "abc");
+        assert_eq!(ptr.as_str(), "abc");
 
         ptr.skip();
         assert_eq!(ptr.peek(), Some('b'));
-        assert_eq!(ptr.head(), "bc");
+        assert_eq!(ptr.as_str(), "bc");
 
         ptr.skip();
         assert_eq!(ptr.peek(), Some('c'));
-        assert_eq!(ptr.head(), "c");
+        assert_eq!(ptr.as_str(), "c");
 
         ptr.skip();
         assert_eq!(ptr.peek(), None);
-        assert_eq!(ptr.head(), "");
+        assert_eq!(ptr.as_str(), "");
     }
 
     #[test]
@@ -359,17 +363,17 @@ mod tests {
         let mut ptr = Tokenizer::new("abc");
         ptr.skip_over(2);
         assert_eq!(ptr.peek(), Some('c'));
-        assert_eq!(ptr.head(), "c");
+        assert_eq!(ptr.as_str(), "c");
 
         let mut ptr = Tokenizer::new("abc");
         ptr.skip_over(3);
         assert_eq!(ptr.peek(), None);
-        assert_eq!(ptr.head(), "");
+        assert_eq!(ptr.as_str(), "");
 
         let mut ptr = Tokenizer::new("abc");
         ptr.skip_over(6);
         assert_eq!(ptr.peek(), None);
-        assert_eq!(ptr.head(), "");
+        assert_eq!(ptr.as_str(), "");
     }
 
     #[test]
@@ -377,12 +381,12 @@ mod tests {
         let mut ptr = Tokenizer::new("aaabc");
         ptr.skip_while(|ch| *ch == 'a');
         assert_eq!(ptr.peek(), Some('b'));
-        assert_eq!(ptr.head(), "bc");
+        assert_eq!(ptr.as_str(), "bc");
 
         let mut ptr = Tokenizer::new("aaa");
         ptr.skip_while(|ch| *ch == 'a');
         assert_eq!(ptr.peek(), None);
-        assert_eq!(ptr.head(), "");
+        assert_eq!(ptr.as_str(), "");
     }
 
     #[test]
@@ -448,7 +452,7 @@ mod tests {
 
     fn bsubst(input: &str) -> (char, Option<char>) {
         let mut ctx = Tokenizer::new(input);
-        (ctx.backslash_subst(), ctx.head().chars().next())
+        (ctx.backslash_subst(), ctx.as_str().chars().next())
     }
 
 }

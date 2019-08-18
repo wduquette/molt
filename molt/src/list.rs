@@ -72,7 +72,7 @@ fn parse_braced_item(ctx: &mut Tokenizer) -> MoltResult {
     let mut count = 1;
 
     // NEXT, mark the start of the token, and skip characters until we find the end.
-    let mark = ctx.head_index();
+    let mark = ctx.mark();
     while let Some(c) = ctx.peek() {
         if c == '\\' {
             // Backslash handling. Retain backslashes as is.
@@ -319,7 +319,7 @@ mod tests {
     fn pbi(input: &str) -> String {
         let mut ctx = Tokenizer::new(input);
         if let Ok(val) = parse_braced_item(&mut ctx) {
-            format!("{}|{}", val.as_str(), ctx.head())
+            format!("{}|{}", val.as_str(), ctx.as_str())
         } else {
             String::from("Err")
         }
@@ -335,7 +335,7 @@ mod tests {
     fn pqi(input: &str) -> String {
         let mut ctx = Tokenizer::new(input);
         if let Ok(val) = parse_quoted_item(&mut ctx) {
-            format!("{}|{}", val.as_str(), ctx.head())
+            format!("{}|{}", val.as_str(), ctx.as_str())
         } else {
             String::from("Err")
         }

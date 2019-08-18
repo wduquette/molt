@@ -1263,7 +1263,6 @@ fn subst_backslash(ctx: &mut EvalPtr, word: &mut String) {
                 word.push(val as char);
             }
             // \xhh -- 2 hex digits
-            // \Uhhhhhhhh -- 1 to 8 hex digits
             'x' => {
                 if !ctx.next_is_hex_digit() {
                     word.push(c);

@@ -34,6 +34,25 @@ Things to remember to do soon:
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
 
+### 2019-08-18 (Sunday)
+*   Backslash Substitution
+    *   It appears that the backslash substitution code pushes multiple characters in
+        some cases.  Why?
+        *   The `\x` case
+            *   Zero hex digits
+                *   Pushes `x`
+            *   One hex digit
+                *   Pushes `x` and the single digit.
+            *   Two hex digits
+                *   If the hex number is a valid character, pushes it
+                *   Otherwise, pushes `x` followed by the two hex digits.
+        *   The `\u` and `\U` cases
+            *   Similar: if the escape can't be translated into a valid character,
+                outputs `u` or `U` followed by whatever hex characters it had.
+    *   Took another look at Tcl 8.
+        *   `\x` should accept one or two digits.  It returns `x` if there are
+            no following hex digits.  Need to fix that.
+
 ### 2019-08-17 (Saturday)
 *   Parsing with string slices
     *   Revised list.rs to use Tokenizer rather than EvalPtr, but naively

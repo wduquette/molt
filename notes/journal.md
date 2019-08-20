@@ -4,9 +4,10 @@ Things to remember to do soon:
 
 *   Revise Value per Yandros' style comments here:
     https://users.rust-lang.org/t/lazy-initialization-vs-interior-mutability/30742/7
-*   Revise the parsing code to use iterator subtraction to extract slices, rather than
+*   Revise the parsing code to use Tokenizer to extract slices, rather than
     building up small strings a character at a time.
-    *   https://users.rust-lang.org/t/takewhile-iterator-over-chars-to-string-slice/11014
+    *   interp::
+    *   expr::
 *   Flesh out the interp.rs test suite and rustdocs.
 *   Review test_harness to use `Value` where appropriate.
 *   Review the context cache; make sure that "object commands" that use the context cache
@@ -33,6 +34,10 @@ Things to remember to do soon:
     `alloc` crate exists?
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
+
+### 2019-08-19 (Monday)
+*   Revised list::parse_quoted_item and list::parse_bare_item to use slices.
+    *   Now I need to devise a benchmark for this.
 
 ### 2019-08-18 (Sunday)
 *   Backslash Substitution

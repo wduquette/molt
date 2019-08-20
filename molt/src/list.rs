@@ -1,7 +1,6 @@
 //! TCL List Parsing and Formatting
 
 use crate::tokenizer::Tokenizer;
-use crate::interp::subst_backslashes;
 use crate::molt_err;
 use crate::types::*;
 use crate::value::Value;
@@ -113,47 +112,64 @@ fn parse_braced_item(ctx: &mut Tokenizer) -> MoltResult {
 /// Parse a quoted item.  Does backslash substitution.
 fn parse_quoted_item(ctx: &mut Tokenizer) -> MoltResult {
     // FIRST, consume the the opening quote.
-    ctx.next();
+    ctx.skip();
 
     let mut item = String::new();
+    let mut start = ctx.mark();
 
     while !ctx.at_end() {
-        // Note: the while condition ensures that there's a character.
-        if ctx.is('\\') {
-            // Backslash; push this character and the next.
-            item.push(ctx.next().unwrap());
-            if !ctx.at_end() {
-                item.push(ctx.next().unwrap());
+        ctx.skip_while(|ch| *ch != '"' && *ch != '\\');
+
+        if let Some(token) = ctx.token(start) {
+            item.push_str(token);
+        }
+
+        match ctx.peek() {
+            Some('"') => {
+                ctx.skip();
+                return Ok(Value::from(item));
             }
-        } else if !ctx.is('"') {
-            item.push(ctx.next().unwrap());
-        } else {
-            ctx.skip(); // skipping '"'
-            return Ok(Value::from(subst_backslashes(&item)));
+            Some('\\') => {
+                item.push(ctx.backslash_subst());
+                start = ctx.mark();
+            }
+            _ => unreachable!(),
         }
     }
 
     molt_err!("unmatched open quote in list")
 }
 
-/// Parse a bare item.  Does *not* do backslash substitution.
+/// Parse a bare item.
 fn parse_bare_item(ctx: &mut Tokenizer) -> MoltResult {
+    println!("at start={}", ctx.as_str());
     let mut item = String::new();
+    let mut start = ctx.mark();
 
-    while !ctx.at_end() && !ctx.has(|ch| is_list_white(*ch)) {
+    while !ctx.at_end() {
+        println!("ctx={}", ctx.as_str());
         // Note: the while condition ensures that there's a character.
+        ctx.skip_while(|ch| !is_list_white(*ch) && *ch != '\\');
+
+        println!("after skip={}", ctx.as_str());
+
+        if let Some(token) = ctx.token(start) {
+            item.push_str(token);
+            start = ctx.mark();
+        }
+
+        if ctx.has(|ch| is_list_white(*ch)) {
+            break;
+        }
+
         if ctx.is('\\') {
-            // Backslash; push this character and the next.
-            item.push(ctx.next().unwrap());
-            if !ctx.at_end() {
-                item.push(ctx.next().unwrap());
-            }
-        } else {
-            item.push(ctx.next().unwrap());
+            item.push(ctx.backslash_subst());
+            println!("after subst={}", ctx.as_str());
+            start = ctx.mark();
         }
     }
 
-    Ok(Value::from(subst_backslashes(&item)))
+    Ok(Value::from(item))
 }
 
 //--------------------------------------------------------------------------
@@ -329,12 +345,37 @@ mod tests {
     fn test_parse_quoted_item() {
         assert_eq!(pqi("\"abc\""), "abc|".to_string());
         assert_eq!(pqi("\"abc\"  "), "abc|  ".to_string());
-        assert_eq!(pqi("\"a\\u77-\""), "aw-|".to_string());
+        assert_eq!(pqi("\"a\\x77-\""), "aw-|".to_string());
     }
 
     fn pqi(input: &str) -> String {
         let mut ctx = Tokenizer::new(input);
         if let Ok(val) = parse_quoted_item(&mut ctx) {
+            format!("{}|{}", val.as_str(), ctx.as_str())
+        } else {
+            String::from("Err")
+        }
+    }
+
+    #[test]
+    fn test_parse_bare_item() {
+        println!("test_parse_bare_item");
+        assert_eq!(pbare("abc"), "abc|".to_string());
+        assert_eq!(pbare("abc def"), "abc| def".to_string());
+        assert_eq!(pbare("abc\ndef"), "abc|\ndef".to_string());
+        assert_eq!(pbare("abc\rdef"), "abc|\rdef".to_string());
+        assert_eq!(pbare("abc\tdef"), "abc|\tdef".to_string());
+        assert_eq!(pbare("abc\x0Bdef"), "abc|\x0Bdef".to_string());
+        assert_eq!(pbare("abc\x0Cdef"), "abc|\x0Cdef".to_string());
+        assert_eq!(pbare("a\\x77-"), "aw-|".to_string());
+        assert_eq!(pbare("a\\x77- def"), "aw-| def".to_string());
+        assert_eq!(pbare("a\\x77"), "aw|".to_string());
+        assert_eq!(pbare("a\\x77 "), "aw| ".to_string());
+    }
+
+    fn pbare(input: &str) -> String {
+        let mut ctx = Tokenizer::new(input);
+        if let Ok(val) = parse_bare_item(&mut ctx) {
             format!("{}|{}", val.as_str(), ctx.as_str())
         } else {
             String::from("Err")

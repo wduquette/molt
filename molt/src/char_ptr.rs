@@ -70,20 +70,9 @@ impl<'a> CharPtr<'a> {
         }
     }
 
-    #[allow(clippy::wrong_self_convention)]
-    pub fn is_none(&mut self) -> bool {
+    pub fn at_end(&mut self) -> bool {
         // &mut is needed because peek() can mutate the iterator
         self.chars.peek().is_none()
-    }
-
-    #[allow(clippy::wrong_self_convention)]
-    pub fn is_digit(&mut self, radix: u32) -> bool {
-        // &mut is needed because peek() can mutate the iterator
-        if let Some(pc) = self.chars.peek() {
-            pc.is_digit(radix)
-        } else {
-            false
-        }
     }
 
     pub fn has<P>(&mut self, predicate: P) -> bool
@@ -164,28 +153,11 @@ mod tests {
     }
 
     #[test]
-    fn test_char_ptr_is_none() {
+    fn test_char_ptr_at_end() {
         let mut p = CharPtr::new("a");
-        assert!(!p.is_none());
+        assert!(!p.at_end());
         p.skip();
-        assert!(p.is_none());
-    }
-
-    #[test]
-    fn test_char_ptr_is_digit() {
-        let mut p = CharPtr::new("1a");
-        assert!(p.is_digit(10));
-        p.skip();
-        assert!(!p.is_digit(10));
-        p.skip();
-        assert!(!p.is_digit(10));
-
-        let mut p = CharPtr::new("1a");
-        assert!(p.is_digit(16));
-        p.skip();
-        assert!(p.is_digit(16));
-        p.skip();
-        assert!(!p.is_digit(16));
+        assert!(p.at_end());
     }
 
     #[test]

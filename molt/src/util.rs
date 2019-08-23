@@ -42,7 +42,7 @@ pub fn read_int(ptr: &mut CharPtr) -> Option<String> {
     }
 
     // NEXT, read the digits
-    while p.is_digit(radix) {
+    while p.has(|ch| ch.is_digit(radix)) {
         missing_digits = false;
         result.push(p.next().unwrap());
     }
@@ -104,7 +104,7 @@ pub fn read_float(ptr: &mut CharPtr) -> Option<String> {
     }
 
     // NEXT, get any integer digits
-    while p.is_digit(10) {
+    while p.has(|ch| ch.is_digit(10)) {
         missing_mantissa = false;
         result.push(p.next().unwrap());
     }
@@ -113,7 +113,7 @@ pub fn read_float(ptr: &mut CharPtr) -> Option<String> {
     if p.is('.') {
         result.push(p.next().unwrap());
 
-        while p.is_digit(10) {
+        while p.has(|ch| ch.is_digit(10)) {
             missing_mantissa = false;
             result.push(p.next().unwrap());
         }
@@ -128,7 +128,7 @@ pub fn read_float(ptr: &mut CharPtr) -> Option<String> {
             result.push(p.next().unwrap());
         }
 
-        while p.is_digit(10) {
+        while p.has(|ch| ch.is_digit(10)) {
             missing_exponent = false;
             result.push(p.next().unwrap());
         }

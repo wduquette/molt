@@ -818,7 +818,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
 
     p.skip_while(|c| c.is_whitespace());
 
-    if p.is_none() {
+    if p.at_end() {
         info.token = END;
         info.expr = p;
         return Ok(Datum::none());
@@ -1223,7 +1223,7 @@ fn expr_parse_string(string: &str) -> DatumResult {
             // Otherwise, drop through and return it as a string.
             p.skip_while(|c| c.is_whitespace());
 
-            if p.is_none() {
+            if p.at_end() {
                 // Can return an error if the number is too long to represent as a
                 // MoltInt.  This is consistent with Tcl 7.6.  (Tcl 8 uses BigNums.)
                 let int = Value::get_int(&token)?;
@@ -1239,7 +1239,7 @@ fn expr_parse_string(string: &str) -> DatumResult {
                 // Otherwise, drop through and return it as a string.
                 p.skip_while(|c| c.is_whitespace());
 
-                if p.is_none() {
+                if p.at_end() {
                     // Can theoretically return an error.  This is consistent with
                     // Tcl 7.6.  Molt and Tcl 8 return 0, Inf, or -Inf instead.
                     let flt = Value::get_float(&token)?;
@@ -1271,12 +1271,12 @@ fn expr_looks_like_int<'a>(ptr: &CharPtr<'a>) -> bool {
         p.skip();
     }
 
-    if !p.is_digit(10) {
+    if !p.has(|ch| ch.is_digit(10)) {
         return false;
     }
     p.skip();
 
-    while p.is_digit(10) {
+    while p.has(|ch| ch.is_digit(10)) {
         p.skip();
     }
 

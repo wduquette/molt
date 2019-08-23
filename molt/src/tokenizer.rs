@@ -108,7 +108,6 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// Is there anything left in the input?
-    #[allow(clippy::wrong_self_convention)]
     pub fn at_end(&mut self) -> bool {
         // &mut is needed because peek() can mutate the iterator
         self.chars.peek().is_none()

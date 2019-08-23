@@ -850,11 +850,11 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
 
     match p.peek() {
         Some('$') => {
-            let mut ctx = EvalPtr::from_peekable(p.to_peekable());
+            let mut ctx = EvalPtr::from_char_ptr(&p);
             ctx.set_no_eval(info.no_eval > 0);
             let var_val = interp.parse_variable(&mut ctx)?;
             info.token = VALUE;
-            info.expr = CharPtr::from_peekable(ctx.to_peekable());
+            info.expr = ctx.to_char_ptr();
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
@@ -862,11 +862,11 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             }
         }
         Some('[') => {
-            let mut ctx = EvalPtr::from_peekable(p.to_peekable());
+            let mut ctx = EvalPtr::from_char_ptr(&p);
             ctx.set_no_eval(info.no_eval > 0);
             let script_val = interp.parse_script(&mut ctx)?;
             info.token = VALUE;
-            info.expr = CharPtr::from_peekable(ctx.to_peekable());
+            info.expr = ctx.to_char_ptr();
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
@@ -874,11 +874,11 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             }
         }
         Some('"') => {
-            let mut ctx = EvalPtr::from_peekable(p.to_peekable());
+            let mut ctx = EvalPtr::from_char_ptr(&p);
             ctx.set_no_eval(info.no_eval > 0);
             let val = interp.parse_quoted_word(&mut ctx)?;
             info.token = VALUE;
-            info.expr = CharPtr::from_peekable(ctx.to_peekable());
+            info.expr = ctx.to_char_ptr();
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
@@ -888,11 +888,11 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             }
         }
         Some('{') => {
-            let mut ctx = EvalPtr::from_peekable(p.to_peekable());
+            let mut ctx = EvalPtr::from_char_ptr(&p);
             ctx.set_no_eval(info.no_eval > 0);
             let val = interp.parse_braced_word(&mut ctx)?;
             info.token = VALUE;
-            info.expr = CharPtr::from_peekable(ctx.to_peekable());
+            info.expr = ctx.to_char_ptr();
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {

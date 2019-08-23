@@ -5,6 +5,7 @@
 //! * Consider delegating skip_while() to iter::skip_while(), and replacing the
 //!   "skip_sequence" methods with some useful predicate functions.
 
+use crate::char_ptr::CharPtr;
 use std::iter::Peekable;
 use std::str::Chars;
 
@@ -32,6 +33,16 @@ impl<'a> EvalPtr<'a> {
             term_char: None,
             no_eval: false,
         }
+    }
+
+    // Temporary: will be from_tokenizer
+    pub fn from_char_ptr(ptr: &CharPtr<'a>) -> Self {
+        EvalPtr::from_peekable(ptr.to_peekable())
+    }
+
+    // Temporary: will be to_tokenizer
+    pub fn to_char_ptr(&self) -> CharPtr<'a> {
+        CharPtr::from_peekable(self.to_peekable())
     }
 
     pub fn from_peekable(peekable: Peekable<Chars<'a>>) -> Self {

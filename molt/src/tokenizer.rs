@@ -9,9 +9,8 @@
 use std::iter::Peekable;
 use std::str::Chars;
 
-
 /// The Tokenizer type.  See the module-level documentation.
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Tokenizer<'a> {
     // The string being parsed.
     input: &'a str,
@@ -22,7 +21,6 @@ pub struct Tokenizer<'a> {
     // The iterator used to extract characters from the input
     chars: Peekable<Chars<'a>>,
 }
-
 
 impl<'a> Tokenizer<'a> {
     /// Creates a new tokenizer for the given input.
@@ -126,7 +124,6 @@ impl<'a> Tokenizer<'a> {
         self.next();
     }
 
-
     /// Skips the given number of characters, updating the index.
     /// It is not an error if the iterator doesn't contain that many.
     pub fn skip_over(&mut self, num_chars: usize) {
@@ -177,9 +174,7 @@ impl<'a> Tokenizer<'a> {
                 '0'..='7' => {
                     // Note: only works because these digits are single bytes.
                     // TODO: count instead.
-                    while self.has(|ch| ch.is_digit(8)) &&
-                        self.index - start < 3
-                    {
+                    while self.has(|ch| ch.is_digit(8)) && self.index - start < 3 {
                         self.next();
                     }
 
@@ -202,9 +197,7 @@ impl<'a> Tokenizer<'a> {
 
                     // Note: only works because these digits are single bytes.
                     // TODO: count instead.
-                    while self.has(|ch| ch.is_digit(16)) &&
-                        self.index - mark < max
-                    {
+                    while self.has(|ch| ch.is_digit(16)) && self.index - mark < max {
                         self.next();
                     }
 

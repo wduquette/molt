@@ -149,11 +149,11 @@ use crate::types::ResultCode;
 use std::any::Any;
 use std::any::TypeId;
 use std::cell::RefCell;
+use std::cell::UnsafeCell;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::cell::UnsafeCell;
 
 //-----------------------------------------------------------------------------
 // Public Data Types
@@ -193,7 +193,6 @@ impl Value {
         }
     }
 }
-
 
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -378,7 +377,7 @@ impl Value {
         // self.inner.string_rep.get_or_init(|| (self.inner.data_rep.borrow()).to_string())
 
         // NOTE: This method is the only place where the string_rep is queried.
-        let slot = unsafe {&*self.inner.string_rep.get()};
+        let slot = unsafe { &*self.inner.string_rep.get() };
 
         if slot.is_some() {
             return slot.as_ref().expect("string rep");
@@ -388,7 +387,7 @@ impl Value {
         // Because we returned it if it was Some, it is only ever set once.
         // Thus, this is safe: as_str() is the only way to retrieve the string_rep,
         // and it computes the string_rep lazily after which it is immutable.
-        let slot = unsafe {&mut*self.inner.string_rep.get()};
+        let slot = unsafe { &mut *self.inner.string_rep.get() };
         *slot = Some((self.inner.data_rep.borrow()).to_string());
 
         slot.as_ref().expect("string rep")

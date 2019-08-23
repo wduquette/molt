@@ -3,10 +3,10 @@
 //! * Ultimately, the command should probably move to commands.rs.
 //!   But this is convenient for now.
 
-use crate::tokenizer::Tokenizer;
 use crate::eval_ptr::EvalPtr;
 use crate::interp::Interp;
 use crate::list;
+use crate::tokenizer::Tokenizer;
 use crate::*;
 
 //------------------------------------------------------------------------------------------------

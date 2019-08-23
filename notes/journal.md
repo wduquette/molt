@@ -52,7 +52,15 @@ Things to remember to do soon:
             *   Can simply extract the CharPtr from the EvalPtr.
             *   Can build a new EvalPtr from the CharPtr.
         *   Replace CharPtr with Tokenizer throughout. All code should still work.
+        *   Then revise expr.rs to use EvalPtr (with `EvalPtr::tok`) so that there's
+            no need to be cloning tokenizers.
         *   Then, incrementally begin to replace string-accumulation with slices.
+    *   Significant CharPtr methods
+        *   `is_none` should be `at_end`
+        *   `is_digit` should use `has`.
+        *   That looks like it.
+        *   Did this; Tokenizer should now be a drop-in replacement for CharPtr except for
+            the to/from `Peekable<Char>` thing.
 
 ### 2019-08-19 (Monday)
 *   Revised list::parse_quoted_item and list::parse_bare_item to use slices.

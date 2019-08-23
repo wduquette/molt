@@ -2,9 +2,12 @@
 
 Things to remember to do soon:
 
-*   Revise the parsing code to use iterator subtraction to extract slices, rather than
+*   Revise Value per Yandros' style comments here:
+    https://users.rust-lang.org/t/lazy-initialization-vs-interior-mutability/30742/7
+*   Revise the parsing code to use Tokenizer to extract slices, rather than
     building up small strings a character at a time.
-    *   https://users.rust-lang.org/t/takewhile-iterator-over-chars-to-string-slice/11014
+    *   interp::
+    *   expr::
 *   Flesh out the interp.rs test suite and rustdocs.
 *   Review test_harness to use `Value` where appropriate.
 *   Review the context cache; make sure that "object commands" that use the context cache
@@ -32,6 +35,127 @@ Things to remember to do soon:
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
 
+### 2019-08-19 (Monday)
+*   Revised list::parse_quoted_item and list::parse_bare_item to use slices.
+    *   Now I need to devise a benchmark for this.
+
+### 2019-08-18 (Sunday)
+*   Backslash Substitution
+    *   It appears that the backslash substitution code pushes multiple characters in
+        some cases.  Why?
+        *   The `\x` case
+            *   Zero hex digits
+                *   Pushes `x`
+            *   One hex digit
+                *   Pushes `x` and the single digit.
+            *   Two hex digits
+                *   If the hex number is a valid character, pushes it
+                *   Otherwise, pushes `x` followed by the two hex digits.
+        *   The `\u` and `\U` cases
+            *   Similar: if the escape can't be translated into a valid character,
+                outputs `u` or `U` followed by whatever hex characters it had.
+    *   Took another look at Tcl 8.
+        *   `\x` should accept one or two digits.  It returns `x` if there are
+            no following hex digits.  Need to fix that.
+    *   Essential points:
+        *   Either the token is a single character, or a slice.
+        *   Either way, it's a distinct token in a quoted or bare item.  The previous
+            token ends just before the `\`, and the next token begins just after the
+            last character read.
+        *   Oh, but wait.  A backslash substitution always returns a single character:
+            either the translated character, or the character immediately following the
+            backslash.  For hex substitutions that fail, returning the hex digits as
+            part of the token *might* be an optimization; but it's certainly OK to just
+            reset parsing to the first hex digit, especially since it's rare.
+    *   Added Tokenizer::backslash_subst, which returns a single character.
+*   Thoughts on Tokenizer:
+    *   There's no need to be able to save an internal "mark".  Instead:
+        *   `index()` returns the head_index.
+        *   `token(usize)` returns the token from the given index to the head.
+        *   `tail(usize)` return the entire string from the given index to the head.
+        *   `reset(usize)` resets the iterator to the given index.
+        *   The `head_index` becomes just the `index`.
+    *   The client can then save as many "marks" as it needs, with no fear of
+        confusion.
+
+### 2019-08-17 (Saturday)
+*   Parsing with string slices
+    *   Revised list.rs to use Tokenizer rather than EvalPtr, but naively
+        *   I.e., still builds up string output character by character.
+    *   Parsing braced items.
+        *   list.rs handles braced items by accumulating a slice.
+        *   Fixed the `Tokenizer::skip*` methods, which didn't update the head.
+    *   Parsing quoted items.
+        *   Current code accumulates the output string character by character, skipping
+            backslash escapes, then does backslash substitution...which again accumulates
+            the output string character by character.  This is *way* slow.
+        *   The quoted string consists of:
+            *   An open quote
+            *   Zero or more tokens
+            *   A close quote
+        *   The individual tokens are:
+            *   Normal strings
+            *   Substituted backslash escapes
+        *   So we are building up a string token by token rather than character by character.
+            *   And we only want to make one pass.
+    *   The first step is to make a copy of `interp::subst_backslash` that consumes
+        a backslash sequence from the tokenizer and returns the resulting character.
+        *   The subst_backslash code sometimes returns more than one character.  How come?
+
+
+### 2019-08-11 (Sunday)
+*   Parsing with string slices.
+    *   On reflection, CharStar (or whatever I finally call it) really needs to support
+        peeking efficiently, because I use that constantly.  There's no good way to
+        implement `skip_while`, etc., without it.
+    *   The best solution I've come up with so far (if it works) is to maintain the
+        "head" index myself, by accumulating the lengths of the `next` characters as I
+        extract them.
+        *   And then, `head()` is `&input[head_index..]`.  If that works.
+    *   And then peeking is neither here nor there; the `head_index` doesn't change until
+        `next()` is called.
+    *   Note: I've asked on user.rust-lang-org whether there's a way to get `as_str` from a
+        `Peekable<Chars>`.  I'm expecting not.
+    *   Revised CharStar (I need a better name!) to track the head and mark using integer
+        indices.  The code no longer uses `as_str` at all.  The `chars` iterator is
+        recreated only on `backup`.  I don't think there's any reason not to use a
+        `Peekable<Chars>` at this point.
+    *   CharStar now uses a `Peekable<Char>` and provides `peek()`.  Also, the token
+        methods return `Option<&str>` so that they can return `None` when there's no token
+    *   Renamed CharStar to Tokenizer.
+*   The next question is what features do I want to add to Tokenizer?
+    *   How much should it know about Molt-specific characters?  I.e., what predicates
+        should it support?
+    *   Or, should I define a set of standard predicates, and just provide the "has" method
+        from char_ptr?
+        *   I'm thinking this.
+    *   What features of EvalPtr does list.rs use?
+        *   skip_list_white
+            *   Use char_ptr's `skip_while` with a predicate.
+        *   next_is_list_white
+            *   Use char_ptr's `has` with a predicate.
+        *   at_end_of_command
+            *   I'm not at all sure that list.rs should be using this; I think it will
+                exclude ";" from the list.
+            *   Yeah, this is a bug:
+```tcl
+set a {a b ;c d}
+
+# Prints only a and b
+foreach item $a {puts $item}
+```
+            *   Wrote Issue #43. (Now fixed.)
+        *   next_is
+            *   Use char_ptr's `is`
+        *   at_end
+            *   Same as char_ptr's `is_none`, but `at_end` is better.
+        *   skip_char
+            *   Like char_ptr's `skip`, but with assertion that we're skipping what
+                we expected to skip.
+            *   Can add it if it seems necessary.
+*   At this point, I think Tokenizer is ready for the list conversion.
+
+
 ### 2019-08-10 (Saturday)
 *   Returning data_rep as `Ref<T>`.
     *   With help from jethrogb@users.rust-lang.org.
@@ -56,6 +180,19 @@ Things to remember to do soon:
     *   https://users.rust-lang.org/t/takewhile-iterator-over-chars-to-string-slice/11014
     *   Tried this in repo `slice-parse`.  Works like a charm.
     *   Wrote a quick blog post: https://wduquette.github.io/parsing-strings-into-slices/.
+*   Working out my parsing infrastructure:
+    *   See char_star.rs, list2.rs, which contain my experiments.
+    *   Can't use `Peekable<Chars>`, as it doesn't support `as_str`.  Damn, that's annoying.
+    *   Implementing peeking is tricky.
+        *   Tried something and backed it out because it was getting complicated and I couldn't
+            be sure I was getting it right.
+    *   Can we do without it by marking before we peek, with `backup` as a last resort?
+        *   Maybe?
+    *   Some alternatives to what I'm trying:
+        *   Parsing functions:
+            *   Like nom: given a `&str`, return two `&str`, the token and the next character.
+            *   Seems like it would involve creating a new Chars iterator in each function,
+                though.
 
 ### 2019-08-03 (Saturday)
 *   Converting Value to use OnceCell.

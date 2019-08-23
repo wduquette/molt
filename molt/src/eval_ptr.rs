@@ -115,19 +115,6 @@ impl<'a> EvalPtr<'a> {
         }
     }
 
-    /// Is the current character is a valid list whitespace character?
-    pub fn next_is_list_white(&mut self) -> bool {
-        match self.chars.peek() {
-            Some(' ') => true,
-            Some('\n') => true,
-            Some('\r') => true,
-            Some('\t') => true,
-            Some('\x0B') => true, // Vertical Tab
-            Some('\x0C') => true, // Form Feed
-            _ => false,
-        }
-    }
-
     /// Is the current character a valid variable name character?
     pub fn next_is_varname_char(&mut self) -> bool {
         match self.chars.peek() {
@@ -168,15 +155,6 @@ impl<'a> EvalPtr<'a> {
     /// current command, or on a non-white-space character.
     pub fn skip_line_white(&mut self) {
         while !self.at_end() && self.next_is_line_white() {
-            self.chars.next();
-        }
-    }
-
-    /// Skips past any whitespace in a list.
-    /// When this returns we are at the end of the input or at the beginning of
-    /// the next list item.
-    pub fn skip_list_white(&mut self) {
-        while !self.at_end() && self.next_is_list_white() {
             self.chars.next();
         }
     }

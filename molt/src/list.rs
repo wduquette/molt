@@ -1,7 +1,6 @@
 //! TCL List Parsing and Formatting
 
-use crate::eval_ptr::EvalPtr;
-use crate::interp::subst_backslashes;
+use crate::tokenizer::Tokenizer;
 use crate::molt_err;
 use crate::types::*;
 use crate::value::Value;
@@ -12,14 +11,27 @@ use crate::value::Value;
 /// Parses a list-formatted string into a vector, throwing
 /// a Molt error if the list cannot be parsed as a list.
 pub(crate) fn get_list(str: &str) -> Result<MoltList, ResultCode> {
-    let mut ctx = EvalPtr::new(str);
+    let mut ctx = Tokenizer::new(str);
 
     parse_list(&mut ctx)
 }
 
-fn parse_list(ctx: &mut EvalPtr) -> Result<MoltList, ResultCode> {
+// Is the character a valid whitespace character in list syntax?
+fn is_list_white(ch: char) -> bool {
+    match ch {
+        ' ' => true,
+        '\n' => true,
+        '\r' => true,
+        '\t' => true,
+        '\x0B' => true, // Vertical Tab
+        '\x0C' => true, // Form Feed
+        _ => false,
+    }
+}
+
+fn parse_list(ctx: &mut Tokenizer) -> Result<MoltList, ResultCode> {
     // FIRST, skip any list whitespace.
-    ctx.skip_list_white();
+    ctx.skip_while(|ch| is_list_white(*ch));
 
     // Read words until we get to the end of the input or hit an error
     let mut items = Vec::new();
@@ -29,7 +41,7 @@ fn parse_list(ctx: &mut EvalPtr) -> Result<MoltList, ResultCode> {
         items.push(parse_item(ctx)?);
 
         // NEXT, skip whitespace to the end or the next item.
-        ctx.skip_list_white();
+        ctx.skip_while(|ch| is_list_white(*ch));
     }
 
     // NEXT, return the items.
@@ -39,53 +51,57 @@ fn parse_list(ctx: &mut EvalPtr) -> Result<MoltList, ResultCode> {
 /// We're at the beginning of an item in the list.
 /// It's either a bare word, a braced string, or a quoted string--or there's
 /// an error in the input.  Whichever it is, get it.
-fn parse_item(ctx: &mut EvalPtr) -> MoltResult {
-    if ctx.next_is('{') {
+fn parse_item(ctx: &mut Tokenizer) -> MoltResult {
+    if ctx.is('{') {
         Ok(parse_braced_item(ctx)?)
-    } else if ctx.next_is('"') {
+    } else if ctx.is('"') {
         Ok(parse_quoted_item(ctx)?)
     } else {
         Ok(parse_bare_item(ctx)?)
     }
 }
 
-/// Parse a braced item.
-fn parse_braced_item(ctx: &mut EvalPtr) -> MoltResult {
+/// Parse a braced item.  We need to count braces, so that they balance; and
+/// we need to handle backslashes in the input, so that quoted braces don't count.
+fn parse_braced_item(ctx: &mut Tokenizer) -> MoltResult {
     // FIRST, we have to count braces.  Skip the first one, and count it.
+    // Also, mark the following character, as we'll be accumulating a
+    // token.
     ctx.next();
     let mut count = 1;
-    let mut item = String::new();
 
-    // NEXT, add characters to the item until we find the matching close-brace,
-    // which is NOT added to the item.  It's an error if we reach the end before
-    // finding the close-brace.
-    while let Some(c) = ctx.next() {
+    // NEXT, mark the start of the token, and skip characters until we find the end.
+    let mark = ctx.mark();
+    while let Some(c) = ctx.peek() {
         if c == '\\' {
-            // Backslash handling. Just include it and the next character as is.
+            // Backslash handling. Retain backslashes as is.
             // Note: this means that escaped '{' and '}' characters
             // don't affect the count.
-            item.push('\\');
-            if !ctx.at_end() {
-                item.push(ctx.next().unwrap());
-            }
-            continue;
+            ctx.skip();
+            ctx.skip();
         } else if c == '{' {
             count += 1;
+            ctx.skip();
         } else if c == '}' {
             count -= 1;
-        }
 
-        if count > 0 {
-            item.push(c)
-        } else {
-            // We've found and consumed the closing brace.  We should either
-            // see more more whitespace, or we should be at the end of the list
-            // Otherwise, there are incorrect characters following the close-brace.
-            if ctx.at_end() || ctx.next_is_list_white() {
-                return Ok(Value::from(item));
+            if count > 0 {
+                ctx.skip();
             } else {
-                return molt_err!("extra characters after close-brace");
+                // We've found and consumed the closing brace.  We should either
+                // see more more whitespace, or we should be at the end of the list
+                // Otherwise, there are incorrect characters following the close-brace.
+                let result = Ok(Value::from(ctx.token(mark).unwrap()));
+                ctx.skip(); // Skip the closing brace
+
+                if ctx.at_end() || ctx.has(|ch| is_list_white(*ch)) {
+                    return result;
+                } else {
+                    return molt_err!("extra characters after close-brace");
+                }
             }
+        } else {
+            ctx.skip();
         }
     }
 
@@ -93,51 +109,67 @@ fn parse_braced_item(ctx: &mut EvalPtr) -> MoltResult {
     molt_err!("unmatched open brace in list")
 }
 
-/// Parse a quoted item.  Does *not* do backslash substitution.
-fn parse_quoted_item(ctx: &mut EvalPtr) -> MoltResult {
+/// Parse a quoted item.  Does backslash substitution.
+fn parse_quoted_item(ctx: &mut Tokenizer) -> MoltResult {
     // FIRST, consume the the opening quote.
-    ctx.next();
+    ctx.skip();
 
-    // NEXT, add characters to the item until we reach the close quote
     let mut item = String::new();
+    let mut start = ctx.mark();
 
     while !ctx.at_end() {
-        // Note: the while condition ensures that there's a character.
-        if ctx.next_is('\\') {
-            // Backslash; push this character and the next.
-            item.push(ctx.next().unwrap());
-            if !ctx.at_end() {
-                item.push(ctx.next().unwrap());
+        ctx.skip_while(|ch| *ch != '"' && *ch != '\\');
+
+        if let Some(token) = ctx.token(start) {
+            item.push_str(token);
+        }
+
+        match ctx.peek() {
+            Some('"') => {
+                ctx.skip();
+                return Ok(Value::from(item));
             }
-        } else if !ctx.next_is('"') {
-            item.push(ctx.next().unwrap());
-        } else {
-            ctx.skip_char('"');
-            return Ok(Value::from(subst_backslashes(&item)));
+            Some('\\') => {
+                item.push(ctx.backslash_subst());
+                start = ctx.mark();
+            }
+            _ => unreachable!(),
         }
     }
 
     molt_err!("unmatched open quote in list")
 }
 
-/// Parse a bare item.  Does *not* do backslash substitution.
-fn parse_bare_item(ctx: &mut EvalPtr) -> MoltResult {
+/// Parse a bare item.
+fn parse_bare_item(ctx: &mut Tokenizer) -> MoltResult {
+    println!("at start={}", ctx.as_str());
     let mut item = String::new();
+    let mut start = ctx.mark();
 
-    while !ctx.at_end() && !ctx.next_is_list_white() {
+    while !ctx.at_end() {
+        println!("ctx={}", ctx.as_str());
         // Note: the while condition ensures that there's a character.
-        if ctx.next_is('\\') {
-            // Backslash; push this character and the next.
-            item.push(ctx.next().unwrap());
-            if !ctx.at_end() {
-                item.push(ctx.next().unwrap());
-            }
-        } else {
-            item.push(ctx.next().unwrap());
+        ctx.skip_while(|ch| !is_list_white(*ch) && *ch != '\\');
+
+        println!("after skip={}", ctx.as_str());
+
+        if let Some(token) = ctx.token(start) {
+            item.push_str(token);
+            start = ctx.mark();
+        }
+
+        if ctx.has(|ch| is_list_white(*ch)) {
+            break;
+        }
+
+        if ctx.is('\\') {
+            item.push(ctx.backslash_subst());
+            println!("after subst={}", ctx.as_str());
+            start = ctx.mark();
         }
     }
 
-    Ok(Value::from(subst_backslashes(&item)))
+    Ok(Value::from(item))
 }
 
 //--------------------------------------------------------------------------
@@ -287,6 +319,67 @@ mod tests {
             list_to_string(&[Value::from("{ "), Value::from("abc")]),
             r#"\{\  abc"#
         );
+    }
+
+    #[test]
+    fn test_parse_braced_item() {
+        assert_eq!(pbi("{abc}"), "abc|".to_string());
+        assert_eq!(pbi("{abc}  "), "abc|  ".to_string());
+        assert_eq!(pbi("{a{b}c}"), "a{b}c|".to_string());
+        assert_eq!(pbi("{a{b}{c}}"), "a{b}{c}|".to_string());
+        assert_eq!(pbi("{a{b}{c}d}"), "a{b}{c}d|".to_string());
+        assert_eq!(pbi("{a{b}{c}d} efg"), "a{b}{c}d| efg".to_string());
+        assert_eq!(pbi("{a\\{bc}"), "a\\{bc|".to_string());
+    }
+
+    fn pbi(input: &str) -> String {
+        let mut ctx = Tokenizer::new(input);
+        if let Ok(val) = parse_braced_item(&mut ctx) {
+            format!("{}|{}", val.as_str(), ctx.as_str())
+        } else {
+            String::from("Err")
+        }
+    }
+
+    #[test]
+    fn test_parse_quoted_item() {
+        assert_eq!(pqi("\"abc\""), "abc|".to_string());
+        assert_eq!(pqi("\"abc\"  "), "abc|  ".to_string());
+        assert_eq!(pqi("\"a\\x77-\""), "aw-|".to_string());
+    }
+
+    fn pqi(input: &str) -> String {
+        let mut ctx = Tokenizer::new(input);
+        if let Ok(val) = parse_quoted_item(&mut ctx) {
+            format!("{}|{}", val.as_str(), ctx.as_str())
+        } else {
+            String::from("Err")
+        }
+    }
+
+    #[test]
+    fn test_parse_bare_item() {
+        println!("test_parse_bare_item");
+        assert_eq!(pbare("abc"), "abc|".to_string());
+        assert_eq!(pbare("abc def"), "abc| def".to_string());
+        assert_eq!(pbare("abc\ndef"), "abc|\ndef".to_string());
+        assert_eq!(pbare("abc\rdef"), "abc|\rdef".to_string());
+        assert_eq!(pbare("abc\tdef"), "abc|\tdef".to_string());
+        assert_eq!(pbare("abc\x0Bdef"), "abc|\x0Bdef".to_string());
+        assert_eq!(pbare("abc\x0Cdef"), "abc|\x0Cdef".to_string());
+        assert_eq!(pbare("a\\x77-"), "aw-|".to_string());
+        assert_eq!(pbare("a\\x77- def"), "aw-| def".to_string());
+        assert_eq!(pbare("a\\x77"), "aw|".to_string());
+        assert_eq!(pbare("a\\x77 "), "aw| ".to_string());
+    }
+
+    fn pbare(input: &str) -> String {
+        let mut ctx = Tokenizer::new(input);
+        if let Ok(val) = parse_bare_item(&mut ctx) {
+            format!("{}|{}", val.as_str(), ctx.as_str())
+        } else {
+            String::from("Err")
+        }
     }
 
     // Most list parsing is tested in the Molt test suite.

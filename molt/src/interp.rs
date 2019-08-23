@@ -153,7 +153,7 @@ pub struct Interp {
     last_context_id: u64,
 
     // Context Map
-    context_map: HashMap<ContextID, Box<Any>>,
+    context_map: HashMap<ContextID, Box<dyn Any>>,
 
     // Defines the recursion limit for Interp::eval().
     recursion_limit: usize,
@@ -1263,7 +1263,7 @@ fn subst_backslash(ctx: &mut EvalPtr, word: &mut String) {
                 word.push(val as char);
             }
             // \xhh -- 2 hex digits
-            // \Uhhhhhhhh -- 1 to 8 hex digits
+            // TODO: This is wrong, as it requires 2 hex digits; Tcl allows 1 or 2.
             'x' => {
                 if !ctx.next_is_hex_digit() {
                     word.push(c);
@@ -1512,7 +1512,7 @@ mod tests {
         assert_eq!("1\t2", interp.subst_backslashes("1\\t2"));
         assert_eq!("1\x0b2", interp.subst_backslashes("1\\v2"));
         assert_eq!("1\x072", interp.subst_backslashes("1\\0072"));
-        assert_eq!("XpY", interp.subst_backslashes("X\x70Y"));
+        assert_eq!("XpY", interp.subst_backslashes("X\\x70Y"));
         assert_eq!("X\x07Y", interp.subst_backslashes("X\\u7Y"));
         assert_eq!("XwY", interp.subst_backslashes("X\\u77Y"));
         assert_eq!("XwY", interp.subst_backslashes("X\\u077Y"));

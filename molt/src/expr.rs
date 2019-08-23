@@ -3,7 +3,7 @@
 //! * Ultimately, the command should probably move to commands.rs.
 //!   But this is convenient for now.
 
-use crate::char_ptr::CharPtr;
+use crate::tokenizer::Tokenizer;
 use crate::eval_ptr::EvalPtr;
 use crate::interp::Interp;
 use crate::list;
@@ -146,7 +146,7 @@ struct ExprInfo<'a> {
     original_expr: String,
 
     // The input iterator, e.g., the pointer to the next character.
-    expr: CharPtr<'a>,
+    expr: Tokenizer<'a>,
 
     // Last token's type; see constants
     token: i32,
@@ -159,7 +159,7 @@ impl<'a> ExprInfo<'a> {
     fn new(expr: &'a str) -> Self {
         Self {
             original_expr: expr.to_string(),
-            expr: CharPtr::new(expr),
+            expr: Tokenizer::new(expr),
             token: -1,
             no_eval: 0,
         }
@@ -850,11 +850,11 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
 
     match p.peek() {
         Some('$') => {
-            let mut ctx = EvalPtr::from_char_ptr(&p);
+            let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
             let var_val = interp.parse_variable(&mut ctx)?;
             info.token = VALUE;
-            info.expr = ctx.to_char_ptr();
+            info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
@@ -862,11 +862,11 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             }
         }
         Some('[') => {
-            let mut ctx = EvalPtr::from_char_ptr(&p);
+            let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
             let script_val = interp.parse_script(&mut ctx)?;
             info.token = VALUE;
-            info.expr = ctx.to_char_ptr();
+            info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
@@ -874,11 +874,11 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             }
         }
         Some('"') => {
-            let mut ctx = EvalPtr::from_char_ptr(&p);
+            let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
             let val = interp.parse_quoted_word(&mut ctx)?;
             info.token = VALUE;
-            info.expr = ctx.to_char_ptr();
+            info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
@@ -888,11 +888,11 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             }
         }
         Some('{') => {
-            let mut ctx = EvalPtr::from_char_ptr(&p);
+            let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
             let val = interp.parse_braced_word(&mut ctx)?;
             info.token = VALUE;
-            info.expr = ctx.to_char_ptr();
+            info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
                 Ok(Datum::none())
             } else {
@@ -1209,7 +1209,7 @@ fn expr_parse_value(value: &Value) -> DatumResult {
 /// conversions.
 fn expr_parse_string(string: &str) -> DatumResult {
     if !string.is_empty() {
-        let mut p = CharPtr::new(string);
+        let mut p = Tokenizer::new(string);
 
         if expr_looks_like_int(&p) {
             // FIRST, skip leading whitespace.
@@ -1262,7 +1262,7 @@ fn expr_as_str(value: Datum) -> Datum {
 }
 
 // Distinguished between decimal integers and floating-point values
-fn expr_looks_like_int<'a>(ptr: &CharPtr<'a>) -> bool {
+fn expr_looks_like_int<'a>(ptr: &Tokenizer<'a>) -> bool {
     // FIRST, skip whitespace
     let mut p = ptr.clone();
     p.skip_while(|c| c.is_whitespace());
@@ -1368,7 +1368,7 @@ mod tests {
     use super::*;
 
     fn call_expr_looks_like_int(str: &str) -> bool {
-        let p = CharPtr::new(str);
+        let p = Tokenizer::new(str);
 
         expr_looks_like_int(&p)
     }

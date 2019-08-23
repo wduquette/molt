@@ -400,6 +400,7 @@ mod tests {
         assert_eq!(bsubst("\\v-"), ('\x0b', Some('-')));
     }
 
+    #[test]
     fn test_backslash_subst_octal() {
         // Octals
         assert_eq!(bsubst("\\1-"), ('\x01', Some('-')));
@@ -410,6 +411,7 @@ mod tests {
         assert_eq!(bsubst("\\8-"), ('8', Some('-')));
     }
 
+    #[test]
     fn test_backslash_subst_hex2() {
         // \xhh: One or two hex digits.
         assert_eq!(bsubst("\\x-"), ('x', Some('-')));
@@ -417,6 +419,7 @@ mod tests {
         assert_eq!(bsubst("\\x7f-"), ('\x7f', Some('-')));
     }
 
+    #[test]
     fn test_backslash_subst_hex4() {
         // \uhhhh: 1-4 hex digits.
         assert_eq!(bsubst("\\u-"), ('u', Some('-')));
@@ -427,6 +430,7 @@ mod tests {
         assert_eq!(bsubst("\\u00077-"), ('\x07', Some('7')));
     }
 
+    #[test]
     fn test_backslash_subst_hex8() {
         // \Uhhhhhhhh: 1-8 hex digits.
         assert_eq!(bsubst("\\U-"), ('U', Some('-')));
@@ -441,6 +445,7 @@ mod tests {
         assert_eq!(bsubst("\\U000000077-"), ('\x07', Some('7')));
     }
 
+    #[test]
     fn test_backslash_subst_other() {
         // Arbitrary Character
         assert_eq!(bsubst("\\*-"), ('*', Some('-')));

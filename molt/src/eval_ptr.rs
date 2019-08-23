@@ -5,13 +5,13 @@
 //! * Consider delegating skip_while() to iter::skip_while(), and replacing the
 //!   "skip_sequence" methods with some useful predicate functions.
 
-use crate::char_ptr::CharPtr;
+use crate::tokenizer::Tokenizer;
 
 /// A struct that holds the parsing context: the iterator over the input string, and
 /// any relevant flags.
 pub struct EvalPtr<'a> {
     // The input iterator
-    chars: CharPtr<'a>,
+    chars: Tokenizer<'a>,
 
     // Whether we're looking for a bracket or not.
     bracket_term: bool,
@@ -26,15 +26,21 @@ pub struct EvalPtr<'a> {
 impl<'a> EvalPtr<'a> {
     pub fn new(input: &'a str) -> Self {
         Self {
-            chars: CharPtr::new(input),
+            chars: Tokenizer::new(input),
             bracket_term: false,
             term_char: None,
             no_eval: false,
         }
     }
 
-    // Temporary: will be from_tokenizer
-    pub fn from_char_ptr(ptr: &CharPtr<'a>) -> Self {
+    /// Returns a mutable reference to the inner tokenizer.
+    #[allow(dead_code)] // Temporary
+    pub fn tok(&mut self) -> &mut Tokenizer<'a> {
+        &mut self.chars
+    }
+
+    // TEMPORARY; remove in favor of tok()
+    pub fn from_tokenizer(ptr: &Tokenizer<'a>) -> Self {
         Self {
             chars: ptr.clone(),
             bracket_term: false,
@@ -43,8 +49,8 @@ impl<'a> EvalPtr<'a> {
         }
     }
 
-    // Temporary: will be to_tokenizer
-    pub fn to_char_ptr(&self) -> CharPtr<'a> {
+    // TEMPORARY; remove in favor of tok()
+    pub fn to_tokenizer(&self) -> Tokenizer<'a> {
         self.chars.clone()
     }
 

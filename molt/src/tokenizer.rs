@@ -9,9 +9,8 @@
 use std::iter::Peekable;
 use std::str::Chars;
 
-
 /// The Tokenizer type.  See the module-level documentation.
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Tokenizer<'a> {
     // The string being parsed.
     input: &'a str,
@@ -22,7 +21,6 @@ pub struct Tokenizer<'a> {
     // The iterator used to extract characters from the input
     chars: Peekable<Chars<'a>>,
 }
-
 
 impl<'a> Tokenizer<'a> {
     /// Creates a new tokenizer for the given input.
@@ -108,7 +106,6 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// Is there anything left in the input?
-    #[allow(clippy::wrong_self_convention)]
     pub fn at_end(&mut self) -> bool {
         // &mut is needed because peek() can mutate the iterator
         self.chars.peek().is_none()
@@ -126,7 +123,6 @@ impl<'a> Tokenizer<'a> {
         assert!(self.is(ch));
         self.next();
     }
-
 
     /// Skips the given number of characters, updating the index.
     /// It is not an error if the iterator doesn't contain that many.
@@ -178,9 +174,7 @@ impl<'a> Tokenizer<'a> {
                 '0'..='7' => {
                     // Note: only works because these digits are single bytes.
                     // TODO: count instead.
-                    while self.has(|ch| ch.is_digit(8)) &&
-                        self.index - start < 3
-                    {
+                    while self.has(|ch| ch.is_digit(8)) && self.index - start < 3 {
                         self.next();
                     }
 
@@ -203,9 +197,7 @@ impl<'a> Tokenizer<'a> {
 
                     // Note: only works because these digits are single bytes.
                     // TODO: count instead.
-                    while self.has(|ch| ch.is_digit(16)) &&
-                        self.index - mark < max
-                    {
+                    while self.has(|ch| ch.is_digit(16)) && self.index - mark < max {
                         self.next();
                     }
 
@@ -401,6 +393,7 @@ mod tests {
         assert_eq!(bsubst("\\v-"), ('\x0b', Some('-')));
     }
 
+    #[test]
     fn test_backslash_subst_octal() {
         // Octals
         assert_eq!(bsubst("\\1-"), ('\x01', Some('-')));
@@ -411,6 +404,7 @@ mod tests {
         assert_eq!(bsubst("\\8-"), ('8', Some('-')));
     }
 
+    #[test]
     fn test_backslash_subst_hex2() {
         // \xhh: One or two hex digits.
         assert_eq!(bsubst("\\x-"), ('x', Some('-')));
@@ -418,6 +412,7 @@ mod tests {
         assert_eq!(bsubst("\\x7f-"), ('\x7f', Some('-')));
     }
 
+    #[test]
     fn test_backslash_subst_hex4() {
         // \uhhhh: 1-4 hex digits.
         assert_eq!(bsubst("\\u-"), ('u', Some('-')));
@@ -428,6 +423,7 @@ mod tests {
         assert_eq!(bsubst("\\u00077-"), ('\x07', Some('7')));
     }
 
+    #[test]
     fn test_backslash_subst_hex8() {
         // \Uhhhhhhhh: 1-8 hex digits.
         assert_eq!(bsubst("\\U-"), ('U', Some('-')));
@@ -442,6 +438,7 @@ mod tests {
         assert_eq!(bsubst("\\U000000077-"), ('\x07', Some('7')));
     }
 
+    #[test]
     fn test_backslash_subst_other() {
         // Arbitrary Character
         assert_eq!(bsubst("\\*-"), ('*', Some('-')));

@@ -1,7 +1,7 @@
 //! TCL List Parsing and Formatting
 
-use crate::tokenizer::Tokenizer;
 use crate::molt_err;
+use crate::tokenizer::Tokenizer;
 use crate::types::*;
 use crate::value::Value;
 

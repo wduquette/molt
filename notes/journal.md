@@ -35,6 +35,33 @@ Things to remember to do soon:
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
 
+### 2019-08-23 (Friday)
+*   Merged the list parsing code and Tokenizer to master.
+*   Next Step: expr and interp.
+    *   Issue: expr.rs repeatedly converts `CharPtr` to `EvalPtr` and back by way of
+        `Peekable<Char>`, so that it can call Interp parsing methods like
+        `Interp::parse_variable`.
+        *   It's easy to convert a `Tokenizer` to a `Peekable<Char>`, but not vice-versa.
+        *   This is going to be tricky to do incrementally.
+    *   Possible solution:
+        *   Revise CharPtr to match Tokenizer as much as possible, so that Tokenizer is
+            a drop-in replacement for CharPtr.
+        *   Revise Interp to use CharPtr instead of `Peekable<Char>`.
+            *   expr can now convert between EvalPtr and CharPtr directly, without going
+                through `Peekable<Char>`.
+            *   Can simply extract the CharPtr from the EvalPtr.
+            *   Can build a new EvalPtr from the CharPtr.
+        *   Replace CharPtr with Tokenizer throughout. All code should still work.
+        *   Then revise expr.rs to use EvalPtr (with `EvalPtr::tok`) so that there's
+            no need to be cloning tokenizers.
+        *   Then, incrementally begin to replace string-accumulation with slices.
+    *   Significant CharPtr methods
+        *   `is_none` should be `at_end`
+        *   `is_digit` should use `has`.
+        *   That looks like it.
+        *   Did this; Tokenizer should now be a drop-in replacement for CharPtr except for
+            the to/from `Peekable<Char>` thing.
+
 ### 2019-08-19 (Monday)
 *   Revised list::parse_quoted_item and list::parse_bare_item to use slices.
     *   Now I need to devise a benchmark for this.

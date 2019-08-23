@@ -5,20 +5,19 @@
 //! * Consider delegating skip_while() to iter::skip_while(), and replacing the
 //!   "skip_sequence" methods with some useful predicate functions.
 
-use std::iter::Peekable;
-use std::str::Chars;
+use crate::tokenizer::Tokenizer;
 
 /// A struct that holds the parsing context: the iterator over the input string, and
 /// any relevant flags.
 pub struct EvalPtr<'a> {
     // The input iterator
-    chars: Peekable<Chars<'a>>,
+    chars: Tokenizer<'a>,
 
     // Whether we're looking for a bracket or not.
     bracket_term: bool,
 
     // The term_char: the character that ends the script, None or Some<']'>
-    term_char: Option<&'a char>,
+    term_char: Option<char>,
 
     // Whether we're evaluating commands or just checking for completeness.
     no_eval: bool,
@@ -27,23 +26,31 @@ pub struct EvalPtr<'a> {
 impl<'a> EvalPtr<'a> {
     pub fn new(input: &'a str) -> Self {
         Self {
-            chars: input.chars().peekable(),
+            chars: Tokenizer::new(input),
             bracket_term: false,
             term_char: None,
             no_eval: false,
         }
     }
 
-    pub fn from_peekable(peekable: Peekable<Chars<'a>>) -> Self {
+    /// Returns a mutable reference to the inner tokenizer.
+    #[allow(dead_code)] // Temporary
+    pub fn tok(&mut self) -> &mut Tokenizer<'a> {
+        &mut self.chars
+    }
+
+    // TEMPORARY; remove in favor of tok()
+    pub fn from_tokenizer(ptr: &Tokenizer<'a>) -> Self {
         Self {
-            chars: peekable,
+            chars: ptr.clone(),
             bracket_term: false,
             term_char: None,
             no_eval: false,
         }
     }
 
-    pub fn to_peekable(&self) -> Peekable<Chars<'a>> {
+    // TEMPORARY; remove in favor of tok()
+    pub fn to_tokenizer(&self) -> Tokenizer<'a> {
         self.chars.clone()
     }
 
@@ -54,7 +61,7 @@ impl<'a> EvalPtr<'a> {
     /// at the end of the input.
     pub fn set_bracket_term(&mut self, flag: bool) {
         self.bracket_term = flag;
-        self.term_char = if flag { Some(&']') } else { None };
+        self.term_char = if flag { Some(']') } else { None };
     }
 
     // Returns whether or not the input ends with ']', i.e., at the end of the
@@ -78,19 +85,19 @@ impl<'a> EvalPtr<'a> {
     // Helpers
 
     /// Sees if the next character is the given character.
-    pub fn next_is(&mut self, char: char) -> bool {
-        self.chars.peek() == Some(&char)
+    pub fn next_is(&mut self, ch: char) -> bool {
+        self.chars.is(ch)
     }
 
     /// We are at the end of the input when there are no more characters left.
     pub fn at_end(&mut self) -> bool {
-        self.chars.peek() == None
+        self.chars.at_end()
     }
 
     /// We are at the end of the script when we've reached the end-of-script marker
     /// or we are at the end of the input.
     pub fn at_end_of_script(&mut self) -> bool {
-        self.chars.peek() == self.term_char || self.chars.peek() == None
+        self.chars.at_end() || self.chars.peek() == self.term_char
     }
 
     /// We are at the end of the command if we've reached a semi-colon or new-line, or
@@ -110,7 +117,7 @@ impl<'a> EvalPtr<'a> {
     /// Is the current character is a valid whitespace character, excluding newlines?
     pub fn next_is_line_white(&mut self) -> bool {
         match self.chars.peek() {
-            Some(c) => c.is_whitespace() && *c != '\n',
+            Some(c) => c.is_whitespace() && c != '\n',
             None => false,
         }
     }
@@ -118,7 +125,7 @@ impl<'a> EvalPtr<'a> {
     /// Is the current character a valid variable name character?
     pub fn next_is_varname_char(&mut self) -> bool {
         match self.chars.peek() {
-            Some(c) => c.is_alphanumeric() || *c == '_',
+            Some(c) => c.is_alphanumeric() || c == '_',
             None => false,
         }
     }

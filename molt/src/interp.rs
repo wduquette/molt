@@ -1471,7 +1471,9 @@ mod tests {
     #[test]
     fn test_expr_float() {
         let mut interp = Interp::new();
-        let val = interp.expr_float(&Value::from("1.1 + 2.2")).expect("floating point value");
+        let val = interp
+            .expr_float(&Value::from("1.1 + 2.2"))
+            .expect("floating point value");
 
         assert!((val - 3.3).abs() < 0.001);
 

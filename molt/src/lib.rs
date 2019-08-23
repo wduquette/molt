@@ -8,16 +8,13 @@ pub use crate::interp::Interp;
 pub use crate::list::list_to_string;
 pub use crate::types::*;
 
-#[allow(dead_code)] // Temporary
-mod char_ptr;
-#[allow(dead_code)] // Temporary
-mod tokenizer;
 mod commands;
 mod eval_ptr;
-#[allow(dead_code)] // Temporary
 mod expr;
 pub mod interp;
 mod list;
+#[allow(dead_code)] // Temporary
+mod tokenizer;
 #[macro_use]
 mod macros;
 mod scope;

@@ -87,6 +87,10 @@ Things to remember to do soon:
             *   Builds up name character by character.
         *   `parse_braced_varname` CHANGES NEEDED
             *   Builds up name character by character.
+    *   Changed Tokenizer::token(); now returns `""` if `mark == index`, and simply
+        returns `&str` instead of `Option<&str>`.  This is because `""` sometimes is
+        a valid token, e.g., when parsing the list `{} {}`, which is a list containing
+        two empty strings.
     *   Analysis
         *   None of the parsing methods refer to any interp internal variables; they use
             only `pub` or `pub(crate)` methods.
@@ -102,10 +106,13 @@ Things to remember to do soon:
         *   But we don't need to do any of that to fix the methods that parse character
             by character:
             *   parse_braced_word
+                *   Mostly done.
+                *   TODO: doesn't handle escaped newlines properly.
             *   parse_quoted_word
             *   parse_bare_word
             *   parse_variable
-            *   parse_braced_varname
+            *   DONE: parse_braced_varname
+                *   Doesn't handle escaped braces properly.
 
 ### 2019-08-23 (Friday)
 *   Merged the list parsing code and Tokenizer to master.

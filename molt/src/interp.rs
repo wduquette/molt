@@ -927,9 +927,13 @@ impl Interp {
         let mark = ctx.mark();
         while let Some(c) = ctx.peek() {
             if c == '\\' {
-                // Backslash handling. Retain backslashes as is.
-                // Note: this means that escaped '{' and '}' characters
-                // don't affect the count.
+                // TODO: This is not quite right.  Should handle escaped newlines
+                // and it doesn't.  That means that we can't simply do a mark and the
+                // beginning and end; we need to build up the string by tokens.
+
+                // Backslash substitution.  If next character is a
+                // newline, replace it with a space.  Otherwise, this
+                // character and the next go into the word as is.
                 ctx.skip();
                 ctx.skip();
             } else if c == '{' {
@@ -1056,20 +1060,18 @@ impl Interp {
         Ok(self.var(&varname)?)
     }
 
+    // TODO: Issue, doesn't allow backslashed "{".  This is just like a braced_word
+    // except that it doesn't matter what character follows.
     fn parse_braced_varname(&self, ctx: &mut EvalPtr) -> MoltResult {
-        let mut string = String::new();
+        let start = ctx.mark();
+        ctx.skip_while(|ch| *ch != '}');
 
-        while !ctx.at_end() {
-            let c = ctx.next().unwrap();
-
-            if c == '}' {
-                return Ok(Value::from(string));
-            } else {
-                string.push(c);
-            }
+        if ctx.at_end() {
+            molt_err!("missing close-brace for variable name")
+        } else {
+            ctx.skip();
+            Ok(Value::from(ctx.token(start)))
         }
-
-        molt_err!("missing close-brace for variable name")
     }
 }
 

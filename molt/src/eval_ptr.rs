@@ -84,7 +84,18 @@ impl<'a> EvalPtr<'a> {
     //-----------------------------------------------------------------------
     // Tokenizer methods
 
+    /// Get the next character.
+    pub fn next(&mut self) -> Option<char> {
+        self.tok.next()
+    }
+
+    /// Get the next character.
+    pub fn peek(&mut self) -> Option<char> {
+        self.tok.peek()
+    }
+
     /// Sees if the next character is the given character.
+    // TODO: Change to "is".
     pub fn next_is(&mut self, ch: char) -> bool {
         self.tok.is(ch)
     }
@@ -92,6 +103,27 @@ impl<'a> EvalPtr<'a> {
     /// We are at the end of the input when there are no more characters left.
     pub fn at_end(&mut self) -> bool {
         self.tok.at_end()
+    }
+
+    /// Skip the next character
+    pub fn skip(&mut self) {
+        self.tok.skip();
+    }
+
+    /// Skip a specific character
+    pub fn skip_char(&mut self, ch: char) {
+        self.tok.skip_char(ch);
+    }
+
+    // Returns the current index as a mark, for later use.
+    pub fn mark(&mut self) -> usize {
+        self.tok.mark()
+    }
+
+    /// Get the token between the mark and the index.  Returns "" if we're at the
+    /// end or mark == index.
+    pub fn token(&self, mark: usize) -> &str {
+        self.tok.token(mark)
     }
 
     //-----------------------------------------------------------------------
@@ -190,16 +222,6 @@ impl<'a> EvalPtr<'a> {
         }
     }
 
-    /// Skip a specific character
-    pub fn skip_char(&mut self, ch: char) {
-        let c = self.tok.next();
-        assert!(c == Some(ch), "expected '{:?}', got '{:?}' ", Some(ch), c);
-    }
-
-    /// Get the next character.
-    pub fn next(&mut self) -> Option<char> {
-        self.tok.next()
-    }
 }
 
 #[cfg(test)]

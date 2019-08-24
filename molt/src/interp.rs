@@ -924,28 +924,28 @@ impl Interp {
         let mut count = 1;
 
         // NEXT, mark the start of the token, and skip characters until we find the end.
-        let mark = ctx.tok().mark();
-        while let Some(c) = ctx.tok().peek() {
+        let mark = ctx.mark();
+        while let Some(c) = ctx.peek() {
             if c == '\\' {
                 // Backslash handling. Retain backslashes as is.
                 // Note: this means that escaped '{' and '}' characters
                 // don't affect the count.
-                ctx.tok().skip();
-                ctx.tok().skip();
+                ctx.skip();
+                ctx.skip();
             } else if c == '{' {
                 count += 1;
-                ctx.tok().skip();
+                ctx.skip();
             } else if c == '}' {
                 count -= 1;
 
                 if count > 0 {
-                    ctx.tok().skip();
+                    ctx.skip();
                 } else {
                     // We've found and consumed the closing brace.  We should either
                     // see more more whitespace, or we should be at the end of the list
                     // Otherwise, there are incorrect characters following the close-brace.
-                    let result = Ok(Value::from(ctx.tok().token(mark)));
-                    ctx.tok().skip(); // Skip the closing brace
+                    let result = Ok(Value::from(ctx.token(mark)));
+                    ctx.skip(); // Skip the closing brace
 
                     if ctx.at_end_of_command() || ctx.next_is_line_white() {
                         return result;
@@ -954,7 +954,7 @@ impl Interp {
                     }
                 }
             } else {
-                ctx.tok().skip();
+                ctx.skip();
             }
         }
 

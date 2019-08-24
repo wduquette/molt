@@ -114,6 +114,13 @@ impl<'a> EvalPtr<'a> {
     pub fn skip_char(&mut self, ch: char) {
         self.tok.skip_char(ch);
     }
+    /// Skips over characters while the predicate is true.  Updates the index.
+    pub fn skip_while<P>(&mut self, predicate: P)
+    where
+        P: Fn(&char) -> bool,
+    {
+        self.tok.skip_while(predicate);
+    }
 
     // Returns the current index as a mark, for later use.
     pub fn mark(&mut self) -> usize {

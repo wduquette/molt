@@ -91,7 +91,7 @@ fn parse_braced_item(ctx: &mut Tokenizer) -> MoltResult {
                 // We've found and consumed the closing brace.  We should either
                 // see more more whitespace, or we should be at the end of the list
                 // Otherwise, there are incorrect characters following the close-brace.
-                let result = Ok(Value::from(ctx.token(mark).unwrap()));
+                let result = Ok(Value::from(ctx.token(mark)));
                 ctx.skip(); // Skip the closing brace
 
                 if ctx.at_end() || ctx.has(|ch| is_list_white(*ch)) {
@@ -119,10 +119,7 @@ fn parse_quoted_item(ctx: &mut Tokenizer) -> MoltResult {
 
     while !ctx.at_end() {
         ctx.skip_while(|ch| *ch != '"' && *ch != '\\');
-
-        if let Some(token) = ctx.token(start) {
-            item.push_str(token);
-        }
+        item.push_str(ctx.token(start));
 
         match ctx.peek() {
             Some('"') => {
@@ -142,21 +139,15 @@ fn parse_quoted_item(ctx: &mut Tokenizer) -> MoltResult {
 
 /// Parse a bare item.
 fn parse_bare_item(ctx: &mut Tokenizer) -> MoltResult {
-    println!("at start={}", ctx.as_str());
     let mut item = String::new();
     let mut start = ctx.mark();
 
     while !ctx.at_end() {
-        println!("ctx={}", ctx.as_str());
         // Note: the while condition ensures that there's a character.
         ctx.skip_while(|ch| !is_list_white(*ch) && *ch != '\\');
 
-        println!("after skip={}", ctx.as_str());
-
-        if let Some(token) = ctx.token(start) {
-            item.push_str(token);
-            start = ctx.mark();
-        }
+        item.push_str(ctx.token(start));
+        start = ctx.mark();
 
         if ctx.has(|ch| is_list_white(*ch)) {
             break;
@@ -164,7 +155,6 @@ fn parse_bare_item(ctx: &mut Tokenizer) -> MoltResult {
 
         if ctx.is('\\') {
             item.push(ctx.backslash_subst());
-            println!("after subst={}", ctx.as_str());
             start = ctx.mark();
         }
     }
@@ -323,6 +313,7 @@ mod tests {
 
     #[test]
     fn test_parse_braced_item() {
+        assert_eq!(pbi("{}"), "|".to_string());
         assert_eq!(pbi("{abc}"), "abc|".to_string());
         assert_eq!(pbi("{abc}  "), "abc|  ".to_string());
         assert_eq!(pbi("{a{b}c}"), "a{b}c|".to_string());

@@ -68,14 +68,16 @@ impl<'a> Tokenizer<'a> {
         self.chars.peek().copied()
     }
 
-    /// Get the token between the mark and the index.  Returns None if we're at the
+    /// Get the token between the mark and the index.  Returns "" if we're at the
     /// end or mark == index.
-    pub fn token(&self, mark: usize) -> Option<&str> {
-        if mark != self.index {
-            Some(&self.input[mark..self.index])
-        } else {
-            None
-        }
+    pub fn token(&self, mark: usize) -> &str {
+        assert!(mark <= self.index, "mark follows index");
+        &self.input[mark..self.index]
+        // if mark <= self.index {
+            // Some(&self.input[mark..self.index])
+        // } else {
+            // None
+        // }
     }
 
     /// Resets the index to the given mark.  For internal use only.
@@ -271,8 +273,12 @@ mod tests {
         ptr.next();
         ptr.next();
 
-        assert_eq!(ptr.token(start), Some("cd"));
+        assert_eq!(ptr.token(start), "cd");
         assert_eq!(ptr.as_str(), "ef");
+
+        let ptr = Tokenizer::new("abc");
+        let start = ptr.mark();
+        assert_eq!(ptr.token(start), "");
     }
 
     #[test]

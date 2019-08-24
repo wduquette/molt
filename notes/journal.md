@@ -6,6 +6,10 @@ Things to remember to do soon:
     building up small strings a character at a time.
     *   interp::
     *   expr::
+*   interp.rs usings "context" in two different senses:
+    *   The command context mechanism
+    *   The evaluation context represented by `EvalPtr`.
+    *   That's messy; let's figure out something better.
 *   Revise Value per Yandros' style comments here:
     https://users.rust-lang.org/t/lazy-initialization-vs-interior-mutability/30742/7
 *   Flesh out the interp.rs test suite and rustdocs.
@@ -34,6 +38,74 @@ Things to remember to do soon:
     `alloc` crate exists?
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
+
+### 2019-08-24 (Saturday)
+*   Improving Interp's Parsing
+    *   Review code.
+    *   Questions:
+        *   expr.rs' use of Interp:
+            *   parse_variable
+            *   parse_script
+            *   parse_quoted_word
+            *   parse_braced_word
+            *   Each of these returns a Value.
+            *   Generally these don't return a simple slice; Value is the right API.
+        *   Does the parser really need to be implemented as methods on Interp, or could
+            it easily be functions that (sometimes) take Interp as an argument?
+            *   I'd like to move it out of interp.rs into parser.rs.
+            *   What Interp member variables does it access? (Methods can easily be defined
+                as `pub(crate)`).
+    *   Review:
+        *   All of the public parsing methods translate to `self.eval_context`.
+        *   Which calls `self.parse_command`.
+            *   Reads the first command from the script and breaks it into words, doing
+                variable and command interpolation and backslash substitution as it goes.
+        *   `parse_command`
+            *   Uses `parse_word`
+            *   NO CHANGES NEEDED.
+        *   `parse_word`
+            *   Uses `parse_braced_word`, `parse_quoted_word`, `parse_bare_word`
+            *   Accumulates a vector of words
+            *   NO CHANGES NEEDED.
+        *   `parse_braced_word` CHANGES NEEDED
+            *   Uses nothing special
+            *   Accumulates the word character by character
+            *   Needs to use slices.
+        *   `parse_quoted_word` CHANGES NEEDED
+            *   Accumulates string character by character and token by token.
+            *   Uses `parse_script` and `parse_variable`
+            *   Doesn't use Tokenizer's backslash substitution.
+        *   `parse_bare_word` CHANGES NEEDED
+            *   Accumulates string character by character and token by token.
+            *   Uses `parse_script` and `parse_variable`
+            *   Doesn't use Tokenizer's backslash substitution.
+        *   `parse_script`
+            *   Uses `eval_context`
+            *   NO CHANGES NEEDED
+        *   `parse_variable` CHANGES NEEDED
+            *   Uses `parse_braced_varname`, `var`.
+            *   Builds up name character by character.
+        *   `parse_braced_varname` CHANGES NEEDED
+            *   Builds up name character by character.
+    *   Analysis
+        *   None of the parsing methods refer to any interp internal variables; they use
+            only `pub` or `pub(crate)` methods.
+        *   There's no reason why they can't get moved to a parser.rs module.
+        *   Could we invert this?
+            *   EvalPtr becomes Parser.
+            *   It takes the Interp and a string slice.
+            *   The Interp's parsing methods become Parser methods.
+            *   It provides Tokenizer methods (or access).
+            *   Making it take `&mut Interp` might disturb the borrow checker; we'd
+                have to see.
+            *   Then expr.rs just creates a Parser and uses it.
+        *   But we don't need to do any of that to fix the methods that parse character
+            by character:
+            *   parse_braced_word
+            *   parse_quoted_word
+            *   parse_bare_word
+            *   parse_variable
+            *   parse_braced_varname
 
 ### 2019-08-23 (Friday)
 *   Merged the list parsing code and Tokenizer to master.

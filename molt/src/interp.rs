@@ -324,6 +324,8 @@ impl Interp {
     pub fn eval_value(&mut self, script: &Value) -> MoltResult {
         // TODO: Could probably do better, here.  If the value is already a list, for
         // example, can maybe evaluate it as a command without parsing the string.
+        // Tricky, though.  Don't want to have to parse it as a list.  Need a quick way
+        // to determine if something is already a list.  What does Tcl 8 do?
         self.eval(script.as_str())
     }
 
@@ -918,47 +920,41 @@ impl Interp {
 
     /// Parse a braced word.
     pub(crate) fn parse_braced_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        // FIRST, we have to count braces.  Skip the first one, and count it.
         ctx.next();
         let mut count = 1;
-        let mut word = String::new();
 
-        // NEXT, add characters to the word until we find the matching close-brace,
-        // which is NOT added to the word.  It's an error if we reach the end before
-        // finding the close-brace.
-        while let Some(c) = ctx.next() {
+        // NEXT, mark the start of the token, and skip characters until we find the end.
+        let mark = ctx.tok().mark();
+        while let Some(c) = ctx.tok().peek() {
             if c == '\\' {
-                // Backslash substitution.  If next character is a
-                // newline, replace it with a space.  Otherwise, this
-                // character and the next go into the word as is.
+                // Backslash handling. Retain backslashes as is.
                 // Note: this means that escaped '{' and '}' characters
                 // don't affect the count.
-                if ctx.next_is('\n') {
-                    word.push(' ');
-                } else {
-                    word.push('\\');
-                    if !ctx.at_end() {
-                        word.push(ctx.next().unwrap());
-                    }
-                }
-                continue;
+                ctx.tok().skip();
+                ctx.tok().skip();
             } else if c == '{' {
                 count += 1;
+                ctx.tok().skip();
             } else if c == '}' {
                 count -= 1;
-            }
 
-            if count > 0 {
-                word.push(c)
-            } else {
-                // We've found and consumed the closing brace.  We should either
-                // see more more whitespace, or we should be at the end of the command.
-                // Otherwise, there are incorrect characters following the close-brace.
-                if ctx.at_end_of_command() || ctx.next_is_line_white() {
-                    return molt_ok!(word);
+                if count > 0 {
+                    ctx.tok().skip();
                 } else {
-                    return molt_err!("extra characters after close-brace");
+                    // We've found and consumed the closing brace.  We should either
+                    // see more more whitespace, or we should be at the end of the list
+                    // Otherwise, there are incorrect characters following the close-brace.
+                    let result = Ok(Value::from(ctx.tok().token(mark)));
+                    ctx.tok().skip(); // Skip the closing brace
+
+                    if ctx.at_end_of_command() || ctx.next_is_line_white() {
+                        return result;
+                    } else {
+                        return molt_err!("extra characters after close-brace");
+                    }
                 }
+            } else {
+                ctx.tok().skip();
             }
         }
 

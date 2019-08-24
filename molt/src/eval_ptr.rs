@@ -11,7 +11,7 @@ use crate::tokenizer::Tokenizer;
 /// any relevant flags.
 pub struct EvalPtr<'a> {
     // The input iterator
-    chars: Tokenizer<'a>,
+    tok: Tokenizer<'a>,
 
     // Whether we're looking for a bracket or not.
     bracket_term: bool,
@@ -26,7 +26,7 @@ pub struct EvalPtr<'a> {
 impl<'a> EvalPtr<'a> {
     pub fn new(input: &'a str) -> Self {
         Self {
-            chars: Tokenizer::new(input),
+            tok: Tokenizer::new(input),
             bracket_term: false,
             term_char: None,
             no_eval: false,
@@ -36,13 +36,13 @@ impl<'a> EvalPtr<'a> {
     /// Returns a mutable reference to the inner tokenizer.
     #[allow(dead_code)] // Temporary
     pub fn tok(&mut self) -> &mut Tokenizer<'a> {
-        &mut self.chars
+        &mut self.tok
     }
 
     // TEMPORARY; remove in favor of tok()
     pub fn from_tokenizer(ptr: &Tokenizer<'a>) -> Self {
         Self {
-            chars: ptr.clone(),
+            tok: ptr.clone(),
             bracket_term: false,
             term_char: None,
             no_eval: false,
@@ -51,7 +51,7 @@ impl<'a> EvalPtr<'a> {
 
     // TEMPORARY; remove in favor of tok()
     pub fn to_tokenizer(&self) -> Tokenizer<'a> {
-        self.chars.clone()
+        self.tok.clone()
     }
 
     //-----------------------------------------------------------------------
@@ -82,22 +82,25 @@ impl<'a> EvalPtr<'a> {
     }
 
     //-----------------------------------------------------------------------
-    // Helpers
+    // Tokenizer methods
 
     /// Sees if the next character is the given character.
     pub fn next_is(&mut self, ch: char) -> bool {
-        self.chars.is(ch)
+        self.tok.is(ch)
     }
 
     /// We are at the end of the input when there are no more characters left.
     pub fn at_end(&mut self) -> bool {
-        self.chars.at_end()
+        self.tok.at_end()
     }
+
+    //-----------------------------------------------------------------------
+    // Parsing Helpers
 
     /// We are at the end of the script when we've reached the end-of-script marker
     /// or we are at the end of the input.
     pub fn at_end_of_script(&mut self) -> bool {
-        self.chars.at_end() || self.chars.peek() == self.term_char
+        self.tok.at_end() || self.tok.peek() == self.term_char
     }
 
     /// We are at the end of the command if we've reached a semi-colon or new-line, or
@@ -108,7 +111,7 @@ impl<'a> EvalPtr<'a> {
 
     /// Is the current character is a valid whitespace character, including newlines?
     pub fn next_is_block_white(&mut self) -> bool {
-        match self.chars.peek() {
+        match self.tok.peek() {
             Some(c) => c.is_whitespace(),
             None => false,
         }
@@ -116,7 +119,7 @@ impl<'a> EvalPtr<'a> {
 
     /// Is the current character is a valid whitespace character, excluding newlines?
     pub fn next_is_line_white(&mut self) -> bool {
-        match self.chars.peek() {
+        match self.tok.peek() {
             Some(c) => c.is_whitespace() && c != '\n',
             None => false,
         }
@@ -124,7 +127,7 @@ impl<'a> EvalPtr<'a> {
 
     /// Is the current character a valid variable name character?
     pub fn next_is_varname_char(&mut self) -> bool {
-        match self.chars.peek() {
+        match self.tok.peek() {
             Some(c) => c.is_alphanumeric() || c == '_',
             None => false,
         }
@@ -132,7 +135,7 @@ impl<'a> EvalPtr<'a> {
 
     /// Is the current character a valid octal digit?
     pub fn next_is_octal_digit(&mut self) -> bool {
-        match self.chars.peek() {
+        match self.tok.peek() {
             Some('0'..='7') => true,
             _ => false,
         }
@@ -140,7 +143,7 @@ impl<'a> EvalPtr<'a> {
 
     /// Is the current character a valid hex digit?
     pub fn next_is_hex_digit(&mut self) -> bool {
-        match self.chars.peek() {
+        match self.tok.peek() {
             Some('0'..='9') => true,
             Some('a'..='f') => true,
             Some('A'..='F') => true,
@@ -153,7 +156,7 @@ impl<'a> EvalPtr<'a> {
     /// character.
     pub fn skip_block_white(&mut self) {
         while !self.at_end() && self.next_is_block_white() {
-            self.chars.next();
+            self.tok.next();
         }
     }
 
@@ -162,7 +165,7 @@ impl<'a> EvalPtr<'a> {
     /// current command, or on a non-white-space character.
     pub fn skip_line_white(&mut self) {
         while !self.at_end() && self.next_is_line_white() {
-            self.chars.next();
+            self.tok.next();
         }
     }
 
@@ -171,14 +174,14 @@ impl<'a> EvalPtr<'a> {
     pub fn skip_comment(&mut self) -> bool {
         if self.next_is('#') {
             while !self.at_end() {
-                let c = self.chars.next();
+                let c = self.tok.next();
                 if c == Some('\n') {
                     break;
                 } else if c == Some('\\') {
                     // Skip the following character. The intent is to skip
                     // backslashed newlines, but in
                     // this context it doesn't matter.
-                    self.chars.next();
+                    self.tok.next();
                 }
             }
             true
@@ -189,13 +192,13 @@ impl<'a> EvalPtr<'a> {
 
     /// Skip a specific character
     pub fn skip_char(&mut self, ch: char) {
-        let c = self.chars.next();
+        let c = self.tok.next();
         assert!(c == Some(ch), "expected '{:?}', got '{:?}' ", Some(ch), c);
     }
 
     /// Get the next character.
     pub fn next(&mut self) -> Option<char> {
-        self.chars.next()
+        self.tok.next()
     }
 }
 

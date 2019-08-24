@@ -73,11 +73,6 @@ impl<'a> Tokenizer<'a> {
     pub fn token(&self, mark: usize) -> &str {
         assert!(mark <= self.index, "mark follows index");
         &self.input[mark..self.index]
-        // if mark <= self.index {
-            // Some(&self.input[mark..self.index])
-        // } else {
-            // None
-        // }
     }
 
     /// Resets the index to the given mark.  For internal use only.

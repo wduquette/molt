@@ -2,12 +2,12 @@
 
 Things to remember to do soon:
 
-*   Revise Value per Yandros' style comments here:
-    https://users.rust-lang.org/t/lazy-initialization-vs-interior-mutability/30742/7
 *   Revise the parsing code to use Tokenizer to extract slices, rather than
     building up small strings a character at a time.
     *   interp::
     *   expr::
+*   Revise Value per Yandros' style comments here:
+    https://users.rust-lang.org/t/lazy-initialization-vs-interior-mutability/30742/7
 *   Flesh out the interp.rs test suite and rustdocs.
 *   Review test_harness to use `Value` where appropriate.
 *   Review the context cache; make sure that "object commands" that use the context cache
@@ -61,6 +61,7 @@ Things to remember to do soon:
         *   That looks like it.
         *   Did this; Tokenizer should now be a drop-in replacement for CharPtr except for
             the to/from `Peekable<Char>` thing.
+    *   Replaced CharPtr with Tokenizer throughout.
 
 ### 2019-08-19 (Monday)
 *   Revised list::parse_quoted_item and list::parse_bare_item to use slices.

@@ -1060,17 +1060,17 @@ impl Interp {
         Ok(self.var(&varname)?)
     }
 
-    // TODO: Issue, doesn't allow backslashed "{".  This is just like a braced_word
-    // except that it doesn't matter what character follows.
     fn parse_braced_varname(&self, ctx: &mut EvalPtr) -> MoltResult {
         let start = ctx.mark();
+        // Note: per standard Tcl, doesn't handle backslashes or count braces.
         ctx.skip_while(|ch| *ch != '}');
 
         if ctx.at_end() {
             molt_err!("missing close-brace for variable name")
         } else {
-            ctx.skip();
-            Ok(Value::from(ctx.token(start)))
+            let result = Ok(Value::from(ctx.token(start)));
+            ctx.skip(); // Skip the close-brace.
+            result
         }
     }
 }
@@ -1481,6 +1481,75 @@ mod tests {
                 "unknown math function \"a\""
             )))
         );
+    }
+
+    #[test]
+    fn test_parse_quoted_word() {
+        let mut interp = Interp::new();
+
+        // Simple string
+        assert_eq!(pqw(&mut interp, "\"abc\""), "abc|".to_string());
+
+        // Simple string with text following
+        assert_eq!(pqw(&mut interp, "\"abc\"  "), "abc|  ".to_string());
+
+        // Backslash substitution at beginning, middle, and end
+        assert_eq!(pqw(&mut interp, "\"\\x77-\""), "w-|".to_string());
+        assert_eq!(pqw(&mut interp, "\"a\\x77-\""), "aw-|".to_string());
+        assert_eq!(pqw(&mut interp, "\"a\\x77\""), "aw|".to_string());
+
+        // Variable substitution
+        interp.set_var("x", &Value::from("5"));
+        assert_eq!(pqw(&mut interp, "\"a$x.b\" "), "a5.b| ".to_string());
+
+        interp.set_var("xyz1", &Value::from("10"));
+        assert_eq!(pqw(&mut interp, "\"a$xyz1.b\" "), "a10.b| ".to_string());
+
+        assert_eq!(pqw(&mut interp, "\"a$.b\" "), "a$.b| ".to_string());
+
+        assert_eq!(pqw(&mut interp, "\"a${x}.b\" "), "a5.b| ".to_string());
+
+        // Command substitution
+        assert_eq!(pqw(&mut interp, "\"a[list b]c\""), "abc|".to_string());
+        assert_eq!(pqw(&mut interp, "\"a[list b c]d\""), "ab cd|".to_string());
+
+
+
+        // Extra characters after close-quote
+        // TODO: Skip temporarily, until we get other things handled.
+        // assert_eq!(pqw(&mut interp, "\"abc\"x  "), "Err");
+    }
+
+    fn pqw(interp: &mut Interp, input: &str) -> String {
+        let mut ctx = EvalPtr::new(input);
+
+        match interp.parse_quoted_word(&mut ctx) {
+            Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
+            Err(ResultCode::Error(value)) => format!("{}", value),
+            Err(code) => format!("{:?}", code),
+        }
+    }
+
+    #[test]
+    fn test_parse_braced_varname() {
+        let mut interp = Interp::new();
+
+        assert_eq!(pbvar(&mut interp, "a b}c"), "a b|c".to_string());
+        assert_eq!(pbvar(&mut interp, "a}b"), "a|b".to_string());
+        assert_eq!(pbvar(&mut interp, "}ab"), "|ab".to_string());
+        assert_eq!(pbvar(&mut interp, "a{b}c"), "a{b|c".to_string());
+
+        // TODO: test and handle backslashes
+    }
+
+    fn pbvar(interp: &mut Interp, input: &str) -> String {
+        let mut ctx = EvalPtr::new(input);
+
+        match interp.parse_braced_varname(&mut ctx) {
+            Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
+            Err(ResultCode::Error(value)) => format!("{}", value),
+            Err(code) => format!("{:?}", code),
+        }
     }
 
     #[test]

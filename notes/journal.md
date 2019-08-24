@@ -113,6 +113,8 @@ Things to remember to do soon:
             *   parse_variable
             *   DONE: parse_braced_varname
                 *   Doesn't handle escaped braces properly.
+                *   Or maybe it does.  It looks like it has the same behavior as tclsh.
+                *   Yes, it's OK.
 
 ### 2019-08-23 (Friday)
 *   Merged the list parsing code and Tokenizer to master.

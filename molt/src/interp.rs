@@ -1531,6 +1531,33 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_variable() {
+        let mut interp = Interp::new();
+
+        assert_eq!(pvar(&mut interp, "a", "$a"), "OK|".to_string());
+        assert_eq!(pvar(&mut interp, "abc", "$abc"), "OK|".to_string());
+        assert_eq!(pvar(&mut interp, "abc", "$abc."), "OK|.".to_string());
+        assert_eq!(pvar(&mut interp, "a", "$a.bc"), "OK|.bc".to_string());
+        assert_eq!(pvar(&mut interp, "a1_", "$a1_.bc"), "OK|.bc".to_string());
+        assert_eq!(pvar(&mut interp, "a", "${a}b"), "OK|b".to_string());
+        assert_eq!(pvar(&mut interp, "a", "$"), "$|".to_string());
+
+        assert_eq!(pvar(&mut interp, "a", "$1"), "can't read \"1\": no such variable".to_string());
+
+    }
+
+    fn pvar(interp: &mut Interp, var: &str, input: &str) -> String {
+        let mut ctx = EvalPtr::new(input);
+        interp.set_var(var, &Value::from("OK"));
+
+        match interp.parse_variable(&mut ctx) {
+            Ok(val) => format!("{}|{}", val, ctx.tok().as_str()),
+            Err(ResultCode::Error(value)) => format!("{}", value),
+            Err(code) => format!("{:?}", code),
+        }
+    }
+
+    #[test]
     fn test_parse_braced_varname() {
         let mut interp = Interp::new();
 

@@ -39,6 +39,11 @@ Things to remember to do soon:
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
 
+### 2019-08-25 (Sunday)
+*   Improving Interp's Parsing
+    *   Added test for Interp::parse_variable.
+    *   Simplified variable parsing.
+
 ### 2019-08-24 (Saturday)
 *   Improving Interp's Parsing
     *   Review code.

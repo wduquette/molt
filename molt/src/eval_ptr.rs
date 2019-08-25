@@ -100,6 +100,14 @@ impl<'a> EvalPtr<'a> {
         self.tok.is(ch)
     }
 
+    /// Is the predicate true for the next character? Does not update the index.
+    pub fn has<P>(&mut self, predicate: P) -> bool
+    where
+        P: Fn(&char) -> bool,
+    {
+        self.tok.has(predicate)
+    }
+
     /// We are at the end of the input when there are no more characters left.
     pub fn at_end(&mut self) -> bool {
         self.tok.at_end()

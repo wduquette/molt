@@ -4,6 +4,10 @@
 
 use crate::tokenizer::Tokenizer;
 
+pub fn is_varname_char(ch: char) -> bool {
+    ch.is_alphanumeric() || ch == '_'
+}
+
 /// Reads the integer string from the head of the input.  If the function returns `Some`,
 /// the value is the integer string that was read, and the `ptr` points to the following
 /// character. Otherwise the `ptr` will be unchanged.

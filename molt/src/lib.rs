@@ -9,6 +9,7 @@ pub use crate::list::list_to_string;
 pub use crate::types::*;
 
 mod commands;
+#[allow(dead_code)] // Temporary
 mod eval_ptr;
 mod expr;
 pub mod interp;

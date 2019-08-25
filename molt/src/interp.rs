@@ -111,6 +111,7 @@ use crate::molt_ok;
 use crate::scope::ScopeStack;
 use crate::types::Command;
 use crate::types::*;
+use crate::util::is_varname_char;
 use crate::value::Value;
 use std::any::Any;
 use std::collections::HashMap;
@@ -1045,34 +1046,42 @@ impl Interp {
             return Ok(Value::from("$"));
         }
 
-        // NEXT, get the variable name
-        let mut varname = String::new();
+        // NEXT, is this a braced variable name?
+        let var_value;
 
-        if ctx.next_is_varname_char() {
-            while ctx.next_is_varname_char() {
-                varname.push(ctx.next().unwrap());
-            }
-        } else if ctx.next_is('{') {
+        if ctx.next_is('{') {
             ctx.skip_char('{');
-            varname.push_str(self.parse_braced_varname(ctx)?.as_str());
-        }
+            let start = ctx.mark();
+            ctx.skip_while(|ch| *ch != '}');
 
-        Ok(self.var(&varname)?)
-    }
+            if ctx.at_end() {
+                return molt_err!("missing close-brace for variable name");
+            }
 
-    fn parse_braced_varname(&self, ctx: &mut EvalPtr) -> MoltResult {
-        let start = ctx.mark();
-        // Note: per standard Tcl, doesn't handle backslashes or count braces.
-        ctx.skip_while(|ch| *ch != '}');
-
-        if ctx.at_end() {
-            molt_err!("missing close-brace for variable name")
+            var_value = self.var(ctx.token(start))?;
+            ctx.skip_char('}');
         } else {
-            let result = Ok(Value::from(ctx.token(start)));
-            ctx.skip(); // Skip the close-brace.
-            result
+            let start = ctx.mark();
+            ctx.skip_while(|ch| is_varname_char(*ch));
+            var_value = self.var(ctx.token(start))?;
         }
+
+        Ok(var_value)
     }
+
+    // fn parse_braced_varname(&self, ctx: &'a mut EvalPtr) -> Result<&'a str,ResultCode> {
+    //     let start = ctx.mark();
+    //     // Note: per standard Tcl, doesn't handle backslashes or count braces.
+    //     ctx.skip_while(|ch| *ch != '}');
+    //
+    //     if ctx.at_end() {
+    //         molt_err!("missing close-brace for variable name")
+    //     } else {
+    //         let result = Ok(ctx.token(start));
+    //         ctx.skip(); // Skip the close-brace.
+    //         result
+    //     }
+    // }
 }
 
 /// A struct that wraps a CommandFunc and implements the Command trait.
@@ -1557,27 +1566,27 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_parse_braced_varname() {
-        let mut interp = Interp::new();
-
-        assert_eq!(pbvar(&mut interp, "a b}c"), "a b|c".to_string());
-        assert_eq!(pbvar(&mut interp, "a}b"), "a|b".to_string());
-        assert_eq!(pbvar(&mut interp, "}ab"), "|ab".to_string());
-        assert_eq!(pbvar(&mut interp, "a{b}c"), "a{b|c".to_string());
-
-        // TODO: test and handle backslashes
-    }
-
-    fn pbvar(interp: &mut Interp, input: &str) -> String {
-        let mut ctx = EvalPtr::new(input);
-
-        match interp.parse_braced_varname(&mut ctx) {
-            Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
-            Err(ResultCode::Error(value)) => format!("{}", value),
-            Err(code) => format!("{:?}", code),
-        }
-    }
+    // #[test]
+    // fn test_parse_braced_varname() {
+    //     let mut interp = Interp::new();
+    //
+    //     assert_eq!(pbvar(&mut interp, "a b}c"), "a b|c".to_string());
+    //     assert_eq!(pbvar(&mut interp, "a}b"), "a|b".to_string());
+    //     assert_eq!(pbvar(&mut interp, "}ab"), "|ab".to_string());
+    //     assert_eq!(pbvar(&mut interp, "a{b}c"), "a{b|c".to_string());
+    //
+    //     // TODO: test and handle backslashes
+    // }
+    //
+    // fn pbvar(interp: &mut Interp, input: &str) -> String {
+    //     let mut ctx = EvalPtr::new(input);
+    //
+    //     match interp.parse_braced_varname(&mut ctx) {
+    //         Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
+    //         Err(ResultCode::Error(value)) => format!("{}", value),
+    //         Err(code) => format!("{:?}", code),
+    //     }
+    // }
 
     #[test]
     fn test_recursion_limit() {

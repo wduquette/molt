@@ -19,3 +19,11 @@ benchmark ident-1.1 {ident, simple argument} {
 benchmark incr-1.1 {incr a} {
     incr a
 }
+
+benchmark set-1.1 {set var value} {
+    set myvar 5
+}
+
+benchmark list-1.1 {list of six items} {
+    list this that theother foo bar quux
+}

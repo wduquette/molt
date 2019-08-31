@@ -53,7 +53,7 @@ Things to remember to do soon:
         *   DONE: Needs test
         *   DONE: Needs to be updated to work with tokens.
         *   DONE: Needs to use Tokenizer backslash subst
-*   Current benchmarks; see notes/benchmarks.xlsx for history.  Not as big a gain as I'd hoped.
+*   Current benchmarks; see notes/benchmarks.xlsx for history.
 ```
 Molt 0.1.0 -- Benchmark
 
@@ -64,6 +64,24 @@ Molt 0.1.0 -- Benchmark
     0.88     1.62 -- ident-1.1 ident, simple argument
     1.17     2.15 -- incr-1.1 incr a
 ```
+*   The new parsing is a win, but not as big a win as I'd hoped.
+*   How do we benchmark a script?
+    *   `time $command 1000`
+        *   The command is passed as a value.  It's generally already a string.
+        *   Get start time
+        *   call `interp.eval_value(script)` 1000 times.
+        *   Get end time.
+        *   The only overhead is checking the result.
+        *   `interp.eval_value()` vs. `interp.eval()` overhead is insignificant.
+*   What happens when we execute the script "ok" in the benchmark suite?
+    *   Check recursion limit.
+    *   Create new EvalPtr.
+    *   eval_context.
+    *   Convert results.
+*   Of this, eval_context should be the tall pole.  What does it do?
+    *   parse_command
+    *   Look up and execute command.
+    *   Which is taking more time?
 
 ### 2019-08-25 (Sunday)
 *   Improving Interp's Parsing

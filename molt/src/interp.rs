@@ -312,7 +312,7 @@ impl Interp {
 
         // NEXT, translate and return the result.
         match result {
-            Err(ResultCode::Return(value)) => molt_ok!(value),
+            Err(ResultCode::Return(value)) => Ok(value),
             Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
             Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
             _ => result,

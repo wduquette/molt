@@ -4,9 +4,8 @@ Things to remember to do soon:
 
 *   Revise the parsing code to use Tokenizer to extract slices, rather than
     building up small strings a character at a time.
-    *   interp::
     *   expr::
-*   interp.rs usings "context" in two different senses:
+*   interp.rs using "context" in two different senses:
     *   The command context mechanism
     *   The evaluation context represented by `EvalPtr`.
     *   That's messy; let's figure out something better.
@@ -29,6 +28,7 @@ Things to remember to do soon:
 *   Implement Debug for Value.  Should output a pair, `Value[string_rep,data_rep]`, or
     something like that.
     *   The derived Debug displays everything, but reveals internals.
+        *   And since the string is now in an UnsafeCell, the string isn't visible.
     *   Non-trivial: both string_reps and data_reps can be quite large.  Need to ponder
         just what I want.  The above suggests one line, which isn't it.
 *   MoltList should maybe be a newtype with helper methods.
@@ -53,7 +53,17 @@ Things to remember to do soon:
         *   DONE: Needs test
         *   DONE: Needs to be updated to work with tokens.
         *   DONE: Needs to use Tokenizer backslash subst
+*   Current benchmarks; see notes/benchmarks.xlsx for history.  Not as big a gain as I'd hoped.
+```
+Molt 0.1.0 -- Benchmark
 
+  Micros     Norm -- Benchmark
+    0.54     1.00 -- ok-1.1 ok, no arguments
+    0.84     1.55 -- ok-1.2 ok, one argument
+    1.25     2.30 -- ok-1.3 ok, two arguments
+    0.88     1.62 -- ident-1.1 ident, simple argument
+    1.17     2.15 -- incr-1.1 incr a
+```
 
 ### 2019-08-25 (Sunday)
 *   Improving Interp's Parsing

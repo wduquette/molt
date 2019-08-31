@@ -146,7 +146,15 @@ impl<'a> EvalPtr<'a> {
     pub fn token2(&self, mark: usize, index: usize) -> &str {
         self.tok.token2(mark, index)
     }
-
+    /// Parses a backslash-escape and returns its value. If the escape is valid,
+    /// the value will be the substituted character.  If the escape is not valid,
+    /// it will be the single character following the backslash.  Either way, the
+    /// the index will point at what's next.  If there's nothing following the backslash,
+    /// return the backslash.
+    pub fn backslash_subst(&mut self) -> char {
+        self.tok.backslash_subst()
+    }
+    
     //-----------------------------------------------------------------------
     // Parsing Helpers
 

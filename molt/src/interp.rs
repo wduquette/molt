@@ -1016,19 +1016,28 @@ impl Interp {
     /// Parse a bare word.
     fn parse_bare_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         let mut word = String::new();
+        let mut start = ctx.mark();
 
         while !ctx.at_end_of_command() && !ctx.next_is_line_white() {
             // Note: the while condition ensures that there's a character.
             if ctx.next_is('[') {
+                word.push_str(ctx.token(start));
                 word.push_str(self.parse_script(ctx)?.as_str());
+                start = ctx.mark();
             } else if ctx.next_is('$') {
+                word.push_str(ctx.token(start));
                 word.push_str(self.parse_variable(ctx)?.as_str());
+                start = ctx.mark();
             } else if ctx.next_is('\\') {
-                subst_backslash(ctx, &mut word);
+                word.push_str(ctx.token(start));
+                word.push(ctx.backslash_subst());
+                start = ctx.mark();
             } else {
-                word.push(ctx.next().unwrap());
+                ctx.skip();
             }
         }
+
+        word.push_str(ctx.token(start));
 
         Ok(Value::from(word))
     }

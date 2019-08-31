@@ -46,13 +46,13 @@ Things to remember to do soon:
         *   DONE: Needs to handle escaped newlines
     *   parse_quoted_word
         *   DONE: Needs test
-        *   Needs to be updated to work with tokens.
-        *   Needs to use Tokenizer backslash subst
-        *   Needs to check for extra characters after close quote
+        *   DONE: Needs to be updated to work with tokens.
+        *   DONE: Needs to use Tokenizer backslash subst
+        *   DONE: Needs to check for extra characters after close quote
     *   parse_bare_word
         *   DONE: Needs test
-        *   Needs to be updated to work with tokens.
-        *   Needs to use Tokenizer backslash subst
+        *   DONE: Needs to be updated to work with tokens.
+        *   DONE: Needs to use Tokenizer backslash subst
 
 
 ### 2019-08-25 (Sunday)

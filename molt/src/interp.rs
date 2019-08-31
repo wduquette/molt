@@ -991,22 +991,34 @@ impl Interp {
         // FIRST, consume the the opening quote.
         ctx.next();
 
-        // NEXT, add characters to the word until we reach the close quote
+        // NEXT, add tokens to the word until we reach the close quote
         let mut word = String::new();
+        let mut start = ctx.mark();
 
         while !ctx.at_end() {
             // Note: the while condition ensures that there's a character.
             if ctx.next_is('[') {
+                word.push_str(ctx.token(start));
                 word.push_str(self.parse_script(ctx)?.as_str());
+                start = ctx.mark();
             } else if ctx.next_is('$') {
+                word.push_str(ctx.token(start));
                 word.push_str(self.parse_variable(ctx)?.as_str());
+                start = ctx.mark();
             } else if ctx.next_is('\\') {
-                subst_backslash(ctx, &mut word);
-            } else if !ctx.next_is('"') {
-                word.push(ctx.next().unwrap());
-            } else {
+                word.push_str(ctx.token(start));
+                word.push(ctx.backslash_subst());
+                start = ctx.mark();
+            } else if ctx.next_is('"') {
+                word.push_str(ctx.token(start));
                 ctx.skip_char('"');
-                return Ok(Value::from(word));
+                if !ctx.at_end_of_command() && !ctx.next_is_line_white() {
+                    return molt_err!("extra characters after close-quote");
+                } else {
+                    return Ok(Value::from(word));
+                }
+            } else {
+                ctx.skip();
             }
         }
 
@@ -1570,11 +1582,8 @@ mod tests {
         assert_eq!(pqw(&mut interp, "\"a[list b]c\""), "abc|".to_string());
         assert_eq!(pqw(&mut interp, "\"a[list b c]d\""), "ab cd|".to_string());
 
-
-
         // Extra characters after close-quote
-        // TODO: Skip temporarily, until we get other things handled.
-        // assert_eq!(pqw(&mut interp, "\"abc\"x  "), "Err");
+        assert_eq!(pqw(&mut interp, "\"abc\"x  "), "extra characters after close-quote");
     }
 
     fn pqw(interp: &mut Interp, input: &str) -> String {

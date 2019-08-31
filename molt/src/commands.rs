@@ -481,6 +481,28 @@ pub fn cmd_llength(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     molt_ok!(argv[1].as_list()?.len() as MoltInt)
 }
 
+/// # pdump
+///
+/// Dumps profile data.  Developer use only.
+pub fn cmd_pdump(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 1, 1, "")?;
+
+    interp.profile_dump();
+
+    molt_ok!()
+}
+
+/// # pclear
+///
+/// Clears profile data.  Developer use only.
+pub fn cmd_pclear(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 1, 1, "")?;
+
+    interp.profile_clear();
+
+    molt_ok!()
+}
+
 /// # proc *name* *args* *body*
 ///
 /// Defines a procedure.

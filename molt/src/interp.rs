@@ -116,6 +116,7 @@ use crate::value::Value;
 use std::any::Any;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::time::Instant;
 
 /// The Molt Interpreter.
 ///
@@ -161,6 +162,23 @@ pub struct Interp {
 
     // Current number of eval levels.
     num_levels: usize,
+
+    // Profile Map
+    profile_map: HashMap<String, ProfileRecord>,
+}
+
+struct ProfileRecord {
+    count: u128,
+    nanos: u128,
+}
+
+impl ProfileRecord {
+    fn new() -> Self {
+        Self {
+            count: 0,
+            nanos: 0,
+        }
+    }
 }
 
 // NOTE: The order of methods in the generated RustDoc depends on the order in this block.
@@ -189,6 +207,7 @@ impl Interp {
             context_map: HashMap::new(),
             scopes: ScopeStack::new(),
             num_levels: 0,
+            profile_map: HashMap::new(),
         }
     }
 
@@ -253,6 +272,10 @@ impl Interp {
         // TODO: Useful for entire programs written in Molt; but not necessarily wanted in
         // extension scripts.
         interp.add_command("exit", commands::cmd_exit);
+
+        // TODO: Developer Tools
+        interp.add_command("pdump", commands::cmd_pdump);
+        interp.add_command("pclear", commands::cmd_pclear);
 
         interp
     }
@@ -804,7 +827,9 @@ impl Interp {
         let mut result_value = Value::empty();
 
         while !ctx.at_end_of_script() {
+            let start = Instant::now();
             let words = self.parse_command(ctx)?;
+            self.profile_save("parse_command", start);
 
             if words.is_empty() {
                 break;
@@ -818,8 +843,10 @@ impl Interp {
             // FIRST, convert to Vec<&str>
             let name = words[0].as_str();
             if let Some(cmd) = self.commands.get(name) {
+                let start = Instant::now();
                 let cmd = Rc::clone(cmd);
                 let result = cmd.execute(self, words.as_slice());
+                self.profile_save(&format!("cmd.execute({})", name), start);
                 match result {
                     Ok(v) => result_value = v,
                     _ => return result,
@@ -1059,6 +1086,32 @@ impl Interp {
         }
 
         Ok(var_value)
+    }
+
+    //--------------------------------------------------------------------------------------------
+    // Profiling
+
+    pub fn profile_save(&mut self, name: &str, start: std::time::Instant) {
+        let dur = Instant::now().duration_since(start).as_nanos();
+        let rec = self.profile_map.entry(name.into()).or_insert_with(ProfileRecord::new);
+
+        rec.count += 1;
+        rec.nanos += dur;
+    }
+
+    pub fn profile_clear(&mut self) {
+        self.profile_map.clear();
+    }
+
+    pub fn profile_dump(&self) {
+        if self.profile_map.is_empty() {
+            println!("no profile data");
+        } else {
+            for (name, rec) in &self.profile_map {
+                let avg = rec.nanos / rec.count;
+                println!("{} nanos {}, count={}", avg, name, rec.count);
+            }
+        }
     }
 }
 

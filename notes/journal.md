@@ -82,6 +82,17 @@ Molt 0.1.0 -- Benchmark
     *   parse_command
     *   Look up and execute command.
     *   Which is taking more time?
+*   Added `pdump`, `pclear` commands.
+    *   This allows me to instrument particular bits of the interpreter, tactically, and
+        save call times.
+    *   For `incr a`, executing the command is about 33% more expensive than parsing the
+        command.
+    *   For `list this that theother foobar baz quux`, executing the command is relatively
+        fast (about 60% of `incr a`) but the parsing is much slower (a lot more to be parsed).
+    *   I need to look at setting and retrieving variables.  That looks to be a big deal
+        needs to be.
+        *   `set a value` seems to be about twice as slow as `list this that theother foobar baz quux`,
+            so far as command execution is concerned.
 
 ### 2019-08-25 (Sunday)
 *   Improving Interp's Parsing

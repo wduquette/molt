@@ -93,6 +93,8 @@ Molt 0.1.0 -- Benchmark
         needs to be.
         *   `set a value` seems to be about twice as slow as `list this that theother foobar baz quux`,
             so far as command execution is concerned.
+*   Added new benchmarks, set-1.1, list-1.1.
+    *   The new parser helps more the longer the commands to parse, not surprisingly.
 
 ### 2019-08-25 (Sunday)
 *   Improving Interp's Parsing

@@ -39,6 +39,22 @@ Things to remember to do soon:
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
 
+### 2019-08-31 (Saturday)
+*   Improving Interp's Parsing: Review
+    *   parse_braced_word
+        *   DONE: Needs test
+        *   DONE: Needs to handle escaped newlines
+    *   parse_quoted_word
+        *   DONE: Needs test
+        *   Needs to be updated to work with tokens.
+        *   Needs to use Tokenizer backslash subst
+        *   Needs to check for extra characters after close quote
+    *   parse_bare_word
+        *   DONE: Needs test
+        *   Needs to be updated to work with tokens.
+        *   Needs to use Tokenizer backslash subst
+
+
 ### 2019-08-25 (Sunday)
 *   Improving Interp's Parsing
     *   Added test for Interp::parse_variable.

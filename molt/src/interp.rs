@@ -921,23 +921,29 @@ impl Interp {
 
     /// Parse a braced word.
     pub(crate) fn parse_braced_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        ctx.next();
+        // FIRST, skip the opening brace, and count it; non-escaped braces need to
+        // balance.
+        ctx.skip_char('{');
         let mut count = 1;
 
-        // NEXT, mark the start of the token, and skip characters until we find the end.
-        let mark = ctx.mark();
-        while let Some(c) = ctx.peek() {
-            if c == '\\' {
-                // TODO: This is not quite right.  Should handle escaped newlines
-                // and it doesn't.  That means that we can't simply do a mark and the
-                // beginning and end; we need to build up the string by tokens.
+        // NEXT, mark the start of the first token, and begin to accumulate the word.
+        let mut word = String::new();
+        let mut start = ctx.mark();
 
-                // Backslash substitution.  If next character is a
-                // newline, replace it with a space.  Otherwise, this
-                // character and the next go into the word as is.
-                ctx.skip();
-                ctx.skip();
-            } else if c == '{' {
+        // NEXT, begin accumulating tokens.
+        loop {
+            // FIRST, skip to the beginning of the next token.
+            ctx.skip_while(|ch| *ch != '\\' && *ch != '{' && *ch != '}');
+
+            // NEXT, if we're at the end of the input the braces haven't balanced.
+            if ctx.at_end() {
+                return molt_err!("missing close-brace");
+            }
+
+            // NEXT, handle the next token based on its initial character.
+            let c = ctx.peek().unwrap();
+
+            if c == '{' {
                 count += 1;
                 ctx.skip();
             } else if c == '}' {
@@ -949,7 +955,8 @@ impl Interp {
                     // We've found and consumed the closing brace.  We should either
                     // see more more whitespace, or we should be at the end of the list
                     // Otherwise, there are incorrect characters following the close-brace.
-                    let result = Ok(Value::from(ctx.token(mark)));
+                    word.push_str(ctx.token(start));
+                    let result = Ok(Value::from(word));
                     ctx.skip(); // Skip the closing brace
 
                     if ctx.at_end_of_command() || ctx.next_is_line_white() {
@@ -959,12 +966,24 @@ impl Interp {
                     }
                 }
             } else {
+                assert!(c == '\\');
+                // This might or might not be a token break.
+                let backslash_mark = ctx.mark();
                 ctx.skip();
+
+                if let Some(ch) = ctx.peek() {
+                    if ch == '\n' {
+                        word.push_str(ctx.token2(start, backslash_mark));
+                        word.push(' ');
+                        ctx.skip();
+                        start = ctx.mark();
+                    } else {
+                        // Skip the character following the backslash.
+                        ctx.skip();
+                    }
+                }
             }
         }
-
-        assert!(count > 0);
-        molt_err!("missing close-brace")
     }
 
     /// Parse a quoted word.
@@ -1068,20 +1087,6 @@ impl Interp {
 
         Ok(var_value)
     }
-
-    // fn parse_braced_varname(&self, ctx: &'a mut EvalPtr) -> Result<&'a str,ResultCode> {
-    //     let start = ctx.mark();
-    //     // Note: per standard Tcl, doesn't handle backslashes or count braces.
-    //     ctx.skip_while(|ch| *ch != '}');
-    //
-    //     if ctx.at_end() {
-    //         molt_err!("missing close-brace for variable name")
-    //     } else {
-    //         let result = Ok(ctx.token(start));
-    //         ctx.skip(); // Skip the close-brace.
-    //         result
-    //     }
-    // }
 }
 
 /// A struct that wraps a CommandFunc and implements the Command trait.
@@ -1493,6 +1498,40 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_braced_word() {
+        let mut interp = Interp::new();
+
+        // Simple string
+        assert_eq!(pbrace(&mut interp, "{abc}"), "abc|".to_string());
+
+        // Simple string with following space
+        assert_eq!(pbrace(&mut interp, "{abc} "), "abc| ".to_string());
+
+        // String with white space
+        assert_eq!(pbrace(&mut interp, "{a b c} "), "a b c| ".to_string());
+
+        // String with $ and []space
+        assert_eq!(pbrace(&mut interp, "{a $b [c]} "), "a $b [c]| ".to_string());
+
+        // String with escaped braces
+        assert_eq!(pbrace(&mut interp, "{a\\{bc} "), "a\\{bc| ".to_string());
+        assert_eq!(pbrace(&mut interp, "{ab\\}c} "), "ab\\}c| ".to_string());
+
+        // String with escaped newline (a real newline with a \ in front)
+        assert_eq!(pbrace(&mut interp, "{ab\\\nc}"), "ab c|".to_string());
+    }
+
+    fn pbrace(interp: &mut Interp, input: &str) -> String {
+        let mut ctx = EvalPtr::new(input);
+
+        match interp.parse_braced_word(&mut ctx) {
+            Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
+            Err(ResultCode::Error(value)) => format!("{}", value),
+            Err(code) => format!("{:?}", code),
+        }
+    }
+
+    #[test]
     fn test_parse_quoted_word() {
         let mut interp = Interp::new();
 
@@ -1540,6 +1579,48 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_bare() {
+        let mut interp = Interp::new();
+
+        // Single word
+        assert_eq!(pbare(&mut interp, "abc"), "abc|".to_string());
+
+        // Single word with whitespace following
+        assert_eq!(pbare(&mut interp, "abc "), "abc| ".to_string());
+        assert_eq!(pbare(&mut interp, "abc\t"), "abc|\t".to_string());
+
+        // Backslash substitution at beginning, middle, and end
+        assert_eq!(pbare(&mut interp, "\\x77-"), "w-|".to_string());
+        assert_eq!(pbare(&mut interp, "a\\x77-"), "aw-|".to_string());
+        assert_eq!(pbare(&mut interp, "a\\x77"), "aw|".to_string());
+
+        // Variable substitution
+        interp.set_var("x", &Value::from("5"));
+        assert_eq!(pbare(&mut interp, "a$x.b "), "a5.b| ".to_string());
+
+        interp.set_var("xyz1", &Value::from("10"));
+        assert_eq!(pbare(&mut interp, "a$xyz1.b "), "a10.b| ".to_string());
+
+        assert_eq!(pbare(&mut interp, "a$.b "), "a$.b| ".to_string());
+
+        assert_eq!(pbare(&mut interp, "a${x}.b "), "a5.b| ".to_string());
+
+        // Command substitution
+        assert_eq!(pbare(&mut interp, "a[list b]c"), "abc|".to_string());
+        assert_eq!(pbare(&mut interp, "a[list b c]d"), "ab cd|".to_string());
+    }
+
+    fn pbare(interp: &mut Interp, input: &str) -> String {
+        let mut ctx = EvalPtr::new(input);
+
+        match interp.parse_bare_word(&mut ctx) {
+            Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
+            Err(ResultCode::Error(value)) => format!("{}", value),
+            Err(code) => format!("{:?}", code),
+        }
+    }
+
+    #[test]
     fn test_parse_variable() {
         let mut interp = Interp::new();
 
@@ -1565,28 +1646,6 @@ mod tests {
             Err(code) => format!("{:?}", code),
         }
     }
-
-    // #[test]
-    // fn test_parse_braced_varname() {
-    //     let mut interp = Interp::new();
-    //
-    //     assert_eq!(pbvar(&mut interp, "a b}c"), "a b|c".to_string());
-    //     assert_eq!(pbvar(&mut interp, "a}b"), "a|b".to_string());
-    //     assert_eq!(pbvar(&mut interp, "}ab"), "|ab".to_string());
-    //     assert_eq!(pbvar(&mut interp, "a{b}c"), "a{b|c".to_string());
-    //
-    //     // TODO: test and handle backslashes
-    // }
-    //
-    // fn pbvar(interp: &mut Interp, input: &str) -> String {
-    //     let mut ctx = EvalPtr::new(input);
-    //
-    //     match interp.parse_braced_varname(&mut ctx) {
-    //         Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
-    //         Err(ResultCode::Error(value)) => format!("{}", value),
-    //         Err(code) => format!("{:?}", code),
-    //     }
-    // }
 
     #[test]
     fn test_recursion_limit() {

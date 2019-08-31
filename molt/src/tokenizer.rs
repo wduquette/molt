@@ -75,6 +75,13 @@ impl<'a> Tokenizer<'a> {
         &self.input[mark..self.index]
     }
 
+    /// Get the token between the mark and the index.  Returns "" if
+    /// mark == index.
+    pub fn token2(&self, mark: usize, index: usize) -> &str {
+        assert!(mark <= index, "mark follows index");
+        &self.input[mark..index]
+    }
+
     /// Resets the index to the given mark.  For internal use only.
     fn reset_to(&mut self, mark: usize) {
         self.index = mark;

@@ -141,6 +141,12 @@ impl<'a> EvalPtr<'a> {
         self.tok.token(mark)
     }
 
+    /// Get the token between the mark and the index.  Returns "" if
+    /// mark == index.
+    pub fn token2(&self, mark: usize, index: usize) -> &str {
+        self.tok.token2(mark, index)
+    }
+
     //-----------------------------------------------------------------------
     // Parsing Helpers
 

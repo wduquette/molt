@@ -2,6 +2,9 @@
 
 Things to remember to do soon:
 
+*   What happens if I add a Value data rep that's a parsed script/command/expr?  No byte-compiling,
+    but I parse into a form I can execute without parsing?  How fast would that be?
+    *   So the body of a proc, for example, is already parsed as a script.
 *   Revise the parsing code to use Tokenizer to extract slices, rather than
     building up small strings a character at a time.
     *   expr::
@@ -95,6 +98,44 @@ Molt 0.1.0 -- Benchmark
             so far as command execution is concerned.
 *   Added new benchmarks, set-1.1, list-1.1.
     *   The new parser helps more the longer the commands to parse, not surprisingly.
+*   Running the benchmarks with "parse_command" and "cmd.execute" internal profiling, and
+    calling pdump at the end, I get this.
+```
+1720 nanos cmd.execute(lindex), count=7
+451 nanos cmd.execute(incr), count=1000
+3151 nanos cmd.execute(measure), count=7
+138 nanos cmd.execute(ok), count=3000
+1951251 nanos cmd.execute(time), count=7
+1960242 nanos parse_command(measure), count=7
+506 nanos cmd.execute(set), count=1000
+471 nanos parse_command(incr), count=1000
+1096 nanos parse_command(time), count=7
+258 nanos cmd.execute(list), count=1000
+215 nanos cmd.execute(ident), count=1000
+14866 nanos cmd.execute(proc), count=1
+495 nanos parse_command(ok), count=3000
+379 nanos parse_command(pdump), count=1
+1435 nanos parse_command(list), count=1000
+1563 nanos parse_command(benchmark), count=7
+1967784 nanos cmd.execute(benchmark), count=7
+1954879 nanos parse_command(lindex), count=7
+479 nanos parse_command(ident), count=1000
+30365 nanos parse_command(proc), count=1
+728 nanos parse_command(set), count=1000
+```
+    *   Things to note:
+        *   parse_command(measure) includes almost everything else, since the time includes
+            the time to parse and evaluate all of the benchmark bodies.
+        *   parse_command(proc) seems rather large.  It's got to be the definition of
+            `benchmark`, which is a short proc; and there should be no command or variable
+            interpolation or execution involved.  But it's twice as long as executing `proc`.
+            *   However, both were executed exactly once.
+            *   Running the same "proc" call in `time` 1000 times gives averages of
+                1403 nanos for parsing (about the same as list-1.1) and 4041 nanos for
+                execution.
+        *   cmd.execute(proc) seems large, too.
+        *   Running the benchmarks this way invalidates the normal benchmark results, since
+            we're paying the price for the internal profiling.
 
 ### 2019-08-25 (Sunday)
 *   Improving Interp's Parsing

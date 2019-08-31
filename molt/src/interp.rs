@@ -827,13 +827,14 @@ impl Interp {
         let mut result_value = Value::empty();
 
         while !ctx.at_end_of_script() {
-            let start = Instant::now();
+            // let start = Instant::now();
             let words = self.parse_command(ctx)?;
-            self.profile_save("parse_command", start);
 
             if words.is_empty() {
                 break;
             }
+
+            // self.profile_save(&format!("parse_command({})", words[0].as_str()), start);
 
             // When scanning for info
             if ctx.is_no_eval() {
@@ -843,10 +844,10 @@ impl Interp {
             // FIRST, convert to Vec<&str>
             let name = words[0].as_str();
             if let Some(cmd) = self.commands.get(name) {
-                let start = Instant::now();
+                // let start = Instant::now();
                 let cmd = Rc::clone(cmd);
                 let result = cmd.execute(self, words.as_slice());
-                self.profile_save(&format!("cmd.execute({})", name), start);
+                // self.profile_save(&format!("cmd.execute({})", name), start);
                 match result {
                     Ok(v) => result_value = v,
                     _ => return result,

@@ -650,15 +650,15 @@ pub fn cmd_time(interp: &mut Interp, argv: &[Value]) -> MoltResult {
         }
     }
 
-    let span = Instant::now().duration_since(start);
+    let span = start.elapsed();
 
     let avg = if count > 0 {
-        span.as_micros() as f64 / (count as f64)
+        span.as_nanos() / (count as u128)
     } else {
-        0.0
-    };
+        0
+    } as MoltInt;
 
-    molt_ok!("{} microseconds per iteration", avg)
+    molt_ok!("{} nanoseconds per iteration", avg)
 }
 
 /// # unset *varName*

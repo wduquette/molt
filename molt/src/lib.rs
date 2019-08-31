@@ -9,13 +9,11 @@ pub use crate::list::list_to_string;
 pub use crate::types::*;
 
 mod commands;
-#[allow(dead_code)] // Temporary
 mod eval_ptr;
 mod expr;
 pub mod interp;
 mod list;
-#[allow(dead_code)] // Temporary
-mod tokenizer;
+pub mod tokenizer;
 #[macro_use]
 mod macros;
 mod scope;

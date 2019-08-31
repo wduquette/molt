@@ -53,6 +53,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// Returns the next character and updates the index.
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Option<char> {
         let ch = self.chars.next();
 

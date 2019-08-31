@@ -89,23 +89,10 @@ impl<'a> EvalPtr<'a> {
         self.tok.next()
     }
 
-    /// Get the next character.
-    pub fn peek(&mut self) -> Option<char> {
-        self.tok.peek()
-    }
-
     /// Sees if the next character is the given character.
     // TODO: Change to "is".
     pub fn next_is(&mut self, ch: char) -> bool {
         self.tok.is(ch)
-    }
-
-    /// Is the predicate true for the next character? Does not update the index.
-    pub fn has<P>(&mut self, predicate: P) -> bool
-    where
-        P: Fn(&char) -> bool,
-    {
-        self.tok.has(predicate)
     }
 
     /// We are at the end of the input when there are no more characters left.
@@ -141,11 +128,6 @@ impl<'a> EvalPtr<'a> {
         self.tok.token(mark)
     }
 
-    /// Get the token between the mark and the index.  Returns "" if
-    /// mark == index.
-    pub fn token2(&self, mark: usize, index: usize) -> &str {
-        self.tok.token2(mark, index)
-    }
     /// Parses a backslash-escape and returns its value. If the escape is valid,
     /// the value will be the substituted character.  If the escape is not valid,
     /// it will be the single character following the backslash.  Either way, the
@@ -154,7 +136,7 @@ impl<'a> EvalPtr<'a> {
     pub fn backslash_subst(&mut self) -> char {
         self.tok.backslash_subst()
     }
-    
+
     //-----------------------------------------------------------------------
     // Parsing Helpers
 
@@ -191,24 +173,6 @@ impl<'a> EvalPtr<'a> {
         match self.tok.peek() {
             Some(c) => c.is_alphanumeric() || c == '_',
             None => false,
-        }
-    }
-
-    /// Is the current character a valid octal digit?
-    pub fn next_is_octal_digit(&mut self) -> bool {
-        match self.tok.peek() {
-            Some('0'..='7') => true,
-            _ => false,
-        }
-    }
-
-    /// Is the current character a valid hex digit?
-    pub fn next_is_hex_digit(&mut self) -> bool {
-        match self.tok.peek() {
-            Some('0'..='9') => true,
-            Some('a'..='f') => true,
-            Some('A'..='F') => true,
-            _ => false,
         }
     }
 

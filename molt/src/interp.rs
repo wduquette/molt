@@ -919,34 +919,22 @@ impl Interp {
         }
     }
 
-    /// Parse a braced word.
     pub(crate) fn parse_braced_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         // FIRST, skip the opening brace, and count it; non-escaped braces need to
         // balance.
         ctx.skip_char('{');
         let mut count = 1;
 
-        // NEXT, mark the start of the first token, and begin to accumulate the word.
+        // NEXT, add tokens to the word until we reach the close quote
         let mut word = String::new();
         let mut start = ctx.mark();
 
-        // NEXT, begin accumulating tokens.
-        loop {
-            // FIRST, skip to the beginning of the next token.
-            ctx.skip_while(|ch| *ch != '\\' && *ch != '{' && *ch != '}');
-
-            // NEXT, if we're at the end of the input the braces haven't balanced.
-            if ctx.at_end() {
-                return molt_err!("missing close-brace");
-            }
-
-            // NEXT, handle the next token based on its initial character.
-            let c = ctx.peek().unwrap();
-
-            if c == '{' {
+        while !ctx.at_end() {
+            // Note: the while condition ensures that there's a character.
+            if ctx.next_is('{') {
                 count += 1;
                 ctx.skip();
-            } else if c == '}' {
+            } else if ctx.next_is('}') {
                 count -= 1;
 
                 if count > 0 {
@@ -965,25 +953,27 @@ impl Interp {
                         return molt_err!("extra characters after close-brace");
                     }
                 }
-            } else {
-                assert!(c == '\\');
-                // This might or might not be a token break.
-                let backslash_mark = ctx.mark();
+            } else if ctx.next_is('\\') {
+                word.push_str(ctx.token(start));
                 ctx.skip();
 
-                if let Some(ch) = ctx.peek() {
+                // If there's no character it's because we're at the end; and there's
+                // no close brace.
+                if let Some(ch) = ctx.next() {
                     if ch == '\n' {
-                        word.push_str(ctx.token2(start, backslash_mark));
                         word.push(' ');
-                        ctx.skip();
-                        start = ctx.mark();
                     } else {
-                        // Skip the character following the backslash.
-                        ctx.skip();
+                        word.push('\\');
+                        word.push(ch);
                     }
                 }
+                start = ctx.mark();
+            } else {
+                ctx.skip();
             }
         }
+
+        molt_err!("missing close-brace")
     }
 
     /// Parse a quoted word.

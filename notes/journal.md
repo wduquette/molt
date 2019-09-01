@@ -42,6 +42,23 @@ Things to remember to do soon:
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
 
+### 2019-09-01 (Monday)
+*   Parsing issues:
+    *   Even if a word consists of a single variable reference or a single command interpolation,
+        it is currently turned into a string and a new Value.  Really it should be passed along
+        as a single value.
+        *   A braced word is always a new string.
+        *   A bare word can be an existing value if it consists only of a variable or
+            command interpolation.
+        *   A quoted word can be an existing value if it consists only of a variable or
+            command interpolation.
+        *   None of these can be existing values in other circumstances, because we always
+            re-parse scripts.
+    *   Suppose I parsed scripts into a structure, and executed the structure.  
+        *   Would make `eval` slower, and individual commands slower, but script strings
+            should be faster.
+    *   See notes/parsed_form.md for ideas on what it might look like.
+
 ### 2019-08-31 (Saturday)
 *   Improving Interp's Parsing: Review
     *   parse_braced_word

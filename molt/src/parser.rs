@@ -15,7 +15,7 @@ type Word = Vec<Token>;
 enum Token {
     String(String),
     VarRef(String),
-    CmdRef(Script),
+    Script(Script),
 }
 
 /// A compiled script, which can be executed in the context of an interpreter.
@@ -160,7 +160,7 @@ fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
         // Note: the while condition ensures that there's a character.
         if ctx.next_is('[') {
             word.push(Token::String(ctx.token(start).to_string()));
-            word.push(Token::CmdRef(parse_cmdref(ctx)?));
+            word.push(Token::Script(parse_brackets(ctx)?));
             start = ctx.mark();
         } else if ctx.next_is('$') {
             word.push(Token::String(ctx.token(start).to_string()));
@@ -195,7 +195,7 @@ fn parse_bare_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
         // Note: the while condition ensures that there's a character.
         if ctx.next_is('[') {
             word.push(Token::String(ctx.token(start).to_string()));
-            word.push(Token::CmdRef(parse_cmdref(ctx)?));
+            word.push(Token::Script(parse_brackets(ctx)?));
             start = ctx.mark();
         } else if ctx.next_is('$') {
             word.push(Token::String(ctx.token(start).to_string()));
@@ -215,14 +215,13 @@ fn parse_bare_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     Ok(word)
 }
 
-fn parse_cmdref(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
+fn parse_brackets(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
     // FIRST, skip the '['
     ctx.skip_char('[');
 
     // NEXT, parse the script up to the matching ']'
     let old_flag = ctx.is_bracket_term();
     ctx.set_bracket_term(true);
-    // TODO Probably we want to make this a script.
     let result = parse_script(ctx);
     ctx.set_bracket_term(old_flag);
 

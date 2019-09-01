@@ -35,70 +35,6 @@ enum Word {
     String(String), // Only used in Tokens
 }
 
-// /// A single word in a command
-// #[derive(Debug)]
-// struct Word {
-//     tokens: Vec<Token>,
-// }
-//
-// impl Word {
-//     fn new() -> Self {
-//         Self {
-//             tokens: Vec::new()
-//         }
-//     }
-//
-//     fn push_str(&mut self, str: &str) {
-//         let last = self.tokens.pop();
-//
-//         match last {
-//             Some(Token::String(mut string)) => {
-//                 string.push_str(str);
-//                 self.tokens.push(Token::String(string));
-//             }
-//             Some(token) => {
-//                 self.tokens.push(token);
-//                 self.tokens.push(Token::String(str.into()));
-//             }
-//             None => {
-//                 self.tokens.push(Token::String(str.into()));
-//             }
-//         }
-//     }
-//
-//     fn push(&mut self, token: Token) {
-//         self.tokens.push(token);
-//     }
-//
-//     // If the word consists of a single Token::String, convert it to a single Value.
-//     fn simplify(&mut self) {
-//         if self.tokens.len() == 1 {
-//             let first = self.tokens.pop();
-//
-//             match first {
-//                 Some(Token::String(string)) => {
-//                     self.tokens.push(Token::Value(Value::from(string)));
-//                 }
-//                 Some(token) => {
-//                     self.tokens.push(token);
-//                 }
-//                 _ => unreachable!(),
-//             }
-//         }
-//     }
-// }
-//
-// /// A token within a word.
-// #[derive(Debug)]
-// enum Token {
-//     String(String),
-//     VarRef(String),
-//     Script(Script),
-//     Value(Value),
-// }
-
-
-
 pub fn parse(input: &str) -> Result<Script,ResultCode> {
     let mut ctx = EvalPtr::new(input);
     parse_script(&mut ctx)
@@ -218,39 +154,38 @@ fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     ctx.next();
 
     // NEXT, add tokens to the word until we reach the close quote
-    let mut tokens: Vec<Word> = Vec::new();
+    let mut tokens = Tokens::new();
     let mut start = ctx.mark();
 
     while !ctx.at_end() {
         // Note: the while condition ensures that there's a character.
         if ctx.next_is('[') {
             if start != ctx.mark() {
-                tokens.push(Word::String(ctx.token(start).to_string()));
+                tokens.push_str(ctx.token(start));
             }
             tokens.push(Word::Script(parse_brackets(ctx)?));
             start = ctx.mark();
         } else if ctx.next_is('$') {
             if start != ctx.mark() {
-                tokens.push(Word::String(ctx.token(start).to_string()));
+                tokens.push_str(ctx.token(start));
             }
-            tokens.push(parse_varname(ctx)?);
+            parse_varname(ctx, &mut tokens)?;
             start = ctx.mark();
         } else if ctx.next_is('\\') {
             if start != ctx.mark() {
-                tokens.push(Word::String(ctx.token(start).to_string()));
+                tokens.push_str(ctx.token(start));
             }
-            // TODO: push_char
-            tokens.push(Word::String(ctx.token(start).to_string()));
+            tokens.push_char(ctx.backslash_subst());
             start = ctx.mark();
         } else if ctx.next_is('"') {
             if start != ctx.mark() {
-                tokens.push(Word::String(ctx.token(start).to_string()));
+                tokens.push_str(ctx.token(start));
             }
             ctx.skip_char('"');
             if !ctx.at_end_of_command() && !ctx.next_is_line_white() {
                 return molt_err!("extra characters after close-quote");
             } else {
-                return Ok(tokens2word(tokens));
+                return Ok(tokens.take());
             }
         } else {
             ctx.skip();
@@ -262,29 +197,28 @@ fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
 
 /// Parse a bare word.
 fn parse_bare_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
-    let mut tokens: Vec<Word> = Vec::new();
+    let mut tokens = Tokens::new();
     let mut start = ctx.mark();
 
     while !ctx.at_end_of_command() && !ctx.next_is_line_white() {
         // Note: the while condition ensures that there's a character.
         if ctx.next_is('[') {
             if start != ctx.mark() {
-                tokens.push(Word::String(ctx.token(start).to_string()));
+                tokens.push_str(ctx.token(start));
             }
             tokens.push(Word::Script(parse_brackets(ctx)?));
             start = ctx.mark();
         } else if ctx.next_is('$') {
             if start != ctx.mark() {
-                tokens.push(Word::String(ctx.token(start).to_string()));
+                tokens.push_str(ctx.token(start));
             }
-            tokens.push(parse_varname(ctx)?);
+            parse_varname(ctx, &mut tokens)?;
             start = ctx.mark();
         } else if ctx.next_is('\\') {
             if start != ctx.mark() {
-                tokens.push(Word::String(ctx.token(start).to_string()));
+                tokens.push_str(ctx.token(start));
             }
-            // TODO: push_char
-            tokens.push(Word::String(ctx.token(start).to_string()));
+            tokens.push_char(ctx.backslash_subst());
             start = ctx.mark();
         } else {
             ctx.skip();
@@ -292,10 +226,10 @@ fn parse_bare_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     }
 
     if start != ctx.mark() {
-        tokens.push(Word::String(ctx.token(start).to_string()));
+        tokens.push_str(ctx.token(start));
     }
 
-    Ok(tokens2word(tokens))
+    Ok(tokens.take())
 }
 
 fn parse_brackets(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
@@ -320,14 +254,15 @@ fn parse_brackets(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
     result
 }
 
-fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+fn parse_varname(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCode> {
     // FIRST, skip the '$'
     ctx.skip_char('$');
 
     // NEXT, make sure this is really a variable reference.  If it isn't
     // just return a "$".
     if !ctx.next_is_varname_char() && !ctx.next_is('{') {
-        return Ok(Word::String("$".into()));
+        tokens.push_char('$');
+        return Ok(());
     }
 
     // NEXT, is this a braced variable name?
@@ -350,29 +285,63 @@ fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
         var_name = ctx.token(start).to_string();
     }
 
-    Ok(Word::VarRef(var_name))
+    tokens.push(Word::VarRef(var_name));
+    Ok(())
 }
 
-fn tokens2word(mut tokens: Vec<Word>) -> Word {
-    // FIRST, merge adjacent Strings
-    let _parts: Vec<Word> = Vec::new();
+struct Tokens {
+    list: Vec<Word>,
+    got_string: bool,
+    string: String,
+}
 
-    // NEXT, if there's just one token, return it.  Convert it to a Value if it's a String.
-    if tokens.len() == 1 {
-        let first = tokens.pop();
-        match first {
-            Some(Word::String(string)) => {
-                Word::Value(Value::from(string))
-            }
-            Some(word) => {
-                word
-            }
-            _ => unreachable!(),
+impl Tokens {
+    fn new() -> Self {
+        Self {
+            list: Vec::new(),
+            got_string: false,
+            string: String::new(),
         }
-    } else {
-        Word::Tokens(tokens)
     }
 
+    fn push(&mut self, word: Word) {
+        if self.got_string {
+            let string = std::mem::replace(&mut self.string, String::new());
+            self.list.push(Word::String(string));
+            self.got_string = false;
+        }
+
+        self.list.push(word);
+    }
+
+    fn push_str(&mut self, str: &str) {
+        self.string.push_str(str);
+        self.got_string = true;
+    }
+
+    fn push_char(&mut self, ch: char) {
+        self.string.push(ch);
+        self.got_string = true;
+    }
+
+    fn take(mut self) -> Word {
+        if self.got_string {
+            // If there's nothing but the string, turn it into a value.
+            // Otherwise, just add it to the list of tokens.
+            if self.list.is_empty() {
+                return Word::Value(Value::from(self.string));
+            } else {
+                let string = std::mem::replace(&mut self.string, String::new());
+                self.list.push(Word::String(string));
+            }
+        }
+
+        if self.list.len() == 1 {
+            self.list.pop().unwrap()
+        } else {
+            Word::Tokens(self.list)
+        }
+    }
 }
 
 /// # parse *script*

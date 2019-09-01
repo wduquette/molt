@@ -64,6 +64,18 @@ Things to remember to do soon:
         Word::Script(Script), Word::Tokens(Vec<Word>), Word::String(String).
         *   Most of the time a word is just a single token.
         *   A complex word is just a word with subwords.
+    *   DONE; yes, this is much cleaner looking.
+    *   Defines a temporary Tokens type, to handle building up the word out of tokens.
+        *   Simplify multi-token words, collapsing adjacent strings.
+        *   It has a `Vec<Word>` and a String.
+        *   Added strings get added to the string.
+        *   If there's anything else, anything in the string gets converted to Word::String
+            and added to the list, and the string is cleared.
+        *   At the end you ask it for a word.
+            *   If the list is empty, you get the string as a Word::Value.
+            *   Otherwise, anything in the String is added to the list as Word::String
+                and you get Word::Tokens.
+    *   Done.  I think this is ready for the next step, which will be evaluation.
 
 ### 2019-08-31 (Saturday)
 *   Improving Interp's Parsing: Review

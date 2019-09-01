@@ -1,25 +1,17 @@
 //! Experimental code.
 
+use crate::check_args;
+use crate::types::MoltResult;
+use crate::interp::Interp;
 use crate::eval_ptr::EvalPtr;
 use crate::types::ResultCode;
 use crate::value::Value;
 use crate::util::is_varname_char;
 
-/// A single command in the script.
-type Command = Vec<Word>;
-
-/// A single word in a command
-type Word = Vec<Token>;
-
-/// A token within a word.
-enum Token {
-    String(String),
-    VarRef(String),
-    Script(Script),
-}
-
 /// A compiled script, which can be executed in the context of an interpreter.
+#[derive(Debug)]
 pub struct Script {
+    // A script is a list of one or more commands to execute.
     commands: Vec<Command>,
 }
 
@@ -30,6 +22,81 @@ impl Script {
         }
     }
 }
+
+/// A command is a list of words.  This represents a single command in a Script.
+type Command = Vec<Word>;
+
+#[derive(Debug)]
+enum Word {
+    Value(Value),
+    VarRef(String),
+    Script(Script),
+    Tokens(Vec<Word>),
+    String(String), // Only used in Tokens
+}
+
+// /// A single word in a command
+// #[derive(Debug)]
+// struct Word {
+//     tokens: Vec<Token>,
+// }
+//
+// impl Word {
+//     fn new() -> Self {
+//         Self {
+//             tokens: Vec::new()
+//         }
+//     }
+//
+//     fn push_str(&mut self, str: &str) {
+//         let last = self.tokens.pop();
+//
+//         match last {
+//             Some(Token::String(mut string)) => {
+//                 string.push_str(str);
+//                 self.tokens.push(Token::String(string));
+//             }
+//             Some(token) => {
+//                 self.tokens.push(token);
+//                 self.tokens.push(Token::String(str.into()));
+//             }
+//             None => {
+//                 self.tokens.push(Token::String(str.into()));
+//             }
+//         }
+//     }
+//
+//     fn push(&mut self, token: Token) {
+//         self.tokens.push(token);
+//     }
+//
+//     // If the word consists of a single Token::String, convert it to a single Value.
+//     fn simplify(&mut self) {
+//         if self.tokens.len() == 1 {
+//             let first = self.tokens.pop();
+//
+//             match first {
+//                 Some(Token::String(string)) => {
+//                     self.tokens.push(Token::Value(Value::from(string)));
+//                 }
+//                 Some(token) => {
+//                     self.tokens.push(token);
+//                 }
+//                 _ => unreachable!(),
+//             }
+//         }
+//     }
+// }
+//
+// /// A token within a word.
+// #[derive(Debug)]
+// enum Token {
+//     String(String),
+//     VarRef(String),
+//     Script(Script),
+//     Value(Value),
+// }
+
 
 
 pub fn parse(input: &str) -> Result<Script,ResultCode> {
@@ -66,15 +133,13 @@ fn parse_command(ctx: &mut EvalPtr) -> Result<Command, ResultCode> {
     // NOTE: parse_word() can always assume that it's at the beginning of a word.
     while !ctx.at_end_of_command() {
         // FIRST, get the next word; there has to be one, or there's an input error.
-        let word = if ctx.next_is('{') {
+        let word: Word = if ctx.next_is('{') {
             parse_braced_word(ctx)?
         } else if ctx.next_is('"') {
             parse_quoted_word(ctx)?
         } else {
             parse_bare_word(ctx)?
         };
-
-        // TODO: Adjacent Token::Value entries should be concatenated.
 
         cmd.push(word);
 
@@ -97,7 +162,7 @@ fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     let mut count = 1;
 
     // NEXT, add tokens to the word until we reach the close quote
-    let mut word = String::new();
+    let mut text = String::new();
     let mut start = ctx.mark();
 
     while !ctx.at_end() {
@@ -114,8 +179,8 @@ fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
                 // We've found and consumed the closing brace.  We should either
                 // see more more whitespace, or we should be at the end of the list
                 // Otherwise, there are incorrect characters following the close-brace.
-                word.push_str(ctx.token(start));
-                let result = Ok(vec![Token::String(word)]);
+                text.push_str(ctx.token(start));
+                let result = Ok(Word::String(text));
                 ctx.skip(); // Skip the closing brace
 
                 if ctx.at_end_of_command() || ctx.next_is_line_white() {
@@ -125,17 +190,17 @@ fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
                 }
             }
         } else if ctx.next_is('\\') {
-            word.push_str(ctx.token(start));
+            text.push_str(ctx.token(start));
             ctx.skip();
 
             // If there's no character it's because we're at the end; and there's
             // no close brace.
             if let Some(ch) = ctx.next() {
                 if ch == '\n' {
-                    word.push(' ');
+                    text.push(' ');
                 } else {
-                    word.push('\\');
-                    word.push(ch);
+                    text.push('\\');
+                    text.push(ch);
                 }
             }
             start = ctx.mark();
@@ -153,30 +218,39 @@ fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     ctx.next();
 
     // NEXT, add tokens to the word until we reach the close quote
-    let mut word: Word = Vec::new();
+    let mut tokens: Vec<Word> = Vec::new();
     let mut start = ctx.mark();
 
     while !ctx.at_end() {
         // Note: the while condition ensures that there's a character.
         if ctx.next_is('[') {
-            word.push(Token::String(ctx.token(start).to_string()));
-            word.push(Token::Script(parse_brackets(ctx)?));
+            if start != ctx.mark() {
+                tokens.push(Word::String(ctx.token(start).to_string()));
+            }
+            tokens.push(Word::Script(parse_brackets(ctx)?));
             start = ctx.mark();
         } else if ctx.next_is('$') {
-            word.push(Token::String(ctx.token(start).to_string()));
-            word.push(parse_varname(ctx)?);
+            if start != ctx.mark() {
+                tokens.push(Word::String(ctx.token(start).to_string()));
+            }
+            tokens.push(parse_varname(ctx)?);
             start = ctx.mark();
         } else if ctx.next_is('\\') {
-            word.push(Token::String(ctx.token(start).to_string()));
-            word.push(Token::String(ctx.backslash_subst().to_string()));
+            if start != ctx.mark() {
+                tokens.push(Word::String(ctx.token(start).to_string()));
+            }
+            // TODO: push_char
+            tokens.push(Word::String(ctx.token(start).to_string()));
             start = ctx.mark();
         } else if ctx.next_is('"') {
-            word.push(Token::String(ctx.token(start).to_string()));
+            if start != ctx.mark() {
+                tokens.push(Word::String(ctx.token(start).to_string()));
+            }
             ctx.skip_char('"');
             if !ctx.at_end_of_command() && !ctx.next_is_line_white() {
                 return molt_err!("extra characters after close-quote");
             } else {
-                return Ok(word);
+                return Ok(tokens2word(tokens));
             }
         } else {
             ctx.skip();
@@ -188,31 +262,40 @@ fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
 
 /// Parse a bare word.
 fn parse_bare_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
-    let mut word: Word = Vec::new();
+    let mut tokens: Vec<Word> = Vec::new();
     let mut start = ctx.mark();
 
     while !ctx.at_end_of_command() && !ctx.next_is_line_white() {
         // Note: the while condition ensures that there's a character.
         if ctx.next_is('[') {
-            word.push(Token::String(ctx.token(start).to_string()));
-            word.push(Token::Script(parse_brackets(ctx)?));
+            if start != ctx.mark() {
+                tokens.push(Word::String(ctx.token(start).to_string()));
+            }
+            tokens.push(Word::Script(parse_brackets(ctx)?));
             start = ctx.mark();
         } else if ctx.next_is('$') {
-            word.push(Token::String(ctx.token(start).to_string()));
-            word.push(parse_varname(ctx)?);
+            if start != ctx.mark() {
+                tokens.push(Word::String(ctx.token(start).to_string()));
+            }
+            tokens.push(parse_varname(ctx)?);
             start = ctx.mark();
         } else if ctx.next_is('\\') {
-            word.push(Token::String(ctx.token(start).to_string()));
-            word.push(Token::String(ctx.backslash_subst().to_string()));
+            if start != ctx.mark() {
+                tokens.push(Word::String(ctx.token(start).to_string()));
+            }
+            // TODO: push_char
+            tokens.push(Word::String(ctx.token(start).to_string()));
             start = ctx.mark();
         } else {
             ctx.skip();
         }
     }
 
-    word.push(Token::String(ctx.token(start).to_string()));
+    if start != ctx.mark() {
+        tokens.push(Word::String(ctx.token(start).to_string()));
+    }
 
-    Ok(word)
+    Ok(tokens2word(tokens))
 }
 
 fn parse_brackets(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
@@ -237,14 +320,14 @@ fn parse_brackets(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
     result
 }
 
-fn parse_varname(ctx: &mut EvalPtr) -> Result<Token, ResultCode> {
+fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     // FIRST, skip the '$'
     ctx.skip_char('$');
 
     // NEXT, make sure this is really a variable reference.  If it isn't
     // just return a "$".
     if !ctx.next_is_varname_char() && !ctx.next_is('{') {
-        return Ok(Token::String("$".into()));
+        return Ok(Word::String("$".into()));
     }
 
     // NEXT, is this a braced variable name?
@@ -267,5 +350,36 @@ fn parse_varname(ctx: &mut EvalPtr) -> Result<Token, ResultCode> {
         var_name = ctx.token(start).to_string();
     }
 
-    Ok(Token::VarRef(var_name))
+    Ok(Word::VarRef(var_name))
+}
+
+fn tokens2word(mut tokens: Vec<Word>) -> Word {
+    // FIRST, merge adjacent Strings
+    let _parts: Vec<Word> = Vec::new();
+
+    // NEXT, if there's just one token, return it.  Convert it to a Value if it's a String.
+    if tokens.len() == 1 {
+        let first = tokens.pop();
+        match first {
+            Some(Word::String(string)) => {
+                Word::Value(Value::from(string))
+            }
+            Some(word) => {
+                word
+            }
+            _ => unreachable!(),
+        }
+    } else {
+        Word::Tokens(tokens)
+    }
+
+}
+
+/// # parse *script*
+pub fn cmd_parse(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 2, "script")?;
+
+    let script = &argv[1];
+
+    molt_ok!(format!("{:?}", parse(script.as_str())?))
 }

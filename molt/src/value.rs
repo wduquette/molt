@@ -159,7 +159,7 @@ use std::str::FromStr;
 // Public Data Types
 
 /// The `Value` type. See [the module level documentation](index.html) for more.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Value {
     inner: Rc<InnerValue>,
 }
@@ -168,6 +168,11 @@ pub struct Value {
 struct InnerValue {
     string_rep: UnsafeCell<Option<String>>,
     data_rep: RefCell<DataRep>,
+}
+impl std::fmt::Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Value[{}]", self.as_str())
+    }
 }
 
 impl Value {

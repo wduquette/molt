@@ -58,6 +58,12 @@ Things to remember to do soon:
         *   Would make `eval` slower, and individual commands slower, but script strings
             should be faster.
     *   See notes/parsed_form.md for ideas on what it might look like.
+*   See parser.rs.  This initial version seems to parse correctly (not yet fully tested).
+    *   A Word is still defined as a vector of tokens.
+    *   I think it would be better if it were an enum, Word::Value(Value), Word::VarName(String),
+        Word::Script(Script), Word::Tokens(Vec<Word>), Word::String(String).
+        *   Most of the time a word is just a single token.
+        *   A complex word is just a word with subwords.
 
 ### 2019-08-31 (Saturday)
 *   Improving Interp's Parsing: Review

@@ -104,6 +104,7 @@
 //! [`Interp`]: struct.Interp.html
 
 use crate::commands;
+use crate::parser;
 use crate::eval_ptr::EvalPtr;
 use crate::expr;
 use crate::molt_err;
@@ -274,6 +275,7 @@ impl Interp {
         interp.add_command("exit", commands::cmd_exit);
 
         // TODO: Developer Tools
+        interp.add_command("parse", parser::cmd_parse);
         interp.add_command("pdump", commands::cmd_pdump);
         interp.add_command("pclear", commands::cmd_pclear);
 

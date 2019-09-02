@@ -104,11 +104,11 @@
 //! [`Interp`]: struct.Interp.html
 
 use crate::commands;
-use crate::parser;
 use crate::eval_ptr::EvalPtr;
 use crate::expr;
 use crate::molt_err;
 use crate::molt_ok;
+use crate::parser;
 use crate::scope::ScopeStack;
 use crate::types::Command;
 use crate::types::*;
@@ -175,10 +175,7 @@ struct ProfileRecord {
 
 impl ProfileRecord {
     fn new() -> Self {
-        Self {
-            count: 0,
-            nanos: 0,
-        }
+        Self { count: 0, nanos: 0 }
     }
 }
 
@@ -1096,7 +1093,10 @@ impl Interp {
 
     pub fn profile_save(&mut self, name: &str, start: std::time::Instant) {
         let dur = Instant::now().duration_since(start).as_nanos();
-        let rec = self.profile_map.entry(name.into()).or_insert_with(ProfileRecord::new);
+        let rec = self
+            .profile_map
+            .entry(name.into())
+            .or_insert_with(ProfileRecord::new);
 
         rec.count += 1;
         rec.nanos += dur;
@@ -1490,7 +1490,10 @@ mod tests {
         assert_eq!(pqw(&mut interp, "\"a[list b c]d\""), "ab cd|".to_string());
 
         // Extra characters after close-quote
-        assert_eq!(pqw(&mut interp, "\"abc\"x  "), "extra characters after close-quote");
+        assert_eq!(
+            pqw(&mut interp, "\"abc\"x  "),
+            "extra characters after close-quote"
+        );
     }
 
     fn pqw(interp: &mut Interp, input: &str) -> String {
@@ -1557,8 +1560,10 @@ mod tests {
         assert_eq!(pvar(&mut interp, "a", "${a}b"), "OK|b".to_string());
         assert_eq!(pvar(&mut interp, "a", "$"), "$|".to_string());
 
-        assert_eq!(pvar(&mut interp, "a", "$1"), "can't read \"1\": no such variable".to_string());
-
+        assert_eq!(
+            pvar(&mut interp, "a", "$1"),
+            "can't read \"1\": no such variable".to_string()
+        );
     }
 
     fn pvar(interp: &mut Interp, var: &str, input: &str) -> String {

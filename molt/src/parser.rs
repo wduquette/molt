@@ -1,15 +1,15 @@
 //! Experimental code.
 
 use crate::check_args;
-use crate::types::MoltResult;
-use crate::interp::Interp;
 use crate::eval_ptr::EvalPtr;
+use crate::interp::Interp;
+use crate::types::MoltResult;
 use crate::types::ResultCode;
-use crate::value::Value;
 use crate::util::is_varname_char;
+use crate::value::Value;
 
 /// A compiled script, which can be executed in the context of an interpreter.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Script {
     // A script is a list of one or more commands to execute.
     commands: Vec<Command>,
@@ -26,7 +26,7 @@ impl Script {
 /// A command is a list of words.  This represents a single command in a Script.
 type Command = Vec<Word>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Word {
     Value(Value),
     VarRef(String),
@@ -35,7 +35,7 @@ enum Word {
     String(String), // Only used in Tokens
 }
 
-pub fn parse(input: &str) -> Result<Script,ResultCode> {
+pub fn parse(input: &str) -> Result<Script, ResultCode> {
     let mut ctx = EvalPtr::new(input);
     parse_script(&mut ctx)
 }
@@ -336,7 +336,9 @@ impl Tokens {
             }
         }
 
-        if self.list.len() == 1 {
+        if self.list.is_empty() {
+            Word::Value(Value::empty())
+        } else if self.list.len() == 1 {
             self.list.pop().unwrap()
         } else {
             Word::Tokens(self.list)
@@ -351,4 +353,64 @@ pub fn cmd_parse(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     let script = &argv[1];
 
     molt_ok!(format!("{:?}", parse(script.as_str())?))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tokens() {
+        // No tokens pushed; get empty string.
+        let tokens = Tokens::new();
+        assert_eq!(tokens.take(), Word::Value(Value::empty()));
+
+        // Push normal Word only; get it back.
+        let mut tokens = Tokens::new();
+        tokens.push(Word::Value(Value::from("abc")));
+        assert_eq!(tokens.take(), Word::Value(Value::from("abc")));
+
+        // Push a single str.  Get Value.
+        let mut tokens = Tokens::new();
+        tokens.push_str("xyz");
+        assert_eq!(tokens.take(), Word::Value(Value::from("xyz")));
+
+        // Push two strs.  Get one value.
+        let mut tokens = Tokens::new();
+        tokens.push_str("abc");
+        tokens.push_str("def");
+        assert_eq!(tokens.take(), Word::Value(Value::from("abcdef")));
+
+        // Push strs and chars.  Get one value.
+        let mut tokens = Tokens::new();
+        tokens.push_str("abc");
+        tokens.push_char('/');
+        tokens.push_str("def");
+        assert_eq!(tokens.take(), Word::Value(Value::from("abc/def")));
+
+        // Push multiple normal words
+        let mut tokens = Tokens::new();
+        tokens.push(Word::VarRef("a".into()));
+        tokens.push(Word::String("xyz".into()));
+        assert_eq!(
+            tokens.take(),
+            Word::Tokens(vec![Word::VarRef("a".into()), Word::String("xyz".into())])
+        );
+
+        // Push a string, a word, and another string
+        let mut tokens = Tokens::new();
+        tokens.push_str("a");
+        tokens.push_str("b");
+        tokens.push(Word::VarRef("xyz".into()));
+        tokens.push_str("c");
+        tokens.push_str("d");
+        assert_eq!(
+            tokens.take(),
+            Word::Tokens(vec![
+                Word::String("ab".into()),
+                Word::VarRef("xyz".into()),
+                Word::String("cd".into())
+            ])
+        );
+    }
 }

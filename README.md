@@ -36,14 +36,15 @@ $ cargo run test test/all.tcl
 
 ## TODO Items
 
-*   Integrate the new Value type into Molt:
+*   Revise expr.rs to separate parsing from evaluation.
+*   Cleanup
     *   Look at how to best store proc details for efficient execution.
-    *   Ponder the MoltList API, and consider how to make it cleaner
-        *   list! macro to build lists from things that implement `Into<Value>`?
+    *   Ponder the MoltList API, and consider if we can make it cleaner?
+        *   Can add methods to MoltList in value.rs: `impl Vec<Value>`.  At least, I think
+            I can.
     *   Consider whether var names should be stored as Values.
     *   Consider whether molt::MoltFloat, molt::MoltInt, and molt::MoltList should be
         molt::Float, molt::Int, and molt::List.
-        *   Yeah, probably.
 *   Add Interp::eval_file(), and implement `source` in terms of it.
 *   Investigate performance of basic benchmarks.
 *   Issues from wduquette/molt.
@@ -70,7 +71,6 @@ $ cargo run test test/all.tcl
 * Add costly features to core molt (e.g., regexp, glob) as Rust features.
   * `molt test` needs to be able to filter tests based on the available
     features.
-* Review main parser implementation; look for more idiomatic, less expensive code.
 * On-going:
     * Document Molt's TCL dialect using mdbook, and publish to GitHub pages.
 * Consider generalizing the Subcommand array mechanism; standard command sets

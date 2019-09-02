@@ -2,16 +2,16 @@
 
 Things to remember to do soon:
 
-*   What happens if I add a Value data rep that's a parsed script/command/expr?  No byte-compiling,
-    but I parse into a form I can execute without parsing?  How fast would that be?
-    *   So the body of a proc, for example, is already parsed as a script.
-*   Revise the parsing code to use Tokenizer to extract slices, rather than
-    building up small strings a character at a time.
-    *   expr::
-*   interp.rs using "context" in two different senses:
-    *   The command context mechanism
-    *   The evaluation context represented by `EvalPtr`.
-    *   That's messy; let's figure out something better.
+*   Needed changes to expr.rs:
+    *   Use Tokenizer to extract slices, rather than building up small strings a character at a
+        time.
+    *   Revise to parse to a syntax tree and evaluate that:
+        *   expr_parser
+        *   Value::as_expr
+        *   expr_eval
+        *   Use the new parser/evaluator to handle interpolated variables and commands.
+    *   Remove set_no_eval from EvalPtr (since we won't be using it anymore).
+    *   Remove old evaluation-based parser from interp.rs.
 *   Revise Value per Yandros' style comments here:
     https://users.rust-lang.org/t/lazy-initialization-vs-interior-mutability/30742/7
 *   Flesh out the interp.rs test suite and rustdocs.

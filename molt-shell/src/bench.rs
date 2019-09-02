@@ -12,7 +12,6 @@
 //! See the Molt Book (or the Molt benchmark suite) for how to write
 //! benchmarks and examples of benchmark scripts.
 
-use molt::MoltInt;
 use molt::check_args;
 use molt::molt_ok;
 use molt::ContextID;

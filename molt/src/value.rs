@@ -142,6 +142,8 @@
 use crate::expr::Datum;
 use crate::list::get_list;
 use crate::list::list_to_string;
+use crate::parser;
+use crate::parser::Script;
 use crate::types::MoltFloat;
 use crate::types::MoltInt;
 use crate::types::MoltList;
@@ -159,7 +161,7 @@ use std::str::FromStr;
 // Public Data Types
 
 /// The `Value` type. See [the module level documentation](index.html) for more.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Value {
     inner: Rc<InnerValue>,
 }
@@ -168,6 +170,11 @@ pub struct Value {
 struct InnerValue {
     string_rep: UnsafeCell<Option<String>>,
     data_rep: RefCell<DataRep>,
+}
+impl std::fmt::Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Value[{}]", self.as_str())
+    }
 }
 
 impl Value {
@@ -727,6 +734,26 @@ impl Value {
         Ok((&*self.as_list()?).to_owned())
     }
 
+    /// Tries to return the `Value` as an `Rc<Script>`, parsing the
+    /// value's string representation if necessary.
+    ///
+    /// For internal use only.  Note: this is the normal way to convert a script string
+    /// into a Script object.  Converting the Script back into a Tcl string is not
+    /// currently supported.
+    pub(crate) fn as_script(&self) -> Result<Rc<Script>, ResultCode> {
+        // FIRST, if we have the desired type, return it.
+        if let DataRep::Script(script) = &*self.inner.data_rep.borrow() {
+            return Ok(script.clone());
+        }
+
+        // NEXT, try to parse the string_rep as a script.
+        let str = self.as_str();
+        let script = Rc::new(parser::parse(str)?);
+        *self.inner.data_rep.borrow_mut() = DataRep::Script(script.clone());
+
+        Ok(script)
+    }
+
     /// Creates a new `Value` containing the given value of some user type.
     ///
     /// The user type must meet certain constraints; see the
@@ -955,6 +982,9 @@ enum DataRep {
     /// A Molt List
     List(Rc<MoltList>),
 
+    /// A Script
+    Script(Rc<Script>),
+
     /// An external data type
     Other(Rc<dyn MoltAny>),
 
@@ -969,6 +999,7 @@ impl Display for DataRep {
             DataRep::Int(int) => write!(f, "{}", int),
             DataRep::Flt(flt) => Value::fmt_float(f, *flt),
             DataRep::List(list) => write!(f, "{}", list_to_string(&*list)),
+            DataRep::Script(script) => write!(f, "{:?}", script),
             DataRep::Other(other) => write!(f, "{}", other),
             DataRep::None => write!(f, ""),
         }
@@ -1220,6 +1251,15 @@ mod tests {
         assert_eq!(list.len(), 2);
         assert_eq!(list[0].to_string(), "abc".to_string());
         assert_eq!(list[1].to_string(), "def".to_string());
+    }
+
+    #[test]
+    fn as_script() {
+        let val = Value::from("a");
+        assert!(val.as_script().is_ok());
+
+        let val = Value::from("a {b");
+        assert_eq!(val.as_script(), molt_err!("missing close-brace"));
     }
 
     #[test]

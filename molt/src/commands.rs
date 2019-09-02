@@ -481,6 +481,28 @@ pub fn cmd_llength(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     molt_ok!(argv[1].as_list()?.len() as MoltInt)
 }
 
+/// # pdump
+///
+/// Dumps profile data.  Developer use only.
+pub fn cmd_pdump(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 1, 1, "")?;
+
+    interp.profile_dump();
+
+    molt_ok!()
+}
+
+/// # pclear
+///
+/// Clears profile data.  Developer use only.
+pub fn cmd_pclear(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 1, 1, "")?;
+
+    interp.profile_clear();
+
+    molt_ok!()
+}
+
 /// # proc *name* *args* *body*
 ///
 /// Defines a procedure.
@@ -628,15 +650,15 @@ pub fn cmd_time(interp: &mut Interp, argv: &[Value]) -> MoltResult {
         }
     }
 
-    let span = Instant::now().duration_since(start);
+    let span = start.elapsed();
 
     let avg = if count > 0 {
-        span.as_micros() as f64 / (count as f64)
+        span.as_nanos() / (count as u128)
     } else {
-        0.0
-    };
+        0
+    } as MoltInt;
 
-    molt_ok!("{} microseconds per iteration", avg)
+    molt_ok!("{} nanoseconds per iteration", avg)
 }
 
 /// # unset *varName*

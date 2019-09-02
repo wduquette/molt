@@ -1,4 +1,5 @@
 # Initial set of benchmarks.
+pclear
 
 benchmark ok-1.1 {ok, no arguments} {
     ok
@@ -27,3 +28,5 @@ benchmark set-1.1 {set var value} {
 benchmark list-1.1 {list of six items} {
     list this that theother foo bar quux
 }
+
+pdump

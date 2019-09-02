@@ -2,13 +2,16 @@
 
 Things to remember to do soon:
 
-*   Revise the parsing code to use Tokenizer to extract slices, rather than
-    building up small strings a character at a time.
-    *   expr::
-*   interp.rs using "context" in two different senses:
-    *   The command context mechanism
-    *   The evaluation context represented by `EvalPtr`.
-    *   That's messy; let's figure out something better.
+*   Needed changes to expr.rs:
+    *   Use Tokenizer to extract slices, rather than building up small strings a character at a
+        time.
+    *   Revise to parse to a syntax tree and evaluate that:
+        *   expr_parser
+        *   Value::as_expr
+        *   expr_eval
+        *   Use the new parser/evaluator to handle interpolated variables and commands.
+    *   Remove set_no_eval from EvalPtr (since we won't be using it anymore).
+    *   Remove old evaluation-based parser from interp.rs.
 *   Revise Value per Yandros' style comments here:
     https://users.rust-lang.org/t/lazy-initialization-vs-interior-mutability/30742/7
 *   Flesh out the interp.rs test suite and rustdocs.
@@ -38,6 +41,65 @@ Things to remember to do soon:
     `alloc` crate exists?
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
+
+### 2019-09-02 (Monday)
+*   parsed-form implementation:
+    *   Added tests for the new parser and its sub-functions.
+    *   Added Script as another Value data_rep.
+        *   Can only be produced by parsing the string_rep internally.
+        *   Handled by Value::as_script(), which is `pub(crate)`.
+    *   Added parallel eval, eval_value, and eval_body methods that evaluate the parsed form,
+        with tests.  Tests pass.
+    *   Replaced the old eval, eval_value, and eval_body methods with the new ones.  Tests pass.
+    *   New benchmarks (see notes/benchmarks.xlsx for history):
+```
+Molt 0.1.0 -- Benchmark
+
+  Micros     Norm -- Benchmark
+     333     1.00 -- ok-1.1 ok, no arguments
+     377     1.13 -- ok-1.2 ok, one argument
+     486     1.46 -- ok-1.3 ok, two arguments
+     380     1.14 -- ident-1.1 ident, simple argument
+     624     1.87 -- incr-1.1 incr a
+     687     2.06 -- set-1.1 set var value
+     955     2.87 -- list-1.1 list of six items
+```
+
+
+### 2019-09-01 (Sunday)
+*   Parsing issues:
+    *   Even if a word consists of a single variable reference or a single command interpolation,
+        it is currently turned into a string and a new Value.  Really it should be passed along
+        as a single value.
+        *   A braced word is always a new string.
+        *   A bare word can be an existing value if it consists only of a variable or
+            command interpolation.
+        *   A quoted word can be an existing value if it consists only of a variable or
+            command interpolation.
+        *   None of these can be existing values in other circumstances, because we always
+            re-parse scripts.
+    *   Suppose I parsed scripts into a structure, and executed the structure.  
+        *   Would make `eval` slower, and individual commands slower, but script strings
+            should be faster.
+    *   See notes/parsed_form.md for ideas on what it might look like.
+*   See parser.rs.  This initial version seems to parse correctly (not yet fully tested).
+    *   A Word is still defined as a vector of tokens.
+    *   I think it would be better if it were an enum, Word::Value(Value), Word::VarName(String),
+        Word::Script(Script), Word::Tokens(Vec<Word>), Word::String(String).
+        *   Most of the time a word is just a single token.
+        *   A complex word is just a word with subwords.
+    *   DONE; yes, this is much cleaner looking.
+    *   Defines a temporary Tokens type, to handle building up the word out of tokens.
+        *   Simplify multi-token words, collapsing adjacent strings.
+        *   It has a `Vec<Word>` and a String.
+        *   Added strings get added to the string.
+        *   If there's anything else, anything in the string gets converted to Word::String
+            and added to the list, and the string is cleared.
+        *   At the end you ask it for a word.
+            *   If the list is empty, you get the string as a Word::Value.
+            *   Otherwise, anything in the String is added to the list as Word::String
+                and you get Word::Tokens.
+    *   Done.  I think this is ready for the next step, which will be evaluation.
 
 ### 2019-08-31 (Saturday)
 *   Improving Interp's Parsing: Review
@@ -82,6 +144,57 @@ Molt 0.1.0 -- Benchmark
     *   parse_command
     *   Look up and execute command.
     *   Which is taking more time?
+*   Added `pdump`, `pclear` commands.
+    *   This allows me to instrument particular bits of the interpreter, tactically, and
+        save call times.
+    *   For `incr a`, executing the command is about 33% more expensive than parsing the
+        command.
+    *   For `list this that theother foobar baz quux`, executing the command is relatively
+        fast (about 60% of `incr a`) but the parsing is much slower (a lot more to be parsed).
+    *   I need to look at setting and retrieving variables.  That looks to be a big deal
+        needs to be.
+        *   `set a value` seems to be about twice as slow as `list this that theother foobar baz quux`,
+            so far as command execution is concerned.
+*   Added new benchmarks, set-1.1, list-1.1.
+    *   The new parser helps more the longer the commands to parse, not surprisingly.
+*   Running the benchmarks with "parse_command" and "cmd.execute" internal profiling, and
+    calling pdump at the end, I get this.
+```
+1720 nanos cmd.execute(lindex), count=7
+451 nanos cmd.execute(incr), count=1000
+3151 nanos cmd.execute(measure), count=7
+138 nanos cmd.execute(ok), count=3000
+1951251 nanos cmd.execute(time), count=7
+1960242 nanos parse_command(measure), count=7
+506 nanos cmd.execute(set), count=1000
+471 nanos parse_command(incr), count=1000
+1096 nanos parse_command(time), count=7
+258 nanos cmd.execute(list), count=1000
+215 nanos cmd.execute(ident), count=1000
+14866 nanos cmd.execute(proc), count=1
+495 nanos parse_command(ok), count=3000
+379 nanos parse_command(pdump), count=1
+1435 nanos parse_command(list), count=1000
+1563 nanos parse_command(benchmark), count=7
+1967784 nanos cmd.execute(benchmark), count=7
+1954879 nanos parse_command(lindex), count=7
+479 nanos parse_command(ident), count=1000
+30365 nanos parse_command(proc), count=1
+728 nanos parse_command(set), count=1000
+```
+    *   Things to note:
+        *   parse_command(measure) includes almost everything else, since the time includes
+            the time to parse and evaluate all of the benchmark bodies.
+        *   parse_command(proc) seems rather large.  It's got to be the definition of
+            `benchmark`, which is a short proc; and there should be no command or variable
+            interpolation or execution involved.  But it's twice as long as executing `proc`.
+            *   However, both were executed exactly once.
+            *   Running the same "proc" call in `time` 1000 times gives averages of
+                1403 nanos for parsing (about the same as list-1.1) and 4041 nanos for
+                execution.
+        *   cmd.execute(proc) seems large, too.
+        *   Running the benchmarks this way invalidates the normal benchmark results, since
+            we're paying the price for the internal profiling.
 
 ### 2019-08-25 (Sunday)
 *   Improving Interp's Parsing

@@ -214,7 +214,6 @@ impl<'a> EvalPtr<'a> {
             false
         }
     }
-
 }
 
 #[cfg(test)]

@@ -33,15 +33,25 @@ The initial goals are as follows; see [Tcl Compatibility](./tcl_comp.md) for
 more details.
 
 *   Embedding, script execution, and an interactive shell.
-*   Basic parsing, as in TCL 7.6.
+    *   DONE
+*   Parse to internal form, rather than reparsing strings at execution a la TCL 7.6
+    *   And eventually, some kind of byte-compilation.
+    *   IN PROGRESS.  Scripts are parsed to internal form, which is cached for later
+        evaluation; Expressions are not.
 *   Support for lists and dicts
+    *   IN PROGRESS.  Lists exist but not all list commands are implemented.  Dicts do not
+        currently exist.
 *   A minimal set of commands
 *   Procs
+    *   IN PROGRESS.  Optimization is needed.
 *   Expressions
+    *   IN PROGRESS.  Not all math functions are supported, and the parsing/evaluation needs
+        optimization.
 *   [**molt test**](./cmdline/molt_test.md), a simple test harness for Molt
     code.
     *   Along with a thorough test suite, using `cargo test` for the internals
         and `molt test` for the language.
+    *   IN PROGRESS. The test tool exists; more tests are needed.
 *   Modular: pay for what you need
     *   I.e. don't require a large regex library for all clients.
     *   But allow it to be added as needed.

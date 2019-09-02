@@ -16,6 +16,7 @@ use molt::check_args;
 use molt::molt_ok;
 use molt::ContextID;
 use molt::Interp;
+use molt::MoltInt;
 use molt::MoltResult;
 use molt::ResultCode;
 use molt::Value;
@@ -137,7 +138,7 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
 }
 
 fn write_csv(ctx: &Context) {
-    println!("\"benchmark\",\"description\",\"micros\",\"norm\"");
+    println!("\"benchmark\",\"description\",\"nanos\",\"norm\"");
 
     let baseline = ctx.baseline();
 
@@ -146,8 +147,8 @@ fn write_csv(ctx: &Context) {
             "\"{}\",\"{}\",{},{}",
             strip_quotes(&record.name),
             strip_quotes(&record.description),
-            record.micros,
-            record.micros / baseline
+            record.nanos,
+            record.nanos as f64 / (baseline as f64),
         );
     }
 }
@@ -169,9 +170,9 @@ fn write_formatted_text(ctx: &Context) {
 
     for record in &ctx.measurements {
         println!(
-            "{:>8.2} {:>8.2} -- {} {}",
-            record.micros,
-            record.micros / baseline,
+            "{:>8} {:>8.2} -- {} {}",
+            record.nanos,
+            record.nanos as f64 / (baseline as f64),
             record.name,
             record.description
         );
@@ -190,7 +191,7 @@ fn write_usage() {
 
 struct Context {
     // The baseline, in microseconds
-    baseline: Option<f64>,
+    baseline: Option<MoltInt>,
 
     // The list of measurements.
     measurements: Vec<Measurement>,
@@ -204,8 +205,8 @@ impl Context {
         }
     }
 
-    fn baseline(&self) -> f64 {
-        self.baseline.unwrap_or(1.0)
+    fn baseline(&self) -> MoltInt {
+        self.baseline.unwrap_or(1)
     }
 }
 
@@ -216,32 +217,32 @@ struct Measurement {
     // The measurement's human-readable description
     description: String,
 
-    // The average number of microseconds per measured iteration
-    micros: f64,
+    // The average number of nanoseconds per measured iteration
+    nanos: MoltInt,
 }
 
 /// # measure *name* *description* *micros*
 ///
 /// Records a benchmark measurement.
 fn measure_cmd(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
-    molt::check_args(1, argv, 4, 4, "name description micros")?;
+    molt::check_args(1, argv, 4, 4, "name description nanos")?;
 
     // FIRST, get the arguments
     let name = argv[1].to_string();
     let description = argv[2].to_string();
-    let micros = argv[3].as_float()?;
+    let nanos = argv[3].as_int()?;
 
     // NEXT, get the test context
     let ctx = interp.context::<Context>(context_id);
 
     if ctx.baseline.is_none() {
-        ctx.baseline = Some(micros);
+        ctx.baseline = Some(nanos);
     }
 
     let record = Measurement {
         name,
         description,
-        micros,
+        nanos,
     };
 
     ctx.measurements.push(record);

@@ -108,6 +108,9 @@ use crate::eval_ptr::EvalPtr;
 use crate::expr;
 use crate::molt_err;
 use crate::molt_ok;
+use crate::parser;
+use crate::parser::Script;
+use crate::parser::Word;
 use crate::scope::ScopeStack;
 use crate::types::Command;
 use crate::types::*;
@@ -116,6 +119,7 @@ use crate::value::Value;
 use std::any::Any;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::time::Instant;
 
 /// The Molt Interpreter.
 ///
@@ -161,6 +165,20 @@ pub struct Interp {
 
     // Current number of eval levels.
     num_levels: usize,
+
+    // Profile Map
+    profile_map: HashMap<String, ProfileRecord>,
+}
+
+struct ProfileRecord {
+    count: u128,
+    nanos: u128,
+}
+
+impl ProfileRecord {
+    fn new() -> Self {
+        Self { count: 0, nanos: 0 }
+    }
 }
 
 // NOTE: The order of methods in the generated RustDoc depends on the order in this block.
@@ -189,6 +207,7 @@ impl Interp {
             context_map: HashMap::new(),
             scopes: ScopeStack::new(),
             num_levels: 0,
+            profile_map: HashMap::new(),
         }
     }
 
@@ -254,6 +273,11 @@ impl Interp {
         // extension scripts.
         interp.add_command("exit", commands::cmd_exit);
 
+        // TODO: Developer Tools
+        interp.add_command("parse", parser::cmd_parse);
+        interp.add_command("pdump", commands::cmd_pdump);
+        interp.add_command("pclear", commands::cmd_pclear);
+
         interp
     }
 
@@ -293,7 +317,18 @@ impl Interp {
     ///    }
     /// }
     /// ```
+
     pub fn eval(&mut self, script: &str) -> MoltResult {
+        let value = Value::from(script);
+        self.eval_value(&value)
+    }
+
+    pub fn eval_value(&mut self, value: &Value) -> MoltResult {
+        // TODO: Could probably do better, here.  If the value is already a list, for
+        // example, can maybe evaluate it as a command without using as_script().
+        // Tricky, though.  Don't want to have to parse it as a list.  Need a quick way
+        // to determine if something is already a list.
+
         // FIRST, check the number of nesting levels
         self.num_levels += 1;
 
@@ -303,31 +338,18 @@ impl Interp {
         }
 
         // NEXT, evaluate the script and translate the result to Ok or Error
-        let mut ctx = EvalPtr::new(script);
-
-        let result = self.eval_context(&mut ctx);
+        let result = self.eval_body(value);
 
         // NEXT, decrement the number of nesting levels.
         self.num_levels -= 1;
 
         // NEXT, translate and return the result.
         match result {
-            Err(ResultCode::Return(value)) => Ok(value),
+            Err(ResultCode::Return(val)) => Ok(val),
             Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
             Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
             _ => result,
         }
-    }
-
-    /// Evaluates a script one command at a time, where the script is passed as a
-    /// `Value`.  Except for the signature, this command is semantically equivalent to
-    /// [`eval`](#method.eval).
-    pub fn eval_value(&mut self, script: &Value) -> MoltResult {
-        // TODO: Could probably do better, here.  If the value is already a list, for
-        // example, can maybe evaluate it as a command without parsing the string.
-        // Tricky, though.  Don't want to have to parse it as a list.  Need a quick way
-        // to determine if something is already a list.  What does Tcl 8 do?
-        self.eval(script.as_str())
     }
 
     /// Evaluates a script one command at a time, returning whatever
@@ -362,10 +384,58 @@ impl Interp {
     ///
     /// molt_ok!()
     /// ```
-    pub fn eval_body(&mut self, script: &Value) -> MoltResult {
-        let mut ctx = EvalPtr::new(script.as_str());
+    pub fn eval_body(&mut self, body: &Value) -> MoltResult {
+        self.eval_script(&*body.as_script()?)
+    }
 
-        self.eval_context(&mut ctx)
+    fn eval_script(&mut self, script: &Script) -> MoltResult {
+        let mut result_value = Value::empty();
+
+        for word_vec in script.commands() {
+            let words = self.words_to_list(word_vec.words())?;
+
+            if words.is_empty() {
+                break;
+            }
+
+            let name = words[0].as_str();
+
+            if let Some(cmd) = self.commands.get(name) {
+                // let start = Instant::now();
+                let cmd = Rc::clone(cmd);
+                let result = cmd.execute(self, words.as_slice());
+                // self.profile_save(&format!("cmd.execute({})", name), start);
+                match result {
+                    Ok(v) => result_value = v,
+                    _ => return result,
+                }
+            } else {
+                return molt_err!("invalid command name \"{}\"", name);
+            }
+        }
+
+        Ok(result_value)
+    }
+
+    fn words_to_list(&mut self, words: &[Word]) -> Result<MoltList, ResultCode> {
+        let mut list: MoltList = Vec::new();
+
+        for word in words {
+            match word {
+                Word::Value(val) => list.push(val.clone()),
+                Word::VarRef(name) => list.push(self.var(name)?),
+                Word::Script(script) => list.push(self.eval_script(script)?),
+                Word::Tokens(tokens) => {
+                    let tlist = self.words_to_list(tokens)?;
+                    let string: String = tlist.iter().map(|i| i.as_str()).collect();
+                    list.push(Value::from(string));
+                }
+                // TODO: Consider saving all individual strings as values.
+                Word::String(str) => list.push(Value::from(str)),
+            }
+        }
+
+        Ok(list)
     }
 
     /// Determines whether or not the script is syntactically complete,
@@ -385,10 +455,7 @@ impl Interp {
     /// ```
 
     pub fn complete(&mut self, script: &str) -> bool {
-        let mut ctx = EvalPtr::new(script);
-        ctx.set_no_eval(true);
-
-        self.eval_context(&mut ctx).is_ok()
+        parser::parse(script).is_ok()
     }
 
     /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html) and
@@ -804,11 +871,14 @@ impl Interp {
         let mut result_value = Value::empty();
 
         while !ctx.at_end_of_script() {
+            // let start = Instant::now();
             let words = self.parse_command(ctx)?;
 
             if words.is_empty() {
                 break;
             }
+
+            // self.profile_save(&format!("parse_command({})", words[0].as_str()), start);
 
             // When scanning for info
             if ctx.is_no_eval() {
@@ -818,8 +888,10 @@ impl Interp {
             // FIRST, convert to Vec<&str>
             let name = words[0].as_str();
             if let Some(cmd) = self.commands.get(name) {
+                // let start = Instant::now();
                 let cmd = Rc::clone(cmd);
                 let result = cmd.execute(self, words.as_slice());
+                // self.profile_save(&format!("cmd.execute({})", name), start);
                 match result {
                     Ok(v) => result_value = v,
                     _ => return result,
@@ -1060,6 +1132,35 @@ impl Interp {
 
         Ok(var_value)
     }
+
+    //--------------------------------------------------------------------------------------------
+    // Profiling
+
+    pub fn profile_save(&mut self, name: &str, start: std::time::Instant) {
+        let dur = Instant::now().duration_since(start).as_nanos();
+        let rec = self
+            .profile_map
+            .entry(name.into())
+            .or_insert_with(ProfileRecord::new);
+
+        rec.count += 1;
+        rec.nanos += dur;
+    }
+
+    pub fn profile_clear(&mut self) {
+        self.profile_map.clear();
+    }
+
+    pub fn profile_dump(&self) {
+        if self.profile_map.is_empty() {
+            println!("no profile data");
+        } else {
+            for (name, rec) in &self.profile_map {
+                let avg = rec.nanos / rec.count;
+                println!("{} nanos {}, count={}", avg, name, rec.count);
+            }
+        }
+    }
 }
 
 /// A struct that wraps a CommandFunc and implements the Command trait.
@@ -1286,19 +1387,23 @@ mod tests {
             Ok(Value::from("1"))
         );
         assert_eq!(
-            interp.eval_body(&Value::from("error 2")),
+            interp.eval_body(&Value::from("set a 1; set b 2")),
+            Ok(Value::from("2"))
+        );
+        assert_eq!(
+            interp.eval_body(&Value::from("error 2; set a whoops")),
             Err(ResultCode::Error(Value::from("2")))
         );
         assert_eq!(
-            interp.eval_body(&Value::from("return 3")),
+            interp.eval_body(&Value::from("return 3; set a whoops")),
             Err(ResultCode::Return(Value::from("3")))
         );
         assert_eq!(
-            interp.eval_body(&Value::from("break")),
+            interp.eval_body(&Value::from("break; set a whoops")),
             Err(ResultCode::Break)
         );
         assert_eq!(
-            interp.eval_body(&Value::from("continue")),
+            interp.eval_body(&Value::from("continue; set a whoops")),
             Err(ResultCode::Continue)
         );
     }
@@ -1434,7 +1539,10 @@ mod tests {
         assert_eq!(pqw(&mut interp, "\"a[list b c]d\""), "ab cd|".to_string());
 
         // Extra characters after close-quote
-        assert_eq!(pqw(&mut interp, "\"abc\"x  "), "extra characters after close-quote");
+        assert_eq!(
+            pqw(&mut interp, "\"abc\"x  "),
+            "extra characters after close-quote"
+        );
     }
 
     fn pqw(interp: &mut Interp, input: &str) -> String {
@@ -1501,8 +1609,10 @@ mod tests {
         assert_eq!(pvar(&mut interp, "a", "${a}b"), "OK|b".to_string());
         assert_eq!(pvar(&mut interp, "a", "$"), "$|".to_string());
 
-        assert_eq!(pvar(&mut interp, "a", "$1"), "can't read \"1\": no such variable".to_string());
-
+        assert_eq!(
+            pvar(&mut interp, "a", "$1"),
+            "can't read \"1\": no such variable".to_string()
+        );
     }
 
     fn pvar(interp: &mut Interp, var: &str, input: &str) -> String {

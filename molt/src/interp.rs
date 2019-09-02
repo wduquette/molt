@@ -103,6 +103,8 @@
 //! [`Value`]: ../Value/struct.Value.html
 //! [`Interp`]: struct.Interp.html
 
+use crate::parser::Script;
+use crate::parser::Word;
 use crate::commands;
 use crate::eval_ptr::EvalPtr;
 use crate::expr;
@@ -341,6 +343,11 @@ impl Interp {
         }
     }
 
+    pub fn eval2(&mut self, script: &str) -> MoltResult {
+        let value = Value::from(script);
+        self.eval_value2(&value)
+    }
+
     /// Evaluates a script one command at a time, where the script is passed as a
     /// `Value`.  Except for the signature, this command is semantically equivalent to
     /// [`eval`](#method.eval).
@@ -350,6 +357,35 @@ impl Interp {
         // Tricky, though.  Don't want to have to parse it as a list.  Need a quick way
         // to determine if something is already a list.  What does Tcl 8 do?
         self.eval(script.as_str())
+    }
+
+    pub fn eval_value2(&mut self, value: &Value) -> MoltResult {
+        // TODO: Could probably do better, here.  If the value is already a list, for
+        // example, can maybe evaluate it as a command without using as_script().
+        // Tricky, though.  Don't want to have to parse it as a list.  Need a quick way
+        // to determine if something is already a list.
+
+        // FIRST, check the number of nesting levels
+        self.num_levels += 1;
+
+        if self.num_levels > self.recursion_limit {
+            self.num_levels -= 1;
+            return molt_err!("too many nested calls to Interp::eval (infinite loop?)");
+        }
+
+        // NEXT, evaluate the script and translate the result to Ok or Error
+        let result = self.eval_body2(value);
+
+        // NEXT, decrement the number of nesting levels.
+        self.num_levels -= 1;
+
+        // NEXT, translate and return the result.
+        match result {
+            Err(ResultCode::Return(val)) => Ok(val),
+            Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
+            Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
+            _ => result,
+        }
     }
 
     /// Evaluates a script one command at a time, returning whatever
@@ -390,6 +426,60 @@ impl Interp {
         self.eval_context(&mut ctx)
     }
 
+    pub fn eval_body2(&mut self, body: &Value) -> MoltResult {
+        self.eval_script(&*body.as_script()?)
+    }
+
+    fn eval_script(&mut self, script: &Script) -> MoltResult {
+        let mut result_value = Value::empty();
+
+        for word_vec in script.commands() {
+            let words = self.words_to_list(word_vec.words())?;
+
+            if words.is_empty() {
+                break;
+            }
+
+            let name = words[0].as_str();
+
+            if let Some(cmd) = self.commands.get(name) {
+                // let start = Instant::now();
+                let cmd = Rc::clone(cmd);
+                let result = cmd.execute(self, words.as_slice());
+                // self.profile_save(&format!("cmd.execute({})", name), start);
+                match result {
+                    Ok(v) => result_value = v,
+                    _ => return result,
+                }
+            } else {
+                return molt_err!("invalid command name \"{}\"", name);
+            }
+
+        }
+
+        Ok(result_value)
+    }
+
+    fn words_to_list(&mut self, words: &[Word]) -> Result<MoltList, ResultCode> {
+        let mut list: MoltList = Vec::new();
+
+        for word in words {
+            match word {
+                Word::Value(val) => list.push(val.clone()),
+                Word::VarRef(name) => list.push(self.var(name)?),
+                Word::Script(script) => list.push(self.eval_script(script)?),
+                Word::Tokens(tokens) => {
+                    let tlist = self.words_to_list(tokens)?;
+                    let string: String = tlist.iter().map(|i| i.as_str()).collect();
+                    list.push(Value::from(string));
+                }
+                Word::String(_) => unreachable!(),
+            }
+        }
+
+        Ok(list)
+    }
+
     /// Determines whether or not the script is syntactically complete,
     /// e.g., has no unmatched quotes, brackets, or braces.
     ///
@@ -406,11 +496,15 @@ impl Interp {
     /// assert!(!interp.complete("set a [expr {1+1"));
     /// ```
 
-    pub fn complete(&mut self, script: &str) -> bool {
+    pub fn complete_old(&mut self, script: &str) -> bool {
         let mut ctx = EvalPtr::new(script);
         ctx.set_no_eval(true);
 
         self.eval_context(&mut ctx).is_ok()
+    }
+
+    pub fn complete(&mut self, script: &str) -> bool {
+        parser::parse(script).is_ok()
     }
 
     /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html) and
@@ -1304,6 +1398,30 @@ mod tests {
     }
 
     #[test]
+    fn test_eval2() {
+        let mut interp = Interp::new();
+
+        assert_eq!(interp.eval2("set a 1"), Ok(Value::from("1")));
+        assert_eq!(
+            interp.eval2("error 2"),
+            Err(ResultCode::Error(Value::from("2")))
+        );
+        assert_eq!(interp.eval("return 3"), Ok(Value::from("3")));
+        assert_eq!(
+            interp.eval2("break"),
+            Err(ResultCode::Error(Value::from(
+                "invoked \"break\" outside of a loop"
+            )))
+        );
+        assert_eq!(
+            interp.eval2("continue"),
+            Err(ResultCode::Error(Value::from(
+                "invoked \"continue\" outside of a loop"
+            )))
+        );
+    }
+
+    #[test]
     fn test_eval_value() {
         let mut interp = Interp::new();
 
@@ -1334,6 +1452,36 @@ mod tests {
     }
 
     #[test]
+    fn test_eval_value2() {
+        let mut interp = Interp::new();
+
+        assert_eq!(
+            interp.eval_value2(&Value::from("set a 1")),
+            Ok(Value::from("1"))
+        );
+        assert_eq!(
+            interp.eval_value2(&Value::from("error 2")),
+            Err(ResultCode::Error(Value::from("2")))
+        );
+        assert_eq!(
+            interp.eval_value2(&Value::from("return 3")),
+            Ok(Value::from("3"))
+        );
+        assert_eq!(
+            interp.eval_value2(&Value::from("break")),
+            Err(ResultCode::Error(Value::from(
+                "invoked \"break\" outside of a loop"
+            )))
+        );
+        assert_eq!(
+            interp.eval_value2(&Value::from("continue")),
+            Err(ResultCode::Error(Value::from(
+                "invoked \"continue\" outside of a loop"
+            )))
+        );
+    }
+
+    #[test]
     fn test_eval_body() {
         let mut interp = Interp::new();
 
@@ -1342,19 +1490,49 @@ mod tests {
             Ok(Value::from("1"))
         );
         assert_eq!(
-            interp.eval_body(&Value::from("error 2")),
+            interp.eval_body(&Value::from("set a 1; set b 2")),
+            Ok(Value::from("2"))
+        );
+        assert_eq!(
+            interp.eval_body(&Value::from("error 2; set a whoops")),
             Err(ResultCode::Error(Value::from("2")))
         );
         assert_eq!(
-            interp.eval_body(&Value::from("return 3")),
+            interp.eval_body(&Value::from("return 3; set a whoops")),
             Err(ResultCode::Return(Value::from("3")))
         );
         assert_eq!(
-            interp.eval_body(&Value::from("break")),
+            interp.eval_body(&Value::from("break; set a whoops")),
             Err(ResultCode::Break)
         );
         assert_eq!(
-            interp.eval_body(&Value::from("continue")),
+            interp.eval_body(&Value::from("continue; set a whoops")),
+            Err(ResultCode::Continue)
+        );
+    }
+
+    #[test]
+    fn test_eval_body2() {
+        let mut interp = Interp::new();
+
+        assert_eq!(
+            interp.eval_body2(&Value::from("set a 1")),
+            Ok(Value::from("1"))
+        );
+        assert_eq!(
+            interp.eval_body2(&Value::from("error 2")),
+            Err(ResultCode::Error(Value::from("2")))
+        );
+        assert_eq!(
+            interp.eval_body2(&Value::from("return 3")),
+            Err(ResultCode::Return(Value::from("3")))
+        );
+        assert_eq!(
+            interp.eval_body2(&Value::from("break")),
+            Err(ResultCode::Break)
+        );
+        assert_eq!(
+            interp.eval_body2(&Value::from("continue")),
             Err(ResultCode::Continue)
         );
     }

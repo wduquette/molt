@@ -103,14 +103,14 @@
 //! [`Value`]: ../Value/struct.Value.html
 //! [`Interp`]: struct.Interp.html
 
-use crate::parser::Script;
-use crate::parser::Word;
 use crate::commands;
 use crate::eval_ptr::EvalPtr;
 use crate::expr;
 use crate::molt_err;
 use crate::molt_ok;
 use crate::parser;
+use crate::parser::Script;
+use crate::parser::Word;
 use crate::scope::ScopeStack;
 use crate::types::Command;
 use crate::types::*;
@@ -412,7 +412,6 @@ impl Interp {
             } else {
                 return molt_err!("invalid command name \"{}\"", name);
             }
-
         }
 
         Ok(result_value)

@@ -171,17 +171,42 @@ a different way.</li>
 <p>The initial goals are as follows; see <a href="./tcl_comp.html">Tcl Compatibility</a> for
 more details.</p>
 <ul>
-<li>Embedding, script execution, and an interactive shell.</li>
-<li>Basic parsing, as in TCL 7.6.</li>
-<li>Support for lists and dicts</li>
+<li>Embedding, script execution, and an interactive shell.
+<ul>
+<li>DONE</li>
+</ul>
+</li>
+<li>Parse to internal form, rather than reparsing strings at execution a la TCL 7.6
+<ul>
+<li>And eventually, some kind of byte-compilation.</li>
+<li>IN PROGRESS.  Scripts are parsed to internal form, which is cached for later
+evaluation; Expressions are not.</li>
+</ul>
+</li>
+<li>Support for lists and dicts
+<ul>
+<li>IN PROGRESS.  Lists exist but not all list commands are implemented.  Dicts do not
+currently exist.</li>
+</ul>
+</li>
 <li>A minimal set of commands</li>
-<li>Procs</li>
-<li>Expressions</li>
+<li>Procs
+<ul>
+<li>IN PROGRESS.  Optimization is needed.</li>
+</ul>
+</li>
+<li>Expressions
+<ul>
+<li>IN PROGRESS.  Not all math functions are supported, and the parsing/evaluation needs
+optimization.</li>
+</ul>
+</li>
 <li><a href="./cmdline/molt_test.html"><strong>molt test</strong></a>, a simple test harness for Molt
 code.
 <ul>
 <li>Along with a thorough test suite, using <code>cargo test</code> for the internals
 and <code>molt test</code> for the language.</li>
+<li>IN PROGRESS. The test tool exists; more tests are needed.</li>
 </ul>
 </li>
 <li>Modular: pay for what you need

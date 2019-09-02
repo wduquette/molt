@@ -2,16 +2,16 @@
 
 Things to remember to do soon:
 
-*   What happens if I add a Value data rep that's a parsed script/command/expr?  No byte-compiling,
-    but I parse into a form I can execute without parsing?  How fast would that be?
-    *   So the body of a proc, for example, is already parsed as a script.
-*   Revise the parsing code to use Tokenizer to extract slices, rather than
-    building up small strings a character at a time.
-    *   expr::
-*   interp.rs using "context" in two different senses:
-    *   The command context mechanism
-    *   The evaluation context represented by `EvalPtr`.
-    *   That's messy; let's figure out something better.
+*   Needed changes to expr.rs:
+    *   Use Tokenizer to extract slices, rather than building up small strings a character at a
+        time.
+    *   Revise to parse to a syntax tree and evaluate that:
+        *   expr_parser
+        *   Value::as_expr
+        *   expr_eval
+        *   Use the new parser/evaluator to handle interpolated variables and commands.
+    *   Remove set_no_eval from EvalPtr (since we won't be using it anymore).
+    *   Remove old evaluation-based parser from interp.rs.
 *   Revise Value per Yandros' style comments here:
     https://users.rust-lang.org/t/lazy-initialization-vs-interior-mutability/30742/7
 *   Flesh out the interp.rs test suite and rustdocs.
@@ -41,6 +41,65 @@ Things to remember to do soon:
     `alloc` crate exists?
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
+
+### 2019-09-02 (Monday)
+*   parsed-form implementation:
+    *   Added tests for the new parser and its sub-functions.
+    *   Added Script as another Value data_rep.
+        *   Can only be produced by parsing the string_rep internally.
+        *   Handled by Value::as_script(), which is `pub(crate)`.
+    *   Added parallel eval, eval_value, and eval_body methods that evaluate the parsed form,
+        with tests.  Tests pass.
+    *   Replaced the old eval, eval_value, and eval_body methods with the new ones.  Tests pass.
+    *   New benchmarks (see notes/benchmarks.xlsx for history):
+```
+Molt 0.1.0 -- Benchmark
+
+  Micros     Norm -- Benchmark
+     333     1.00 -- ok-1.1 ok, no arguments
+     377     1.13 -- ok-1.2 ok, one argument
+     486     1.46 -- ok-1.3 ok, two arguments
+     380     1.14 -- ident-1.1 ident, simple argument
+     624     1.87 -- incr-1.1 incr a
+     687     2.06 -- set-1.1 set var value
+     955     2.87 -- list-1.1 list of six items
+```
+
+
+### 2019-09-01 (Sunday)
+*   Parsing issues:
+    *   Even if a word consists of a single variable reference or a single command interpolation,
+        it is currently turned into a string and a new Value.  Really it should be passed along
+        as a single value.
+        *   A braced word is always a new string.
+        *   A bare word can be an existing value if it consists only of a variable or
+            command interpolation.
+        *   A quoted word can be an existing value if it consists only of a variable or
+            command interpolation.
+        *   None of these can be existing values in other circumstances, because we always
+            re-parse scripts.
+    *   Suppose I parsed scripts into a structure, and executed the structure.  
+        *   Would make `eval` slower, and individual commands slower, but script strings
+            should be faster.
+    *   See notes/parsed_form.md for ideas on what it might look like.
+*   See parser.rs.  This initial version seems to parse correctly (not yet fully tested).
+    *   A Word is still defined as a vector of tokens.
+    *   I think it would be better if it were an enum, Word::Value(Value), Word::VarName(String),
+        Word::Script(Script), Word::Tokens(Vec<Word>), Word::String(String).
+        *   Most of the time a word is just a single token.
+        *   A complex word is just a word with subwords.
+    *   DONE; yes, this is much cleaner looking.
+    *   Defines a temporary Tokens type, to handle building up the word out of tokens.
+        *   Simplify multi-token words, collapsing adjacent strings.
+        *   It has a `Vec<Word>` and a String.
+        *   Added strings get added to the string.
+        *   If there's anything else, anything in the string gets converted to Word::String
+            and added to the list, and the string is cleared.
+        *   At the end you ask it for a word.
+            *   If the list is empty, you get the string as a Word::Value.
+            *   Otherwise, anything in the String is added to the list as Word::String
+                and you get Word::Tokens.
+    *   Done.  I think this is ready for the next step, which will be evaluation.
 
 ### 2019-08-31 (Saturday)
 *   Improving Interp's Parsing: Review

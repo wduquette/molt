@@ -17,6 +17,7 @@ use molt::check_args;
 use molt::molt_ok;
 use molt::ContextID;
 use molt::Interp;
+use molt::MoltInt;
 use molt::MoltResult;
 use molt::ResultCode;
 use molt::Value;

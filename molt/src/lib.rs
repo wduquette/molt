@@ -16,6 +16,8 @@ mod list;
 pub mod tokenizer;
 #[macro_use]
 mod macros;
+#[allow(dead_code)]
+mod parser;
 mod scope;
 pub mod types;
 mod util;

@@ -42,7 +42,10 @@ Things to remember to do soon:
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
 
-### 2019-09-01 (Monday)
+### 2019-09-02 (Monday)
+*   Added tests for the new parser and its sub-functions.
+
+### 2019-09-01 (Sunday)
 *   Parsing issues:
     *   Even if a word consists of a single variable reference or a single command interpolation,
         it is currently turned into a string and a new Value.  Really it should be passed along

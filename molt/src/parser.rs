@@ -116,7 +116,7 @@ fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
                 // see more more whitespace, or we should be at the end of the list
                 // Otherwise, there are incorrect characters following the close-brace.
                 text.push_str(ctx.token(start));
-                let result = Ok(Word::String(text));
+                let result = Ok(Word::Value(Value::from(text)));
                 ctx.skip(); // Skip the closing brace
 
                 if ctx.at_end_of_command() || ctx.next_is_line_white() {
@@ -413,4 +413,327 @@ mod tests {
             ])
         );
     }
+
+    #[test]
+    fn test_parse() {
+        let empty: Vec<Command> = Vec::new();
+
+        assert_eq!(parse("").unwrap().commands, empty);
+
+        assert_eq!(
+            parse("a").unwrap().commands,
+            vec![vec![Word::Value(Value::from("a"))]]
+        );
+
+        assert_eq!(
+            parse("a\nb").unwrap().commands,
+            vec![
+                vec![Word::Value(Value::from("a"))],
+                vec![Word::Value(Value::from("b"))],
+            ]
+        );
+
+        assert_eq!(
+            parse("a;b").unwrap().commands,
+            vec![
+                vec![Word::Value(Value::from("a"))],
+                vec![Word::Value(Value::from("b"))],
+            ]
+        );
+
+        assert_eq!(
+            parse("  a   ;   b   ").unwrap().commands,
+            vec![
+                vec![Word::Value(Value::from("a"))],
+                vec![Word::Value(Value::from("b"))],
+            ]
+        );
+
+        assert_eq!(parse("a {"), molt_err!("missing close-brace"));
+    }
+
+    #[test]
+    fn test_parse_braced_word() {
+        // Simple string
+        assert_eq!(
+            pbrace("{abc}"),
+            Ok((Word::Value(Value::from("abc")), "".into()))
+        );
+
+        // Simple string with following space
+        assert_eq!(
+            pbrace("{abc} "),
+            Ok((Word::Value(Value::from("abc")), " ".into()))
+        );
+
+        // String with white space
+        assert_eq!(
+            pbrace("{a b c} "),
+            Ok((Word::Value(Value::from("a b c")), " ".into()))
+        );
+
+        // String with $ and []space
+        assert_eq!(
+            pbrace("{a $b [c]} "),
+            Ok((Word::Value(Value::from("a $b [c]")), " ".into()))
+        );
+
+        // String with balanced braces
+        assert_eq!(
+            pbrace("{a{b}c} "),
+            Ok((Word::Value(Value::from("a{b}c")), " ".into()))
+        );
+
+        // String with escaped braces
+        assert_eq!(
+            pbrace("{a\\{bc} "),
+            Ok((Word::Value(Value::from("a\\{bc")), " ".into()))
+        );
+
+        assert_eq!(
+            pbrace("{ab\\}c} "),
+            Ok((Word::Value(Value::from("ab\\}c")), " ".into()))
+        );
+
+        // String with escaped newline (a real newline with a \ in front)
+        assert_eq!(
+            pbrace("{ab\\\nc} "),
+            Ok((Word::Value(Value::from("ab c")), " ".into()))
+        );
+
+        // Strings with missing close-brace
+        assert_eq!(pbrace("{abc"), molt_err!("missing close-brace"));
+
+        assert_eq!(pbrace("{a{b}c"), molt_err!("missing close-brace"));
+    }
+
+    fn pbrace(input: &str) -> Result<(Word, String), ResultCode> {
+        let mut ctx = EvalPtr::new(input);
+        let word = parse_braced_word(&mut ctx)?;
+        Ok((word, ctx.tok().as_str().to_string()))
+    }
+
+    #[test]
+    fn test_parse_quoted_word() {
+        // Simple string
+        assert_eq!(
+            pqw("\"abc\""),
+            Ok((Word::Value(Value::from("abc")), "".into()))
+        );
+
+        // Simple string with text following
+        assert_eq!(
+            pqw("\"abc\" "),
+            Ok((Word::Value(Value::from("abc")), " ".into()))
+        );
+
+        // Backslash substitution at beginning, middle, and end
+        assert_eq!(
+            pqw("\"\\x77-\" "),
+            Ok((Word::Value(Value::from("w-")), " ".into()))
+        );
+
+        assert_eq!(
+            pqw("\"-\\x77-\" "),
+            Ok((Word::Value(Value::from("-w-")), " ".into()))
+        );
+
+        assert_eq!(
+            pqw("\"-\\x77\" "),
+            Ok((Word::Value(Value::from("-w")), " ".into()))
+        );
+
+        // Variable reference
+        assert_eq!(
+            pqw("\"a$x.b\" "),
+            Ok((
+                Word::Tokens(vec![
+                    Word::String("a".into()),
+                    Word::VarRef("x".into()),
+                    Word::String(".b".into()),
+                ]),
+                " ".into()
+            ))
+        );
+
+        assert_eq!(
+            pqw("\"a${x}b\" "),
+            Ok((
+                Word::Tokens(vec![
+                    Word::String("a".into()),
+                    Word::VarRef("x".into()),
+                    Word::String("b".into()),
+                ]),
+                " ".into()
+            ))
+        );
+
+        // Not actually a variable reference
+        assert_eq!(
+            pqw("\"a$.b\" "),
+            Ok((Word::Value(Value::from("a$.b")), " ".into()))
+        );
+
+        // Brackets
+        assert_eq!(
+            pqw("\"a[list b]c\" "),
+            Ok((
+                Word::Tokens(vec![
+                    Word::String("a".into()),
+                    Word::Script(pbrack("[list b]").unwrap()),
+                    Word::String("c".into()),
+                ]),
+                " ".into()
+            ))
+        );
+
+        // Missing close quote
+        assert_eq!(pqw("\"abc"), molt_err!("missing \""));
+
+        // Extra characters after close-quote
+        assert_eq!(
+            pqw("\"abc\"x "),
+            molt_err!("extra characters after close-quote")
+        );
+    }
+
+    fn pqw(input: &str) -> Result<(Word, String), ResultCode> {
+        let mut ctx = EvalPtr::new(input);
+        let word = parse_quoted_word(&mut ctx)?;
+        Ok((word, ctx.tok().as_str().to_string()))
+    }
+
+    #[test]
+    fn test_parse_bare_word() {
+        // Simple string
+        assert_eq!(
+            pbare("abc"),
+            Ok((Word::Value(Value::from("abc")), "".into()))
+        );
+
+        // Simple string with text following
+        assert_eq!(
+            pbare("abc "),
+            Ok((Word::Value(Value::from("abc")), " ".into()))
+        );
+
+        // Backslash substitution at beginning, middle, and end
+        assert_eq!(
+            pbare("\\x77- "),
+            Ok((Word::Value(Value::from("w-")), " ".into()))
+        );
+
+        assert_eq!(
+            pbare("-\\x77- "),
+            Ok((Word::Value(Value::from("-w-")), " ".into()))
+        );
+
+        assert_eq!(
+            pbare("-\\x77 "),
+            Ok((Word::Value(Value::from("-w")), " ".into()))
+        );
+
+        // Variable reference
+        assert_eq!(
+            pbare("a$x.b "),
+            Ok((
+                Word::Tokens(vec![
+                    Word::String("a".into()),
+                    Word::VarRef("x".into()),
+                    Word::String(".b".into()),
+                ]),
+                " ".into()
+            ))
+        );
+
+        assert_eq!(
+            pbare("a${x}b "),
+            Ok((
+                Word::Tokens(vec![
+                    Word::String("a".into()),
+                    Word::VarRef("x".into()),
+                    Word::String("b".into()),
+                ]),
+                " ".into()
+            ))
+        );
+
+        // Not actually a variable reference
+        assert_eq!(
+            pbare("a$.b "),
+            Ok((Word::Value(Value::from("a$.b")), " ".into()))
+        );
+
+        // Brackets
+        assert_eq!(
+            pbare("a[list b]c "),
+            Ok((
+                Word::Tokens(vec![
+                    Word::String("a".into()),
+                    Word::Script(pbrack("[list b]").unwrap()),
+                    Word::String("c".into()),
+                ]),
+                " ".into()
+            ))
+        );
+    }
+
+    fn pbare(input: &str) -> Result<(Word, String), ResultCode> {
+        let mut ctx = EvalPtr::new(input);
+        let word = parse_bare_word(&mut ctx)?;
+        Ok((word, ctx.tok().as_str().to_string()))
+    }
+
+    #[test]
+    fn test_parse_brackets() {
+        let script = pbrack("[set a 5]").unwrap();
+        assert_eq!(script.commands.len(), 1);
+        assert_eq!(
+            script.commands.first().unwrap(),
+            &vec![
+                Word::Value(Value::from("set")),
+                Word::Value(Value::from("a")),
+                Word::Value(Value::from("5")),
+            ]
+        );
+
+        assert_eq!(pbrack("[incomplete"), molt_err!("missing close-bracket"));
+    }
+
+    fn pbrack(input: &str) -> Result<Script, ResultCode> {
+        let mut ctx = EvalPtr::new(input);
+        parse_brackets(&mut ctx)
+    }
+
+    #[test]
+    fn test_parse_varname() {
+        // Normal var names
+        assert_eq!(pvar("$a"), Ok((Word::VarRef("a".into()), "".into())));
+        assert_eq!(pvar("$abc"), Ok((Word::VarRef("abc".into()), "".into())));
+        assert_eq!(pvar("$abc."), Ok((Word::VarRef("abc".into()), ".".into())));
+        assert_eq!(pvar("$a.bc"), Ok((Word::VarRef("a".into()), ".bc".into())));
+        assert_eq!(
+            pvar("$a1_.bc"),
+            Ok((Word::VarRef("a1_".into()), ".bc".into()))
+        );
+
+        // Braced var names
+        assert_eq!(pvar("${a}b"), Ok((Word::VarRef("a".into()), "b".into())));
+        assert_eq!(
+            pvar("${ab"),
+            molt_err!("missing close-brace for variable name")
+        );
+
+        // Just a bare "$"
+        assert_eq!(pvar("$"), Ok((Word::Value(Value::from("$")), "".into())));
+        assert_eq!(pvar("$."), Ok((Word::Value(Value::from("$")), ".".into())));
+    }
+
+    fn pvar(input: &str) -> Result<(Word, String), ResultCode> {
+        let mut ctx = EvalPtr::new(input);
+        let mut tokens = Tokens::new();
+        parse_varname(&mut ctx, &mut tokens)?;
+        Ok((tokens.take(), ctx.tok().as_str().to_string()))
+    }
+
 }

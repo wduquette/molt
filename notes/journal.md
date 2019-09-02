@@ -44,6 +44,7 @@ Things to remember to do soon:
 
 ### 2019-09-02 (Monday)
 *   Added tests for the new parser and its sub-functions.
+*   Next step: add Script as another Value data_rep.
 
 ### 2019-09-01 (Sunday)
 *   Parsing issues:

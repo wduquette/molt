@@ -10,9 +10,9 @@ use crate::value::Value;
 
 /// A compiled script, which can be executed in the context of an interpreter.
 #[derive(Debug, PartialEq)]
-pub struct Script {
+pub(crate) struct Script {
     // A script is a list of one or more commands to execute.
-    commands: Vec<Command>,
+    commands: Vec<WordVec>,
 }
 
 impl Script {
@@ -21,13 +21,29 @@ impl Script {
             commands: Vec::new(),
         }
     }
+
+    pub fn commands(&self) -> &[WordVec] {
+        &self.commands
+    }
 }
 
-/// A command is a list of words.  This represents a single command in a Script.
-type Command = Vec<Word>;
+#[derive(Debug, PartialEq)]
+pub(crate) struct WordVec {
+    words: Vec<Word>,
+}
+
+impl WordVec {
+    fn new() -> Self {
+        Self { words: Vec::new() }
+    }
+
+    pub fn words(&self) -> &[Word] {
+        &self.words
+    }
+}
 
 #[derive(Debug, PartialEq)]
-enum Word {
+pub(crate) enum Word {
     Value(Value),
     VarRef(String),
     Script(Script),
@@ -35,7 +51,7 @@ enum Word {
     String(String), // Only used in Tokens
 }
 
-pub fn parse(input: &str) -> Result<Script, ResultCode> {
+pub(crate) fn parse(input: &str) -> Result<Script, ResultCode> {
     let mut ctx = EvalPtr::new(input);
     parse_script(&mut ctx)
 }
@@ -50,8 +66,8 @@ fn parse_script(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
     Ok(script)
 }
 
-fn parse_command(ctx: &mut EvalPtr) -> Result<Command, ResultCode> {
-    let mut cmd: Command = Vec::new();
+fn parse_command(ctx: &mut EvalPtr) -> Result<WordVec, ResultCode> {
+    let mut cmd: WordVec = WordVec::new();
 
     // FIRST, deal with whitespace and comments between "here" and the next command.
     while !ctx.at_end_of_script() {
@@ -77,7 +93,7 @@ fn parse_command(ctx: &mut EvalPtr) -> Result<Command, ResultCode> {
             parse_bare_word(ctx)?
         };
 
-        cmd.push(word);
+        cmd.words.push(word);
 
         // NEXT, skip any whitespace.
         ctx.skip_line_white();
@@ -416,38 +432,26 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        let empty: Vec<Command> = Vec::new();
+        assert!(parse("").unwrap().commands.is_empty());
 
-        assert_eq!(parse("").unwrap().commands, empty);
+        let cmds = parse("a").unwrap().commands;
+        assert_eq!(cmds.len(), 1);
+        assert_eq!(cmds[0].words, vec![Word::Value(Value::from("a"))]);
 
-        assert_eq!(
-            parse("a").unwrap().commands,
-            vec![vec![Word::Value(Value::from("a"))]]
-        );
+        let cmds = parse("a\nb").unwrap().commands;
+        assert_eq!(cmds.len(), 2);
+        assert_eq!(cmds[0].words, vec![Word::Value(Value::from("a"))]);
+        assert_eq!(cmds[1].words, vec![Word::Value(Value::from("b"))]);
 
-        assert_eq!(
-            parse("a\nb").unwrap().commands,
-            vec![
-                vec![Word::Value(Value::from("a"))],
-                vec![Word::Value(Value::from("b"))],
-            ]
-        );
+        let cmds = parse("a;b").unwrap().commands;
+        assert_eq!(cmds.len(), 2);
+        assert_eq!(cmds[0].words, vec![Word::Value(Value::from("a"))]);
+        assert_eq!(cmds[1].words, vec![Word::Value(Value::from("b"))]);
 
-        assert_eq!(
-            parse("a;b").unwrap().commands,
-            vec![
-                vec![Word::Value(Value::from("a"))],
-                vec![Word::Value(Value::from("b"))],
-            ]
-        );
-
-        assert_eq!(
-            parse("  a   ;   b   ").unwrap().commands,
-            vec![
-                vec![Word::Value(Value::from("a"))],
-                vec![Word::Value(Value::from("b"))],
-            ]
-        );
+        let cmds = parse(" a ; b ").unwrap().commands;
+        assert_eq!(cmds.len(), 2);
+        assert_eq!(cmds[0].words, vec![Word::Value(Value::from("a"))]);
+        assert_eq!(cmds[1].words, vec![Word::Value(Value::from("b"))]);
 
         assert_eq!(parse("a {"), molt_err!("missing close-brace"));
     }
@@ -688,9 +692,10 @@ mod tests {
     fn test_parse_brackets() {
         let script = pbrack("[set a 5]").unwrap();
         assert_eq!(script.commands.len(), 1);
+        let cmd = &script.commands[0];
         assert_eq!(
-            script.commands.first().unwrap(),
-            &vec![
+            cmd.words,
+            vec![
                 Word::Value(Value::from("set")),
                 Word::Value(Value::from("a")),
                 Word::Value(Value::from("5")),

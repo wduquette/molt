@@ -43,8 +43,28 @@ Things to remember to do soon:
     *   Would allow Molt to be used in embedded code.
 
 ### 2019-09-02 (Monday)
-*   Added tests for the new parser and its sub-functions.
-*   Next step: add Script as another Value data_rep.
+*   parsed-form implementation:
+    *   Added tests for the new parser and its sub-functions.
+    *   Added Script as another Value data_rep.
+        *   Can only be produced by parsing the string_rep internally.
+        *   Handled by Value::as_script(), which is `pub(crate)`.
+    *   Added parallel eval, eval_value, and eval_body methods that evaluate the parsed form,
+        with tests.  Tests pass.
+    *   Replaced the old eval, eval_value, and eval_body methods with the new ones.  Tests pass.
+    *   New benchmarks (see notes/benchmarks.xlsx for history):
+```
+Molt 0.1.0 -- Benchmark
+
+  Micros     Norm -- Benchmark
+     333     1.00 -- ok-1.1 ok, no arguments
+     377     1.13 -- ok-1.2 ok, one argument
+     486     1.46 -- ok-1.3 ok, two arguments
+     380     1.14 -- ident-1.1 ident, simple argument
+     624     1.87 -- incr-1.1 incr a
+     687     2.06 -- set-1.1 set var value
+     955     2.87 -- list-1.1 list of six items
+```
+
 
 ### 2019-09-01 (Sunday)
 *   Parsing issues:

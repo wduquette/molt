@@ -5,8 +5,8 @@ authors = ["Will Duquette <will@wjduquette.com>"]
 edition = "2018"
 description = "Molt Application Frameworks"
 license = "BSD-3-Clause"
-repository = "github.com/wduquette/molt"
-homepage = "wduquette.github.io/molt/"
+repository = "https://github.com/wduquette/molt"
+homepage = "https://wduquette.github.io/molt/"
 readme = "README.md"
 keywords = ["language", "script", "scripting", "tcl"]
 

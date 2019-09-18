@@ -5,14 +5,14 @@ authors = ["Will Duquette <will@wjduquette.com>"]
 edition = "2018"
 description = "Molt Shell Application"
 license = "BSD-3-Clause"
-repository = "github.com/wduquette/molt"
-homepage = "wduquette.github.io/molt/"
+repository = "https://github.com/wduquette/molt"
+homepage = "https://wduquette.github.io/molt/"
 readme = "README.md"
 keywords = ["language", "script", "scripting", "tcl"]
 
 [dependencies]
-molt = { path = "../molt" }
-molt-shell = { path = "../molt-shell" }
+molt = { version = "0.1.0", path = "../molt" }
+molt-shell = { version = "0.1.0", path = "../molt-shell" }
 
 [[bin]]
 name = "moltsh"

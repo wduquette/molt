@@ -11,5 +11,5 @@ readme = "README.md"
 keywords = ["language", "script", "scripting", "tcl"]
 
 [dependencies]
-molt = { path = "../molt" }
+molt = "0.1.0"
 rustyline = "5.0.0"

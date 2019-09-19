@@ -1,15 +1,15 @@
 [package]
 name = "molt-shell"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Will Duquette <will@wjduquette.com>"]
 edition = "2018"
 description = "Molt Application Frameworks"
 license = "BSD-3-Clause"
 repository = "https://github.com/wduquette/molt"
-homepage = "https://wduquette.github.io/molt/"
+homepage = "https://wduquette.github.io"
 readme = "README.md"
 keywords = ["language", "script", "scripting", "tcl"]
 
 [dependencies]
-molt = "0.1.0"
+molt = { version = "0.1.0", path = "../molt" }
 rustyline = "5.0.0"

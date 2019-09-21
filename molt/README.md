@@ -14,6 +14,12 @@ assert_eq!(four.as_int(), 4);
 A new command is defined like so:
 
 ```rust
+use molt::check_args;
+use molt::MoltResult;
+use molt::Value;
+use molt::Interp;
+use molt::molt_ok;
+
 /// # square *x*
 ///
 /// Computes the square of a value
@@ -34,7 +40,7 @@ and installed like so:
 ```rust
 use molt::Interp;
 let mut interp = Interp::new();
-interp.addCommand("square", cmd_square);
+interp.add_command("square", cmd_square);
 
 let num = interp.eval("square 5")?;
 assert_eq!(num.as_int(), 25);

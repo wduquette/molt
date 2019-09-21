@@ -42,6 +42,10 @@ Things to remember to do soon:
     *   Is this a reasonable goal?
     *   Would allow Molt to be used in embedded code.
 
+### 2019-09-21 (Saturday)
+*   This past week I published Molt 0.1.0 (including molt, molt-shell, and molt-app) to
+    crates.io.
+
 ### 2019-09-02 (Monday)
 *   parsed-form implementation:
     *   Added tests for the new parser and its sub-functions.

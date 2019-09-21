@@ -12,6 +12,13 @@
 //! for multiple types can be interpreted as any of those types; for example, the
 //! string "5" can be a string, the integer 5, or a list of one element, "5".
 //!
+//! # Value is not Sync!
+//!
+//! A `Value` is associated with a particular `Interp` and changes internally to optimize
+//! performance within that `Interp`.  Consequently, `Values` are not `Sync`.  `Values`
+//! may be used to pass values between `Interps` in the same thread (at the cost of
+//! potential shimmering), but between threads one should pass the string rep instead.
+//!
 //! # Comparisons
 //!
 //! If two `Value`'s are compared for equality in Rust, Rust compares their string reps.
@@ -386,8 +393,8 @@ impl Value {
         // NOTE: This method is the only place where the string_rep is queried.
         let slot = unsafe { &*self.inner.string_rep.get() };
 
-        if slot.is_some() {
-            return slot.as_ref().expect("string rep");
+        if let Some(inner) = slot {
+            return inner;
         }
 
         // NOTE: This is the only place where the string_rep is set.

@@ -15,6 +15,12 @@
 //! The following describes the features of the [`Interp`] in general; follow the links for
 //! specifics of the various types and methods.
 //!
+//! # Interp is not Sync!
+//!
+//! The `Interp` class (and the rest of Molt) is intended for use in a single thread.  It is
+//! safe to have multiple `Interps` in different threads; but use `String` (or another `Sync`)
+//! when passing data between them.  In particular, `Value` is not `Sync`.
+//!
 //! # Creating an Interpreter
 //!
 //! There are two ways to create an interpreter.  The usual way is to call

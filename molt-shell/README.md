@@ -10,5 +10,9 @@ The Molt Book (and the rustdoc) explain how to create each of these kinds of app
 the `molt-app` crate for a straightforward example.  `molt-app` defines `moltsh`, which
 provides a vanilla REPL, test tool, and benchmark tool, in one page of code.
 
-See [The Molt Book](https://wjduquette.github.io/molt) for more details, and
-the [GitHub Repo](https://github.com/wjduquette/molt) for issue tracking, etc.
+The [`molt-sample` repo](http://github.com/wduquette/molt-sample) contains a sample Molt
+extension, including a shell application and a library create, both of which define new
+Molt commands.
+
+See [The Molt Book](https://wduquette.github.io/molt) for more details, and
+the [GitHub Repo](https://github.com/wduquette/molt) for issue tracking, etc.

@@ -53,6 +53,10 @@ with the value's string representation: integers, floats, lists, and any type th
 Molt is still a work in progress.  The basic TCL language is in place, but many TCL commands
 remain to be implemented.  See the Molt Book for details.
 
+The [`molt-sample` repo](http://github.com/wduquette/molt-sample) contains a sample Molt
+extension, including a shell application and a library create, both of which define new
+Molt commands.
+
 See my [blog](https://wduquette.github.io/) for news,
 [The Molt Book](https://wduquette.github.io/molt/) for details, and
-the [GitHub Repo](https://github.com/wjduquette/molt) for issue tracking, etc.
+the [GitHub Repo](https://github.com/wduquette/molt) for issue tracking, etc.

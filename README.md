@@ -4,6 +4,9 @@ The goal of this project is to build a minimal version of TCL for embedding in R
 apps.  See [The Molt Book](https://github.com/wduquette/molt-book) for details
 and user documentation.
 
+See the [`molt-sample` repo](https://github.com/wduquette/molt-sample) for a sample Molt client
+skeleton.
+
 **NOTE:** A big part of this effort is defining and refining the Rust API used to
 interact with and extend the interpreter.  At this point in development the API
 can change without notice!  (And if you have suggestions for improvement, feel

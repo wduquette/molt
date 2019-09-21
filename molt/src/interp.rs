@@ -183,10 +183,7 @@ struct ProfileRecord {
 
 impl ProfileRecord {
     fn new() -> Self {
-        Self {
-            count: 0,
-            nanos: 0,
-        }
+        Self { count: 0, nanos: 0 }
     }
 }
 

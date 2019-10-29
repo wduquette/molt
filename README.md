@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/molt.svg)](https://crates.io/crates/molt)
 
 The goal of this project is to build a minimal version of TCL for embedding in Rust
-apps.  See [The Molt Book](https://github.com/wduquette/molt-book) for details
+apps.  See [The Molt Book](https://wduquette.github.io/molt) for details
 and user documentation.
 
 See the [`molt-sample` repo](https://github.com/wduquette/molt-sample) for a sample Molt client

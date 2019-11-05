@@ -57,8 +57,6 @@ $ cargo run test test/all.tcl
     *   "foreach"
     *   "join"
     *   "lindex"
-    *   "list"
-    *   "set"
     *   Test expression parser thoroughly
         * Add tests for "eq", "ne", "in", "ni"
 * Implement stack traces

@@ -448,9 +448,17 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 pub fn cmd_lindex(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 0, "list ?index ...?")?;
 
-    let mut value = argv[1].clone();
+    if argv.len() != 3 {
+        lindex_into(&argv[1], &argv[2..])
+    } else {
+        lindex_into(&argv[1], &*argv[2].as_list()?)
+    }
+}
 
-    for index_val in &argv[2..] {
+pub fn lindex_into(list: &Value, indices: &[Value]) -> MoltResult {
+    let mut value: Value = list.clone();
+
+    for index_val in indices {
         let list = value.as_list()?;
         let index = index_val.as_int()?;
 

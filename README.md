@@ -55,7 +55,6 @@ $ cargo run test test/all.tcl
 *   Issues from wduquette/molt.
 *   Add complete tests for the existing Tcl commands.
     *   "foreach"
-    *   "global"
     *   "join"
     *   "lindex"
     *   "list"

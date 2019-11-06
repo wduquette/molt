@@ -24,6 +24,10 @@ test list-1.6 {no index} {
     lindex {a b c}
 } -ok {a b c}
 
+test lindex-1.7 {negative index} {
+    lindex {a {b c} d} -1
+} -ok {}
+
 test list-2.1 {empty index list} {
     lindex {a b c} {}
 } -ok {a b c}

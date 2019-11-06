@@ -3,7 +3,8 @@
 [![Crates.io](https://img.shields.io/crates/v/molt.svg)](https://crates.io/crates/molt)
 
 The goal of this project is to build a minimal version of TCL for embedding in Rust
-apps.  See [The Molt Book](https://wduquette.github.io/molt) for details
+apps and for scripting Rust libraries.  See
+[The Molt Book](https://wduquette.github.io/molt) for details
 and user documentation.
 
 See the [`molt-sample` repo](https://github.com/wduquette/molt-sample) for a sample Molt client
@@ -18,7 +19,7 @@ free to write an issue.)
 
 To build Molt:
 
-*   Install the latest stable version of Rust (1.36.0 at time of writing)
+*   Install the latest stable version of Rust (1.38.0 at time of writing)
 *   Clone this repository
 *   To build:
 
@@ -54,7 +55,6 @@ $ cargo run test test/all.tcl
 *   Investigate performance of basic benchmarks.
 *   Issues from wduquette/molt.
 *   Add complete tests for the existing Tcl commands.
-    *   "foreach"
     *   Test expression parser thoroughly
         * Add tests for "eq", "ne", "in", "ni"
 * Implement stack traces

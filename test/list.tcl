@@ -14,3 +14,11 @@ test list-1.2 {one argument} {
 test list-1.3 {two arguments} {
     list 1 2 3
 } -ok {1 2 3}
+
+test list-1.4 {list command} {
+    list a {b c} d
+} -ok {a {b c} d}
+
+test list-1.5 {list command} {
+    list a {} c
+} -ok {a {} c}

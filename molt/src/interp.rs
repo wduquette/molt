@@ -881,98 +881,13 @@ impl Interp {
     }
 
     //--------------------------------------------------------------------------------------------
-    // The Molt Parser
+    // Legacy Molt Parser
     //
-    // TODO: Can this be easily moved to another module?  It needs access to the
-    // Interp struct's fields.
-
-    /// Low-level script evaluator; evaluates the next script in the
-    /// context.
-    fn eval_context(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        let mut result_value = Value::empty();
-
-        while !ctx.at_end_of_script() {
-            // let start = Instant::now();
-            let words = self.parse_command(ctx)?;
-
-            if words.is_empty() {
-                break;
-            }
-
-            // self.profile_save(&format!("parse_command({})", words[0].as_str()), start);
-
-            // When scanning for info
-            if ctx.is_no_eval() {
-                continue;
-            }
-
-            // FIRST, convert to Vec<&str>
-            let name = words[0].as_str();
-            if let Some(cmd) = self.commands.get(name) {
-                // let start = Instant::now();
-                let cmd = Rc::clone(cmd);
-                let result = cmd.execute(self, words.as_slice());
-                // self.profile_save(&format!("cmd.execute({})", name), start);
-                match result {
-                    Ok(v) => result_value = v,
-                    _ => return result,
-                }
-            } else {
-                return molt_err!("invalid command name \"{}\"", name);
-            }
-        }
-
-        Ok(result_value)
-    }
-
-    fn parse_command(&mut self, ctx: &mut EvalPtr) -> Result<MoltList, ResultCode> {
-        // FIRST, deal with whitespace and comments between "here" and the next command.
-        while !ctx.at_end_of_script() {
-            ctx.skip_block_white();
-
-            // Either there's a comment, or we're at the beginning of the next command.
-            // If the former, skip the comment; then check for more whitespace and comments.
-            // Otherwise, go on to the command.
-            if !ctx.skip_comment() {
-                break;
-            }
-        }
-
-        let mut words = Vec::new();
-
-        // Read words until we get to the end of the line or hit an error
-        // NOTE: parse_word() can always assume that it's at the beginning of a word.
-        while !ctx.at_end_of_command() {
-            // FIRST, get the next word; there has to be one, or there's an input error.
-            let word = self.parse_word(ctx)?;
-
-            // NEXT, save the word we found.
-            words.push(word);
-
-            // NEXT, skip any whitespace.
-            ctx.skip_line_white();
-        }
-
-        // If we ended at a ";", consume the semi-colon.
-        if ctx.next_is(';') {
-            ctx.next();
-        }
-
-        Ok(words)
-    }
-
-    /// We're at the beginning of a word belonging to the current command.
-    /// It's either a bare word, a braced string, or a quoted string--or there's
-    /// an error in the input.  Whichever it is, get it.
-    fn parse_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        if ctx.next_is('{') {
-            Ok(self.parse_braced_word(ctx)?)
-        } else if ctx.next_is('"') {
-            Ok(self.parse_quoted_word(ctx)?)
-        } else {
-            Ok(self.parse_bare_word(ctx)?)
-        }
-    }
+    // This is the original Molt Parser that parsed and evaluated in one pass.
+    // At present this code is only used by `expr`.  It should be modified to
+    // use the official parser, and then do the actual evaluation as needed.
+    // And then it should get moved to `expr` until `expr` is revised to parse
+    // to an internal form as well.
 
     pub(crate) fn parse_braced_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         // FIRST, skip the opening brace, and count it; non-escaped braces need to
@@ -1070,35 +985,6 @@ impl Interp {
         molt_err!("missing \"")
     }
 
-    /// Parse a bare word.
-    fn parse_bare_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        let mut word = String::new();
-        let mut start = ctx.mark();
-
-        while !ctx.at_end_of_command() && !ctx.next_is_line_white() {
-            // Note: the while condition ensures that there's a character.
-            if ctx.next_is('[') {
-                word.push_str(ctx.token(start));
-                word.push_str(self.parse_script(ctx)?.as_str());
-                start = ctx.mark();
-            } else if ctx.next_is('$') {
-                word.push_str(ctx.token(start));
-                word.push_str(self.parse_variable(ctx)?.as_str());
-                start = ctx.mark();
-            } else if ctx.next_is('\\') {
-                word.push_str(ctx.token(start));
-                word.push(ctx.backslash_subst());
-                start = ctx.mark();
-            } else {
-                ctx.skip();
-            }
-        }
-
-        word.push_str(ctx.token(start));
-
-        Ok(Value::from(word))
-    }
-
     pub(crate) fn parse_script(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         // FIRST, skip the '['
         ctx.skip_char('[');
@@ -1108,7 +994,11 @@ impl Interp {
         ctx.set_bracket_term(true);
 
         let script = parser::parse_script(ctx)?;
-        let result = self.eval_script(&script);
+        let result = if ctx.is_no_eval() {
+            Ok(Value::empty())
+        } else {
+            self.eval_script(&script)
+        };
 
         ctx.set_bracket_term(old_flag);
 
@@ -1573,48 +1463,6 @@ mod tests {
         let mut ctx = EvalPtr::new(input);
 
         match interp.parse_quoted_word(&mut ctx) {
-            Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
-            Err(ResultCode::Error(value)) => format!("{}", value),
-            Err(code) => format!("{:?}", code),
-        }
-    }
-
-    #[test]
-    fn test_parse_bare() {
-        let mut interp = Interp::new();
-
-        // Single word
-        assert_eq!(pbare(&mut interp, "abc"), "abc|".to_string());
-
-        // Single word with whitespace following
-        assert_eq!(pbare(&mut interp, "abc "), "abc| ".to_string());
-        assert_eq!(pbare(&mut interp, "abc\t"), "abc|\t".to_string());
-
-        // Backslash substitution at beginning, middle, and end
-        assert_eq!(pbare(&mut interp, "\\x77-"), "w-|".to_string());
-        assert_eq!(pbare(&mut interp, "a\\x77-"), "aw-|".to_string());
-        assert_eq!(pbare(&mut interp, "a\\x77"), "aw|".to_string());
-
-        // Variable substitution
-        interp.set_var("x", &Value::from("5"));
-        assert_eq!(pbare(&mut interp, "a$x.b "), "a5.b| ".to_string());
-
-        interp.set_var("xyz1", &Value::from("10"));
-        assert_eq!(pbare(&mut interp, "a$xyz1.b "), "a10.b| ".to_string());
-
-        assert_eq!(pbare(&mut interp, "a$.b "), "a$.b| ".to_string());
-
-        assert_eq!(pbare(&mut interp, "a${x}.b "), "a5.b| ".to_string());
-
-        // Command substitution
-        assert_eq!(pbare(&mut interp, "a[list b]c"), "abc|".to_string());
-        assert_eq!(pbare(&mut interp, "a[list b c]d"), "ab cd|".to_string());
-    }
-
-    fn pbare(interp: &mut Interp, input: &str) -> String {
-        let mut ctx = EvalPtr::new(input);
-
-        match interp.parse_bare_word(&mut ctx) {
             Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
             Err(ResultCode::Error(value)) => format!("{}", value),
             Err(code) => format!("{:?}", code),

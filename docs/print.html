@@ -902,14 +902,19 @@ timing each execution.  The average run time in microseconds is returned as a st
 15 microseconds per iteration
 %
 </code></pre>
-<a class="header" href="#unset-varname" id="unset-varname"><h1>unset <em>varName</em></h1></a>
-<p>Unsets variable <em>varName</em>'s value.  The <code>unset</code> command has no effect if
-no such variable is visible in the current scope.</p>
+<a class="header" href="#unset--nocomplain----name-name-name" id="unset--nocomplain----name-name-name"><h1>unset ?-nocomplain? ?--? ?<em>name</em> <em>name</em> <em>name</em>...?</h1></a>
+<p>Unsets one or more variables whose names are passed to the command.
+It does not matter whether the variable(s) actually exists or not.</p>
+<p>The <code>-nocomplain</code> option is ignored.  The argument <code>--</code> indicates the
+end of options; all arguments following <code>--</code> will be treated as variable
+names whether they begin with a hyphen or not.</p>
 <a class="header" href="#tcl-differences" id="tcl-differences"><h2>TCL Differences</h2></a>
 <p>In standard TCL, it's an error to unset a variable that doesn't exist; the
-command provides the <code>-nocomplain</code> option to cover this case.  Per the TCL Core Team,
-the <code>-nocomplain</code> option indicates, wherever it is found, that the original
-definition of the command got it wrong.  In Molt, <code>unset</code> never complains.</p>
+command provides the <code>-nocomplain</code> option to cover this case. In Molt,
+<code>unset</code> never complains; the <code>-nocomplain</code> option is provided only for
+compatible with legacy TCL code.  (Per the TCL Core Team, the <code>-nocomplain</code>
+option indicates, wherever it is found, that the original definition of the
+command got the default behaviour wrong.)</p>
 <a class="header" href="#while-test-command" id="while-test-command"><h1>while <em>test</em> <em>command</em></h1></a>
 <p>The <code>while</code> command is a standard &quot;while&quot; loop, executing the <em>command</em> script just so
 long as the <em>test</em> expression evaluates to true.</p>

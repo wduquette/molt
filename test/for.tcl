@@ -17,8 +17,10 @@ test for-1.4 {for error in next} {
 } -error {wrong # args: should be "incr varName ?increment?"}
 
 test for-1.5 {for error in body} {
-    for {set i 0} {$i < 5} {incr i} {unset}
-} -error {wrong # args: should be "unset varName"}
+    for {set i 0} {$i < 5} {incr i} {
+        error "Simulated error"
+    }
+} -error {Simulated error}
 
 test for-2.1 {for loop with break} {
     set a {}

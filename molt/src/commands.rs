@@ -448,9 +448,17 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 pub fn cmd_lindex(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 0, "list ?index ...?")?;
 
-    let mut value = argv[1].clone();
+    if argv.len() != 3 {
+        lindex_into(&argv[1], &argv[2..])
+    } else {
+        lindex_into(&argv[1], &*argv[2].as_list()?)
+    }
+}
 
-    for index_val in &argv[2..] {
+pub fn lindex_into(list: &Value, indices: &[Value]) -> MoltResult {
+    let mut value: Value = list.clone();
+
+    for index_val in indices {
         let list = value.as_list()?;
         let index = index_val.as_int()?;
 
@@ -661,14 +669,30 @@ pub fn cmd_time(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     molt_ok!("{} nanoseconds per iteration", avg)
 }
 
-/// # unset *varName*
+/// # unset ?-nocomplain? *varName*
 ///
 /// Removes the variable from the interpreter.  This is a no op if
-/// there is no such variable.
+/// there is no such variable.  The -nocomplain option is accepted for
+/// compatible with standard TCL, but is never required.
 pub fn cmd_unset(interp: &mut Interp, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 2, 2, "varName")?;
+    check_args(1, argv, 1, 0, "?-nocomplain? ?--? ?name name name...?")?;
 
-    interp.unset_var(argv[1].as_str());
+    let mut options_ok = true;
+
+    for arg in argv {
+        let var = arg.as_str();
+
+        if options_ok {
+            if var == "--" {
+                options_ok = false;
+                continue
+            } else if var == "-nocomplain" {
+                continue
+            }
+        }
+
+        interp.unset_var(var);
+    }
 
     molt_ok!()
 }

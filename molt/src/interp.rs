@@ -1106,7 +1106,10 @@ impl Interp {
         // NEXT, parse the script up to the matching ']'
         let old_flag = ctx.is_bracket_term();
         ctx.set_bracket_term(true);
-        let result = self.eval_context(ctx);
+
+        let script = parser::parse_script(ctx)?;
+        let result = self.eval_script(&script);
+
         ctx.set_bracket_term(old_flag);
 
         // NEXT, make sure there's a closing bracket

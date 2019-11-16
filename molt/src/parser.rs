@@ -57,7 +57,8 @@ pub(crate) fn parse(input: &str) -> Result<Script, ResultCode> {
     parse_script(&mut ctx)
 }
 
-fn parse_script(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
+// Used by interp::parse_script, which is used by expr.
+pub(crate) fn parse_script(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
     let mut script = Script::new();
 
     while !ctx.at_end_of_script() {

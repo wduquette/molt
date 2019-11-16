@@ -394,11 +394,12 @@ impl Interp {
         self.eval_script(&*body.as_script()?)
     }
 
+    // Evals a parsed Script, producing a normal MoltResult.
     fn eval_script(&mut self, script: &Script) -> MoltResult {
         let mut result_value = Value::empty();
 
         for word_vec in script.commands() {
-            let words = self.words_to_list(word_vec.words())?;
+            let words = self.eval_word_vec(word_vec.words())?;
 
             if words.is_empty() {
                 break;
@@ -423,27 +424,37 @@ impl Interp {
         Ok(result_value)
     }
 
-    fn words_to_list(&mut self, words: &[Word]) -> Result<MoltList, ResultCode> {
+    // Evaluates a WordVec, producing a list of Values.  The expansion operator is handled
+    // as a special case.
+    fn eval_word_vec(&mut self, words: &[Word]) -> Result<MoltList, ResultCode> {
         let mut list: MoltList = Vec::new();
 
         for word in words {
-            list.push(self.word_to_value(word)?);
+            if let Word::Expand(word_to_expand) = word {
+                let value = self.eval_word(word_to_expand)?;
+                for val in &*value.as_list()? {
+                    list.push(val.clone());
+                }
+            } else {
+                list.push(self.eval_word(word)?);
+            }
         }
 
         Ok(list)
     }
 
-    // Convert a Word to a Value in the context of the interpreter.
-    fn word_to_value(&mut self, word: &Word) -> MoltResult {
+    // Evaluates a single word.
+    fn eval_word(&mut self, word: &Word) -> MoltResult {
         match word {
             Word::Value(val) => Ok(val.clone()),
             Word::VarRef(name) => self.var(name),
             Word::Script(script) => self.eval_script(script),
             Word::Tokens(tokens) => {
-                let tlist = self.words_to_list(tokens)?;
+                let tlist = self.eval_word_vec(tokens)?;
                 let string: String = tlist.iter().map(|i| i.as_str()).collect();
                 Ok(Value::from(string))
             }
+            Word::Expand(_) => panic!("recursive Expand!"),
             Word::String(str) => Ok(Value::from(str)),
         }
     }

@@ -48,6 +48,7 @@ pub(crate) enum Word {
     VarRef(String),     // e.g., $x
     Script(Script),     // e.g., [foo 1 2 3]
     Tokens(Vec<Word>),  // e.g., "a $x [foo] b" or foo.$x, etc.
+    Expand(Box<Word>),       // e.g., {*}...
     String(String),     // A literal in Tokens, e.g., "a ", "foo."
 }
 

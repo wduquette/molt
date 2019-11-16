@@ -427,21 +427,25 @@ impl Interp {
         let mut list: MoltList = Vec::new();
 
         for word in words {
-            match word {
-                Word::Value(val) => list.push(val.clone()),
-                Word::VarRef(name) => list.push(self.var(name)?),
-                Word::Script(script) => list.push(self.eval_script(script)?),
-                Word::Tokens(tokens) => {
-                    let tlist = self.words_to_list(tokens)?;
-                    let string: String = tlist.iter().map(|i| i.as_str()).collect();
-                    list.push(Value::from(string));
-                }
-                // TODO: Consider saving all individual strings as values.
-                Word::String(str) => list.push(Value::from(str)),
-            }
+            list.push(self.word_to_value(word)?);
         }
 
         Ok(list)
+    }
+
+    // Convert a Word to a Value in the context of the interpreter.
+    fn word_to_value(&mut self, word: &Word) -> MoltResult {
+        match word {
+            Word::Value(val) => Ok(val.clone()),
+            Word::VarRef(name) => self.var(name),
+            Word::Script(script) => self.eval_script(script),
+            Word::Tokens(tokens) => {
+                let tlist = self.words_to_list(tokens)?;
+                let string: String = tlist.iter().map(|i| i.as_str()).collect();
+                Ok(Value::from(string))
+            }
+            Word::String(str) => Ok(Value::from(str)),
+        }
     }
 
     /// Determines whether or not the script is syntactically complete,

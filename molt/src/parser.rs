@@ -86,15 +86,7 @@ fn parse_command(ctx: &mut EvalPtr) -> Result<WordVec, ResultCode> {
     // NOTE: parse_word() can always assume that it's at the beginning of a word.
     while !ctx.at_end_of_command() {
         // FIRST, get the next word; there has to be one, or there's an input error.
-        let word: Word = if ctx.next_is('{') {
-            parse_braced_word(ctx)?
-        } else if ctx.next_is('"') {
-            parse_quoted_word(ctx)?
-        } else {
-            parse_bare_word(ctx)?
-        };
-
-        cmd.words.push(word);
+        cmd.words.push(parse_next_word(ctx)?);
 
         // NEXT, skip any whitespace.
         ctx.skip_line_white();
@@ -106,6 +98,17 @@ fn parse_command(ctx: &mut EvalPtr) -> Result<WordVec, ResultCode> {
     }
 
     Ok(cmd)
+}
+
+// Parse and return the next word.
+fn parse_next_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+    if ctx.next_is('{') {
+        parse_braced_word(ctx)
+    } else if ctx.next_is('"') {
+        parse_quoted_word(ctx)
+    } else {
+        parse_bare_word(ctx)
+    }
 }
 
 fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {

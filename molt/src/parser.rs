@@ -478,6 +478,56 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_next_word() {
+        // NOTE: The point of this test is to make sure that parse_next_word is
+        // calling the right functions to complete the job, not to verify what
+        // those functions are doing; they have their own tests.
+
+        // Normal Braced Word
+        assert_eq!(
+            pword("{abc}"),
+            Ok((Word::Value(Value::from("abc")), "".into()))
+        );
+
+        // {*} at end of input
+        assert_eq!(
+            pword("{*}"),
+            Ok((Word::Value(Value::from("*")), "".into()))
+        );
+
+        // {*} followed by white-space
+        assert_eq!(
+            pword("{*} "),
+            Ok((Word::Value(Value::from("*")), " ".into()))
+        );
+
+        // {*} followed by word
+        assert_eq!(
+            pword("{*}abc "),
+            Ok((Word::Expand(Box::new(Word::Value(Value::from("abc")))), " ".into()))
+        );
+
+        // Quoted Word
+        assert_eq!(
+            pword("\"abc\""),
+            Ok((Word::Value(Value::from("abc")), "".into()))
+        );
+
+        // Bare word
+        assert_eq!(
+            pword("abc"),
+            Ok((Word::Value(Value::from("abc")), "".into()))
+        );
+
+    }
+
+    fn pword(input: &str) -> Result<(Word, String), ResultCode> {
+        let mut ctx = EvalPtr::new(input);
+        let word = parse_next_word(&mut ctx)?;
+        Ok((word, ctx.tok().as_str().to_string()))
+    }
+
+    #[test]
     fn test_parse_braced_word() {
         // Simple string
         assert_eq!(

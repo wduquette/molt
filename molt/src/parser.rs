@@ -103,6 +103,23 @@ fn parse_command(ctx: &mut EvalPtr) -> Result<WordVec, ResultCode> {
 // Parse and return the next word.
 fn parse_next_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     if ctx.next_is('{') {
+        // FIRST, look for "{*}" operator
+        if ctx.tok().as_str().starts_with("{*}") {
+            ctx.skip();
+            ctx.skip();
+            ctx.skip();
+
+            // If the next character is white space, this is just a normal braced
+            // word; return its content.  Otherwise, parse what remains as a word
+            // and box it in Expand.
+            if ctx.at_end() || ctx.next_is_block_white() {
+                return Ok(Word::Value(Value::from("*")));
+            } else {
+                return Ok(Word::Expand(Box::new(parse_next_word(ctx)?)));
+            }
+        }
+
+        // NEXT, just a normal braced word.
         parse_braced_word(ctx)
     } else if ctx.next_is('"') {
         parse_quoted_word(ctx)

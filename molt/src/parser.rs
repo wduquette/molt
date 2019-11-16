@@ -44,11 +44,12 @@ impl WordVec {
 
 #[derive(Debug, PartialEq)]
 pub(crate) enum Word {
-    Value(Value),
-    VarRef(String),
-    Script(Script),
-    Tokens(Vec<Word>),
-    String(String), // Only used in Tokens
+    Value(Value),      // e.g., {a b c}
+    VarRef(String),    // e.g., $x
+    Script(Script),    // e.g., [foo 1 2 3]
+    Tokens(Vec<Word>), // e.g., "a $x [foo] b" or foo.$x, etc.
+    Expand(Box<Word>), // e.g., {*}...
+    String(String),    // A literal in Tokens, e.g., "a ", "foo."
 }
 
 pub(crate) fn parse(input: &str) -> Result<Script, ResultCode> {
@@ -56,7 +57,8 @@ pub(crate) fn parse(input: &str) -> Result<Script, ResultCode> {
     parse_script(&mut ctx)
 }
 
-fn parse_script(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
+// Used by interp::parse_script, which is used by expr.
+pub(crate) fn parse_script(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
     let mut script = Script::new();
 
     while !ctx.at_end_of_script() {
@@ -85,15 +87,7 @@ fn parse_command(ctx: &mut EvalPtr) -> Result<WordVec, ResultCode> {
     // NOTE: parse_word() can always assume that it's at the beginning of a word.
     while !ctx.at_end_of_command() {
         // FIRST, get the next word; there has to be one, or there's an input error.
-        let word: Word = if ctx.next_is('{') {
-            parse_braced_word(ctx)?
-        } else if ctx.next_is('"') {
-            parse_quoted_word(ctx)?
-        } else {
-            parse_bare_word(ctx)?
-        };
-
-        cmd.words.push(word);
+        cmd.words.push(parse_next_word(ctx)?);
 
         // NEXT, skip any whitespace.
         ctx.skip_line_white();
@@ -105,6 +99,34 @@ fn parse_command(ctx: &mut EvalPtr) -> Result<WordVec, ResultCode> {
     }
 
     Ok(cmd)
+}
+
+// Parse and return the next word.
+fn parse_next_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+    if ctx.next_is('{') {
+        // FIRST, look for "{*}" operator
+        if ctx.tok().as_str().starts_with("{*}") {
+            ctx.skip();
+            ctx.skip();
+            ctx.skip();
+
+            // If the next character is white space, this is just a normal braced
+            // word; return its content.  Otherwise, parse what remains as a word
+            // and box it in Expand.
+            if ctx.at_end() || ctx.next_is_block_white() {
+                return Ok(Word::Value(Value::from("*")));
+            } else {
+                return Ok(Word::Expand(Box::new(parse_next_word(ctx)?)));
+            }
+        }
+
+        // NEXT, just a normal braced word.
+        parse_braced_word(ctx)
+    } else if ctx.next_is('"') {
+        parse_quoted_word(ctx)
+    } else {
+        parse_bare_word(ctx)
+    }
 }
 
 fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
@@ -454,6 +476,55 @@ mod tests {
         assert_eq!(cmds[1].words, vec![Word::Value(Value::from("b"))]);
 
         assert_eq!(parse("a {"), molt_err!("missing close-brace"));
+    }
+
+    #[test]
+    fn test_parse_next_word() {
+        // NOTE: The point of this test is to make sure that parse_next_word is
+        // calling the right functions to complete the job, not to verify what
+        // those functions are doing; they have their own tests.
+
+        // Normal Braced Word
+        assert_eq!(
+            pword("{abc}"),
+            Ok((Word::Value(Value::from("abc")), "".into()))
+        );
+
+        // {*} at end of input
+        assert_eq!(pword("{*}"), Ok((Word::Value(Value::from("*")), "".into())));
+
+        // {*} followed by white-space
+        assert_eq!(
+            pword("{*} "),
+            Ok((Word::Value(Value::from("*")), " ".into()))
+        );
+
+        // {*} followed by word
+        assert_eq!(
+            pword("{*}abc "),
+            Ok((
+                Word::Expand(Box::new(Word::Value(Value::from("abc")))),
+                " ".into()
+            ))
+        );
+
+        // Quoted Word
+        assert_eq!(
+            pword("\"abc\""),
+            Ok((Word::Value(Value::from("abc")), "".into()))
+        );
+
+        // Bare word
+        assert_eq!(
+            pword("abc"),
+            Ok((Word::Value(Value::from("abc")), "".into()))
+        );
+    }
+
+    fn pword(input: &str) -> Result<(Word, String), ResultCode> {
+        let mut ctx = EvalPtr::new(input);
+        let word = parse_next_word(&mut ctx)?;
+        Ok((word, ctx.tok().as_str().to_string()))
     }
 
     #[test]

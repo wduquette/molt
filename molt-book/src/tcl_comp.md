@@ -33,29 +33,31 @@ have already been implemented.  The current set of features includes:
 *   Execution of script files
 *   A test harness
 *   The beginnings of a detailed test suite
-
-## Features to be added soon
-
-*   An improved test suite
-*   Additional commands from the minimal TCL command set:
 *   A clean and modular embedding API
     *   Including interactive REPLs, and the ability to use
         `molt test` to test custom Molt extensions.
 
-## Features to be added later
+## Features to be added soon
 
 *   Array variables (associative arrays)
+*   Improvements to the test suite
+*   Additional commands from the minimal TCL command set:
+
+## Features to be added later
+
+*   Some way to create ensembles, simple objects
 *   Dictionaries
 *   Globs and Regexes
 *   Byte Compilation
 
-## Features that may never be added
+## Features that might never be added (depending on demand)
 
 *   Namespaces
 *   Slave interpreters
 *   Traces
 *   File I/O
 *   Event loop
+*   Communication between Interps in different threads
 
 ## Features that will almost certainly never be added
 
@@ -64,17 +66,16 @@ have already been implemented.  The current set of features includes:
     *   Though some form of module architecture might become valuable at
         some point.
 *   Coroutines
-*   Communication between Interps in different threads
 *   Support for dynamic libraries
 *   Support for binary extensions written in C (or anything but Rust)
 *   Network I/O
-*   OOP
+*   OOP (in the form of TclOO)
 
 ## Miscellaneous Differences
 
 See the man pages for specific commands for other differences.
 
-*   Integer literals beginning with "0" are NOT assumed to be octal.
+*   Integer literals beginning with "0" are NOT assumed to be octal,
     Nor will they ever be.
 *   The encoding is currently always UTF-8.
 *   In `$name`, the name may include underscores and any character that

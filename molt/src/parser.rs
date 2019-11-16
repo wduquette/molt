@@ -44,11 +44,11 @@ impl WordVec {
 
 #[derive(Debug, PartialEq)]
 pub(crate) enum Word {
-    Value(Value),
-    VarRef(String),
-    Script(Script),
-    Tokens(Vec<Word>),
-    String(String), // Only used in Tokens
+    Value(Value),       // e.g., {a b c}
+    VarRef(String),     // e.g., $x
+    Script(Script),     // e.g., [foo 1 2 3]
+    Tokens(Vec<Word>),  // e.g., "a $x [foo] b" or foo.$x, etc.
+    String(String),     // A literal in Tokens, e.g., "a ", "foo."
 }
 
 pub(crate) fn parse(input: &str) -> Result<Script, ResultCode> {

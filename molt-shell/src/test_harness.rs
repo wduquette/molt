@@ -37,6 +37,7 @@ use std::rc::Rc;
 /// Executes the Molt test harness, given the command-line arguments,
 /// in the context of the given interpreter.
 ///
+///
 /// The first element of the `args` array must be the name of the test script
 /// to execute.  The remaining elements are meant to be test harness options,
 /// but are currently ignored.
@@ -66,14 +67,14 @@ use std::rc::Rc;
 /// }
 /// ```
 
-pub fn test_harness(interp: &mut Interp, args: &[String]) {
+pub fn test_harness(interp: &mut Interp, args: &[String]) -> Result<(),()> {
     // FIRST, announce who we are.
     println!("Molt {} -- Test Harness", env!("CARGO_PKG_VERSION"));
 
     // NEXT, get the script file name
     if args.is_empty() {
         eprintln!("missing test script");
-        return;
+        return Err(());
     }
 
     let path = PathBuf::from(&args[0]);
@@ -95,15 +96,18 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) {
                 Ok(_) => (),
                 Err(ResultCode::Error(msg)) => {
                     eprintln!("{}", msg);
-                    std::process::exit(1);
+                    return Err(());
                 }
                 Err(result) => {
                     eprintln!("Unexpected eval return: {:?}", result);
-                    std::process::exit(1);
+                    return Err(());
                 }
             }
         }
-        Err(e) => println!("{}", e),
+        Err(e) => {
+            println!("{}", e);
+            return Err(());
+        }
     }
 
     // NEXT, output the test results:
@@ -112,6 +116,12 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) {
         "\n{} tests, {} passed, {} failed, {} errors",
         ctx.num_tests, ctx.num_passed, ctx.num_failed, ctx.num_errors
     );
+
+    if ctx.num_failed + ctx.num_errors == 0 {
+        Ok(())
+    } else {
+        Err(())
+    }
 }
 
 struct TestContext {

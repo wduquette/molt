@@ -44,12 +44,12 @@ impl WordVec {
 
 #[derive(Debug, PartialEq)]
 pub(crate) enum Word {
-    Value(Value),       // e.g., {a b c}
-    VarRef(String),     // e.g., $x
-    Script(Script),     // e.g., [foo 1 2 3]
-    Tokens(Vec<Word>),  // e.g., "a $x [foo] b" or foo.$x, etc.
-    Expand(Box<Word>),       // e.g., {*}...
-    String(String),     // A literal in Tokens, e.g., "a ", "foo."
+    Value(Value),      // e.g., {a b c}
+    VarRef(String),    // e.g., $x
+    Script(Script),    // e.g., [foo 1 2 3]
+    Tokens(Vec<Word>), // e.g., "a $x [foo] b" or foo.$x, etc.
+    Expand(Box<Word>), // e.g., {*}...
+    String(String),    // A literal in Tokens, e.g., "a ", "foo."
 }
 
 pub(crate) fn parse(input: &str) -> Result<Script, ResultCode> {
@@ -490,10 +490,7 @@ mod tests {
         );
 
         // {*} at end of input
-        assert_eq!(
-            pword("{*}"),
-            Ok((Word::Value(Value::from("*")), "".into()))
-        );
+        assert_eq!(pword("{*}"), Ok((Word::Value(Value::from("*")), "".into())));
 
         // {*} followed by white-space
         assert_eq!(
@@ -504,7 +501,10 @@ mod tests {
         // {*} followed by word
         assert_eq!(
             pword("{*}abc "),
-            Ok((Word::Expand(Box::new(Word::Value(Value::from("abc")))), " ".into()))
+            Ok((
+                Word::Expand(Box::new(Word::Value(Value::from("abc")))),
+                " ".into()
+            ))
         );
 
         // Quoted Word
@@ -518,7 +518,6 @@ mod tests {
             pword("abc"),
             Ok((Word::Value(Value::from("abc")), "".into()))
         );
-
     }
 
     fn pword(input: &str) -> Result<(Word, String), ResultCode> {

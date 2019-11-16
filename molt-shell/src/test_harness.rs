@@ -67,7 +67,7 @@ use std::rc::Rc;
 /// }
 /// ```
 
-pub fn test_harness(interp: &mut Interp, args: &[String]) -> Result<(),()> {
+pub fn test_harness(interp: &mut Interp, args: &[String]) -> Result<(), ()> {
     // FIRST, announce who we are.
     println!("Molt {} -- Test Harness", env!("CARGO_PKG_VERSION"));
 

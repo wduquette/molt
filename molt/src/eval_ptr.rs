@@ -362,5 +362,4 @@ mod tests {
         assert!(ctx.skip_comment());
         assert!(ctx.next_is('a'));
     }
-
 }

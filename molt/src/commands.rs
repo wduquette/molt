@@ -685,9 +685,9 @@ pub fn cmd_unset(interp: &mut Interp, argv: &[Value]) -> MoltResult {
         if options_ok {
             if var == "--" {
                 options_ok = false;
-                continue
+                continue;
             } else if var == "-nocomplain" {
-                continue
+                continue;
             }
         }
 

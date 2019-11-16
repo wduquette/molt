@@ -91,7 +91,6 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     // NEXT, get the parent folder from the path, if any.  We'll cd into the parent so
     // the `source` command can find scripts there.
     let path = PathBuf::from(&args[0]);
-    let parent = path.parent();
 
     // NEXT, initialize the benchmark context.
     let context_id = interp.save_context(Context::new());
@@ -109,9 +108,10 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     // NEXT, execute the script.
     match fs::read_to_string(&args[0]) {
         Ok(script) => {
-            if parent.is_some() {
-                let _ = env::set_current_dir(parent.unwrap());
+            if let Some(parent) = path.parent() {
+                let _ = env::set_current_dir(parent);
             }
+
             match interp.eval(&script) {
                 Ok(_) => (),
                 Err(ResultCode::Error(msg)) => {

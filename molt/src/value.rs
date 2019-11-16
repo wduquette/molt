@@ -833,11 +833,7 @@ impl Value {
         // FIRST, if we have the desired type, return it.
         if let DataRep::Other(other) = &*self.inner.data_rep.borrow() {
             // other is an &Rc<MoltAny>
-            let result = other.clone().downcast::<T>();
-
-            if result.is_ok() {
-                // Let's be sure we're really getting what we wanted.
-                let out: Rc<T> = result.unwrap();
+            if let Ok(out) = other.clone().downcast::<T>() {
                 return Some(out);
             }
         }
@@ -896,11 +892,7 @@ impl Value {
         // FIRST, if we have the desired type, return it.
         if let DataRep::Other(other) = &*self.inner.data_rep.borrow() {
             // other is an &Rc<MoltAny>
-            let result = other.clone().downcast::<T>();
-
-            if result.is_ok() {
-                // Let's be sure we're really getting what we wanted.
-                let out: Rc<T> = result.unwrap();
+            if let Ok(out) = other.clone().downcast::<T>() {
                 return Some(*out);
             }
         }

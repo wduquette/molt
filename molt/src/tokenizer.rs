@@ -460,5 +460,4 @@ mod tests {
         let mut ctx = Tokenizer::new(input);
         (ctx.backslash_subst(), ctx.as_str().chars().next())
     }
-
 }

@@ -740,5 +740,4 @@ mod tests {
         parse_varname(&mut ctx, &mut tokens)?;
         Ok((tokens.take(), ctx.tok().as_str().to_string()))
     }
-
 }

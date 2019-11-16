@@ -77,7 +77,6 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) {
     }
 
     let path = PathBuf::from(&args[0]);
-    let parent = path.parent();
 
     // NEXT, initialize the test result.
     let context = Rc::new(RefCell::new(TestContext::new()));
@@ -88,9 +87,10 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) {
     // NEXT, execute the script.
     match fs::read_to_string(&args[0]) {
         Ok(script) => {
-            if parent.is_some() {
-                let _ = env::set_current_dir(parent.unwrap());
+            if let Some(parent) = path.parent() {
+                let _ = env::set_current_dir(parent);
             }
+
             match interp.eval(&script) {
                 Ok(_) => (),
                 Err(ResultCode::Error(msg)) => {
@@ -138,11 +138,11 @@ enum Code {
     Error,
 }
 
-impl Code {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for Code {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Code::Ok => "-ok".into(),
-            Code::Error => "-error".into(),
+            Code::Ok => write!(f, "-ok"),
+            Code::Error => write!(f, "-error"),
         }
     }
 }

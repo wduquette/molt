@@ -34,6 +34,9 @@ more details.
 
 *   Embedding, script execution, and an interactive shell.
     *   DONE
+*   Full TCL Syntax
+    *   The current code supports everything in the TCL Dodekalogue but array variables
+        (prove me wrong!).
 *   Parse to internal form, rather than reparsing strings at execution a la TCL 7.6
     *   And eventually, some kind of byte-compilation.
     *   IN PROGRESS.  Scripts are parsed to internal form, which is cached for later

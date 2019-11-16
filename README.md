@@ -124,7 +124,7 @@ but most will probably be added eventually.
 I've gotten help from many people in this endeavor; here's a (necessarily partial) list.
 
 * Jonathan Castello, for general Rust info
-* Kevin Kenny, for help with TCL numerics
+* Kevin Kenny, for help with TCL numerics and general encouragement
 * Don Porter, for help with TCL parsing
 * rfdonnelly, for the crates.io badge, etc.
 * Various folks from users.rust-lang.org who have answered my questions:

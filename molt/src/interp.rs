@@ -889,14 +889,14 @@ impl Interp {
     // is revised to separate parsing from evaluation, these routines may become
     // unnecessary.
 
+    // Parses a variable reference.  A bare "$" is an error.
     pub(crate) fn parse_variable(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         // FIRST, skip the '$'
         ctx.skip_char('$');
 
-        // NEXT, make sure this is really a variable reference.  If it isn't
-        // just return a "$".
+        // NEXT, make sure this is really a variable reference.
         if !ctx.next_is_varname_char() && !ctx.next_is('{') {
-            return Ok(Value::from("$"));
+            return molt_err!("invalid character \"$\"");
         }
 
         // NEXT, is this a braced variable name?
@@ -1273,7 +1273,8 @@ mod tests {
         assert_eq!(pvar(&mut interp, "a", "$a.bc"), "OK|.bc".to_string());
         assert_eq!(pvar(&mut interp, "a1_", "$a1_.bc"), "OK|.bc".to_string());
         assert_eq!(pvar(&mut interp, "a", "${a}b"), "OK|b".to_string());
-        assert_eq!(pvar(&mut interp, "a", "$"), "$|".to_string());
+        assert_eq!(pvar(&mut interp, "a", "$"),
+            "invalid character \"$\"".to_string());
 
         assert_eq!(
             pvar(&mut interp, "a", "$1"),

@@ -300,10 +300,16 @@ fn parse_dollar(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCode
     // just return a "$".
     if !ctx.next_is_varname_char() && !ctx.next_is('{') {
         tokens.push_char('$');
-        return Ok(());
+    } else {
+        tokens.push(parse_varname(ctx)?);
     }
+    
+    Ok(())
+}
 
-    // NEXT, is this a braced variable name?
+/// Parses a variable name; the "$" has already been consumed.
+fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+    // FIRST, is this a braced variable name?
     let var_name;
 
     if ctx.next_is('{') {
@@ -323,9 +329,9 @@ fn parse_dollar(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCode
         var_name = ctx.token(start).to_string();
     }
 
-    tokens.push(Word::VarRef(var_name));
-    Ok(())
+    Ok(Word::VarRef(var_name))
 }
+
 
 struct Tokens {
     list: Vec<Word>,

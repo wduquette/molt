@@ -129,7 +129,7 @@ fn parse_next_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     }
 }
 
-fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+pub(crate) fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     // FIRST, skip the opening brace, and count it; non-escaped braces need to
     // balance.
     ctx.skip_char('{');

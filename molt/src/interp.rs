@@ -890,60 +890,11 @@ impl Interp {
     // to an internal form as well.
 
     pub(crate) fn parse_braced_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        // FIRST, skip the opening brace, and count it; non-escaped braces need to
-        // balance.
-        ctx.skip_char('{');
-        let mut count = 1;
-
-        // NEXT, add tokens to the word until we reach the close quote
-        let mut word = String::new();
-        let mut start = ctx.mark();
-
-        while !ctx.at_end() {
-            // Note: the while condition ensures that there's a character.
-            if ctx.next_is('{') {
-                count += 1;
-                ctx.skip();
-            } else if ctx.next_is('}') {
-                count -= 1;
-
-                if count > 0 {
-                    ctx.skip();
-                } else {
-                    // We've found and consumed the closing brace.  We should either
-                    // see more more whitespace, or we should be at the end of the list
-                    // Otherwise, there are incorrect characters following the close-brace.
-                    word.push_str(ctx.token(start));
-                    let result = Ok(Value::from(word));
-                    ctx.skip(); // Skip the closing brace
-
-                    if ctx.at_end_of_command() || ctx.next_is_line_white() {
-                        return result;
-                    } else {
-                        return molt_err!("extra characters after close-brace");
-                    }
-                }
-            } else if ctx.next_is('\\') {
-                word.push_str(ctx.token(start));
-                ctx.skip();
-
-                // If there's no character it's because we're at the end; and there's
-                // no close brace.
-                if let Some(ch) = ctx.next() {
-                    if ch == '\n' {
-                        word.push(' ');
-                    } else {
-                        word.push('\\');
-                        word.push(ch);
-                    }
-                }
-                start = ctx.mark();
-            } else {
-                ctx.skip();
-            }
+        if let Word::Value(val) = parser::parse_braced_word(ctx)? {
+            Ok(val)
+        } else {
+            unreachable!()
         }
-
-        molt_err!("missing close-brace")
     }
 
     /// Parse a quoted word.

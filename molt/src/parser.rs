@@ -187,7 +187,7 @@ pub(crate) fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
 }
 
 /// Parse a quoted word.
-fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+pub(crate) fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     // FIRST, consume the the opening quote.
     ctx.next();
 

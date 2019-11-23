@@ -865,7 +865,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         Some('[') => {
             let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
-            let script_val = interp.parse_script(&mut ctx)?;
+            let script_val = interp.parse_and_eval_script(&mut ctx)?;
             info.token = VALUE;
             info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
@@ -877,7 +877,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         Some('"') => {
             let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
-            let val = interp.parse_quoted_word(&mut ctx)?;
+            let val = interp.parse_and_eval_quoted_word(&mut ctx)?;
             info.token = VALUE;
             info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
@@ -891,7 +891,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         Some('{') => {
             let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
-            let val = eval_braced_word(&mut ctx)?;
+            let val = parse_and_eval_braced_word(&mut ctx)?;
             info.token = VALUE;
             info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
@@ -1098,7 +1098,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
 }
 
 /// Parses a braced word, returning a Value.
-fn eval_braced_word(ctx: &mut EvalPtr) -> MoltResult {
+fn parse_and_eval_braced_word(ctx: &mut EvalPtr) -> MoltResult {
     if let Word::Value(val) = parser::parse_braced_word(ctx)? {
         Ok(val)
     } else {

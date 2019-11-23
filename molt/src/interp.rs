@@ -881,54 +881,17 @@ impl Interp {
     }
 
     //--------------------------------------------------------------------------------------------
-    // Legacy Molt Parser
+    // Parse and Eval
     //
-    // This is the original Molt Parser that parsed and evaluated in one pass.
-    // At present this code is only used by `expr`.  It should be modified to
-    // use the official parser, and then do the actual evaluation as needed.
-    // And then it should get moved to `expr` until `expr` is revised to parse
-    // to an internal form as well.
+    // The following methods parse and evaluate code in one operation.  At present, these
+    // routines are used only by the Molt expression evaluator.  When the expression evaluator
+    // is revised to separate parsing from evaluation, these routines may become
+    // unnecessary.
 
-    /// Parse a quoted word.
-    pub(crate) fn parse_quoted_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        // FIRST, consume the the opening quote.
-        ctx.next();
-
-        // NEXT, add tokens to the word until we reach the close quote
-        let mut word = String::new();
-        let mut start = ctx.mark();
-
-        while !ctx.at_end() {
-            // Note: the while condition ensures that there's a character.
-            if ctx.next_is('[') {
-                word.push_str(ctx.token(start));
-                word.push_str(self.parse_script(ctx)?.as_str());
-                start = ctx.mark();
-            } else if ctx.next_is('$') {
-                word.push_str(ctx.token(start));
-                word.push_str(self.parse_variable(ctx)?.as_str());
-                start = ctx.mark();
-            } else if ctx.next_is('\\') {
-                word.push_str(ctx.token(start));
-                word.push(ctx.backslash_subst());
-                start = ctx.mark();
-            } else if ctx.next_is('"') {
-                word.push_str(ctx.token(start));
-                ctx.skip_char('"');
-                if !ctx.at_end_of_command() && !ctx.next_is_line_white() {
-                    return molt_err!("extra characters after close-quote");
-                } else {
-                    return Ok(Value::from(word));
-                }
-            } else {
-                ctx.skip();
-            }
-        }
-
-        molt_err!("missing \"")
-    }
-
-    pub(crate) fn parse_script(&mut self, ctx: &mut EvalPtr) -> MoltResult {
+    /// Parses and evaluates an interpolated script in Molt input, i.e., a string beginning with
+    /// a "[", returning a MoltResult.  If the no_eval flag is set, returns an empty value.
+    /// This is used to handled interpolated scripts in expressions.
+    pub(crate) fn parse_and_eval_script(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         // FIRST, skip the '['
         ctx.skip_char('[');
 
@@ -956,6 +919,20 @@ impl Interp {
 
         result
     }
+
+    /// Parses and evaluates a quoted word in Molt input, i.e., a string beginning with
+    /// a double quote, returning a MoltResult.  If the no_eval flag is set, returns an empty
+    /// value.  This is used to handle double-quoted strings in expressions.
+    pub(crate) fn parse_and_eval_quoted_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
+        let word = parser::parse_quoted_word(ctx)?;
+
+        if ctx.is_no_eval() {
+            Ok(Value::empty())
+        } else {
+            self.eval_word(&word)
+        }
+    }
+
 
     pub(crate) fn parse_variable(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         // FIRST, skip the '$'
@@ -1329,53 +1306,6 @@ mod tests {
                 "unknown math function \"a\""
             )))
         );
-    }
-
-    #[test]
-    fn test_parse_quoted_word() {
-        let mut interp = Interp::new();
-
-        // Simple string
-        assert_eq!(pqw(&mut interp, "\"abc\""), "abc|".to_string());
-
-        // Simple string with text following
-        assert_eq!(pqw(&mut interp, "\"abc\"  "), "abc|  ".to_string());
-
-        // Backslash substitution at beginning, middle, and end
-        assert_eq!(pqw(&mut interp, "\"\\x77-\""), "w-|".to_string());
-        assert_eq!(pqw(&mut interp, "\"a\\x77-\""), "aw-|".to_string());
-        assert_eq!(pqw(&mut interp, "\"a\\x77\""), "aw|".to_string());
-
-        // Variable substitution
-        interp.set_var("x", &Value::from("5"));
-        assert_eq!(pqw(&mut interp, "\"a$x.b\" "), "a5.b| ".to_string());
-
-        interp.set_var("xyz1", &Value::from("10"));
-        assert_eq!(pqw(&mut interp, "\"a$xyz1.b\" "), "a10.b| ".to_string());
-
-        assert_eq!(pqw(&mut interp, "\"a$.b\" "), "a$.b| ".to_string());
-
-        assert_eq!(pqw(&mut interp, "\"a${x}.b\" "), "a5.b| ".to_string());
-
-        // Command substitution
-        assert_eq!(pqw(&mut interp, "\"a[list b]c\""), "abc|".to_string());
-        assert_eq!(pqw(&mut interp, "\"a[list b c]d\""), "ab cd|".to_string());
-
-        // Extra characters after close-quote
-        assert_eq!(
-            pqw(&mut interp, "\"abc\"x  "),
-            "extra characters after close-quote"
-        );
-    }
-
-    fn pqw(interp: &mut Interp, input: &str) -> String {
-        let mut ctx = EvalPtr::new(input);
-
-        match interp.parse_quoted_word(&mut ctx) {
-            Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
-            Err(ResultCode::Error(value)) => format!("{}", value),
-            Err(code) => format!("{:?}", code),
-        }
     }
 
     #[test]

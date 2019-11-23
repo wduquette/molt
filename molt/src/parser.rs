@@ -129,7 +129,7 @@ fn parse_next_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     }
 }
 
-fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+pub(crate) fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     // FIRST, skip the opening brace, and count it; non-escaped braces need to
     // balance.
     ctx.skip_char('{');
@@ -187,7 +187,7 @@ fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
 }
 
 /// Parse a quoted word.
-fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+pub(crate) fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     // FIRST, consume the the opening quote.
     ctx.next();
 
@@ -207,7 +207,7 @@ fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
             if start != ctx.mark() {
                 tokens.push_str(ctx.token(start));
             }
-            parse_varname(ctx, &mut tokens)?;
+            parse_dollar(ctx, &mut tokens)?;
             start = ctx.mark();
         } else if ctx.next_is('\\') {
             if start != ctx.mark() {
@@ -250,7 +250,7 @@ fn parse_bare_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
             if start != ctx.mark() {
                 tokens.push_str(ctx.token(start));
             }
-            parse_varname(ctx, &mut tokens)?;
+            parse_dollar(ctx, &mut tokens)?;
             start = ctx.mark();
         } else if ctx.next_is('\\') {
             if start != ctx.mark() {
@@ -292,7 +292,7 @@ fn parse_brackets(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
     result
 }
 
-fn parse_varname(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCode> {
+fn parse_dollar(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCode> {
     // FIRST, skip the '$'
     ctx.skip_char('$');
 
@@ -300,10 +300,16 @@ fn parse_varname(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCod
     // just return a "$".
     if !ctx.next_is_varname_char() && !ctx.next_is('{') {
         tokens.push_char('$');
-        return Ok(());
+    } else {
+        tokens.push(parse_varname(ctx)?);
     }
 
-    // NEXT, is this a braced variable name?
+    Ok(())
+}
+
+/// Parses a variable name; the "$" has already been consumed.  Also used by expr.rs.
+pub(crate) fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+    // FIRST, is this a braced variable name?
     let var_name;
 
     if ctx.next_is('{') {
@@ -323,8 +329,7 @@ fn parse_varname(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCod
         var_name = ctx.token(start).to_string();
     }
 
-    tokens.push(Word::VarRef(var_name));
-    Ok(())
+    Ok(Word::VarRef(var_name))
 }
 
 struct Tokens {
@@ -782,7 +787,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_varname() {
+    fn test_parse_dollar() {
         // Normal var names
         assert_eq!(pvar("$a"), Ok((Word::VarRef("a".into()), "".into())));
         assert_eq!(pvar("$abc"), Ok((Word::VarRef("abc".into()), "".into())));
@@ -808,7 +813,7 @@ mod tests {
     fn pvar(input: &str) -> Result<(Word, String), ResultCode> {
         let mut ctx = EvalPtr::new(input);
         let mut tokens = Tokens::new();
-        parse_varname(&mut ctx, &mut tokens)?;
+        parse_dollar(&mut ctx, &mut tokens)?;
         Ok((tokens.take(), ctx.tok().as_str().to_string()))
     }
 }

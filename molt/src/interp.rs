@@ -110,7 +110,6 @@
 //! [`Interp`]: struct.Interp.html
 
 use crate::commands;
-use crate::eval_ptr::EvalPtr;
 use crate::expr;
 use crate::molt_err;
 use crate::molt_ok;
@@ -120,7 +119,6 @@ use crate::parser::Word;
 use crate::scope::ScopeStack;
 use crate::types::Command;
 use crate::types::*;
-use crate::util::is_varname_char;
 use crate::value::Value;
 use std::any::Any;
 use std::collections::HashMap;
@@ -395,7 +393,8 @@ impl Interp {
     }
 
     // Evals a parsed Script, producing a normal MoltResult.
-    fn eval_script(&mut self, script: &Script) -> MoltResult {
+    // Also used by expr.rs.
+    pub(crate) fn eval_script(&mut self, script: &Script) -> MoltResult {
         let mut result_value = Value::empty();
 
         for word_vec in script.commands() {
@@ -443,8 +442,8 @@ impl Interp {
         Ok(list)
     }
 
-    // Evaluates a single word.
-    fn eval_word(&mut self, word: &Word) -> MoltResult {
+    // Evaluates a single word.  This is also used by expr.rs.
+    pub(crate) fn eval_word(&mut self, word: &Word) -> MoltResult {
         match word {
             Word::Value(val) => Ok(val.clone()),
             Word::VarRef(name) => self.var(name),
@@ -881,173 +880,6 @@ impl Interp {
     }
 
     //--------------------------------------------------------------------------------------------
-    // Legacy Molt Parser
-    //
-    // This is the original Molt Parser that parsed and evaluated in one pass.
-    // At present this code is only used by `expr`.  It should be modified to
-    // use the official parser, and then do the actual evaluation as needed.
-    // And then it should get moved to `expr` until `expr` is revised to parse
-    // to an internal form as well.
-
-    pub(crate) fn parse_braced_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        // FIRST, skip the opening brace, and count it; non-escaped braces need to
-        // balance.
-        ctx.skip_char('{');
-        let mut count = 1;
-
-        // NEXT, add tokens to the word until we reach the close quote
-        let mut word = String::new();
-        let mut start = ctx.mark();
-
-        while !ctx.at_end() {
-            // Note: the while condition ensures that there's a character.
-            if ctx.next_is('{') {
-                count += 1;
-                ctx.skip();
-            } else if ctx.next_is('}') {
-                count -= 1;
-
-                if count > 0 {
-                    ctx.skip();
-                } else {
-                    // We've found and consumed the closing brace.  We should either
-                    // see more more whitespace, or we should be at the end of the list
-                    // Otherwise, there are incorrect characters following the close-brace.
-                    word.push_str(ctx.token(start));
-                    let result = Ok(Value::from(word));
-                    ctx.skip(); // Skip the closing brace
-
-                    if ctx.at_end_of_command() || ctx.next_is_line_white() {
-                        return result;
-                    } else {
-                        return molt_err!("extra characters after close-brace");
-                    }
-                }
-            } else if ctx.next_is('\\') {
-                word.push_str(ctx.token(start));
-                ctx.skip();
-
-                // If there's no character it's because we're at the end; and there's
-                // no close brace.
-                if let Some(ch) = ctx.next() {
-                    if ch == '\n' {
-                        word.push(' ');
-                    } else {
-                        word.push('\\');
-                        word.push(ch);
-                    }
-                }
-                start = ctx.mark();
-            } else {
-                ctx.skip();
-            }
-        }
-
-        molt_err!("missing close-brace")
-    }
-
-    /// Parse a quoted word.
-    pub(crate) fn parse_quoted_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        // FIRST, consume the the opening quote.
-        ctx.next();
-
-        // NEXT, add tokens to the word until we reach the close quote
-        let mut word = String::new();
-        let mut start = ctx.mark();
-
-        while !ctx.at_end() {
-            // Note: the while condition ensures that there's a character.
-            if ctx.next_is('[') {
-                word.push_str(ctx.token(start));
-                word.push_str(self.parse_script(ctx)?.as_str());
-                start = ctx.mark();
-            } else if ctx.next_is('$') {
-                word.push_str(ctx.token(start));
-                word.push_str(self.parse_variable(ctx)?.as_str());
-                start = ctx.mark();
-            } else if ctx.next_is('\\') {
-                word.push_str(ctx.token(start));
-                word.push(ctx.backslash_subst());
-                start = ctx.mark();
-            } else if ctx.next_is('"') {
-                word.push_str(ctx.token(start));
-                ctx.skip_char('"');
-                if !ctx.at_end_of_command() && !ctx.next_is_line_white() {
-                    return molt_err!("extra characters after close-quote");
-                } else {
-                    return Ok(Value::from(word));
-                }
-            } else {
-                ctx.skip();
-            }
-        }
-
-        molt_err!("missing \"")
-    }
-
-    pub(crate) fn parse_script(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        // FIRST, skip the '['
-        ctx.skip_char('[');
-
-        // NEXT, parse the script up to the matching ']'
-        let old_flag = ctx.is_bracket_term();
-        ctx.set_bracket_term(true);
-
-        let script = parser::parse_script(ctx)?;
-        let result = if ctx.is_no_eval() {
-            Ok(Value::empty())
-        } else {
-            self.eval_script(&script)
-        };
-
-        ctx.set_bracket_term(old_flag);
-
-        // NEXT, make sure there's a closing bracket
-        if result.is_ok() {
-            if ctx.next_is(']') {
-                ctx.next();
-            } else {
-                return molt_err!("missing close-bracket");
-            }
-        }
-
-        result
-    }
-
-    pub(crate) fn parse_variable(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        // FIRST, skip the '$'
-        ctx.skip_char('$');
-
-        // NEXT, make sure this is really a variable reference.  If it isn't
-        // just return a "$".
-        if !ctx.next_is_varname_char() && !ctx.next_is('{') {
-            return Ok(Value::from("$"));
-        }
-
-        // NEXT, is this a braced variable name?
-        let var_value;
-
-        if ctx.next_is('{') {
-            ctx.skip_char('{');
-            let start = ctx.mark();
-            ctx.skip_while(|ch| *ch != '}');
-
-            if ctx.at_end() {
-                return molt_err!("missing close-brace for variable name");
-            }
-
-            var_value = self.var(ctx.token(start))?;
-            ctx.skip_char('}');
-        } else {
-            let start = ctx.mark();
-            ctx.skip_while(|ch| is_varname_char(*ch));
-            var_value = self.var(ctx.token(start))?;
-        }
-
-        Ok(var_value)
-    }
-
-    //--------------------------------------------------------------------------------------------
     // Profiling
 
     pub fn profile_save(&mut self, name: &str, start: std::time::Instant) {
@@ -1386,116 +1218,6 @@ mod tests {
                 "unknown math function \"a\""
             )))
         );
-    }
-
-    #[test]
-    fn test_parse_braced_word() {
-        let mut interp = Interp::new();
-
-        // Simple string
-        assert_eq!(pbrace(&mut interp, "{abc}"), "abc|".to_string());
-
-        // Simple string with following space
-        assert_eq!(pbrace(&mut interp, "{abc} "), "abc| ".to_string());
-
-        // String with white space
-        assert_eq!(pbrace(&mut interp, "{a b c} "), "a b c| ".to_string());
-
-        // String with $ and []space
-        assert_eq!(pbrace(&mut interp, "{a $b [c]} "), "a $b [c]| ".to_string());
-
-        // String with escaped braces
-        assert_eq!(pbrace(&mut interp, "{a\\{bc} "), "a\\{bc| ".to_string());
-        assert_eq!(pbrace(&mut interp, "{ab\\}c} "), "ab\\}c| ".to_string());
-
-        // String with escaped newline (a real newline with a \ in front)
-        assert_eq!(pbrace(&mut interp, "{ab\\\nc}"), "ab c|".to_string());
-    }
-
-    fn pbrace(interp: &mut Interp, input: &str) -> String {
-        let mut ctx = EvalPtr::new(input);
-
-        match interp.parse_braced_word(&mut ctx) {
-            Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
-            Err(ResultCode::Error(value)) => format!("{}", value),
-            Err(code) => format!("{:?}", code),
-        }
-    }
-
-    #[test]
-    fn test_parse_quoted_word() {
-        let mut interp = Interp::new();
-
-        // Simple string
-        assert_eq!(pqw(&mut interp, "\"abc\""), "abc|".to_string());
-
-        // Simple string with text following
-        assert_eq!(pqw(&mut interp, "\"abc\"  "), "abc|  ".to_string());
-
-        // Backslash substitution at beginning, middle, and end
-        assert_eq!(pqw(&mut interp, "\"\\x77-\""), "w-|".to_string());
-        assert_eq!(pqw(&mut interp, "\"a\\x77-\""), "aw-|".to_string());
-        assert_eq!(pqw(&mut interp, "\"a\\x77\""), "aw|".to_string());
-
-        // Variable substitution
-        interp.set_var("x", &Value::from("5"));
-        assert_eq!(pqw(&mut interp, "\"a$x.b\" "), "a5.b| ".to_string());
-
-        interp.set_var("xyz1", &Value::from("10"));
-        assert_eq!(pqw(&mut interp, "\"a$xyz1.b\" "), "a10.b| ".to_string());
-
-        assert_eq!(pqw(&mut interp, "\"a$.b\" "), "a$.b| ".to_string());
-
-        assert_eq!(pqw(&mut interp, "\"a${x}.b\" "), "a5.b| ".to_string());
-
-        // Command substitution
-        assert_eq!(pqw(&mut interp, "\"a[list b]c\""), "abc|".to_string());
-        assert_eq!(pqw(&mut interp, "\"a[list b c]d\""), "ab cd|".to_string());
-
-        // Extra characters after close-quote
-        assert_eq!(
-            pqw(&mut interp, "\"abc\"x  "),
-            "extra characters after close-quote"
-        );
-    }
-
-    fn pqw(interp: &mut Interp, input: &str) -> String {
-        let mut ctx = EvalPtr::new(input);
-
-        match interp.parse_quoted_word(&mut ctx) {
-            Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
-            Err(ResultCode::Error(value)) => format!("{}", value),
-            Err(code) => format!("{:?}", code),
-        }
-    }
-
-    #[test]
-    fn test_parse_variable() {
-        let mut interp = Interp::new();
-
-        assert_eq!(pvar(&mut interp, "a", "$a"), "OK|".to_string());
-        assert_eq!(pvar(&mut interp, "abc", "$abc"), "OK|".to_string());
-        assert_eq!(pvar(&mut interp, "abc", "$abc."), "OK|.".to_string());
-        assert_eq!(pvar(&mut interp, "a", "$a.bc"), "OK|.bc".to_string());
-        assert_eq!(pvar(&mut interp, "a1_", "$a1_.bc"), "OK|.bc".to_string());
-        assert_eq!(pvar(&mut interp, "a", "${a}b"), "OK|b".to_string());
-        assert_eq!(pvar(&mut interp, "a", "$"), "$|".to_string());
-
-        assert_eq!(
-            pvar(&mut interp, "a", "$1"),
-            "can't read \"1\": no such variable".to_string()
-        );
-    }
-
-    fn pvar(interp: &mut Interp, var: &str, input: &str) -> String {
-        let mut ctx = EvalPtr::new(input);
-        interp.set_var(var, &Value::from("OK"));
-
-        match interp.parse_variable(&mut ctx) {
-            Ok(val) => format!("{}|{}", val, ctx.tok().as_str()),
-            Err(ResultCode::Error(value)) => format!("{}", value),
-            Err(code) => format!("{:?}", code),
-        }
     }
 
     #[test]

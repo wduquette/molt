@@ -110,7 +110,6 @@
 //! [`Interp`]: struct.Interp.html
 
 use crate::commands;
-use crate::eval_ptr::EvalPtr;
 use crate::expr;
 use crate::molt_err;
 use crate::molt_ok;
@@ -120,7 +119,6 @@ use crate::parser::Word;
 use crate::scope::ScopeStack;
 use crate::types::Command;
 use crate::types::*;
-use crate::util::is_varname_char;
 use crate::value::Value;
 use std::any::Any;
 use std::collections::HashMap;
@@ -882,47 +880,6 @@ impl Interp {
     }
 
     //--------------------------------------------------------------------------------------------
-    // Parse and Eval
-    //
-    // The following methods parse and evaluate code in one operation.  At present, these
-    // routines are used only by the Molt expression evaluator.  When the expression evaluator
-    // is revised to separate parsing from evaluation, these routines may become
-    // unnecessary.
-
-    // Parses a variable reference.  A bare "$" is an error.
-    pub(crate) fn parse_variable(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        // FIRST, skip the '$'
-        ctx.skip_char('$');
-
-        // NEXT, make sure this is really a variable reference.
-        if !ctx.next_is_varname_char() && !ctx.next_is('{') {
-            return molt_err!("invalid character \"$\"");
-        }
-
-        // NEXT, is this a braced variable name?
-        let var_value;
-
-        if ctx.next_is('{') {
-            ctx.skip_char('{');
-            let start = ctx.mark();
-            ctx.skip_while(|ch| *ch != '}');
-
-            if ctx.at_end() {
-                return molt_err!("missing close-brace for variable name");
-            }
-
-            var_value = self.var(ctx.token(start))?;
-            ctx.skip_char('}');
-        } else {
-            let start = ctx.mark();
-            ctx.skip_while(|ch| is_varname_char(*ch));
-            var_value = self.var(ctx.token(start))?;
-        }
-
-        Ok(var_value)
-    }
-
-    //--------------------------------------------------------------------------------------------
     // Profiling
 
     pub fn profile_save(&mut self, name: &str, start: std::time::Instant) {
@@ -1261,36 +1218,6 @@ mod tests {
                 "unknown math function \"a\""
             )))
         );
-    }
-
-    #[test]
-    fn test_parse_variable() {
-        let mut interp = Interp::new();
-
-        assert_eq!(pvar(&mut interp, "a", "$a"), "OK|".to_string());
-        assert_eq!(pvar(&mut interp, "abc", "$abc"), "OK|".to_string());
-        assert_eq!(pvar(&mut interp, "abc", "$abc."), "OK|.".to_string());
-        assert_eq!(pvar(&mut interp, "a", "$a.bc"), "OK|.bc".to_string());
-        assert_eq!(pvar(&mut interp, "a1_", "$a1_.bc"), "OK|.bc".to_string());
-        assert_eq!(pvar(&mut interp, "a", "${a}b"), "OK|b".to_string());
-        assert_eq!(pvar(&mut interp, "a", "$"),
-            "invalid character \"$\"".to_string());
-
-        assert_eq!(
-            pvar(&mut interp, "a", "$1"),
-            "can't read \"1\": no such variable".to_string()
-        );
-    }
-
-    fn pvar(interp: &mut Interp, var: &str, input: &str) -> String {
-        let mut ctx = EvalPtr::new(input);
-        interp.set_var(var, &Value::from("OK"));
-
-        match interp.parse_variable(&mut ctx) {
-            Ok(val) => format!("{}|{}", val, ctx.tok().as_str()),
-            Err(ResultCode::Error(value)) => format!("{}", value),
-            Err(code) => format!("{:?}", code),
-        }
     }
 
     #[test]

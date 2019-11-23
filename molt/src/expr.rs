@@ -853,7 +853,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         Some('$') => {
             let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
-            let var_val = interp.parse_variable(&mut ctx)?;
+            let var_val = parse_and_eval_variable(interp, &mut ctx)?;
             info.token = VALUE;
             info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
@@ -1097,6 +1097,26 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
     }
 }
 
+// Parses a variable reference.  A bare "$" is an error.
+fn parse_and_eval_variable(interp: &mut Interp, ctx: &mut EvalPtr) -> MoltResult {
+    // FIRST, skip the '$'
+    ctx.skip_char('$');
+
+    // NEXT, make sure this is really a variable reference.
+    if !ctx.next_is_varname_char() && !ctx.next_is('{') {
+        return molt_err!("invalid character \"$\"");
+    }
+
+    // NEXT, get the variable reference.
+    let word = parser::parse_varname(ctx)?;
+
+    if ctx.is_no_eval() {
+        Ok(Value::empty())
+    } else {
+        interp.eval_word(&word)
+    }
+}
+
 /// Parses and evaluates an interpolated script in Molt input, i.e., a string beginning with
 /// a "[", returning a MoltResult.  If the no_eval flag is set, returns an empty value.
 /// This is used to handled interpolated scripts in expressions.
@@ -1141,7 +1161,6 @@ fn parse_and_eval_quoted_word(interp: &mut Interp, ctx: &mut EvalPtr) -> MoltRes
         interp.eval_word(&word)
     }
 }
-
 
 /// Parses a braced word, returning a Value.
 fn parse_and_eval_braced_word(ctx: &mut EvalPtr) -> MoltResult {

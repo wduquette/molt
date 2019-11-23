@@ -303,12 +303,12 @@ fn parse_dollar(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCode
     } else {
         tokens.push(parse_varname(ctx)?);
     }
-    
+
     Ok(())
 }
 
-/// Parses a variable name; the "$" has already been consumed.
-fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+/// Parses a variable name; the "$" has already been consumed.  Also used by expr.rs.
+pub(crate) fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     // FIRST, is this a braced variable name?
     let var_name;
 
@@ -331,7 +331,6 @@ fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
 
     Ok(Word::VarRef(var_name))
 }
-
 
 struct Tokens {
     list: Vec<Word>,

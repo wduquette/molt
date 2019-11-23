@@ -395,7 +395,8 @@ impl Interp {
     }
 
     // Evals a parsed Script, producing a normal MoltResult.
-    fn eval_script(&mut self, script: &Script) -> MoltResult {
+    // Also used by expr.rs.
+    pub(crate) fn eval_script(&mut self, script: &Script) -> MoltResult {
         let mut result_value = Value::empty();
 
         for word_vec in script.commands() {
@@ -887,38 +888,6 @@ impl Interp {
     // routines are used only by the Molt expression evaluator.  When the expression evaluator
     // is revised to separate parsing from evaluation, these routines may become
     // unnecessary.
-
-    /// Parses and evaluates an interpolated script in Molt input, i.e., a string beginning with
-    /// a "[", returning a MoltResult.  If the no_eval flag is set, returns an empty value.
-    /// This is used to handled interpolated scripts in expressions.
-    pub(crate) fn parse_and_eval_script(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        // FIRST, skip the '['
-        ctx.skip_char('[');
-
-        // NEXT, parse the script up to the matching ']'
-        let old_flag = ctx.is_bracket_term();
-        ctx.set_bracket_term(true);
-
-        let script = parser::parse_script(ctx)?;
-        let result = if ctx.is_no_eval() {
-            Ok(Value::empty())
-        } else {
-            self.eval_script(&script)
-        };
-
-        ctx.set_bracket_term(old_flag);
-
-        // NEXT, make sure there's a closing bracket
-        if result.is_ok() {
-            if ctx.next_is(']') {
-                ctx.next();
-            } else {
-                return molt_err!("missing close-bracket");
-            }
-        }
-
-        result
-    }
 
     /// Parses and evaluates a quoted word in Molt input, i.e., a string beginning with
     /// a double quote, returning a MoltResult.  If the no_eval flag is set, returns an empty

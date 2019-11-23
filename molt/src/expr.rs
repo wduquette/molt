@@ -865,7 +865,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         Some('[') => {
             let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
-            let script_val = interp.parse_and_eval_script(&mut ctx)?;
+            let script_val = parse_and_eval_script(interp, &mut ctx)?;
             info.token = VALUE;
             info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
@@ -1096,6 +1096,39 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         }
     }
 }
+
+/// Parses and evaluates an interpolated script in Molt input, i.e., a string beginning with
+/// a "[", returning a MoltResult.  If the no_eval flag is set, returns an empty value.
+/// This is used to handled interpolated scripts in expressions.
+fn parse_and_eval_script(interp: &mut Interp, ctx: &mut EvalPtr) -> MoltResult {
+    // FIRST, skip the '['
+    ctx.skip_char('[');
+
+    // NEXT, parse the script up to the matching ']'
+    let old_flag = ctx.is_bracket_term();
+    ctx.set_bracket_term(true);
+
+    let script = parser::parse_script(ctx)?;
+    let result = if ctx.is_no_eval() {
+        Ok(Value::empty())
+    } else {
+        interp.eval_script(&script)
+    };
+
+    ctx.set_bracket_term(old_flag);
+
+    // NEXT, make sure there's a closing bracket
+    if result.is_ok() {
+        if ctx.next_is(']') {
+            ctx.next();
+        } else {
+            return molt_err!("missing close-bracket");
+        }
+    }
+
+    result
+}
+
 
 /// Parses a braced word, returning a Value.
 fn parse_and_eval_braced_word(ctx: &mut EvalPtr) -> MoltResult {

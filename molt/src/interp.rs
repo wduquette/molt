@@ -444,8 +444,8 @@ impl Interp {
         Ok(list)
     }
 
-    // Evaluates a single word.
-    fn eval_word(&mut self, word: &Word) -> MoltResult {
+    // Evaluates a single word.  This is also used by expr.rs.
+    pub(crate) fn eval_word(&mut self, word: &Word) -> MoltResult {
         match word {
             Word::Value(val) => Ok(val.clone()),
             Word::VarRef(name) => self.var(name),
@@ -888,20 +888,6 @@ impl Interp {
     // routines are used only by the Molt expression evaluator.  When the expression evaluator
     // is revised to separate parsing from evaluation, these routines may become
     // unnecessary.
-
-    /// Parses and evaluates a quoted word in Molt input, i.e., a string beginning with
-    /// a double quote, returning a MoltResult.  If the no_eval flag is set, returns an empty
-    /// value.  This is used to handle double-quoted strings in expressions.
-    pub(crate) fn parse_and_eval_quoted_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        let word = parser::parse_quoted_word(ctx)?;
-
-        if ctx.is_no_eval() {
-            Ok(Value::empty())
-        } else {
-            self.eval_word(&word)
-        }
-    }
-
 
     pub(crate) fn parse_variable(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         // FIRST, skip the '$'

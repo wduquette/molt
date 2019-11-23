@@ -877,7 +877,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         Some('"') => {
             let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
-            let val = interp.parse_and_eval_quoted_word(&mut ctx)?;
+            let val = parse_and_eval_quoted_word(interp, &mut ctx)?;
             info.token = VALUE;
             info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
@@ -1127,6 +1127,19 @@ fn parse_and_eval_script(interp: &mut Interp, ctx: &mut EvalPtr) -> MoltResult {
     }
 
     result
+}
+
+/// Parses and evaluates a quoted word in Molt input, i.e., a string beginning with
+/// a double quote, returning a MoltResult.  If the no_eval flag is set, returns an empty
+/// value.  This is used to handle double-quoted strings in expressions.
+fn parse_and_eval_quoted_word(interp: &mut Interp, ctx: &mut EvalPtr) -> MoltResult {
+    let word = parser::parse_quoted_word(ctx)?;
+
+    if ctx.is_no_eval() {
+        Ok(Value::empty())
+    } else {
+        interp.eval_word(&word)
+    }
 }
 
 

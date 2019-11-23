@@ -6,6 +6,7 @@
 use crate::eval_ptr::EvalPtr;
 use crate::interp::Interp;
 use crate::list;
+use crate::parser::Word;
 use crate::tokenizer::Tokenizer;
 use crate::*;
 
@@ -890,7 +891,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         Some('{') => {
             let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
-            let val = interp.parse_braced_word(&mut ctx)?;
+            let val = eval_braced_word(&mut ctx)?;
             info.token = VALUE;
             info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
@@ -1093,6 +1094,15 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
             info.token = UNKNOWN;
             Ok(Datum::none())
         }
+    }
+}
+
+/// Parses a braced word, returning a Value.
+fn eval_braced_word(ctx: &mut EvalPtr) -> MoltResult {
+    if let Word::Value(val) = parser::parse_braced_word(ctx)? {
+        Ok(val)
+    } else {
+        unreachable!()
     }
 }
 

@@ -889,14 +889,6 @@ impl Interp {
     // And then it should get moved to `expr` until `expr` is revised to parse
     // to an internal form as well.
 
-    pub(crate) fn parse_braced_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
-        if let Word::Value(val) = parser::parse_braced_word(ctx)? {
-            Ok(val)
-        } else {
-            unreachable!()
-        }
-    }
-
     /// Parse a quoted word.
     pub(crate) fn parse_quoted_word(&mut self, ctx: &mut EvalPtr) -> MoltResult {
         // FIRST, consume the the opening quote.
@@ -1337,40 +1329,6 @@ mod tests {
                 "unknown math function \"a\""
             )))
         );
-    }
-
-    #[test]
-    fn test_parse_braced_word() {
-        let mut interp = Interp::new();
-
-        // Simple string
-        assert_eq!(pbrace(&mut interp, "{abc}"), "abc|".to_string());
-
-        // Simple string with following space
-        assert_eq!(pbrace(&mut interp, "{abc} "), "abc| ".to_string());
-
-        // String with white space
-        assert_eq!(pbrace(&mut interp, "{a b c} "), "a b c| ".to_string());
-
-        // String with $ and []space
-        assert_eq!(pbrace(&mut interp, "{a $b [c]} "), "a $b [c]| ".to_string());
-
-        // String with escaped braces
-        assert_eq!(pbrace(&mut interp, "{a\\{bc} "), "a\\{bc| ".to_string());
-        assert_eq!(pbrace(&mut interp, "{ab\\}c} "), "ab\\}c| ".to_string());
-
-        // String with escaped newline (a real newline with a \ in front)
-        assert_eq!(pbrace(&mut interp, "{ab\\\nc}"), "ab c|".to_string());
-    }
-
-    fn pbrace(interp: &mut Interp, input: &str) -> String {
-        let mut ctx = EvalPtr::new(input);
-
-        match interp.parse_braced_word(&mut ctx) {
-            Ok(val) => format!("{}|{}", val.as_str(), ctx.tok().as_str()),
-            Err(ResultCode::Error(value)) => format!("{}", value),
-            Err(code) => format!("{:?}", code),
-        }
     }
 
     #[test]

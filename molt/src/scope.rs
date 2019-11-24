@@ -22,7 +22,7 @@ use std::collections::HashMap;
 /// the `Level` gives the referenced scope.
 enum Var {
     Scalar(Value),
-    // Array(HashMap<String, Value>),
+    Array(HashMap<String, Value>),
     Level(usize),
 }
 
@@ -65,15 +65,99 @@ impl ScopeStack {
     pub fn set(&mut self, name: &str, value: Value) -> Result<(),ResultCode> {
         let top = self.stack.len() - 1;
 
-        self.set_at(top, name, value);
-        Ok(())
+        self.set_at(top, name, value)
+    }
+
+    /// Set a variable to a value at a given level in the stack.  If the variable at that level
+    /// is linked to a higher level, sets it at that level instead.
+    fn set_at(&mut self, level: usize, name: &str, value: Value) -> Result<(),ResultCode> {
+        match self.stack[level].map.get(name) {
+            Some(Var::Level(at)) => {
+                let true_level = *at;
+                self.set_at(true_level, name, value)
+            }
+            Some(Var::Array(_)) => molt_err!("can't set \"{}\": variable is array", name),
+            _ => {
+                // Variable exists and is scalar, or doesn't exist.
+                self.stack[level].map.insert(name.into(), Var::Scalar(value));
+                Ok(())
+            }
+        }
+    }
+
+    /// Sets an array element to a value in the current scope.  If the variable is linked to
+    /// another scope, the value is set there instead.  The array element is created if it does
+    /// not already exist.
+    #[allow(dead_code)] // TEMP
+    pub fn set_elem(&mut self, name: &str, elem: &str, value: Value) -> Result<(),ResultCode> {
+        let top = self.stack.len() - 1;
+
+        self.set_elem_at(top, name, elem, value)
+    }
+
+    /// Sets an array element to a value at a given level in the stack.  If the variable at
+    /// that level is linked to a higher level, sets it at that level instead.
+    fn set_elem_at(&mut self, level: usize, name: &str, elem: &str, value: Value) -> Result<(),ResultCode> {
+        match self.stack[level].map.get_mut(name) {
+            Some(Var::Level(at)) => {
+                let true_level = *at;
+                self.set_elem_at(true_level, name, elem, value)
+            }
+            Some(Var::Scalar(_)) =>
+                molt_err!("can't set \"{}({})\": variable isn't array", name, elem),
+            Some(Var::Array(map)) => {
+                map.insert(elem.into(), value);
+                Ok(())
+            }
+            None => {
+                let mut map = HashMap::new();
+                map.insert(elem.into(), value);
+                self.stack[level].map.insert(name.into(), Var::Array(map));
+                Ok(())
+            }
+        }
     }
 
     /// Gets the value of the named variable in the current scope, if present.
     pub fn get(&self, name: &str) -> Result<Option<Value>,ResultCode> {
         let top = self.stack.len() - 1;
 
-        Ok(self.get_at(top, name))
+        self.get_at(top, name)
+    }
+
+    /// Gets the value at the given level, recursing up the stack as needed.
+    fn get_at(&self, level: usize, name: &str) -> Result<Option<Value>,ResultCode> {
+        match self.stack[level].map.get(name) {
+            Some(Var::Scalar(value)) => Ok(Some(value.clone())),
+            Some(Var::Array(_)) => molt_err!("can't read \"{}\": variable is array", name),
+            Some(Var::Level(at)) => self.get_at(*at, name),
+            _ => Ok(None),
+        }
+    }
+
+    /// Gets an element of the named array in the current scope, if present.
+    #[allow(dead_code)] // TEMP
+    pub fn get_elem(&self, name: &str, elem: &str) -> Result<Option<Value>,ResultCode> {
+        let top = self.stack.len() - 1;
+
+        self.get_elem_at(top, name, elem)
+    }
+
+    /// Gets an element of the named array at the given level, recursing up the stack as needed.
+    fn get_elem_at(&self, level: usize, name: &str, elem: &str) -> Result<Option<Value>,ResultCode> {
+        match self.stack[level].map.get(name) {
+            Some(Var::Scalar(_)) =>
+                molt_err!("can't read \"{}({})\": variable isn't array", name, elem),
+            Some(Var::Array(map)) => {
+                if let Some(val) = map.get(elem) {
+                    Ok(Some(val.clone()))
+                } else {
+                    Ok(None)
+                }
+            }
+            Some(Var::Level(at)) => self.get_elem_at(*at, name, elem),
+            _ => Ok(None),
+        }
     }
 
     /// Unsets a variable in the current scope, i.e., removes it from the scope.
@@ -82,29 +166,6 @@ impl ScopeStack {
     pub fn unset(&mut self, name: &str) {
         let top = self.stack.len() - 1;
         self.unset_at(top, name);
-    }
-
-    /// Gets the value at the given level, recursing up the stack as needed.
-    fn get_at(&self, level: usize, name: &str) -> Option<Value> {
-        match self.stack[level].map.get(name) {
-            Some(Var::Scalar(value)) => Some(value.clone()),
-            Some(Var::Level(at)) => self.get_at(*at, name),
-            _ => None,
-        }
-    }
-
-    /// Set a variable to a value at a given level in the stack.  If the variable at that level
-    /// is linked to a higher level, sets it at that level instead.
-    fn set_at(&mut self, level: usize, name: &str, value: Value) {
-        match self.stack[level].map.get(name) {
-            Some(Var::Level(at)) => {
-                let true_level = *at;
-                self.set_at(true_level, name, value);
-            }
-            _ => {
-                self.stack[level].map.insert(name.into(), Var::Scalar(value));
-            }
-        }
     }
 
     /// Unset a variable at a given level in the stack.  If the variable at that level
@@ -190,6 +251,49 @@ mod tests {
         assert_eq!(out.unwrap().as_str(), "2");
 
         assert!(ss.get("c").unwrap().is_none());
+    }
+
+    #[test]
+    fn test_set_get_elem_basic() {
+        let mut ss = ScopeStack::new();
+
+        // Set/get an element in an array
+        let _ = ss.set_elem("a", "x", Value::from("1"));
+        let out = ss.get_elem("a", "x").unwrap();
+        assert!(out.is_some());
+        assert_eq!(out.unwrap().as_str(), "1");
+
+        // Set/get another element in the same array
+        let _ = ss.set_elem("a", "y", Value::from("2"));
+        let out = ss.get_elem("a", "y").unwrap();
+        assert!(out.is_some());
+        assert_eq!(out.unwrap().as_str(), "2");
+
+        // Set/get an element in different array
+        let _ = ss.set_elem("b", "x", Value::from("3"));
+        let out = ss.get_elem("b", "x").unwrap();
+        assert!(out.is_some());
+        assert_eq!(out.unwrap().as_str(), "3");
+
+        // Fail to get an element from an existing array
+        assert!(ss.get_elem("a", "z").unwrap().is_none());
+
+        // Fail to get an element from an unknown variable
+        assert!(ss.get_elem("c", "z").unwrap().is_none());
+    }
+
+    #[test]
+    fn test_set_get_but_wrong_type() {
+        let mut ss = ScopeStack::new();
+
+        let _ = ss.set("a", Value::empty());
+        let _ = ss.set_elem("b", "1", Value::empty());
+
+        assert_eq!(ss.set("b", Value::empty()), molt_err!("can't set \"b\": variable is array"));
+        assert_eq!(ss.set_elem("a", "1", Value::empty()), molt_err!("can't set \"a(1)\": variable isn't array"));
+
+        assert_eq!(ss.get("b"), molt_err!("can't read \"b\": variable is array"));
+        assert_eq!(ss.get_elem("a", "1"), molt_err!("can't read \"a(1)\": variable isn't array"));
     }
 
     #[test]

@@ -20,7 +20,8 @@ use std::collections::HashMap;
 /// `Value`; if it is a reference to a variable in a higher scope (e.g., a global) then
 /// the `Level` gives the referenced scope.
 enum Var {
-    Value(Value),
+    Scalar(Value),
+    // Array(HashMap<String, Value>),
     Level(usize),
 }
 
@@ -85,7 +86,7 @@ impl ScopeStack {
     /// Gets the value at the given level, recursing up the stack as needed.
     fn get_at(&self, level: usize, name: &str) -> Option<Value> {
         match self.stack[level].map.get(name) {
-            Some(Var::Value(value)) => Some(value.clone()),
+            Some(Var::Scalar(value)) => Some(value.clone()),
             Some(Var::Level(at)) => self.get_at(*at, name),
             _ => None,
         }
@@ -100,7 +101,7 @@ impl ScopeStack {
                 self.set_at(true_level, name, value);
             }
             _ => {
-                self.stack[level].map.insert(name.into(), Var::Value(value));
+                self.stack[level].map.insert(name.into(), Var::Scalar(value));
             }
         }
     }

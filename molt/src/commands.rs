@@ -30,7 +30,7 @@ pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     }
 
     // NEXT, save and return the new value.
-    molt_ok!(interp.set_and_return(var_name, new_string.into()))
+    interp.set_and_return(var_name, new_string.into())
 }
 
 /// assert_eq received, expected
@@ -80,7 +80,7 @@ pub fn cmd_catch(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     };
 
     if argv.len() == 3 {
-        interp.set_and_return(argv[2].as_str(), value);
+        interp.set_var(argv[2].as_str(), &value)?;
     }
 
     Ok(Value::from(code))
@@ -202,10 +202,10 @@ pub fn cmd_foreach(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     while i < list.len() {
         for var_name in var_list {
             if i < list.len() {
-                interp.set_var(var_name.as_str(), &list[i]);
+                interp.set_var(var_name.as_str(), &list[i])?;
                 i += 1;
             } else {
-                interp.set_and_return(var_name.as_str(), Value::empty());
+                interp.set_var(var_name.as_str(), &Value::empty())?;
             }
         }
 
@@ -362,7 +362,7 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
             .and_then(|val| Ok(val.as_int()?))
             .unwrap_or_else(|_| 0);
 
-    molt_ok!(interp.set_and_return(var_name, new_value.into()))
+    interp.set_and_return(var_name, new_value.into())
 }
 
 /// # info *subcommand* ?*arg*...?
@@ -439,7 +439,7 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
     let mut values = argv[2..].to_owned();
     list.append(&mut values);
-    molt_ok!(interp.set_and_return(var_name, Value::from(list)))
+    interp.set_and_return(var_name, Value::from(list))
 }
 
 /// # lindex *list* ?*index* ...?
@@ -614,7 +614,7 @@ pub fn cmd_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     let var_name = argv[1].as_str();
 
     if argv.len() == 3 {
-        molt_ok!(interp.set_and_return(var_name, argv[2].clone()))
+        interp.set_and_return(var_name, argv[2].clone())
     } else {
         molt_ok!(interp.var(var_name)?.clone())
     }

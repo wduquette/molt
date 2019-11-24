@@ -80,7 +80,7 @@ pub fn cmd_catch(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     };
 
     if argv.len() == 3 {
-        interp.set_var(argv[2].as_str(), &value)?;
+        interp.set_var(argv[2].as_str(), value)?;
     }
 
     Ok(Value::from(code))
@@ -202,10 +202,10 @@ pub fn cmd_foreach(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     while i < list.len() {
         for var_name in var_list {
             if i < list.len() {
-                interp.set_var(var_name.as_str(), &list[i])?;
+                interp.set_var(var_name.as_str(), list[i].clone())?;
                 i += 1;
             } else {
-                interp.set_var(var_name.as_str(), &Value::empty())?;
+                interp.set_var(var_name.as_str(), Value::empty())?;
             }
         }
 

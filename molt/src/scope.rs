@@ -13,7 +13,7 @@
 //! `Interp` (or the Molt language itself).
 
 use crate::types::MoltList;
-use crate::types::MoltResult;
+use crate::types::ResultCode;
 use crate::value::Value;
 use std::collections::HashMap;
 
@@ -62,11 +62,11 @@ impl ScopeStack {
     /// Sets a variable to a value in the current scope.  If the variable is linked to
     /// another scope, the value is set there instead.  The variable is created if it does
     /// not already exist.
-    pub fn set(&mut self, name: &str, value: Value) -> MoltResult {
+    pub fn set(&mut self, name: &str, value: Value) -> Result<(),ResultCode> {
         let top = self.stack.len() - 1;
 
-        self.set_at(top, name, value.clone());
-        Ok(value)
+        self.set_at(top, name, value);
+        Ok(())
     }
 
     /// Gets the value of the named variable in the current scope, if present.

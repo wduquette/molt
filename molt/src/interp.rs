@@ -836,16 +836,17 @@ impl Interp {
     ///
     /// Returns an error if the variable exists and is an array variable.
     pub fn set_and_return(&mut self, name: &str, value: Value) -> MoltResult {
-        Ok(self.scopes.set(name, value)?.clone())
+        // Clone the value, since we'll be returning it out again.
+        self.scopes.set(name, value.clone())?;
+        Ok(value)
     }
 
     /// Sets the value of the named variable in the current scope, creating the variable
     /// if necessary.
     ///
     /// Returns an error if the variable exists and is an array variable.
-    pub fn set_var(&mut self, name: &str, value: &Value) -> Result<(),ResultCode> {
-        let _ = self.scopes.set(name, value.clone())?;
-        Ok(())
+    pub fn set_var(&mut self, name: &str, value: Value) -> Result<(),ResultCode> {
+        self.scopes.set(name, value)
     }
 
     /// Unsets the value of the named variable in the current scope
@@ -973,7 +974,7 @@ impl Command for CommandProc {
             // if any.  Note that "args" has special meaning only if it's the
             // final arg spec in the list.
             if vec[0].as_str() == "args" && speci == self.args.len() - 1 {
-                interp.set_var("args", &Value::from(&argv[argi..]))?;
+                interp.set_var("args", Value::from(&argv[argi..]))?;
 
                 // We've processed all of the args
                 argi = argv.len();
@@ -983,14 +984,14 @@ impl Command for CommandProc {
             // NEXT, do we have a matching argument?
             if argi < argv.len() {
                 // Pair them up
-                interp.set_var(vec[0].as_str(), &argv[argi])?;
+                interp.set_var(vec[0].as_str(), argv[argi].clone())?;
                 argi += 1;
                 continue;
             }
 
             // NEXT, do we have a default value?
             if vec.len() == 2 {
-                interp.set_var(vec[0].as_str(), &vec[1])?;
+                interp.set_var(vec[0].as_str(), vec[1].clone())?;
             } else {
                 // We don't; we're missing a required argument.
                 return self.wrong_num_args(name);

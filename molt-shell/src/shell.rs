@@ -134,8 +134,8 @@ pub fn script(interp: &mut Interp, args: &[String]) {
 /// * The Molt variable `argv` will be set to the `argv` array as a Molt list.
 fn execute_script(interp: &mut Interp, script: String, arg0: &str, argv: &[String]) {
     let argv: MoltList = argv.iter().map(Value::from).collect();
-    interp.set_var("arg0", &Value::from(arg0)).expect("arg0 predefined as array!");
-    interp.set_var("argv", &Value::from(argv)).expect("argv predefined as array!");
+    interp.set_var("arg0", Value::from(arg0)).expect("arg0 predefined as array!");
+    interp.set_var("argv", Value::from(argv)).expect("argv predefined as array!");
 
     match interp.eval(&script) {
         Ok(_) => (),

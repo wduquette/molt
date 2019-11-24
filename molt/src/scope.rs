@@ -70,10 +70,10 @@ impl ScopeStack {
     }
 
     /// Gets the value of the named variable in the current scope, if present.
-    pub fn get(&self, name: &str) -> Option<Value> {
+    pub fn get(&self, name: &str) -> Result<Option<Value>,ResultCode> {
         let top = self.stack.len() - 1;
 
-        self.get_at(top, name)
+        Ok(self.get_at(top, name))
     }
 
     /// Unsets a variable in the current scope, i.e., removes it from the scope.
@@ -180,16 +180,16 @@ mod tests {
         let mut ss = ScopeStack::new();
 
         let _ = ss.set("a", Value::from("1"));
-        let out = ss.get("a");
+        let out = ss.get("a").unwrap();
         assert!(out.is_some());
         assert_eq!(out.unwrap().as_str(), "1");
 
         let _ = ss.set("b", Value::from("2"));
-        let out = ss.get("b");
+        let out = ss.get("b").unwrap();
         assert!(out.is_some());
         assert_eq!(out.unwrap().as_str(), "2");
 
-        assert!(ss.get("c").is_none());
+        assert!(ss.get("c").unwrap().is_none());
     }
 
     #[test]
@@ -197,9 +197,9 @@ mod tests {
         let mut ss = ScopeStack::new();
 
         let _ = ss.set("a", Value::from("1"));
-        assert!(ss.get("a").is_some());
+        assert!(ss.get("a").unwrap().is_some());
         ss.unset("a");
-        assert!(ss.get("a").is_none());
+        assert!(ss.get("a").unwrap().is_none());
     }
 
     #[test]
@@ -253,21 +253,21 @@ mod tests {
         let _ = ss.set("b", Value::from("2"));
 
         ss.push();
-        assert!(ss.get("a").is_none());
-        assert!(ss.get("b").is_none());
-        assert!(ss.get("c").is_none());
+        assert!(ss.get("a").unwrap().is_none());
+        assert!(ss.get("b").unwrap().is_none());
+        assert!(ss.get("c").unwrap().is_none());
 
         let _ = ss.set("a", Value::from("3"));
         let _ = ss.set("b", Value::from("4"));
         let _ = ss.set("c", Value::from("5"));
-        assert_eq!(ss.get("a").unwrap().as_str(), "3");
-        assert_eq!(ss.get("b").unwrap().as_str(), "4");
-        assert_eq!(ss.get("c").unwrap().as_str(), "5");
+        assert_eq!(ss.get("a").unwrap().unwrap().as_str(), "3");
+        assert_eq!(ss.get("b").unwrap().unwrap().as_str(), "4");
+        assert_eq!(ss.get("c").unwrap().unwrap().as_str(), "5");
 
         ss.pop();
-        assert_eq!(ss.get("a").unwrap().as_str(), "1");
-        assert_eq!(ss.get("b").unwrap().as_str(), "2");
-        assert!(ss.get("c").is_none());
+        assert_eq!(ss.get("a").unwrap().unwrap().as_str(), "1");
+        assert_eq!(ss.get("b").unwrap().unwrap().as_str(), "2");
+        assert!(ss.get("c").unwrap().is_none());
     }
 
     #[test]
@@ -279,17 +279,17 @@ mod tests {
 
         ss.push();
         ss.upvar(0, "a");
-        assert_eq!(ss.get("a").unwrap().as_str(), "1");
-        assert!(ss.get("b").is_none());
+        assert_eq!(ss.get("a").unwrap().unwrap().as_str(), "1");
+        assert!(ss.get("b").unwrap().is_none());
 
         let _ = ss.set("a", Value::from("3"));
         let _ = ss.set("b", Value::from("4"));
-        assert_eq!(ss.get("a").unwrap().as_str(), "3");
-        assert_eq!(ss.get("b").unwrap().as_str(), "4");
+        assert_eq!(ss.get("a").unwrap().unwrap().as_str(), "3");
+        assert_eq!(ss.get("b").unwrap().unwrap().as_str(), "4");
 
         ss.pop();
-        assert_eq!(ss.get("a").unwrap().as_str(), "3");
-        assert_eq!(ss.get("b").unwrap().as_str(), "2");
+        assert_eq!(ss.get("a").unwrap().unwrap().as_str(), "3");
+        assert_eq!(ss.get("b").unwrap().unwrap().as_str(), "2");
     }
 
     #[test]
@@ -306,8 +306,8 @@ mod tests {
         ss.unset("b"); // Was not set in this scope
 
         ss.pop();
-        assert_eq!(ss.get("a").unwrap().as_str(), "1");
-        assert_eq!(ss.get("b").unwrap().as_str(), "2");
+        assert_eq!(ss.get("a").unwrap().unwrap().as_str(), "1");
+        assert_eq!(ss.get("b").unwrap().unwrap().as_str(), "2");
     }
 
     #[test]
@@ -316,20 +316,20 @@ mod tests {
 
         // Set a value at level 0
         let _ = ss.set("a", Value::from("1"));
-        assert!(ss.get("a").is_some());
+        assert!(ss.get("a").unwrap().is_some());
         ss.push();
-        assert!(ss.get("a").is_none());
+        assert!(ss.get("a").unwrap().is_none());
 
         // Link a@1 to a@0
         ss.upvar(0, "a");
-        assert!(ss.get("a").is_some());
+        assert!(ss.get("a").unwrap().is_some());
 
         // Unset it; it should be unset in both scopes.
         ss.unset("a");
 
-        assert!(ss.get("a").is_none());
+        assert!(ss.get("a").unwrap().is_none());
         ss.pop();
-        assert!(ss.get("a").is_none());
+        assert!(ss.get("a").unwrap().is_none());
     }
 
     #[test]

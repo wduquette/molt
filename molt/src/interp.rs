@@ -825,7 +825,7 @@ impl Interp {
 
     /// Retrieves the value of the named variable in the current scope, if any.
     pub fn var(&self, name: &str) -> MoltResult {
-        match self.scopes.get(name) {
+        match self.scopes.get(name)? {
             Some(v) => molt_ok!(v.clone()),
             None => molt_err!("can't read \"{}\": no such variable", name),
         }

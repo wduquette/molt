@@ -152,12 +152,8 @@ impl ScopeStack {
     }
 
     /// Gets the names of the variables defined in the current scope.
-    /// TODO: Should return a MoltList.
     pub fn vars_in_scope(&self) -> MoltList {
         let top = self.stack.len() - 1;
-        // let vec: MoltList = self.stack[top].map.keys().cloned().map(|x| Value::new(&x)).collect();
-        //
-        // vec
         self.stack[top]
             .map
             .keys()

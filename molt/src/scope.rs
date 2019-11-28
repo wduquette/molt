@@ -19,7 +19,7 @@ use std::collections::HashMap;
 
 /// A variable in a `Scope`.  If the variable is defined in the `Scope`, it has a
 /// `Value`; if it is a reference to a variable in a higher scope (e.g., a global) then
-/// the `Alias` gives the referenced scope.
+/// the `Upvar` gives the referenced scope.
 enum Var {
     /// A scalar variable, with its value.
     Scalar(Value),
@@ -28,7 +28,7 @@ enum Var {
     Array(HashMap<String, Value>),
 
     /// An alias to a variable at a higher stack level, with the referenced stack level.
-    Alias(usize),
+    Upvar(usize),
 }
 
 /// A scope: a level in the `ScopeStack`.  It contains a hash table of `Var`'s by name.
@@ -65,7 +65,7 @@ impl ScopeStack {
     /// TODO: Try doing using a loop rather than recursion.
     fn var(&self, level: usize, name: &str) -> Option<&Var> {
         let var = self.stack[level].map.get(name);
-        if let Some(Var::Alias(at)) = var {
+        if let Some(Var::Upvar(at)) = var {
             self.var(*at, name)
         } else {
             var
@@ -89,7 +89,7 @@ impl ScopeStack {
             ::core::mem::transmute(var)
         };
 
-        if let Some(Var::Alias(at)) = var {
+        if let Some(Var::Upvar(at)) = var {
             self.var_mut(*at, name)
         } else {
             var
@@ -142,7 +142,7 @@ impl ScopeStack {
         let top = self.current();
 
         match self.var_mut(top, name) {
-            Some(Var::Alias(_)) => unreachable!(),
+            Some(Var::Upvar(_)) => unreachable!(),
             Some(Var::Array(_)) => molt_err!("can't set \"{}\": variable is array", name),
             Some(var) => {
                 // It was already a scalar; just update it.
@@ -164,7 +164,7 @@ impl ScopeStack {
         let top = self.current();
 
         match self.var_mut(top, name) {
-            Some(Var::Alias(_)) => unreachable!(),
+            Some(Var::Upvar(_)) => unreachable!(),
             Some(Var::Scalar(_)) =>
                 molt_err!("can't set \"{}({})\": variable isn't array", name, index),
             Some(Var::Array(map)) => {
@@ -193,7 +193,7 @@ impl ScopeStack {
     /// is linked to a higher level, follows the chain down, unsetting as it goes.
     fn unset_at(&mut self, level: usize, name: &str) {
         // FIRST, if the variable at this level links to a lower level, follow the chain.
-        if let Some(Var::Alias(at)) = self.stack[level].map.get(name) {
+        if let Some(Var::Upvar(at)) = self.stack[level].map.get(name) {
             // NOTE: Using the variable true_level prevents a "doubly-borrowed" error.
             // Once Polonius is in use, this should no longer be necessary.
             let true_level = *at;
@@ -213,7 +213,7 @@ impl ScopeStack {
     pub fn upvar(&mut self, level: usize, name: &str) {
         assert!(level < self.current(), "Can't upvar to current stack level");
         let top = self.current();
-        self.stack[top].map.insert(name.into(), Var::Alias(level));
+        self.stack[top].map.insert(name.into(), Var::Upvar(level));
     }
 
     /// Returns the index of the current stack level, counting from 0, the global scope.

@@ -446,7 +446,7 @@ impl Interp {
     pub(crate) fn eval_word(&mut self, word: &Word) -> MoltResult {
         match word {
             Word::Value(val) => Ok(val.clone()),
-            Word::VarRef(name) => self.var(name),
+            Word::VarRef(name) => self.scalar(name),
             Word::Script(script) => self.eval_script(script),
             Word::Tokens(tokens) => {
                 let tlist = self.eval_word_vec(tokens)?;
@@ -823,30 +823,101 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Variable Handling
 
-    /// Retrieves the value of the named variable in the current scope, if any.
-    pub fn var(&self, name: &str) -> MoltResult {
+    /// Retrieves the value of the named scalar variable in the current scope, if any.
+    ///
+    /// Returns an error if the variable is an array variable.
+    pub fn scalar(&self, name: &str) -> MoltResult {
         match self.scopes.get(name)? {
             Some(v) => molt_ok!(v.clone()),
             None => molt_err!("can't read \"{}\": no such variable", name),
         }
     }
 
-    /// Sets the value of the named variable in the current scope, creating the variable
+    /// Retrieves the value of the named array element in the current scope, if any.
+    ///
+    /// Returns an error if the variable is not an array variable.
+    pub fn element(&self, name: &str, index: &str) -> MoltResult {
+        match self.scopes.get_elem(name, index)? {
+            Some(v) => molt_ok!(v.clone()),
+            None => molt_err!("can't read \"{}\": no such variable", name),
+        }
+    }
+
+    /// Retrieves the value of the variable in the current scope, if any.
+    ///
+    /// Returns an error if the variable is a scalar and the name names an array element,
+    /// and vice versa.
+    pub fn var(&self, var_name: &VarName) -> MoltResult {
+        match var_name.index() {
+            Some(index) => self.element(var_name.name(), index),
+            None => self.scalar(var_name.name()),
+        }
+    }
+
+    /// Sets the value of the named scalar variable in the current scope, creating the variable
+    /// if necessary.
+    ///
+    /// Returns an error if the variable exists and is an array variable.
+    pub fn set_scalar(&mut self, name: &str, value: Value) -> Result<(), ResultCode> {
+        self.scopes.set(name, value)
+    }
+
+    /// Sets the value of the named scalar variable in the current scope, creating the variable
     /// if necessary, and returning the value.
     ///
     /// Returns an error if the variable exists and is an array variable.
-    pub fn set_and_return(&mut self, name: &str, value: Value) -> MoltResult {
+    pub fn set_scalar_return(&mut self, name: &str, value: Value) -> MoltResult {
         // Clone the value, since we'll be returning it out again.
         self.scopes.set(name, value.clone())?;
         Ok(value)
     }
 
-    /// Sets the value of the named variable in the current scope, creating the variable
+    /// Sets the value of an array element in the current scope, creating the variable
     /// if necessary.
     ///
-    /// Returns an error if the variable exists and is an array variable.
-    pub fn set_var(&mut self, name: &str, value: Value) -> Result<(), ResultCode> {
-        self.scopes.set(name, value)
+    /// Returns an error if the variable exists and is not an array variable.
+    ///
+    /// TODO: test needed
+    pub fn set_element(&mut self, name: &str, index: &str, value: Value) -> Result<(), ResultCode> {
+        self.scopes.set_elem(name, index, value)
+    }
+
+    /// Sets the value of an array element in the current scope, creating the variable
+    /// if necessary, and returning the value.
+    ///
+    /// Returns an error if the variable exists and is not an array variable.
+    ///
+    /// TODO: test needed
+    pub fn set_element_return(&mut self, name: &str, index: &str, value: Value) -> MoltResult {
+        // Clone the value, since we'll be returning it out again.
+        self.scopes.set_elem(name, index, value.clone())?;
+        Ok(value)
+    }
+
+    /// Sets the value of the variable in the current scope, if any.
+    ///
+    /// Returns an error if the variable is scalar and the name names an array element,
+    /// and vice-versa.
+    ///
+    /// TODO: test needed
+    pub fn set_var(&mut self, var_name: &VarName, value: Value) -> Result<(),ResultCode> {
+        match var_name.index() {
+            Some(index) => self.set_element(var_name.name(), index, value),
+            None => self.set_scalar(var_name.name(), value),
+        }
+    }
+
+    /// Sets the value of the variable in the current scope, if any, and returns its value.
+    ///
+    /// Returns an error if the variable is scalar and the name names an array element,
+    /// and vice-versa.
+    ///
+    /// TODO: test needed
+    pub fn set_var_return(&mut self, var_name: &VarName, value: Value) -> MoltResult {
+        match var_name.index() {
+            Some(index) => self.set_element_return(var_name.name(), index, value),
+            None => self.set_scalar_return(var_name.name(), value),
+        }
     }
 
     /// Unsets the value of the named variable in the current scope
@@ -974,7 +1045,7 @@ impl Command for CommandProc {
             // if any.  Note that "args" has special meaning only if it's the
             // final arg spec in the list.
             if vec[0].as_str() == "args" && speci == self.args.len() - 1 {
-                interp.set_var("args", Value::from(&argv[argi..]))?;
+                interp.set_scalar("args", Value::from(&argv[argi..]))?;
 
                 // We've processed all of the args
                 argi = argv.len();
@@ -984,14 +1055,14 @@ impl Command for CommandProc {
             // NEXT, do we have a matching argument?
             if argi < argv.len() {
                 // Pair them up
-                interp.set_var(vec[0].as_str(), argv[argi].clone())?;
+                interp.set_scalar(vec[0].as_str(), argv[argi].clone())?;
                 argi += 1;
                 continue;
             }
 
             // NEXT, do we have a default value?
             if vec.len() == 2 {
-                interp.set_var(vec[0].as_str(), vec[1].clone())?;
+                interp.set_scalar(vec[0].as_str(), vec[1].clone())?;
             } else {
                 // We don't; we're missing a required argument.
                 return self.wrong_num_args(name);

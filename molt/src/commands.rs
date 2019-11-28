@@ -20,7 +20,7 @@ pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     let var_name = argv[1].as_str();
 
     let mut new_string: String = interp
-        .var(var_name)
+        .scalar(var_name)
         .and_then(|val| Ok(val.to_string()))
         .unwrap_or_else(|_| String::new());
 
@@ -30,7 +30,7 @@ pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     }
 
     // NEXT, save and return the new value.
-    interp.set_and_return(var_name, new_string.into())
+    interp.set_scalar_return(var_name, new_string.into())
 }
 
 /// assert_eq received, expected
@@ -80,7 +80,7 @@ pub fn cmd_catch(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     };
 
     if argv.len() == 3 {
-        interp.set_var(argv[2].as_str(), value)?;
+        interp.set_scalar(argv[2].as_str(), value)?;
     }
 
     Ok(Value::from(code))
@@ -202,10 +202,10 @@ pub fn cmd_foreach(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     while i < list.len() {
         for var_name in var_list {
             if i < list.len() {
-                interp.set_var(var_name.as_str(), list[i].clone())?;
+                interp.set_scalar(var_name.as_str(), list[i].clone())?;
                 i += 1;
             } else {
-                interp.set_var(var_name.as_str(), Value::empty())?;
+                interp.set_scalar(var_name.as_str(), Value::empty())?;
             }
         }
 
@@ -358,11 +358,11 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
     let new_value = increment
         + interp
-            .var(var_name)
+            .scalar(var_name)
             .and_then(|val| Ok(val.as_int()?))
             .unwrap_or_else(|_| 0);
 
-    interp.set_and_return(var_name, new_value.into())
+    interp.set_scalar_return(var_name, new_value.into())
 }
 
 /// # info *subcommand* ?*arg*...?
@@ -429,7 +429,7 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 0, "varName ?value ...?")?;
 
     let var_name = argv[1].as_str();
-    let var_result = interp.var(var_name);
+    let var_result = interp.scalar(var_name);
 
     let mut list: MoltList = if var_result.is_ok() {
         var_result.expect("got value").to_list()?
@@ -439,7 +439,7 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
     let mut values = argv[2..].to_owned();
     list.append(&mut values);
-    interp.set_and_return(var_name, Value::from(list))
+    interp.set_scalar_return(var_name, Value::from(list))
 }
 
 /// # lindex *list* ?*index* ...?
@@ -614,9 +614,9 @@ pub fn cmd_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     let var_name = argv[1].as_str();
 
     if argv.len() == 3 {
-        interp.set_and_return(var_name, argv[2].clone())
+        interp.set_scalar_return(var_name, argv[2].clone())
     } else {
-        molt_ok!(interp.var(var_name)?.clone())
+        molt_ok!(interp.scalar(var_name)?.clone())
     }
 }
 

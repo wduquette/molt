@@ -135,10 +135,10 @@ pub fn script(interp: &mut Interp, args: &[String]) {
 fn execute_script(interp: &mut Interp, script: String, arg0: &str, argv: &[String]) {
     let argv: MoltList = argv.iter().map(Value::from).collect();
     interp
-        .set_var("arg0", Value::from(arg0))
+        .set_scalar("arg0", Value::from(arg0))
         .expect("arg0 predefined as array!");
     interp
-        .set_var("argv", Value::from(argv))
+        .set_scalar("argv", Value::from(argv))
         .expect("argv predefined as array!");
 
     match interp.eval(&script) {

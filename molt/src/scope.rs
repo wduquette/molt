@@ -19,11 +19,16 @@ use std::collections::HashMap;
 
 /// A variable in a `Scope`.  If the variable is defined in the `Scope`, it has a
 /// `Value`; if it is a reference to a variable in a higher scope (e.g., a global) then
-/// the `Level` gives the referenced scope.
+/// the `Alias` gives the referenced scope.
 enum Var {
+    /// A scalar variable, with its value.
     Scalar(Value),
+
+    /// An array variable, with its hash table from names to values.
     Array(HashMap<String, Value>),
-    Level(usize),
+
+    /// An alias to a variable at a higher stack level, with the referenced stack level.
+    Alias(usize),
 }
 
 /// A scope: a level in the `ScopeStack`.  It contains a hash table of `Var`'s by name.
@@ -50,6 +55,50 @@ pub(crate) struct ScopeStack {
 }
 
 impl ScopeStack {
+    //--------------------------------------------------------------
+    // Utilities
+
+    /// Retrieves the variable of the given name from the scope stack, starting
+    /// at the given level.  If it finds an alias to a variable on a higher level
+    /// of the stack, it recurses to it.
+    ///
+    /// TODO: Try doing using a loop rather than recursion.
+    fn var(&self, level: usize, name: &str) -> Option<&Var> {
+        let var = self.stack[level].map.get(name);
+        if let Some(Var::Alias(at)) = var {
+            self.var(*at, name)
+        } else {
+            var
+        }
+    }
+
+    /// Retrieves the variable of the given name from the scope stack, starting
+    /// at the given level.  If it finds an alias to a variable on a higher level
+    /// of the stack, it recurses to it.
+    ///
+    /// TODO: Try doing using a loop rather than recursion.
+    fn var_mut(&mut self, level: usize, name: &str) -> Option<&mut Var> {
+        let var = self.stack[level].map.get(name);
+
+        // NOTE: 11/28/2019.  Without this transmutation, the borrow checker will not allow the
+        // recursive call to var_mut, even though it can be seen that all we are using
+        // from the first borrow is the alias level. Under Polonius, a new borrow checker
+        // currently under development, this pattern is allowed, and the unsafe code can
+        // be deleted.
+        let var: Option<&mut Var> = unsafe {
+            ::core::mem::transmute(var)
+        };
+
+        if let Some(Var::Alias(at)) = var {
+            self.var_mut(*at, name)
+        } else {
+            var
+        }
+    }
+
+    //--------------------------------------------------------------
+    // Public API
+
     /// Creates a scope stack containing only scope `0`, the global scope.
     pub fn new() -> Self {
         let mut ss = Self { stack: Vec::new() };
@@ -59,32 +108,9 @@ impl ScopeStack {
         ss
     }
 
-    //--------------------------------------------------------------
-    // Utilities
-
-    /// Returns the top stack level.
-    fn top(&self) -> usize {
-        self.stack.len() - 1
-    }
-
-    /// Retrieves the variable of the given name from the scope stack, starting
-    /// at the given level.  If it finds an alias to a variable on a higher level
-    /// of the stack, it recurses to it.
-    fn var(&self, level: usize, name: &str) -> Option<&Var> {
-        let var = self.stack[level].map.get(name);
-        if let Some(Var::Level(at)) = var {
-            self.var(*at, name)
-        } else {
-            var
-        }
-    }
-
-    //--------------------------------------------------------------
-    // Public API
-
     /// Gets the value of the named variable in the current scope, if present.
     pub fn get(&self, name: &str) -> Result<Option<Value>,ResultCode> {
-        match self.var(self.top(), name) {
+        match self.var(self.current(), name) {
             Some(Var::Scalar(value)) => Ok(Some(value.clone())),
             Some(Var::Array(_)) => molt_err!("can't read \"{}\": variable is array", name),
             Some(_) => unreachable!(),
@@ -92,9 +118,11 @@ impl ScopeStack {
         }
     }
 
-    #[allow(dead_code)] // TEMP
+    /// Gets the value of an array element given its variable name and index, if present.
+    /// It's an error if the variable exists and isn't an array variable.
+    #[allow(dead_code)] // TEMP until the Interp interface is done.
     pub fn get_elem(&self, name: &str, index: &str) -> Result<Option<Value>,ResultCode> {
-        match self.var(self.top(), name) {
+        match self.var(self.current(), name) {
             Some(Var::Scalar(_)) =>
                 molt_err!("can't read \"{}({})\": variable isn't array", name, index),
             Some(Var::Array(map)) => {
@@ -109,118 +137,70 @@ impl ScopeStack {
         }
     }
 
-    /// Sets a variable to a value in the current scope.  If the variable is linked to
-    /// another scope, the value is set there instead.  The variable is created if it does
-    /// not already exist.
-    pub fn set(&mut self, name: &str, value: Value) -> Result<(),ResultCode> {
-        let top = self.stack.len() - 1;
+    /// Gets the value of the named variable in the current scope, if present.
+    pub fn set(&mut self, name: &str, val: Value) -> Result<(),ResultCode> {
+        let top = self.current();
 
-        self.set_at(top, name, value)
-    }
-
-    /// Set a variable to a value at a given level in the stack.  If the variable at that level
-    /// is linked to a higher level, sets it at that level instead.
-    fn set_at(&mut self, level: usize, name: &str, value: Value) -> Result<(),ResultCode> {
-        match self.stack[level].map.get(name) {
-            Some(Var::Level(at)) => {
-                let true_level = *at;
-                self.set_at(true_level, name, value)
-            }
+        match self.var_mut(top, name) {
+            Some(Var::Alias(_)) => unreachable!(),
             Some(Var::Array(_)) => molt_err!("can't set \"{}\": variable is array", name),
-            _ => {
-                // Variable exists and is scalar, or doesn't exist.
-                self.stack[level].map.insert(name.into(), Var::Scalar(value));
-                Ok(())
-            }
-        }
-    }
-
-    /// Sets an array element to a value in the current scope.  If the variable is linked to
-    /// another scope, the value is set there instead.  The array element is created if it does
-    /// not already exist.
-    #[allow(dead_code)] // TEMP
-    pub fn set_elem(&mut self, name: &str, elem: &str, value: Value) -> Result<(),ResultCode> {
-        let top = self.stack.len() - 1;
-
-        self.set_elem_at(top, name, elem, value)
-    }
-
-    /// Sets an array element to a value at a given level in the stack.  If the variable at
-    /// that level is linked to a higher level, sets it at that level instead.
-    fn set_elem_at(&mut self, level: usize, name: &str, elem: &str, value: Value) -> Result<(),ResultCode> {
-        match self.stack[level].map.get_mut(name) {
-            Some(Var::Level(at)) => {
-                let true_level = *at;
-                self.set_elem_at(true_level, name, elem, value)
-            }
-            Some(Var::Scalar(_)) =>
-                molt_err!("can't set \"{}({})\": variable isn't array", name, elem),
-            Some(Var::Array(map)) => {
-                map.insert(elem.into(), value);
-                Ok(())
-            }
-            None => {
-                let mut map = HashMap::new();
-                map.insert(elem.into(), value);
-                self.stack[level].map.insert(name.into(), Var::Array(map));
-                Ok(())
-            }
-        }
-    }
-
-
-    #[allow(dead_code)]
-    fn var_f<F>(&mut self, name: &str, f: F) -> Result<(), ResultCode>
-        where F: FnOnce(&mut Var) -> Result<(), ResultCode>
-    {
-        let top = self.stack.len() - 1;
-        self.var_f_at(top, name, f)
-    }
-
-    fn var_f_at<F>(&mut self, level: usize, name: &str, f: F) -> Result<(), ResultCode>
-        where F: FnOnce(&mut Var) -> Result<(), ResultCode>
-    {
-        match self.stack[level].map.get_mut(name) {
-            Some(Var::Level(at)) => {
-                let lev = *at;
-                self.var_f_at(lev, name, f)
-            }
-            Some(var) => f(var),
-            _ => Ok(())
-        }
-    }
-
-    #[allow(dead_code)]
-    fn experiment(&mut self, name: &str, val: Value) -> Result<(),ResultCode> {
-        self.var_f(name, |var| match var {
-            Var::Scalar(_) => {
+            Some(var) => {
+                // It was already a scalar; just update it.
                 *var = Var::Scalar(val);
                 Ok(())
             }
-            Var::Array(_) => molt_err!("is an array"),
-            _ => Ok(())
-        })
+            None => {
+                // Create new variable on the top of the stack.
+                self.stack[top].map.insert(name.into(), Var::Scalar(val));
+                Ok(())
+            }
+        }
     }
 
+    /// Sets the array element in the current scope. It's an error if the variable already
+    /// exists and isn't an array variable.
+    #[allow(dead_code)] // TEMP
+    pub fn set_elem(&mut self, name: &str, index: &str, val: Value) -> Result<(),ResultCode> {
+        let top = self.current();
+
+        match self.var_mut(top, name) {
+            Some(Var::Alias(_)) => unreachable!(),
+            Some(Var::Scalar(_)) =>
+                molt_err!("can't set \"{}({})\": variable isn't array", name, index),
+            Some(Var::Array(map)) => {
+                // It was already an array; just update it.
+                map.insert(index.into(), val);
+                Ok(())
+            }
+            None => {
+                // Create new variable on the top of the stack.
+                let mut map = HashMap::new();
+                map.insert(index.into(), val);
+                self.stack[top].map.insert(name.into(), Var::Array(map));
+                Ok(())
+            }
+        }
+    }
 
     /// Unsets a variable in the current scope, i.e., removes it from the scope.
     /// If the variable is a reference to another scope, the variable is removed from that
     /// scope as well.
     pub fn unset(&mut self, name: &str) {
-        let top = self.stack.len() - 1;
-        self.unset_at(top, name);
+        self.unset_at(self.current(), name);
     }
 
     /// Unset a variable at a given level in the stack.  If the variable at that level
     /// is linked to a higher level, follows the chain down, unsetting as it goes.
     fn unset_at(&mut self, level: usize, name: &str) {
         // FIRST, if the variable at this level links to a lower level, follow the chain.
-        if let Some(Var::Level(at)) = self.stack[level].map.get(name) {
+        if let Some(Var::Alias(at)) = self.stack[level].map.get(name) {
+            // NOTE: Using the variable true_level prevents a "doubly-borrowed" error.
+            // Once Polonius is in use, this should no longer be necessary.
             let true_level = *at;
             self.unset_at(true_level, name);
         }
 
-        // NEXT, remove the link at this level.
+        // NEXT, remove the variable at this level.
         self.stack[level].map.remove(name);
     }
 
@@ -233,7 +213,7 @@ impl ScopeStack {
     pub fn upvar(&mut self, level: usize, name: &str) {
         assert!(level < self.current(), "Can't upvar to current stack level");
         let top = self.current();
-        self.stack[top].map.insert(name.into(), Var::Level(level));
+        self.stack[top].map.insert(name.into(), Var::Alias(level));
     }
 
     /// Returns the index of the current stack level, counting from 0, the global scope.
@@ -258,8 +238,7 @@ impl ScopeStack {
 
     /// Gets the names of the variables defined in the current scope.
     pub fn vars_in_scope(&self) -> MoltList {
-        let top = self.stack.len() - 1;
-        self.stack[top]
+        self.stack[self.current()]
             .map
             .keys()
             .cloned()

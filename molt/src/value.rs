@@ -146,15 +146,18 @@
 //!
 //! [`Value`]: struct.Value.html
 
+use crate::eval_ptr::EvalPtr;
 use crate::expr::Datum;
 use crate::list::get_list;
 use crate::list::list_to_string;
 use crate::parser;
 use crate::parser::Script;
+use crate::parser::Word;
 use crate::types::MoltFloat;
 use crate::types::MoltInt;
 use crate::types::MoltList;
 use crate::types::ResultCode;
+use crate::types::VarName;
 use std::any::Any;
 use std::any::TypeId;
 use std::cell::RefCell;
@@ -761,6 +764,33 @@ impl Value {
         Ok(script)
     }
 
+    /// Tries to return the `Value` as an `Rc<VarName>`, parsing the
+    /// value's string representation if necessary.
+    ///
+    /// For use by commands like `set` that set and query TCL variables.
+    /// Converting the VarName back into a Tcl string is not currently supported.
+    ///
+    /// TODO: flesh out docs.
+    pub fn as_var_name(&self) -> Result<Rc<VarName>, ResultCode> {
+        // FIRST, if we have the desired type, return it.
+        if let DataRep::VarName(var_name) = &*self.inner.data_rep.borrow() {
+            return Ok(var_name.clone());
+        }
+
+        // NEXT, try to parse the string_rep as a variable name.
+        let str = self.as_str();
+        let mut ctx = EvalPtr::new(str);
+
+        let var_name = match parser::parse_varname(&mut ctx)? {
+            Word::VarRef(name) => Rc::new(VarName::scalar(name)),
+            _ => unreachable!(),
+        };
+
+        *self.inner.data_rep.borrow_mut() = DataRep::VarName(var_name.clone());
+
+        Ok(var_name)
+    }
+
     /// Creates a new `Value` containing the given value of some user type.
     ///
     /// The user type must meet certain constraints; see the
@@ -984,6 +1014,9 @@ enum DataRep {
     /// A Script
     Script(Rc<Script>),
 
+    /// A Variable Name
+    VarName(Rc<VarName>),
+
     /// An external data type
     Other(Rc<dyn MoltAny>),
 
@@ -999,6 +1032,7 @@ impl Display for DataRep {
             DataRep::Flt(flt) => Value::fmt_float(f, *flt),
             DataRep::List(list) => write!(f, "{}", list_to_string(&*list)),
             DataRep::Script(script) => write!(f, "{:?}", script),
+            DataRep::VarName(var_name) => write!(f, "{:?}", var_name),
             DataRep::Other(other) => write!(f, "{}", other),
             DataRep::None => write!(f, ""),
         }
@@ -1259,6 +1293,16 @@ mod tests {
 
         let val = Value::from("a {b");
         assert_eq!(val.as_script(), molt_err!("missing close-brace"));
+    }
+
+    #[test]
+    fn as_var_name() {
+        let val = Value::from("a");
+        assert!(val.as_var_name().is_ok());
+        assert_eq!(val.as_var_name().unwrap().name(), "a");
+        assert_eq!(val.as_var_name().unwrap().index(), None);
+
+        // TODO: Add tests for array variable names once I've implemented the parsing for that!
     }
 
     #[test]

@@ -845,7 +845,7 @@ impl Interp {
     /// if necessary.
     ///
     /// Returns an error if the variable exists and is an array variable.
-    pub fn set_var(&mut self, name: &str, value: Value) -> Result<(),ResultCode> {
+    pub fn set_var(&mut self, name: &str, value: Value) -> Result<(), ResultCode> {
         self.scopes.set(name, value)
     }
 

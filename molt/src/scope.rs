@@ -85,9 +85,7 @@ impl ScopeStack {
         // from the first borrow is the alias level. Under Polonius, a new borrow checker
         // currently under development, this pattern is allowed, and the unsafe code can
         // be deleted.
-        let var: Option<&mut Var> = unsafe {
-            ::core::mem::transmute(var)
-        };
+        let var: Option<&mut Var> = unsafe { ::core::mem::transmute(var) };
 
         if let Some(Var::Upvar(at)) = var {
             self.var_mut(*at, name)
@@ -109,7 +107,7 @@ impl ScopeStack {
     }
 
     /// Gets the value of the named variable in the current scope, if present.
-    pub fn get(&self, name: &str) -> Result<Option<Value>,ResultCode> {
+    pub fn get(&self, name: &str) -> Result<Option<Value>, ResultCode> {
         match self.var(self.current(), name) {
             Some(Var::Scalar(value)) => Ok(Some(value.clone())),
             Some(Var::Array(_)) => molt_err!("can't read \"{}\": variable is array", name),
@@ -121,10 +119,11 @@ impl ScopeStack {
     /// Gets the value of an array element given its variable name and index, if present.
     /// It's an error if the variable exists and isn't an array variable.
     #[allow(dead_code)] // TEMP until the Interp interface is done.
-    pub fn get_elem(&self, name: &str, index: &str) -> Result<Option<Value>,ResultCode> {
+    pub fn get_elem(&self, name: &str, index: &str) -> Result<Option<Value>, ResultCode> {
         match self.var(self.current(), name) {
-            Some(Var::Scalar(_)) =>
-                molt_err!("can't read \"{}({})\": variable isn't array", name, index),
+            Some(Var::Scalar(_)) => {
+                molt_err!("can't read \"{}({})\": variable isn't array", name, index)
+            }
             Some(Var::Array(map)) => {
                 if let Some(val) = map.get(index) {
                     Ok(Some(val.clone()))
@@ -138,7 +137,7 @@ impl ScopeStack {
     }
 
     /// Gets the value of the named variable in the current scope, if present.
-    pub fn set(&mut self, name: &str, val: Value) -> Result<(),ResultCode> {
+    pub fn set(&mut self, name: &str, val: Value) -> Result<(), ResultCode> {
         let top = self.current();
 
         match self.var_mut(top, name) {
@@ -160,13 +159,14 @@ impl ScopeStack {
     /// Sets the array element in the current scope. It's an error if the variable already
     /// exists and isn't an array variable.
     #[allow(dead_code)] // TEMP
-    pub fn set_elem(&mut self, name: &str, index: &str, val: Value) -> Result<(),ResultCode> {
+    pub fn set_elem(&mut self, name: &str, index: &str, val: Value) -> Result<(), ResultCode> {
         let top = self.current();
 
         match self.var_mut(top, name) {
             Some(Var::Upvar(_)) => unreachable!(),
-            Some(Var::Scalar(_)) =>
-                molt_err!("can't set \"{}({})\": variable isn't array", name, index),
+            Some(Var::Scalar(_)) => {
+                molt_err!("can't set \"{}({})\": variable isn't array", name, index)
+            }
             Some(Var::Array(map)) => {
                 // It was already an array; just update it.
                 map.insert(index.into(), val);
@@ -311,11 +311,23 @@ mod tests {
         let _ = ss.set("a", Value::empty());
         let _ = ss.set_elem("b", "1", Value::empty());
 
-        assert_eq!(ss.set("b", Value::empty()), molt_err!("can't set \"b\": variable is array"));
-        assert_eq!(ss.set_elem("a", "1", Value::empty()), molt_err!("can't set \"a(1)\": variable isn't array"));
+        assert_eq!(
+            ss.set("b", Value::empty()),
+            molt_err!("can't set \"b\": variable is array")
+        );
+        assert_eq!(
+            ss.set_elem("a", "1", Value::empty()),
+            molt_err!("can't set \"a(1)\": variable isn't array")
+        );
 
-        assert_eq!(ss.get("b"), molt_err!("can't read \"b\": variable is array"));
-        assert_eq!(ss.get_elem("a", "1"), molt_err!("can't read \"a(1)\": variable isn't array"));
+        assert_eq!(
+            ss.get("b"),
+            molt_err!("can't read \"b\": variable is array")
+        );
+        assert_eq!(
+            ss.get_elem("a", "1"),
+            molt_err!("can't read \"a(1)\": variable isn't array")
+        );
     }
 
     #[test]

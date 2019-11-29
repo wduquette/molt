@@ -762,25 +762,24 @@ impl Value {
         Ok(script)
     }
 
-    /// Tries to return the `Value` as an `Rc<VarName>`, parsing the
+    /// Returns the `Value` as an `Rc<VarName>`, parsing the
     /// value's string representation if necessary.
     ///
     /// For use by commands like `set` that set and query TCL variables.
     /// Converting the VarName back into a Tcl string is not currently supported.
     ///
     /// TODO: flesh out docs.
-    pub fn as_var_name(&self) -> Result<Rc<VarName>, ResultCode> {
+    pub fn as_var_name(&self) -> Rc<VarName> {
         // FIRST, if we have the desired type, return it.
         if let DataRep::VarName(var_name) = &*self.inner.data_rep.borrow() {
-            return Ok(var_name.clone());
+            return var_name.clone();
         }
 
         // NEXT, try to parse the string_rep as a variable name.
         let var_name = Rc::new(parser::parse_varname_literal(self.as_str()));
 
         *self.inner.data_rep.borrow_mut() = DataRep::VarName(var_name.clone());
-
-        Ok(var_name)
+        var_name
     }
 
     /// Creates a new `Value` containing the given value of some user type.
@@ -1290,11 +1289,12 @@ mod tests {
     #[test]
     fn as_var_name() {
         let val = Value::from("a");
-        assert!(val.as_var_name().is_ok());
-        assert_eq!(val.as_var_name().unwrap().name(), "a");
-        assert_eq!(val.as_var_name().unwrap().index(), None);
+        assert_eq!(val.as_var_name().name(), "a");
+        assert_eq!(val.as_var_name().index(), None);
 
-        // TODO: Add tests for array variable names once I've implemented the parsing for that!
+        let val = Value::from("a(b)");
+        assert_eq!(val.as_var_name().name(), "a");
+        assert_eq!(val.as_var_name().index(), Some("b"));
     }
 
     #[test]

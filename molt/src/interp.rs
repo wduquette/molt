@@ -950,6 +950,8 @@ impl Interp {
     }
 
     /// Links the variable name in the current scope to the given scope.
+    /// Note: the level is the absolute level, not the level relative to the
+    /// current stack level, i.e., level=0 is the global scope.
     pub fn upvar(&mut self, level: usize, name: &str) {
         assert!(level <= self.scopes.current(), "Invalid scope level");
         self.scopes.upvar(level, name);

@@ -12,6 +12,7 @@
 //! Molt clients do not interact with this mechanism directly, but via the
 //! `Interp` (or the Molt language itself).
 
+use std::fmt::Debug;
 use crate::types::MoltList;
 use crate::types::ResultCode;
 use crate::value::Value;
@@ -29,10 +30,24 @@ enum Var {
 
     /// An alias to a variable at a higher stack level, with the referenced stack level.
     Upvar(usize),
+
+    /// A variable that has just been created so that it can be set.
+    New,
+}
+
+impl Debug for Var {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Var::Scalar(value) => write!(f, "Var::Scalar({})", value.as_str()),
+            Var::Array(_) => write!(f, "Var::Array(TODO)"),
+            Var::Upvar(level) => write!(f, "Var::Upvar({})", level),
+            Var::New => write!(f, "Var::New"),
+        }
+    }
 }
 
 /// A scope: a level in the `ScopeStack`.  It contains a hash table of `Var`'s by name.
-#[derive(Default)]
+#[derive(Default,Debug)]
 struct Scope {
     /// Vars in this scope by name.
     map: HashMap<String, Var>,
@@ -49,7 +64,7 @@ impl Scope {
 
 /// The scope stack: a stack of variable scopes corresponding to the Molt `proc`
 /// call stack.
-#[derive(Default)]
+#[derive(Default,Debug)]
 pub(crate) struct ScopeStack {
     stack: Vec<Scope>,
 }
@@ -78,7 +93,7 @@ impl ScopeStack {
     ///
     /// TODO: Try doing using a loop rather than recursion.
     fn var_mut(&mut self, level: usize, name: &str) -> Option<&mut Var> {
-        let var = self.stack[level].map.get(name);
+        let var = self.stack[level].map.entry(name.into()).or_insert(Var::New);
 
         // NOTE: 11/28/2019.  Without this transmutation, the borrow checker will not allow the
         // recursive call to var_mut, even though it can be seen that all we are using
@@ -118,7 +133,6 @@ impl ScopeStack {
 
     /// Gets the value of an array element given its variable name and index, if present.
     /// It's an error if the variable exists and isn't an array variable.
-    #[allow(dead_code)] // TEMP until the Interp interface is done.
     pub fn get_elem(&self, name: &str, index: &str) -> Result<Option<Value>, ResultCode> {
         match self.var(self.current(), name) {
             Some(Var::Scalar(_)) => {
@@ -144,21 +158,16 @@ impl ScopeStack {
             Some(Var::Upvar(_)) => unreachable!(),
             Some(Var::Array(_)) => molt_err!("can't set \"{}\": variable is array", name),
             Some(var) => {
-                // It was already a scalar; just update it.
+                // It was either a Scalar or New;
                 *var = Var::Scalar(val);
                 Ok(())
             }
-            None => {
-                // Create new variable on the top of the stack.
-                self.stack[top].map.insert(name.into(), Var::Scalar(val));
-                Ok(())
-            }
+            None => unreachable!(),
         }
     }
 
     /// Sets the array element in the current scope. It's an error if the variable already
     /// exists and isn't an array variable.
-    #[allow(dead_code)] // TEMP
     pub fn set_elem(&mut self, name: &str, index: &str, val: Value) -> Result<(), ResultCode> {
         let top = self.current();
 
@@ -172,13 +181,14 @@ impl ScopeStack {
                 map.insert(index.into(), val);
                 Ok(())
             }
-            None => {
+            Some(Var::New) => {
                 // Create new variable on the top of the stack.
                 let mut map = HashMap::new();
                 map.insert(index.into(), val);
                 self.stack[top].map.insert(name.into(), Var::Array(map));
                 Ok(())
             }
+            None => unreachable!(),
         }
     }
 
@@ -506,5 +516,19 @@ mod tests {
         ss.unset("b");
         assert_eq!(ss.vars_in_scope().len(), 1);
         assert!(!ss.vars_in_scope().contains(&Value::from("b")));
+    }
+
+    #[test]
+    fn test_global() {
+        let mut ss = ScopeStack::new();
+
+        ss.push();
+        ss.upvar(0, "a");
+        let _ = dbg!(ss.set("a", Value::from("1")));
+        ss.pop();
+
+        let out = ss.get("a").unwrap();
+        assert!(out.is_some());
+        assert_eq!(out.unwrap().as_str(), "1");
     }
 }

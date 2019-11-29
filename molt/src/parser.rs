@@ -1,5 +1,6 @@
 //! Experimental code.
 
+use crate::types::VarName;
 use crate::check_args;
 use crate::eval_ptr::EvalPtr;
 use crate::interp::Interp;
@@ -330,6 +331,46 @@ pub(crate) fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     }
 
     Ok(Word::VarRef(var_name))
+}
+
+/// Parses a literal variable name: a string that is known to be a complete variable
+/// name.
+///
+/// If it contains an opening parenthesis and ends with a closing parenthesis, then
+/// it's an array reference; otherwise it's just a scalar name.
+pub(crate) fn parse_varname_literal(literal: &str) -> VarName {
+    let mut ctx = EvalPtr::new(literal);
+
+    // FIRST, find the first open parenthesis.  If there is none, just return the literal
+    // as a scalar.
+    let start = ctx.mark();
+    ctx.skip_while(|ch| *ch != '(');
+
+    if ctx.at_end() {
+        return VarName::scalar(literal.into());
+    }
+
+    // NEXT, pluck out the name.
+    let name = ctx.token(start).to_string();
+    ctx.skip_char('(');
+
+    if ctx.tok().as_str().is_empty() {
+        return VarName::scalar(literal.into());
+    }
+
+    // NEXT, skip to the final character.
+    let start = ctx.mark();
+    let chars_left = ctx.tok().as_str().len() - 1;
+
+    for _ in 0..chars_left {
+        ctx.skip();
+    }
+
+    if ctx.next_is(')') {
+        VarName::array(name, ctx.token(start).to_string())
+    } else {
+        VarName::scalar(literal.into())
+    }
 }
 
 struct Tokens {
@@ -815,5 +856,34 @@ mod tests {
         let mut tokens = Tokens::new();
         parse_dollar(&mut ctx, &mut tokens)?;
         Ok((tokens.take(), ctx.tok().as_str().to_string()))
+    }
+
+    #[test]
+    fn test_parse_varname_literal() {
+        // Scalars
+        assert_eq!(parse_varname_literal(""), scalar(""));
+        assert_eq!(parse_varname_literal("a"), scalar("a"));
+        assert_eq!(parse_varname_literal("a(b"), scalar("a(b"));
+        assert_eq!(parse_varname_literal("("), scalar("("));
+        assert_eq!(parse_varname_literal(")"), scalar(")"));
+        assert_eq!(parse_varname_literal("a(b)c"), scalar("a(b)c"));
+        assert_eq!(parse_varname_literal("(b)c"), scalar("(b)c"));
+
+        // Arrays
+        assert_eq!(parse_varname_literal("a(b)"), array("a", "b"));
+        assert_eq!(parse_varname_literal("a({)"), array("a", "{"));
+        assert_eq!(parse_varname_literal("()"), array("", ""));
+        assert_eq!(parse_varname_literal("(b)"), array("", "b"));
+        assert_eq!(parse_varname_literal("a()"), array("a", ""));
+        assert_eq!(parse_varname_literal("%(()"), array("%", "("));
+        assert_eq!(parse_varname_literal("%())"), array("%", ")"));
+    }
+
+    fn scalar(name: &str) -> VarName {
+        VarName::scalar(name.into())
+    }
+
+    fn array(name: &str, index: &str) -> VarName {
+        VarName::array(name.into(), index.into())
     }
 }

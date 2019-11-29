@@ -146,13 +146,11 @@
 //!
 //! [`Value`]: struct.Value.html
 
-use crate::eval_ptr::EvalPtr;
 use crate::expr::Datum;
 use crate::list::get_list;
 use crate::list::list_to_string;
 use crate::parser;
 use crate::parser::Script;
-use crate::parser::Word;
 use crate::types::MoltFloat;
 use crate::types::MoltInt;
 use crate::types::MoltList;
@@ -778,13 +776,7 @@ impl Value {
         }
 
         // NEXT, try to parse the string_rep as a variable name.
-        let str = self.as_str();
-        let mut ctx = EvalPtr::new(str);
-
-        let var_name = match parser::parse_varname(&mut ctx)? {
-            Word::VarRef(name) => Rc::new(VarName::scalar(name)),
-            _ => unreachable!(),
-        };
+        let var_name = Rc::new(parser::parse_varname_literal(self.as_str()));
 
         *self.inner.data_rep.borrow_mut() = DataRep::VarName(var_name.clone());
 

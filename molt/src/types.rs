@@ -192,7 +192,7 @@ impl Subcommand {
 
 /// The name of a variable.  For scalar variables, `index` is `None`; for array variables,
 /// `index` is `Some(String)`.  This value is returned by `Value::as_var_name`.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct VarName {
     name: String,
     index: Option<String>,

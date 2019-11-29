@@ -839,7 +839,7 @@ impl Interp {
     pub fn element(&self, name: &str, index: &str) -> MoltResult {
         match self.scopes.get_elem(name, index)? {
             Some(v) => molt_ok!(v.clone()),
-            None => molt_err!("can't read \"{}\": no such variable", name),
+            None => molt_err!("can't read \"{}({})\": no such variable", name, index),
         }
     }
 
@@ -847,7 +847,8 @@ impl Interp {
     ///
     /// Returns an error if the variable is a scalar and the name names an array element,
     /// and vice versa.
-    pub fn var(&self, var_name: &VarName) -> MoltResult {
+    pub fn var(&self, var_name: &Value) -> MoltResult {
+        let var_name = &*var_name.as_var_name();
         match var_name.index() {
             Some(index) => self.element(var_name.name(), index),
             None => self.scalar(var_name.name()),
@@ -900,7 +901,8 @@ impl Interp {
     /// and vice-versa.
     ///
     /// TODO: test needed
-    pub fn set_var(&mut self, var_name: &VarName, value: Value) -> Result<(),ResultCode> {
+    pub fn set_var(&mut self, var_name: &Value, value: Value) -> Result<(),ResultCode> {
+        let var_name = &*var_name.as_var_name();
         match var_name.index() {
             Some(index) => self.set_element(var_name.name(), index, value),
             None => self.set_scalar(var_name.name(), value),
@@ -913,7 +915,8 @@ impl Interp {
     /// and vice-versa.
     ///
     /// TODO: test needed
-    pub fn set_var_return(&mut self, var_name: &VarName, value: Value) -> MoltResult {
+    pub fn set_var_return(&mut self, var_name: &Value, value: Value) -> MoltResult {
+        let var_name = &*var_name.as_var_name();
         match var_name.index() {
             Some(index) => self.set_element_return(var_name.name(), index, value),
             None => self.set_scalar_return(var_name.name(), value),

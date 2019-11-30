@@ -144,6 +144,17 @@
 //! }
 //! ```
 //!
+//! # Special Implementation Types
+//!
+//! Values can also be interpreted as two special types, `Script` and `VarName`.  The
+//! Interpreter uses the (non-public) `as_script` method to parse script bodies for
+//! evaluation; generally this means that a script will get parsed only once.
+//!
+//! Similarly, `as_var_name` interprets a variable name reference as a `VarName`, which
+//! contains the variable name and, optionally, an array index.  This is usually hidden
+//! from the extension author by the `var` and `set_var` methods, but it is available if
+//! publically if needed.
+//!
 //! [`Value`]: struct.Value.html
 
 use crate::expr::Datum;
@@ -763,12 +774,25 @@ impl Value {
     }
 
     /// Returns the `Value` as an `Rc<VarName>`, parsing the
-    /// value's string representation if necessary.
+    /// value's string representation if necessary.  This type is usually hidden by the
+    /// `Interp`'s `var` and `set_var` methods, which use it implicitly; however it is
+    /// available to extension authors if need be.
     ///
-    /// For use by commands like `set` that set and query TCL variables.
-    /// Converting the VarName back into a Tcl string is not currently supported.
+    /// # Example
     ///
-    /// TODO: flesh out docs.
+    /// ```
+    /// use molt::types::{Value, VarName};
+    ///
+    /// let value = Value::from("my_var");
+    /// let var_name = value.as_var_name();
+    /// assert_eq!(var_name.name(), "my_var");
+    /// assert_eq!(var_name.index(), None);
+    ///
+    /// let value = Value::from("my_array(1)");
+    /// let var_name = value.as_var_name();
+    /// assert_eq!(var_name.name(), "my_array");
+    /// assert_eq!(var_name.index(), Some("1"));
+    /// ```
     pub fn as_var_name(&self) -> Rc<VarName> {
         // FIRST, if we have the desired type, return it.
         if let DataRep::VarName(var_name) = &*self.inner.data_rep.borrow() {

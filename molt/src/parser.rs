@@ -1,4 +1,52 @@
-//! Experimental code.
+//! # Molt TCL Parser
+//!
+//! This is the Molt TCL Parser.  It parses a TCL script (e.g., the contents of a TCL file,
+//! the body of a `proc`, the body of a loop, an `if` clause) into an internal form for later
+//! evaluation.
+//!
+//! ## The Dodekalogue
+//!
+//! TCL syntax is governed by a set of rules called The Dodekalogue.  See the
+//! [Tcl(n) man page for Tcl 8.7](https://www.tcl-lang.org/man/tcl8.7/TclCmd/Tcl.htm)
+//! details.
+//!
+//! ## The Internal Form
+//!
+//! The internal form is as follows:
+//!
+//! * A `Script` represents a compiled script.
+//! * A `Script` consists of list of `WordVec`'s, each of which represents a single command.
+//! * A `WordVec` is a list of `Words` representing the command name and its arguments.
+//! * A `Word` is an entity that can be evaluated by the interpreter to produce a single
+//!   `Value`.
+//!
+//! ## Evaluation
+//!
+//! Thus, evaluation consists of looping over the commands in the script.  For each command
+//!
+//! *   Convert each `Word` in the command's `WordVec` into a `Value`
+//! *   Look up the Molt command given its name.
+//! *   Pass the list of `Value`'s to the command in the usual way.
+//! *   If the command returns `Err(_)`, script execution terminates early and control is
+//!     returned to the caller.
+//!
+//! ## Scripts and Values
+//!
+//! Script parsing is most usually performed by the `Value::as_script` method as part of
+//! script evaluation by the `Interp`.  In this way, the script's internal form persists and
+//! need not be recomputed for each evaluation.
+//!
+//! ## Other Parsing Functions
+//!
+//! The module provides a number lower-level parsing functions to the rest of the library.
+//! For example, the `expr` parser sometimes need to parse quoted string and variable names.
+//!
+//! ## Variable Name Literals
+//!
+//! Variable names are parsed in two contexts: as part of "$-substitution", and as simple command
+//! arguments, e.g., as in `set my_var 1`.  In the latter case, the variable name is parsed not by
+//! the parser but by the command that interprets the argument as a variable name.  This module
+//! provides `parse_varname_literal` for this case; it is usually used via `Value::as_var_name`.
 
 use crate::check_args;
 use crate::eval_ptr::EvalPtr;
@@ -17,52 +65,78 @@ pub(crate) struct Script {
 }
 
 impl Script {
+    /// Create a new script object, to which commands will be added during parsing.
     fn new() -> Self {
         Self {
             commands: Vec::new(),
         }
     }
 
+    /// Return the list of commands for evaluation.
     pub fn commands(&self) -> &[WordVec] {
         &self.commands
     }
 }
 
+/// A single command, consisting of a vector of `Word`'s for evaluation.
 #[derive(Debug, PartialEq)]
 pub(crate) struct WordVec {
     words: Vec<Word>,
 }
 
 impl WordVec {
+    /// Create a new `WordVec`, to which `Word`'s can be added during parsing.
     fn new() -> Self {
         Self { words: Vec::new() }
     }
 
+    /// Return the list of words for evaluation.
     pub fn words(&self) -> &[Word] {
         &self.words
     }
 }
 
+/// A single `Word` in a command.  A `Word` can be evaluated to produce a `Value`.
 #[derive(Debug, PartialEq)]
 pub(crate) enum Word {
-    Value(Value),                // e.g., {a b c}
-    VarRef(String),              // e.g., $x
-    ArrayRef(String, Box<Word>), // e.g., $a(1)
-    Script(Script),              // e.g., [foo 1 2 3]
-    Tokens(Vec<Word>),           // e.g., "a $x [foo] b" or foo.$x, etc.
-    Expand(Box<Word>),           // e.g., {*}...
-    String(String),              // A literal in Tokens, e.g., "a ", "foo."
+    /// A `Value`, e.g., the braced word `{a b c}` parses to the value "a b c".
+    Value(Value),
+
+    /// VarRef(name): a scalar variable reference, e.g., `$name`
+    VarRef(String),
+
+    /// ArrayRef(name, index): an array variable reference, e.g., `$a(1)`.  The index is
+    /// represented by a `Word` since it can include various substitutions.
+    ArrayRef(String, Box<Word>),
+
+    /// Script(script): A nested script, e.g., `[foo 1 2 3]`.
+    Script(Script),
+
+    /// Tokens(words...): A list of `Words` that will be concatenated into a single `Value`,
+    /// e.g., `a $x [foo] bar` or `foo.$x`.
+    Tokens(Vec<Word>),
+
+    /// Expand(word): A word preceded by the expansion operator, e.g, `{*}...`.
+    Expand(Box<Word>),
+
+    /// String(string): A string literal.  This usually appears only as an element in
+    /// a `Tokens` list, e.g., the `a` and `b` in `a[myproc]b`.
+    ///
+    String(String),
 }
 
+/// Parses a script, given as a string slice.  Returns a parsed `Script` (or an error).
 pub(crate) fn parse(input: &str) -> Result<Script, ResultCode> {
+    // FIRST, create an EvalPtr as a parsing aid; then parse the script.
     let mut ctx = EvalPtr::new(input);
     parse_script(&mut ctx)
 }
 
-// Used by interp::parse_script, which is used by expr.
+/// Parses a script represented by an `EvalPtr`.  This form is also used by `expr`.
 pub(crate) fn parse_script(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
     let mut script = Script::new();
 
+    // Parse commands from the input until we've reach the end.
     while !ctx.at_end_of_script() {
         script.commands.push(parse_command(ctx)?);
     }
@@ -70,6 +144,7 @@ pub(crate) fn parse_script(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
     Ok(script)
 }
 
+/// Parses a single command from the input, returning it as a `WordVec`.
 fn parse_command(ctx: &mut EvalPtr) -> Result<WordVec, ResultCode> {
     let mut cmd: WordVec = WordVec::new();
 
@@ -85,7 +160,7 @@ fn parse_command(ctx: &mut EvalPtr) -> Result<WordVec, ResultCode> {
         }
     }
 
-    // Read words until we get to the end of the line or hit an error
+    // NEXT, Read words until we get to the end of the line or hit an error
     // NOTE: parse_word() can always assume that it's at the beginning of a word.
     while !ctx.at_end_of_command() {
         // FIRST, get the next word; there has to be one, or there's an input error.
@@ -95,15 +170,16 @@ fn parse_command(ctx: &mut EvalPtr) -> Result<WordVec, ResultCode> {
         ctx.skip_line_white();
     }
 
-    // If we ended at a ";", consume the semi-colon.
+    // NEXT, If we ended at a ";", consume the semi-colon.
     if ctx.next_is(';') {
         ctx.next();
     }
 
+    // NEXT, return the parsed command.
     Ok(cmd)
 }
 
-// Parse and return the next word.
+/// Parse and return the next word from the input.
 fn parse_next_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     if ctx.next_is('{') {
         // FIRST, look for "{*}" operator
@@ -122,7 +198,7 @@ fn parse_next_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
             }
         }
 
-        // NEXT, just a normal braced word.
+        // NEXT, just a normal braced word containing an asterisk.
         parse_braced_word(ctx)
     } else if ctx.next_is('"') {
         parse_quoted_word(ctx)
@@ -131,6 +207,8 @@ fn parse_next_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     }
 }
 
+/// Parses a braced word from the input.  It's an error if the there are any non-whitespace
+/// characters following the close brace, or if the close brace is missing.
 pub(crate) fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     // FIRST, skip the opening brace, and count it; non-escaped braces need to
     // balance.
@@ -188,7 +266,9 @@ pub(crate) fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     molt_err!("missing close-brace")
 }
 
-/// Parse a quoted word.
+/// Parses a quoted word, handling backslash, variable, and command substitution. It's
+/// an error if the there are any non-whitespace characters following the close quote, or
+/// if the close quote is missing.
 pub(crate) fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     // FIRST, consume the the opening quote.
     ctx.next();
@@ -235,7 +315,7 @@ pub(crate) fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     molt_err!("missing \"")
 }
 
-/// Parse a bare word.
+/// Parses a bare word, handling backslash, variable, and command substitution.
 fn parse_bare_word(ctx: &mut EvalPtr, index_flag: bool) -> Result<Word, ResultCode> {
     let mut tokens = Tokens::new();
     let mut start = ctx.mark();
@@ -275,6 +355,8 @@ fn parse_bare_word(ctx: &mut EvalPtr, index_flag: bool) -> Result<Word, ResultCo
     Ok(tokens.take())
 }
 
+/// Parses an embedded script in a bare or quoted word, returning the result as a
+/// Script.  It's an error if the close-bracket is missing.
 fn parse_brackets(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
     // FIRST, skip the '['
     ctx.skip_char('[');
@@ -297,6 +379,8 @@ fn parse_brackets(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
     result
 }
 
+/// Parses a "$" in the input, and pushes the result into a list of tokens.  Usually this
+/// will be a variable reference, but it may simply be a bare "$".
 fn parse_dollar(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCode> {
     // FIRST, skip the '$'
     ctx.skip_char('$');
@@ -312,7 +396,10 @@ fn parse_dollar(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCode
     Ok(())
 }
 
-/// Parses a variable name; the "$" has already been consumed.  Also used by expr.rs.
+/// Parses a variable name; the "$" has already been consumed.  Handles both braced
+/// and non-braced variable names, including array names.
+///
+/// Also used by expr.rs.
 pub(crate) fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     // FIRST, is this a braced variable name?
     if ctx.next_is('{') {
@@ -391,13 +478,21 @@ pub(crate) fn parse_varname_literal(literal: &str) -> VarName {
     }
 }
 
+/// The Tokens structure.  This is used when parsing a bare or quoted word; the
+/// intent is to accumulate the relevant words, while merging adjacent string literals.
 struct Tokens {
+    /// The list of words
     list: Vec<Word>,
+
+    /// If true, we're accumulating a string literal, which will eventually become a `Word`.
     got_string: bool,
+
+    /// The string literal we're accumulating, if any, or an empty string otherwise.
     string: String,
 }
 
 impl Tokens {
+    /// Creates a new Tokens structure.
     fn new() -> Self {
         Self {
             list: Vec::new(),
@@ -406,6 +501,8 @@ impl Tokens {
         }
     }
 
+    /// Pushes an entire word into the list of tokens.  If a string literal is being
+    /// accumulated, it is turned into a `Word` and pushed before the input word.
     fn push(&mut self, word: Word) {
         if self.got_string {
             let string = std::mem::replace(&mut self.string, String::new());
@@ -416,16 +513,22 @@ impl Tokens {
         self.list.push(word);
     }
 
+    /// Pushes a literal string onto the list of tokens.  It will be merged with any
+    /// string literal that's being accumulated.
     fn push_str(&mut self, str: &str) {
         self.string.push_str(str);
         self.got_string = true;
     }
 
+    /// Pushes a single character onto the list of tokens.  It will be merged with any
+    /// string literal that's being accumulated.
     fn push_char(&mut self, ch: char) {
         self.string.push(ch);
         self.got_string = true;
     }
 
+    /// Takes the accumulated tokens as a single `Word`, either `Word::Value` or
+    /// `Word::Tokens`.
     fn take(mut self) -> Word {
         if self.got_string {
             // If there's nothing but the string, turn it into a value.
@@ -449,6 +552,9 @@ impl Tokens {
 }
 
 /// # parse *script*
+///
+/// A command for parsing an arbitrary script and outputting the parsed form.
+/// This is an undocumented debugging aid.  The output can be greatly improved.
 pub fn cmd_parse(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 2, "script")?;
 

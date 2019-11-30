@@ -150,7 +150,6 @@ use std::time::Instant;
 /// # }
 /// ```
 #[derive(Default)]
-#[allow(dead_code)] // TEMP
 pub struct Interp {
     // Command Table
     commands: HashMap<String, Rc<dyn Command>>,
@@ -327,6 +326,14 @@ impl Interp {
         self.eval_value(&value)
     }
 
+    /// Evaluates a script one command at a time.  Returns the [`Value`](../value/struct.Value.html)
+    /// of the last command in the script, or the value of any explicit `return` call in the
+    /// script, or any error thrown by the script.  Other
+    /// [`ResultCode`](../types/enum.ResultCode.html) values are converted to normal errors.
+    ///
+    /// Use this method (or [`eval`](#method.eval) to evaluate arbitrary scripts.
+    /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
+    ///
     pub fn eval_value(&mut self, value: &Value) -> MoltResult {
         // TODO: Could probably do better, here.  If the value is already a list, for
         // example, can maybe evaluate it as a command without using as_script().
@@ -392,8 +399,8 @@ impl Interp {
         self.eval_script(&*body.as_script()?)
     }
 
-    // Evals a parsed Script, producing a normal MoltResult.
-    // Also used by expr.rs.
+    /// Evaluates a parsed Script, producing a normal MoltResult.
+    /// Also used by expr.rs.
     pub(crate) fn eval_script(&mut self, script: &Script) -> MoltResult {
         let mut result_value = Value::empty();
 
@@ -423,8 +430,8 @@ impl Interp {
         Ok(result_value)
     }
 
-    // Evaluates a WordVec, producing a list of Values.  The expansion operator is handled
-    // as a special case.
+    /// Evaluates a WordVec, producing a list of Values.  The expansion operator is handled
+    /// as a special case.
     fn eval_word_vec(&mut self, words: &[Word]) -> Result<MoltList, ResultCode> {
         let mut list: MoltList = Vec::new();
 
@@ -442,7 +449,7 @@ impl Interp {
         Ok(list)
     }
 
-    // Evaluates a single word.  This is also used by expr.rs.
+    /// Evaluates a single word, producing a value.  This is also used by expr.rs.
     pub(crate) fn eval_word(&mut self, word: &Word) -> MoltResult {
         match word {
             Word::Value(val) => Ok(val.clone()),

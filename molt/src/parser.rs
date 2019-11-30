@@ -127,7 +127,7 @@ fn parse_next_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     } else if ctx.next_is('"') {
         parse_quoted_word(ctx)
     } else {
-        parse_bare_word(ctx)
+        parse_bare_word(ctx, false)
     }
 }
 
@@ -236,13 +236,16 @@ pub(crate) fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
 }
 
 /// Parse a bare word.
-fn parse_bare_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+fn parse_bare_word(ctx: &mut EvalPtr, index_flag: bool) -> Result<Word, ResultCode> {
     let mut tokens = Tokens::new();
     let mut start = ctx.mark();
 
     while !ctx.at_end_of_command() && !ctx.next_is_line_white() {
         // Note: the while condition ensures that there's a character.
-        if ctx.next_is('[') {
+        if index_flag && ctx.next_is(')') {
+            // Parsing an array index, and we're at the end.
+            break;
+        } else if ctx.next_is('[') {
             if start != ctx.mark() {
                 tokens.push_str(ctx.token(start));
             }
@@ -732,35 +735,35 @@ mod tests {
     fn test_parse_bare_word() {
         // Simple string
         assert_eq!(
-            pbare("abc"),
+            pbare("abc", false),
             Ok((Word::Value(Value::from("abc")), "".into()))
         );
 
         // Simple string with text following
         assert_eq!(
-            pbare("abc "),
+            pbare("abc ", false),
             Ok((Word::Value(Value::from("abc")), " ".into()))
         );
 
         // Backslash substitution at beginning, middle, and end
         assert_eq!(
-            pbare("\\x77- "),
+            pbare("\\x77- ", false),
             Ok((Word::Value(Value::from("w-")), " ".into()))
         );
 
         assert_eq!(
-            pbare("-\\x77- "),
+            pbare("-\\x77- ", false),
             Ok((Word::Value(Value::from("-w-")), " ".into()))
         );
 
         assert_eq!(
-            pbare("-\\x77 "),
+            pbare("-\\x77 ", false),
             Ok((Word::Value(Value::from("-w")), " ".into()))
         );
 
         // Variable reference
         assert_eq!(
-            pbare("a$x.b "),
+            pbare("a$x.b ", false),
             Ok((
                 Word::Tokens(vec![
                     Word::String("a".into()),
@@ -772,7 +775,7 @@ mod tests {
         );
 
         assert_eq!(
-            pbare("a${x}b "),
+            pbare("a${x}b ", false),
             Ok((
                 Word::Tokens(vec![
                     Word::String("a".into()),
@@ -785,13 +788,13 @@ mod tests {
 
         // Not actually a variable reference
         assert_eq!(
-            pbare("a$.b "),
+            pbare("a$.b ", false),
             Ok((Word::Value(Value::from("a$.b")), " ".into()))
         );
 
         // Brackets
         assert_eq!(
-            pbare("a[list b]c "),
+            pbare("a[list b]c ", false),
             Ok((
                 Word::Tokens(vec![
                     Word::String("a".into()),
@@ -801,11 +804,18 @@ mod tests {
                 " ".into()
             ))
         );
+
+        // Array index
+        assert_eq!(
+            // Parse up to but not including the ")".
+            pbare("a)b", true),
+            Ok((Word::Value(Value::from("a")), ")b".into()))
+        );
     }
 
-    fn pbare(input: &str) -> Result<(Word, String), ResultCode> {
+    fn pbare(input: &str, index_flag: bool) -> Result<(Word, String), ResultCode> {
         let mut ctx = EvalPtr::new(input);
-        let word = parse_bare_word(&mut ctx)?;
+        let word = parse_bare_word(&mut ctx, index_flag)?;
         Ok((word, ctx.tok().as_str().to_string()))
     }
 

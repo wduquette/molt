@@ -199,10 +199,12 @@ pub struct VarName {
 }
 
 impl VarName {
+    /// Creates a scalar variable name.
     pub fn scalar(name: String) -> Self {
         Self { name, index: None }
     }
 
+    /// Creates an array element name given its variable name and index string.
     pub fn array(name: String, index: String) -> Self {
         Self {
             name,

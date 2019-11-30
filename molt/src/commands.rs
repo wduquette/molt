@@ -39,8 +39,9 @@ pub fn cmd_array(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     (subc.1)(interp, argv)
 }
 
-const ARRAY_SUBCOMMANDS: [Subcommand; 1] = [
-    Subcommand("names", cmd_array_names)
+const ARRAY_SUBCOMMANDS: [Subcommand; 2] = [
+    Subcommand("names", cmd_array_names),
+    Subcommand("size", cmd_array_size),
 ];
 
 /// # array names
@@ -48,6 +49,12 @@ const ARRAY_SUBCOMMANDS: [Subcommand; 1] = [
 pub fn cmd_array_names(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "arrayName")?;
     molt_ok!(Value::from(interp.array_names(argv[2].as_str())))
+}
+
+/// # array size
+pub fn cmd_array_size(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "arrayName")?;
+    molt_ok!(Value::from(interp.array_size(argv[2].as_str()) as MoltInt))
 }
 
 /// assert_eq received, expected

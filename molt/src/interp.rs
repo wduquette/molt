@@ -950,6 +950,11 @@ impl Interp {
         self.scopes.array_indices(array_name)
     }
 
+    /// Gets a vector of the indices of the given array
+    pub fn array_size(&self, array_name: &str) -> usize {
+        self.scopes.array_size(array_name)
+    }
+
     /// Pushes a variable scope on to the scope stack.
     /// Procs use this to define their local scope.
     pub fn push_scope(&mut self) {

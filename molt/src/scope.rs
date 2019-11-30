@@ -242,11 +242,20 @@ impl ScopeStack {
             .collect()
     }
 
-    /// Gets a list of the array indices for the named array.
+    /// Gets a list of the array indices for the named array.  Returns the empty list
+    /// if `name` doesn't name an array variable.
     pub fn array_indices(&self, name: &str) -> MoltList {
         match self.var(self.current(), name) {
             Some(Var::Array(map)) => map.keys().cloned().map(|x| Value::from(&x)).collect(),
             _ => Vec::new(),
+        }
+    }
+
+    /// Gets the size of the named array.  Returns 0 if `name` doesn't name an array variable.
+    pub fn array_size(&self, name: &str) -> usize {
+        match self.var(self.current(), name) {
+            Some(Var::Array(map)) => map.len(),
+            _ => 0,
         }
     }
 
@@ -592,5 +601,18 @@ mod tests {
         assert!(list.len() == 2);
         assert!(list.contains(&"1".into()));
         assert!(list.contains(&"2".into()));
+    }
+
+    #[test]
+    fn test_array_size() {
+        let mut ss = ScopeStack::new();
+
+        let _ = ss.set("a", "zero".into());
+        let _ = ss.set_elem("b", "1", "one".into());
+        let _ = ss.set_elem("b", "2", "two".into());
+
+        assert_eq!(ss.array_size("x"), 0);
+        assert_eq!(ss.array_size("a"), 0);
+        assert_eq!(ss.array_size("b"), 2);
     }
 }

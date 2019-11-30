@@ -31,6 +31,25 @@ pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     interp.set_var_return(&argv[1], new_string.into())
 }
 
+/// # array *subcommand* ?*arg*...?
+pub fn cmd_array(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
+    let subc = Subcommand::find(&ARRAY_SUBCOMMANDS, argv[1].as_str())?;
+
+    (subc.1)(interp, argv)
+}
+
+const ARRAY_SUBCOMMANDS: [Subcommand; 1] = [
+    Subcommand("names", cmd_array_names)
+];
+
+/// # array names
+/// TODO: Add glob matching as a feature, and support standard TCL options.
+pub fn cmd_array_names(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "arrayName")?;
+    molt_ok!(Value::from(interp.array_names(argv[2].as_str())))
+}
+
 /// assert_eq received, expected
 ///
 /// Asserts that two values have identical string representations.

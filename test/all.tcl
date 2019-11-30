@@ -3,6 +3,7 @@
 # If I add the "glob" command, I'll use that to pick up the tests.
 
 source append.tcl
+source array.tcl
 source assert_eq.tcl
 source break.tcl
 source catch.tcl

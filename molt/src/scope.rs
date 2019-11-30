@@ -242,6 +242,14 @@ impl ScopeStack {
             .collect()
     }
 
+    /// Gets a list of the array indices for the named array.
+    pub fn array_indices(&self, name: &str) -> MoltList {
+        match self.var(self.current(), name) {
+            Some(Var::Array(map)) => map.keys().cloned().map(|x| Value::from(&x)).collect(),
+            _ => Vec::new(),
+        }
+    }
+
     //--------------------------------------------------------------
     // Utilities
 
@@ -567,5 +575,22 @@ mod tests {
         let out = ss.get_elem("b", "1").unwrap();
         assert!(out.is_some());
         assert_eq!(out.unwrap().as_str(), "2");
+    }
+
+    #[test]
+    fn test_array_indices() {
+        let mut ss = ScopeStack::new();
+
+        let _ = ss.set("a", "zero".into());
+        let _ = ss.set_elem("b", "1", "one".into());
+        let _ = ss.set_elem("b", "2", "two".into());
+
+        assert_eq!(ss.array_indices("x"), Vec::new());
+        assert_eq!(ss.array_indices("a"), Vec::new());
+
+        let list = ss.array_indices("b");
+        assert!(list.len() == 2);
+        assert!(list.contains(&"1".into()));
+        assert!(list.contains(&"2".into()));
     }
 }

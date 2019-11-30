@@ -13,6 +13,7 @@
     - [ident](./cmdline/bench_commands/ident.md)
 - [Molt Command Reference](./ref/reference.md)
   - [append](./ref/append.md)
+  - [array](./ref/array.md)
   - [assert_eq](./ref/assert_eq.md)
   - [break](./ref/break.md)
   - [catch](./ref/catch.md)

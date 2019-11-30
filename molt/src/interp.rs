@@ -242,6 +242,7 @@ impl Interp {
         // denial-of-service kinds of problems, e.g., for, while, proc, rename, and those
         // that can't.
         interp.add_command("append", commands::cmd_append);
+        interp.add_command("array", commands::cmd_array);
         interp.add_command("assert_eq", commands::cmd_assert_eq);
         interp.add_command("break", commands::cmd_break);
         interp.add_command("catch", commands::cmd_catch);
@@ -942,6 +943,11 @@ impl Interp {
     /// Gets a vector of the visible var names.
     pub fn vars_in_scope(&self) -> MoltList {
         self.scopes.vars_in_scope()
+    }
+
+    /// Gets a vector of the indices of the given array
+    pub fn array_names(&self, array_name: &str) -> MoltList {
+        self.scopes.array_indices(array_name)
     }
 
     /// Pushes a variable scope on to the scope stack.

@@ -945,6 +945,10 @@ impl Interp {
         self.scopes.vars_in_scope()
     }
 
+    /// Determines whether or not the name is the name of an array variable.
+    pub fn array_exists(&self, array_name: &str) -> bool {
+        self.scopes.array_exists(array_name)
+    }
     /// Gets a vector of the indices of the given array
     pub fn array_names(&self, array_name: &str) -> MoltList {
         self.scopes.array_indices(array_name)

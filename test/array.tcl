@@ -39,3 +39,22 @@ test array-2.4 {array size, array var} {
     set a(2) two
     array size a
 } -ok {2}
+
+test array-3.1 {array exists, no var} {
+    array exists
+} -error {wrong # args: should be "array exists arrayName"}
+
+test array-3.2 {array exists, unknown var} {
+    array exists unknown_variable
+} -ok {0}
+
+test array-3.3 {array exists, scalar var} {
+    set scalar 1
+    array exists scalar
+} -ok {0}
+
+test array-3.4 {array exists, array var} {
+    set a(1) one
+    set a(2) two
+    array exists a
+} -ok {1}

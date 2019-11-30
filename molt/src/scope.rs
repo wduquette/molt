@@ -242,6 +242,14 @@ impl ScopeStack {
             .collect()
     }
 
+    /// Determines whether the name names an array variable or not.
+    pub fn array_exists(&self, name: &str) -> bool {
+        match self.var(self.current(), name) {
+            Some(Var::Array(_)) => true,
+            _ => false,
+        }
+    }
+
     /// Gets a list of the array indices for the named array.  Returns the empty list
     /// if `name` doesn't name an array variable.
     pub fn array_indices(&self, name: &str) -> MoltList {

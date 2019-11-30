@@ -2,8 +2,13 @@
 
 This command queries and manipulates array variables.
 
+* [array exists](#array-exists)
 * [array names](#array-names)
 * [array size](#array-size)
+
+## array exists *arrayName*
+
+Returns 1 if *arrayName* names an array variable, and 0 otherwise.
 
 ## array names *arrayName*
 

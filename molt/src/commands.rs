@@ -39,10 +39,17 @@ pub fn cmd_array(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     (subc.1)(interp, argv)
 }
 
-const ARRAY_SUBCOMMANDS: [Subcommand; 2] = [
+const ARRAY_SUBCOMMANDS: [Subcommand; 3] = [
+    Subcommand("exists", cmd_array_exists),
     Subcommand("names", cmd_array_names),
     Subcommand("size", cmd_array_size),
 ];
+
+/// # array exists
+pub fn cmd_array_exists(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "arrayName")?;
+    molt_ok!(Value::from(interp.array_exists(argv[2].as_str())))
+}
 
 /// # array names
 /// TODO: Add glob matching as a feature, and support standard TCL options.

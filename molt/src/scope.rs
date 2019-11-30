@@ -520,6 +520,7 @@ mod tests {
 
     #[test]
     fn test_global() {
+        // Verify that we can upvar to a variable that doesn't yet exist.
         let mut ss = ScopeStack::new();
 
         ss.push();

@@ -447,6 +447,10 @@ impl Interp {
         match word {
             Word::Value(val) => Ok(val.clone()),
             Word::VarRef(name) => self.scalar(name),
+            Word::ArrayRef(name, index_word) => {
+                let index = self.eval_word(index_word)?;
+                self.element(name, index.as_str())
+            }
             Word::Script(script) => self.eval_script(script),
             Word::Tokens(tokens) => {
                 let tlist = self.eval_word_vec(tokens)?;
@@ -901,7 +905,7 @@ impl Interp {
     /// and vice-versa.
     ///
     /// TODO: test needed
-    pub fn set_var(&mut self, var_name: &Value, value: Value) -> Result<(),ResultCode> {
+    pub fn set_var(&mut self, var_name: &Value, value: Value) -> Result<(), ResultCode> {
         let var_name = &*var_name.as_var_name();
         match var_name.index() {
             Some(index) => self.set_element(var_name.name(), index, value),

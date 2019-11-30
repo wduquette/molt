@@ -1,11 +1,11 @@
 //! Experimental code.
 
-use crate::types::VarName;
 use crate::check_args;
 use crate::eval_ptr::EvalPtr;
 use crate::interp::Interp;
 use crate::types::MoltResult;
 use crate::types::ResultCode;
+use crate::types::VarName;
 use crate::util::is_varname_char;
 use crate::value::Value;
 
@@ -45,12 +45,13 @@ impl WordVec {
 
 #[derive(Debug, PartialEq)]
 pub(crate) enum Word {
-    Value(Value),      // e.g., {a b c}
-    VarRef(String),    // e.g., $x
-    Script(Script),    // e.g., [foo 1 2 3]
-    Tokens(Vec<Word>), // e.g., "a $x [foo] b" or foo.$x, etc.
-    Expand(Box<Word>), // e.g., {*}...
-    String(String),    // A literal in Tokens, e.g., "a ", "foo."
+    Value(Value),                // e.g., {a b c}
+    VarRef(String),              // e.g., $x
+    ArrayRef(String, Box<Word>), // e.g., $a(1)
+    Script(Script),              // e.g., [foo 1 2 3]
+    Tokens(Vec<Word>),           // e.g., "a $x [foo] b" or foo.$x, etc.
+    Expand(Box<Word>),           // e.g., {*}...
+    String(String),              // A literal in Tokens, e.g., "a ", "foo."
 }
 
 pub(crate) fn parse(input: &str) -> Result<Script, ResultCode> {
@@ -311,8 +312,6 @@ fn parse_dollar(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCode
 /// Parses a variable name; the "$" has already been consumed.  Also used by expr.rs.
 pub(crate) fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     // FIRST, is this a braced variable name?
-    let var_name;
-
     if ctx.next_is('{') {
         ctx.skip_char('{');
         let start = ctx.mark();
@@ -322,15 +321,20 @@ pub(crate) fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
             return molt_err!("missing close-brace for variable name");
         }
 
-        var_name = ctx.token(start).to_string();
+        let var_name = parse_varname_literal(ctx.token(start));
         ctx.skip_char('}');
+        match var_name.index() {
+            Some(index) => Ok(Word::ArrayRef(
+                var_name.name().into(),
+                Box::new(Word::String(index.into())),
+            )),
+            None => Ok(Word::VarRef(var_name.name().into())),
+        }
     } else {
         let start = ctx.mark();
         ctx.skip_while(|ch| is_varname_char(*ch));
-        var_name = ctx.token(start).to_string();
+        Ok(Word::VarRef(ctx.token(start).to_string()))
     }
-
-    Ok(Word::VarRef(var_name))
 }
 
 /// Parses a literal variable name: a string that is known to be a complete variable

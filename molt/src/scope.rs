@@ -12,11 +12,11 @@
 //! Molt clients do not interact with this mechanism directly, but via the
 //! `Interp` (or the Molt language itself).
 
-use std::fmt::Debug;
 use crate::types::MoltList;
 use crate::types::ResultCode;
 use crate::value::Value;
 use std::collections::HashMap;
+use std::fmt::Debug;
 
 /// A variable in a `Scope`.  If the variable is defined in the `Scope`, it has a
 /// `Value`; if it is a reference to a variable in a higher scope (e.g., a global) then
@@ -47,7 +47,7 @@ impl Debug for Var {
 }
 
 /// A scope: a level in the `ScopeStack`.  It contains a hash table of `Var`'s by name.
-#[derive(Default,Debug)]
+#[derive(Default, Debug)]
 struct Scope {
     /// Vars in this scope by name.
     map: HashMap<String, Var>,
@@ -64,7 +64,7 @@ impl Scope {
 
 /// The scope stack: a stack of variable scopes corresponding to the Molt `proc`
 /// call stack.
-#[derive(Default,Debug)]
+#[derive(Default, Debug)]
 pub(crate) struct ScopeStack {
     stack: Vec<Scope>,
 }

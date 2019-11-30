@@ -850,6 +850,15 @@ mod tests {
             molt_err!("missing close-brace for variable name")
         );
 
+        // Braced var names with arrays
+        assert_eq!(
+            pvar("${a(1)}"),
+            Ok((
+                Word::ArrayRef("a".into(), Box::new(Word::String("1".into()))),
+                "".into()
+            ))
+        );
+
         // Just a bare "$"
         assert_eq!(pvar("$"), Ok((Word::Value(Value::from("$")), "".into())));
         assert_eq!(pvar("$."), Ok((Word::Value(Value::from("$")), ".".into())));

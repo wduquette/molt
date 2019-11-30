@@ -336,7 +336,18 @@ pub(crate) fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
     } else {
         let start = ctx.mark();
         ctx.skip_while(|ch| is_varname_char(*ch));
-        Ok(Word::VarRef(ctx.token(start).to_string()))
+        let name = ctx.token(start).to_string();
+
+        if !ctx.next_is('(') {
+            // Scalar; just return it.
+            Ok(Word::VarRef(name))
+        } else {
+            // Array; parse out the word that evaluates to the index.
+            ctx.skip();
+            let index = parse_bare_word(ctx, true)?;
+            ctx.skip_char(')');
+            Ok(Word::ArrayRef(name, Box::new(index)))
+        }
     }
 }
 
@@ -851,6 +862,15 @@ mod tests {
         assert_eq!(
             pvar("$a1_.bc"),
             Ok((Word::VarRef("a1_".into()), ".bc".into()))
+        );
+
+        // Array names
+        assert_eq!(
+            pvar("$a(1)"),
+            Ok((
+                Word::ArrayRef("a".into(), Box::new(Word::Value(Value::from("1")))),
+                "".into()
+            ))
         );
 
         // Braced var names

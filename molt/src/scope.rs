@@ -147,7 +147,7 @@ impl ScopeStack {
         }
     }
 
-    /// Sets the value of the indexed array element scalar in the current scope, creating the
+    /// Sets the value of the indexed array element in the current scope, creating the
     /// and/or the element if they don't already exist. It's an error if the variable exists
     /// but is a scalar variable.
     pub fn set_elem(&mut self, name: &str, index: &str, val: Value) -> Result<(), ResultCode> {
@@ -182,22 +182,28 @@ impl ScopeStack {
     ///
     /// Note: it's irrelevant whether the variable is a scalar or array; it's going away.
     pub fn unset(&mut self, name: &str) {
-        self.unset_at(self.current(), name);
+        self.unset_at(self.current(), name, false);
     }
 
     /// Unset a variable at a given level in the stack.  If the variable at that level
     /// is linked to a higher level, follows the chain down, unsetting as it goes.
-    fn unset_at(&mut self, level: usize, name: &str) {
+    fn unset_at(&mut self, level: usize, name: &str, array_only: bool) {
         // FIRST, if the variable at this level links to a lower level, follow the chain.
         if let Some(Var::Upvar(at)) = self.stack[level].map.get(name) {
             // NOTE: Using the variable true_level prevents a "doubly-borrowed" error.
             // Once Polonius is in use, this should no longer be necessary.
             let true_level = *at;
-            self.unset_at(true_level, name);
+            self.unset_at(true_level, name, array_only);
         }
 
         // NEXT, remove the variable at this level.
-        self.stack[level].map.remove(name);
+        if array_only {
+            if let Some(Var::Array(_)) = self.stack[level].map.get(name) {
+                self.stack[level].map.remove(name);
+            }
+        } else {
+            self.stack[level].map.remove(name);
+        }
     }
 
     /// Links a variable in the current scope to variable at the given level, counting
@@ -282,6 +288,24 @@ impl ScopeStack {
             }
             _ => Vec::new(),
         }
+    }
+
+    /// Unsets the value of the indexed array element in the current scope, if it exists.
+    /// Does nothing if the array element doesn't exist, or the variable isn't an array
+    /// variable.
+    pub fn unset_element(&mut self, name: &str, index: &str) {
+        if let Some(Var::Array(map)) = self.var_mut(self.current(), name) {
+            map.remove(index);
+        }
+    }
+
+    /// Unsets an array variable in the current scope, i.e., removes it from the scope.
+    /// If the variable is a reference to another scope, the variable is removed from that
+    /// scope as well.
+    ///
+    /// Only affects array variables.
+    pub fn array_unset(&mut self, name: &str) {
+        self.unset_at(self.current(), name, true);
     }
 
     //--------------------------------------------------------------
@@ -658,5 +682,28 @@ mod tests {
         assert!(list.contains(&"one".into()));
         assert!(list.contains(&"2".into()));
         assert!(list.contains(&"two".into()));
+    }
+
+    #[test]
+    fn test_unset_element() {
+        let mut ss = ScopeStack::new();
+
+        let _ = ss.set("a", "zero".into());
+        let _ = ss.set_elem("b", "1", "one".into());
+        let _ = ss.set_elem("b", "2", "two".into());
+
+        // Array unset of an unknown variable has no effect.
+        ss.unset_element("x", "1"); // No error
+
+        // Array unset of a scalar has no effect.
+        ss.unset_element("a", "1");
+        let out = ss.get("a").unwrap();
+        assert!(out.is_some());
+        assert_eq!(out.unwrap().as_str(), "zero");
+
+        // Array unset of an element unsets just that element.
+        ss.unset_element("b", "1");
+        assert!(ss.get_elem("b", "1").unwrap().is_none());
+        assert!(ss.get_elem("b", "2").unwrap().is_some());
     }
 }

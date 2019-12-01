@@ -39,11 +39,12 @@ pub fn cmd_array(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     (subc.1)(interp, argv)
 }
 
-const ARRAY_SUBCOMMANDS: [Subcommand; 4] = [
+const ARRAY_SUBCOMMANDS: [Subcommand; 5] = [
     Subcommand("exists", cmd_array_exists),
     Subcommand("get", cmd_array_get),
     Subcommand("names", cmd_array_names),
     Subcommand("size", cmd_array_size),
+    Subcommand("unset", cmd_array_unset),
 ];
 
 /// # array exists arrayName
@@ -66,10 +67,22 @@ pub fn cmd_array_get(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     molt_ok!(Value::from(interp.array_get(argv[2].as_str())))
 }
 
-/// # array size
+/// # array size arrayName
 pub fn cmd_array_size(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "arrayName")?;
     molt_ok!(Value::from(interp.array_size(argv[2].as_str()) as MoltInt))
+}
+
+/// # array unset arrayName ?*index*?
+pub fn cmd_array_unset(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 4, "arrayName ?index?")?;
+
+    if argv.len() == 3 {
+        interp.array_unset(argv[2].as_str());
+    } else {
+        interp.unset_element(argv[2].as_str(), argv[3].as_str());
+    }
+    molt_ok!()
 }
 
 /// assert_eq received, expected
@@ -721,7 +734,7 @@ pub fn cmd_unset(interp: &mut Interp, argv: &[Value]) -> MoltResult {
             }
         }
 
-        interp.unset_var(var);
+        interp.unset_var(arg);
     }
 
     molt_ok!()

@@ -6,6 +6,7 @@ This command queries and manipulates array variables.
 * [array get](#array-get)
 * [array names](#array-names)
 * [array size](#array-size)
+* [array unset](#array-unset)
 
 ## array exists *arrayName*
 
@@ -29,3 +30,18 @@ variable with the given name, returns the empty list.
 
 Returns the number of elements in the named array.  If there is no array
 variable with the given name, returns "0".
+
+## array unset *arrayName* ?*index*?
+
+Unsets the array element in *arrayName* with the given *index*.  If index is not given,
+unsets the entire array.
+
+Note:
+
+* `array unset my_array` is equivalent to `unset my_array`.
+* `array unset my_array my_index` is equivalent to `unset my_array(my_index)`
+
+The real value of `array unset` depends on pattern matching on the index argument, which is
+not yet available.
+
+**TCL Liens**: does not support glob matching on the optional argument.

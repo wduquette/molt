@@ -88,45 +88,31 @@ impl ScopeStack {
         ss
     }
 
-    /// Gets the value of the named scalar variable in the current scope, if present.
-    ///
-    /// There are three possible outcomes:
-    ///
-    /// * The variable exists and is a scalar; `Ok(Some(_))` is returned.
-    /// * The variable does not exist; `Ok(None)` is returned.
-    /// * The variable exists and is an array: `Err(_)` is returned.
-    pub fn get(&self, name: &str) -> Result<Option<Value>, ResultCode> {
+    /// Requires the value of the named scalar variable in the current scope.
+    pub fn get(&self, name: &str) -> Result<Value, ResultCode> {
         match self.var(self.current(), name) {
-            Some(Var::Scalar(value)) => Ok(Some(value.clone())),
+            Some(Var::Scalar(value)) => Ok(value.clone()),
             Some(Var::Array(_)) => molt_err!("can't read \"{}\": variable is array", name),
             Some(_) => unreachable!(),
-            _ => Ok(None),
+            None => molt_err!("can't read \"{}\": no such variable", name)
         }
     }
 
-    /// Gets the value of an array element given its variable name and index, if present.
-    /// It's an error if the variable exists and isn't an array variable.
-    /// Gets the value of the named array element in the current scope, if present.
-    ///
-    /// There are three possible outcomes:
-    ///
-    /// * The variable and the indexed element both exist; `Ok(Some(_))` is returned.
-    /// * Either the variable or the indexed element does not exist; `Ok(None)` is returned.
-    /// * The variable exists and is a scalar: `Err(_)` is returned.
-    pub fn get_elem(&self, name: &str, index: &str) -> Result<Option<Value>, ResultCode> {
+    /// Requires the value of an array element given its variable name and index.
+    pub fn get_elem(&self, name: &str, index: &str) -> Result<Value, ResultCode> {
         match self.var(self.current(), name) {
             Some(Var::Scalar(_)) => {
                 molt_err!("can't read \"{}({})\": variable isn't array", name, index)
             }
             Some(Var::Array(map)) => {
                 if let Some(val) = map.get(index) {
-                    Ok(Some(val.clone()))
+                    Ok(val.clone())
                 } else {
-                    Ok(None)
+                    molt_err!("can't read \"{}({})\": no such element in array", name, index)
                 }
             }
             Some(_) => unreachable!(),
-            _ => Ok(None),
+            None => molt_err!("can't read \"{}\": no such variable", name)
         }
     }
 
@@ -368,71 +354,30 @@ mod tests {
         let mut ss = ScopeStack::new();
 
         let _ = ss.set("a", Value::from("1"));
-        let out = ss.get("a").unwrap();
-        assert!(out.is_some());
+        let out = ss.get("a");
         assert_eq!(out.unwrap().as_str(), "1");
 
-        let _ = ss.set("b", Value::from("2"));
-        let out = ss.get("b").unwrap();
-        assert!(out.is_some());
-        assert_eq!(out.unwrap().as_str(), "2");
+        assert_eq!(ss.get("b"), molt_err!("can't read \"b\": no such variable"));
 
-        assert!(ss.get("c").unwrap().is_none());
+        let _ = ss.set_elem("c", "1", "one".into());
+        assert_eq!(ss.get("c"), molt_err!("can't read \"c\": variable is array"));
     }
 
     #[test]
-    fn test_set_get_elem_basic() {
+    fn test_set_get_elem() {
         let mut ss = ScopeStack::new();
 
-        // Set/get an element in an array
-        let _ = ss.set_elem("a", "x", Value::from("1"));
-        let out = ss.get_elem("a", "x").unwrap();
-        assert!(out.is_some());
-        assert_eq!(out.unwrap().as_str(), "1");
+        let _ = ss.set_elem("a", "1", Value::from("one"));
+        let out = ss.get_elem("a", "1");
+        assert_eq!(out.unwrap().as_str(), "one");
 
-        // Set/get another element in the same array
-        let _ = ss.set_elem("a", "y", Value::from("2"));
-        let out = ss.get_elem("a", "y").unwrap();
-        assert!(out.is_some());
-        assert_eq!(out.unwrap().as_str(), "2");
+        assert_eq!(ss.get_elem("b", "1"), molt_err!("can't read \"b\": no such variable"));
 
-        // Set/get an element in different array
-        let _ = ss.set_elem("b", "x", Value::from("3"));
-        let out = ss.get_elem("b", "x").unwrap();
-        assert!(out.is_some());
-        assert_eq!(out.unwrap().as_str(), "3");
+        let _ = ss.set_elem("c", "1", "one".into());
+        assert_eq!(ss.get_elem("c", "2"), molt_err!("can't read \"c(2)\": no such element in array"));
 
-        // Fail to get an element from an existing array
-        assert!(ss.get_elem("a", "z").unwrap().is_none());
-
-        // Fail to get an element from an unknown variable
-        assert!(ss.get_elem("c", "z").unwrap().is_none());
-    }
-
-    #[test]
-    fn test_set_get_but_wrong_type() {
-        let mut ss = ScopeStack::new();
-
-        let _ = ss.set("a", Value::empty());
-        let _ = ss.set_elem("b", "1", Value::empty());
-
-        assert_eq!(
-            ss.set("b", Value::empty()),
-            molt_err!("can't set \"b\": variable is array")
-        );
-        assert_eq!(
-            ss.set_elem("a", "1", Value::empty()),
-            molt_err!("can't set \"a(1)\": variable isn't array")
-        );
-
-        assert_eq!(
-            ss.get("b"),
-            molt_err!("can't read \"b\": variable is array")
-        );
-        assert_eq!(
-            ss.get_elem("a", "1"),
-            molt_err!("can't read \"a(1)\": variable isn't array")
-        );
+        let _ = ss.set("d", "".into());
+        assert_eq!(ss.get_elem("d", "1"), molt_err!("can't read \"d(1)\": variable isn't array"));
     }
 
     #[test]
@@ -440,9 +385,9 @@ mod tests {
         let mut ss = ScopeStack::new();
 
         let _ = ss.set("a", Value::from("1"));
-        assert!(ss.get("a").unwrap().is_some());
+        assert!(ss.get("a").is_ok());
         ss.unset("a");
-        assert!(ss.get("a").unwrap().is_none());
+        assert!(ss.get("a").is_err());
     }
 
     #[test]
@@ -496,21 +441,21 @@ mod tests {
         let _ = ss.set("b", Value::from("2"));
 
         ss.push();
-        assert!(ss.get("a").unwrap().is_none());
-        assert!(ss.get("b").unwrap().is_none());
-        assert!(ss.get("c").unwrap().is_none());
+        assert!(ss.get("a").is_err());
+        assert!(ss.get("b").is_err());
+        assert!(ss.get("c").is_err());
 
         let _ = ss.set("a", Value::from("3"));
         let _ = ss.set("b", Value::from("4"));
         let _ = ss.set("c", Value::from("5"));
-        assert_eq!(ss.get("a").unwrap().unwrap().as_str(), "3");
-        assert_eq!(ss.get("b").unwrap().unwrap().as_str(), "4");
-        assert_eq!(ss.get("c").unwrap().unwrap().as_str(), "5");
+        assert_eq!(ss.get("a").unwrap().as_str(), "3");
+        assert_eq!(ss.get("b").unwrap().as_str(), "4");
+        assert_eq!(ss.get("c").unwrap().as_str(), "5");
 
         ss.pop();
-        assert_eq!(ss.get("a").unwrap().unwrap().as_str(), "1");
-        assert_eq!(ss.get("b").unwrap().unwrap().as_str(), "2");
-        assert!(ss.get("c").unwrap().is_none());
+        assert_eq!(ss.get("a").unwrap().as_str(), "1");
+        assert_eq!(ss.get("b").unwrap().as_str(), "2");
+        assert!(ss.get("c").is_err());
     }
 
     #[test]
@@ -522,17 +467,17 @@ mod tests {
 
         ss.push();
         ss.upvar(0, "a");
-        assert_eq!(ss.get("a").unwrap().unwrap().as_str(), "1");
-        assert!(ss.get("b").unwrap().is_none());
+        assert_eq!(ss.get("a").unwrap().as_str(), "1");
+        assert!(ss.get("b").is_err());
 
         let _ = ss.set("a", Value::from("3"));
         let _ = ss.set("b", Value::from("4"));
-        assert_eq!(ss.get("a").unwrap().unwrap().as_str(), "3");
-        assert_eq!(ss.get("b").unwrap().unwrap().as_str(), "4");
+        assert_eq!(ss.get("a").unwrap().as_str(), "3");
+        assert_eq!(ss.get("b").unwrap().as_str(), "4");
 
         ss.pop();
-        assert_eq!(ss.get("a").unwrap().unwrap().as_str(), "3");
-        assert_eq!(ss.get("b").unwrap().unwrap().as_str(), "2");
+        assert_eq!(ss.get("a").unwrap().as_str(), "3");
+        assert_eq!(ss.get("b").unwrap().as_str(), "2");
     }
 
     #[test]
@@ -549,8 +494,8 @@ mod tests {
         ss.unset("b"); // Was not set in this scope
 
         ss.pop();
-        assert_eq!(ss.get("a").unwrap().unwrap().as_str(), "1");
-        assert_eq!(ss.get("b").unwrap().unwrap().as_str(), "2");
+        assert_eq!(ss.get("a").unwrap().as_str(), "1");
+        assert_eq!(ss.get("b").unwrap().as_str(), "2");
     }
 
     #[test]
@@ -559,20 +504,20 @@ mod tests {
 
         // Set a value at level 0
         let _ = ss.set("a", Value::from("1"));
-        assert!(ss.get("a").unwrap().is_some());
+        assert!(ss.get("a").is_ok());
         ss.push();
-        assert!(ss.get("a").unwrap().is_none());
+        assert!(ss.get("a").is_err());
 
         // Link a@1 to a@0
         ss.upvar(0, "a");
-        assert!(ss.get("a").unwrap().is_some());
+        assert!(ss.get("a").is_ok());
 
         // Unset it; it should be unset in both scopes.
         ss.unset("a");
 
-        assert!(ss.get("a").unwrap().is_none());
+        assert!(ss.get("a").is_err());
         ss.pop();
-        assert!(ss.get("a").unwrap().is_none());
+        assert!(ss.get("a").is_err());
     }
 
     #[test]
@@ -627,12 +572,10 @@ mod tests {
         ss.pop();
 
         let out = ss.get("a").unwrap();
-        assert!(out.is_some());
-        assert_eq!(out.unwrap().as_str(), "1");
+        assert_eq!(out.as_str(), "1");
 
         let out = ss.get_elem("b", "1").unwrap();
-        assert!(out.is_some());
-        assert_eq!(out.unwrap().as_str(), "2");
+        assert_eq!(out.as_str(), "2");
     }
 
     #[test]
@@ -697,13 +640,13 @@ mod tests {
 
         // Array unset of a scalar has no effect.
         ss.unset_element("a", "1");
-        let out = ss.get("a").unwrap();
-        assert!(out.is_some());
+        let out = ss.get("a");
+        assert!(out.is_ok());
         assert_eq!(out.unwrap().as_str(), "zero");
 
         // Array unset of an element unsets just that element.
         ss.unset_element("b", "1");
-        assert!(ss.get_elem("b", "1").unwrap().is_none());
-        assert!(ss.get_elem("b", "2").unwrap().is_some());
+        assert!(ss.get_elem("b", "1").is_err());
+        assert!(ss.get_elem("b", "2").is_ok());
     }
 }

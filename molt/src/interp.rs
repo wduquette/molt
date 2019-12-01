@@ -112,7 +112,6 @@
 use crate::commands;
 use crate::expr;
 use crate::molt_err;
-use crate::molt_ok;
 use crate::parser;
 use crate::parser::Script;
 use crate::parser::Word;
@@ -835,27 +834,22 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Variable Handling
 
-    /// Retrieves the value of the named scalar variable in the current scope, if any.
+    /// Retrieves the value of the named scalar variable in the current scope.
     ///
-    /// Returns an error if the variable is an array variable.
+    /// Returns an error if the variable is not found, or if the variable is an array variable.
     pub fn scalar(&self, name: &str) -> MoltResult {
-        match self.scopes.get(name)? {
-            Some(v) => molt_ok!(v.clone()),
-            None => molt_err!("can't read \"{}\": no such variable", name),
-        }
+        self.scopes.get(name)
     }
 
-    /// Retrieves the value of the named array element in the current scope, if any.
+    /// Retrieves the value of the named array element in the current scope.
     ///
-    /// Returns an error if the variable is not an array variable.
+    /// Returns an error if the element is not found, or the variable is not an
+    /// array variable.
     pub fn element(&self, name: &str, index: &str) -> MoltResult {
-        match self.scopes.get_elem(name, index)? {
-            Some(v) => molt_ok!(v.clone()),
-            None => molt_err!("can't read \"{}({})\": no such variable", name, index),
-        }
+        self.scopes.get_elem(name, index)
     }
 
-    /// Retrieves the value of the variable in the current scope, if any.
+    /// Retrieves the value of the variable in the current scope.
     ///
     /// Returns an error if the variable is a scalar and the name names an array element,
     /// and vice versa.

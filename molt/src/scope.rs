@@ -267,6 +267,23 @@ impl ScopeStack {
         }
     }
 
+    /// Gets the content of an array as a flat list of names and values.  If the named
+    /// variable is not an array, returns the empty list.
+    pub fn array_get(&self, name: &str) -> MoltList {
+        match self.var(self.current(), name) {
+            Some(Var::Array(map)) => {
+                let mut list = Vec::new();
+
+                for (key,value) in map {
+                    list.push(Value::from(key));
+                    list.push(value.clone());
+                }
+                list
+            }
+            _ => Vec::new(),
+        }
+    }
+
     //--------------------------------------------------------------
     // Utilities
 
@@ -622,5 +639,24 @@ mod tests {
         assert_eq!(ss.array_size("x"), 0);
         assert_eq!(ss.array_size("a"), 0);
         assert_eq!(ss.array_size("b"), 2);
+    }
+
+    #[test]
+    fn test_array_get() {
+        let mut ss = ScopeStack::new();
+
+        let _ = ss.set("a", "zero".into());
+        let _ = ss.set_elem("b", "1", "one".into());
+        let _ = ss.set_elem("b", "2", "two".into());
+
+        assert_eq!(ss.array_get("x"), Vec::new());
+        assert_eq!(ss.array_get("a"), Vec::new());
+
+        let list = ss.array_get("b");
+        assert!(list.len() == 4);
+        assert!(list.contains(&"1".into()));
+        assert!(list.contains(&"one".into()));
+        assert!(list.contains(&"2".into()));
+        assert!(list.contains(&"two".into()));
     }
 }

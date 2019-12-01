@@ -1,5 +1,28 @@
 # Test Script: array command.
 
+proc matches {expected got} {
+    # Length matches?
+    if {[llength $expected] != [llength $got]} {
+        return 0
+    }
+
+    foreach {key value} $expected {
+        set e($key) $value
+    }
+
+    foreach {key value} $got {
+        if {$key ni [array names e]} {
+            return 0
+        }
+
+        if {$value ne $e($key)} {
+            return 0
+        }
+    }
+
+    return 1
+}
+
 test array-1.1 {array names, no var} {
     array names
 } -error {wrong # args: should be "array names arrayName"}
@@ -58,3 +81,27 @@ test array-3.4 {array exists, array var} {
     set a(2) two
     array exists a
 } -ok {1}
+
+test array-4.1 {array get, no var} {
+    array get
+} -error {wrong # args: should be "array get arrayName"}
+
+test array-4.2 {array get, unknown var} {
+    array get unknown_variable
+} -ok {}
+
+test array-4.3 {array get, scalar var} {
+    set scalar 1
+    array get scalar
+} -ok {}
+
+test array-4.4 {array get, array var} {
+    set a(1) one
+    set a(2) two
+    matches {1 one 2 two} [array get a]
+} -ok {1}
+
+#----------------------------------------------------------------------------
+# Cleanup
+
+rename matches ""

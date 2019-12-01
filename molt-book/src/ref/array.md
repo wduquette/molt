@@ -3,12 +3,20 @@
 This command queries and manipulates array variables.
 
 * [array exists](#array-exists)
+* [array get](#array-get)
 * [array names](#array-names)
 * [array size](#array-size)
 
 ## array exists *arrayName*
 
 Returns 1 if *arrayName* names an array variable, and 0 otherwise.
+
+## array get *arrayName*
+
+Returns a flat list of the keys and values in the named array.  The key/value pairs appear
+in unsorted order. If there is no array variable with the given name, returns the empty list.
+
+**TCL Liens**: does not support filtering the list.
 
 ## array names *arrayName*
 

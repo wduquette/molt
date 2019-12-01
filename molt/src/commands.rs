@@ -39,23 +39,31 @@ pub fn cmd_array(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     (subc.1)(interp, argv)
 }
 
-const ARRAY_SUBCOMMANDS: [Subcommand; 3] = [
+const ARRAY_SUBCOMMANDS: [Subcommand; 4] = [
     Subcommand("exists", cmd_array_exists),
+    Subcommand("get", cmd_array_get),
     Subcommand("names", cmd_array_names),
     Subcommand("size", cmd_array_size),
 ];
 
-/// # array exists
+/// # array exists arrayName
 pub fn cmd_array_exists(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "arrayName")?;
     molt_ok!(Value::from(interp.array_exists(argv[2].as_str())))
 }
 
-/// # array names
+/// # array names arrayName
 /// TODO: Add glob matching as a feature, and support standard TCL options.
 pub fn cmd_array_names(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "arrayName")?;
     molt_ok!(Value::from(interp.array_names(argv[2].as_str())))
+}
+
+/// # array get arrayname
+/// TODO: Add glob matching as a feature, and support standard TCL options.
+pub fn cmd_array_get(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "arrayName")?;
+    molt_ok!(Value::from(interp.array_get(argv[2].as_str())))
 }
 
 /// # array size

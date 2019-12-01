@@ -1,6 +1,6 @@
 # Test Script: array command.
 
-proc matches {expected got} {
+proc match_dicts {expected got} {
     # Length matches?
     if {[llength $expected] != [llength $got]} {
         return 0
@@ -16,6 +16,21 @@ proc matches {expected got} {
         }
 
         if {$value ne $e($key)} {
+            return 0
+        }
+    }
+
+    return 1
+}
+
+proc match_lists {expected got} {
+    # Length matches?
+    if {[llength $expected] != [llength $got]} {
+        return 0
+    }
+
+    foreach value $expected {
+        if {$value ni $got} {
             return 0
         }
     }
@@ -39,10 +54,8 @@ test array-1.3 {array names, scalar var} {
 test array-1.4 {array names, array var} {
     set a(1) one
     set a(2) two
-    #  Really need to [lsort] the list of names, but I don't have [lsort] yet.
-    #  In the meantime, just check the length.
-    llength [array names a]
-} -ok {2}
+    match_lists {1 2} [array names a]
+} -ok {1}
 
 test array-2.1 {array size, no var} {
     array size
@@ -98,10 +111,11 @@ test array-4.3 {array get, scalar var} {
 test array-4.4 {array get, array var} {
     set a(1) one
     set a(2) two
-    matches {1 one 2 two} [array get a]
+    match_dicts {1 one 2 two} [array get a]
 } -ok {1}
 
 #----------------------------------------------------------------------------
 # Cleanup
 
-rename matches ""
+rename match_dicts ""
+rename match_lists ""

@@ -366,9 +366,10 @@ impl ScopeStack {
     }
 }
 
+// Insert the flat key-value list into the map.
 fn insert_kvlist(map: &mut HashMap<String,Value>, list: &[Value]) {
-    for i in (0..list.len()).step_by(2) {
-        map.insert(list[i].as_str().into(), list[i+1].clone());
+    for kv in list.chunks(2) {
+        map.insert(kv[0].as_str().into(), kv[1].clone());
     }
 }
 

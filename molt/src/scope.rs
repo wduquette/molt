@@ -285,6 +285,34 @@ impl ScopeStack {
         }
     }
 
+    /// Merges a flat list of keys and values into the array variable, creating the variable
+    /// if it doesn't exist. It's an error if the variable exists but is a scalar variable.
+    pub fn array_set(&mut self, name: &str, kvlist: &[Value]) -> Result<(), ResultCode> {
+        // List must be even.
+        assert!(kvlist.len() % 2 == 0);
+
+        match self.var_mut(self.current(), name) {
+            Some(Var::Upvar(_)) => unreachable!(),
+            Some(Var::Scalar(_)) => {
+                molt_err!("can't array set \"{}\": variable isn't array", name)
+            }
+            Some(Var::Array(map)) => {
+                // It was already an array; just add the new elements.
+                insert_kvlist(map, &kvlist);
+                Ok(())
+            }
+            Some(var) => {
+                assert_eq!(*var, Var::New);
+                // Create new variable on the top of the stack.
+                let mut map = HashMap::new();
+                insert_kvlist(&mut map, &kvlist);
+                *var = Var::Array(map);
+                Ok(())
+            }
+            None => unreachable!(),
+        }
+    }
+
     /// Unsets an array variable in the current scope, i.e., removes it from the scope.
     /// If the variable is a reference to another scope, the variable is removed from that
     /// scope as well.
@@ -337,6 +365,13 @@ impl ScopeStack {
         }
     }
 }
+
+fn insert_kvlist(map: &mut HashMap<String,Value>, list: &[Value]) {
+    for i in (0..list.len()).step_by(2) {
+        map.insert(list[i].as_str().into(), list[i+1].clone());
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -648,5 +683,32 @@ mod tests {
         ss.unset_element("b", "1");
         assert!(ss.get_elem("b", "1").is_err());
         assert!(ss.get_elem("b", "2").is_ok());
+    }
+
+    #[test]
+    fn test_array_set() {
+        let kvlist: MoltList = vec!["a".into(), "1".into(), "b".into(), "2".into()];
+
+        let mut ss = ScopeStack::new();
+
+        // Can create variable
+        assert!(ss.array_set("x", &kvlist).is_ok());
+        assert_eq!(ss.get_elem("x", "a").unwrap().as_str(), "1");
+        assert_eq!(ss.get_elem("x", "b").unwrap().as_str(), "2");
+        assert!(ss.get_elem("x", "c").is_err());
+
+        // Can merge into  variable
+        assert!(ss.set_elem("y", "a", "0".into()).is_ok());
+        assert!(ss.set_elem("y", "b", "0".into()).is_ok());
+        assert!(ss.set_elem("y", "c", "0".into()).is_ok());
+        assert!(ss.array_set("y", &kvlist).is_ok());
+        assert_eq!(ss.get_elem("y", "a").unwrap().as_str(), "1");
+        assert_eq!(ss.get_elem("y", "b").unwrap().as_str(), "2");
+        assert_eq!(ss.get_elem("y", "c").unwrap().as_str(), "0");
+
+        // Can't update scalar
+        assert!(ss.set("z", "0".into()).is_ok());
+        assert_eq!(ss.array_set("z", &kvlist),
+            molt_err!("can't array set \"z\": variable isn't array"));
     }
 }

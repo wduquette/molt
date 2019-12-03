@@ -39,10 +39,11 @@ pub fn cmd_array(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     (subc.1)(interp, argv)
 }
 
-const ARRAY_SUBCOMMANDS: [Subcommand; 5] = [
+const ARRAY_SUBCOMMANDS: [Subcommand; 6] = [
     Subcommand("exists", cmd_array_exists),
     Subcommand("get", cmd_array_get),
     Subcommand("names", cmd_array_names),
+    Subcommand("set", cmd_array_set),
     Subcommand("size", cmd_array_size),
     Subcommand("unset", cmd_array_unset),
 ];
@@ -65,6 +66,12 @@ pub fn cmd_array_names(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 pub fn cmd_array_get(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "arrayName")?;
     molt_ok!(Value::from(interp.array_get(argv[2].as_str())))
+}
+
+/// # array set arrayName list
+pub fn cmd_array_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 4, 4, "arrayName list")?;
+    interp.array_set(argv[2].as_str(), &*argv[3].as_list()?)
 }
 
 /// # array size arrayName

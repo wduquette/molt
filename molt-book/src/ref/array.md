@@ -26,6 +26,12 @@ variable with the given name, returns the empty list.
 
 **TCL Liens**: does not support filtering the list.
 
+## array set *arrayName* *list*
+
+Merges a flat list of keys and values into the array, creating the array variable if necessary.
+The list must have an even number of elements.  It's an error if the variable exists but isn't
+an array.
+
 ## array size *arrayName*
 
 Returns the number of elements in the named array.  If there is no array

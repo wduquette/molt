@@ -143,6 +143,26 @@ test array-5.5 {array unset, array var, one element} {
     array get a
 } -ok {2 two}
 
+test array-6.1 {array set, no args} {
+    array set
+} -error {wrong # args: should be "array set arrayName list"}
+
+test array-6.2 {array set, new var, empty list} {
+    array set a {}
+    array exists a
+} -ok {1}
+
+test array-6.3 {array set, new var, empty list} {
+    array set a {x 1 y 2}
+    match_dicts {x 1 y 2} [array get a]
+} -ok {1}
+
+test array-6.4 {array set, old var, empty list} {
+    array set a {x 1 y 2}
+    array set a {x 3 z 4}
+    match_dicts {x 3 y 2 z 4} [array get a]
+} -ok {1}
+
 #----------------------------------------------------------------------------
 # Cleanup
 

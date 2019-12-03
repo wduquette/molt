@@ -112,6 +112,7 @@
 use crate::commands;
 use crate::expr;
 use crate::molt_err;
+use crate::molt_ok;
 use crate::parser;
 use crate::parser::Script;
 use crate::parser::Word;
@@ -970,6 +971,17 @@ impl Interp {
     /// Gets a flat vector of the keys and values from the given array
     pub fn array_get(&self, array_name: &str) -> MoltList {
         self.scopes.array_get(array_name)
+    }
+
+    /// Merges a flat vector of keys and values into the given array
+    /// It's an error if the vector has an odd number of elements.
+    pub fn array_set(&mut self, array_name: &str, kvlist: &[Value]) -> MoltResult {
+        if kvlist.len() % 2 == 0 {
+            self.scopes.array_set(array_name, kvlist)?;
+            molt_ok!()
+        } else {
+            molt_err!("list must have an even number of elements")
+        }
     }
 
     /// Gets a vector of the indices of the given array

@@ -31,3 +31,8 @@ test incr-2.4 {increment can be specified} -body {
 } -cleanup {
     unset a
 } -ok {12}
+
+test incr-3.1 {incr scalar as array} -body {
+    set x ""
+    incr x(0)
+} -error {can't set "x(0)": variable isn't array}

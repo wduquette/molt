@@ -35,9 +35,7 @@ test append-3.1 {append errors} {
 } -error {wrong # args: should be "append varName ?value value ...?"}
 
 # Need arrays
-if 0 {
 test append-3.2 {append errors} {
     set x ""
     list [catch {append x(0) 44} msg] $msg
 } -ok {1 {can't set "x(0)": variable isn't array}}
-}

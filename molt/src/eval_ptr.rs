@@ -34,12 +34,11 @@ impl<'a> EvalPtr<'a> {
     }
 
     /// Returns a mutable reference to the inner tokenizer.
-    #[allow(dead_code)] // Temporary
     pub fn tok(&mut self) -> &mut Tokenizer<'a> {
         &mut self.tok
     }
 
-    // TEMPORARY; remove in favor of tok()
+    // TEMPORARY; used by `expr`. remove in favor of tok()
     pub fn from_tokenizer(ptr: &Tokenizer<'a>) -> Self {
         Self {
             tok: ptr.clone(),
@@ -49,7 +48,7 @@ impl<'a> EvalPtr<'a> {
         }
     }
 
-    // TEMPORARY; remove in favor of tok()
+    // TEMPORARY; used by `expr`. remove in favor of tok()
     pub fn to_tokenizer(&self) -> Tokenizer<'a> {
         self.tok.clone()
     }

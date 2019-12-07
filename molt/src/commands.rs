@@ -17,10 +17,8 @@ pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
     // FIRST, get the value of the variable.  If the variable is undefined,
     // start with the empty string.
-    let var_name = argv[1].as_str();
-
     let mut new_string: String = interp
-        .var(var_name)
+        .var(&argv[1])
         .and_then(|val| Ok(val.to_string()))
         .unwrap_or_else(|_| String::new());
 
@@ -30,7 +28,85 @@ pub fn cmd_append(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     }
 
     // NEXT, save and return the new value.
-    molt_ok!(interp.set_and_return(var_name, new_string.into()))
+    interp.set_var_return(&argv[1], new_string.into())
+}
+
+/// # array *subcommand* ?*arg*...?
+pub fn cmd_array(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
+    let subc = Subcommand::find(&ARRAY_SUBCOMMANDS, argv[1].as_str())?;
+
+    (subc.1)(interp, argv)
+}
+
+const ARRAY_SUBCOMMANDS: [Subcommand; 6] = [
+    Subcommand("exists", cmd_array_exists),
+    Subcommand("get", cmd_array_get),
+    Subcommand("names", cmd_array_names),
+    Subcommand("set", cmd_array_set),
+    Subcommand("size", cmd_array_size),
+    Subcommand("unset", cmd_array_unset),
+];
+
+/// # array exists arrayName
+pub fn cmd_array_exists(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "arrayName")?;
+    molt_ok!(Value::from(interp.array_exists(argv[2].as_str())))
+}
+
+/// # array names arrayName
+/// TODO: Add glob matching as a feature, and support standard TCL options.
+pub fn cmd_array_names(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "arrayName")?;
+    molt_ok!(Value::from(interp.array_names(argv[2].as_str())))
+}
+
+/// # array get arrayname
+/// TODO: Add glob matching as a feature, and support standard TCL options.
+pub fn cmd_array_get(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "arrayName")?;
+    molt_ok!(Value::from(interp.array_get(argv[2].as_str())))
+}
+
+/// # array set arrayName list
+pub fn cmd_array_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 4, 4, "arrayName list")?;
+
+    // This odd little dance provides the same semantics as Standard TCL.  If the
+    // given var_name has an index, the array is created (if it didn't exist)
+    // but no data is added to it, and the command returns an error.
+    let var_name = argv[2].as_var_name();
+
+    if var_name.index().is_none() {
+        interp.array_set(var_name.name(), &*argv[3].as_list()?)
+    } else {
+        // This line will create the array if it doesn't exist, and throw an error if the
+        // named variable exists but isn't an array.  This is a little wacky, but it's
+        // what TCL 8.6 does.
+        interp.array_set(var_name.name(), &*Value::empty().as_list()?)?;
+
+        // And this line throws an error because the full name the caller specified is an
+        // element, not the array itself.
+        molt_err!("can't set \"{}\": variable isn't array", &argv[2])
+    }
+}
+
+/// # array size arrayName
+pub fn cmd_array_size(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "arrayName")?;
+    molt_ok!(Value::from(interp.array_size(argv[2].as_str()) as MoltInt))
+}
+
+/// # array unset arrayName ?*index*?
+pub fn cmd_array_unset(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 4, "arrayName ?index?")?;
+
+    if argv.len() == 3 {
+        interp.array_unset(argv[2].as_str());
+    } else {
+        interp.unset_element(argv[2].as_str(), argv[3].as_str());
+    }
+    molt_ok!()
 }
 
 /// assert_eq received, expected
@@ -80,7 +156,7 @@ pub fn cmd_catch(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     };
 
     if argv.len() == 3 {
-        interp.set_and_return(argv[2].as_str(), value);
+        interp.set_var(&argv[2], value)?;
     }
 
     Ok(Value::from(code))
@@ -200,12 +276,12 @@ pub fn cmd_foreach(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     let mut i = 0;
 
     while i < list.len() {
-        for var_name in var_list {
+        for var in var_list {
             if i < list.len() {
-                interp.set_var(var_name.as_str(), &list[i]);
+                interp.set_var(&var, list[i].clone())?;
                 i += 1;
             } else {
-                interp.set_and_return(var_name.as_str(), Value::empty());
+                interp.set_var(&var, Value::empty())?;
             }
         }
 
@@ -354,15 +430,13 @@ pub fn cmd_incr(interp: &mut Interp, argv: &[Value]) -> MoltResult {
         1
     };
 
-    let var_name = argv[1].as_str();
-
     let new_value = increment
         + interp
-            .var(var_name)
+            .var(&argv[1])
             .and_then(|val| Ok(val.as_int()?))
             .unwrap_or_else(|_| 0);
 
-    molt_ok!(interp.set_and_return(var_name, new_value.into()))
+    interp.set_var_return(&argv[1], new_value.into())
 }
 
 /// # info *subcommand* ?*arg*...?
@@ -428,8 +502,7 @@ pub fn cmd_join(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 pub fn cmd_lappend(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 0, "varName ?value ...?")?;
 
-    let var_name = argv[1].as_str();
-    let var_result = interp.var(var_name);
+    let var_result = interp.var(&argv[1]);
 
     let mut list: MoltList = if var_result.is_ok() {
         var_result.expect("got value").to_list()?
@@ -439,7 +512,7 @@ pub fn cmd_lappend(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 
     let mut values = argv[2..].to_owned();
     list.append(&mut values);
-    molt_ok!(interp.set_and_return(var_name, Value::from(list)))
+    interp.set_var_return(&argv[1], Value::from(list))
 }
 
 /// # lindex *list* ?*index* ...?
@@ -604,19 +677,13 @@ pub fn cmd_return(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 /// Sets variable *varName* to *newValue*, returning the value.
 /// If *newValue* is omitted, returns the variable's current value,
 /// returning an error if the variable is unknown.
-///
-/// ## TCL Liens
-///
-/// * Does not support arrays
 pub fn cmd_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 3, "varName ?newValue?")?;
 
-    let var_name = argv[1].as_str();
-
     if argv.len() == 3 {
-        molt_ok!(interp.set_and_return(var_name, argv[2].clone()))
+        interp.set_var_return(&argv[1], argv[2].clone())
     } else {
-        molt_ok!(interp.var(var_name)?.clone())
+        molt_ok!(interp.var(&argv[1])?.clone())
     }
 }
 
@@ -691,7 +758,7 @@ pub fn cmd_unset(interp: &mut Interp, argv: &[Value]) -> MoltResult {
             }
         }
 
-        interp.unset_var(var);
+        interp.unset_var(arg);
     }
 
     molt_ok!()

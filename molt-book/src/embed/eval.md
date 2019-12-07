@@ -2,16 +2,20 @@
 
 An application can evaluate Molt code in several ways:
 
-* Use the `molt::Interp::eval` or `molt::Interp::eval_body` method to evaluate an
+* Use one of the `molt::Interp::eval` or `molt::Interp::eval_value` to evaluate an
   individual Molt command or script.
 
-* Use the `molt::expr` function to evaluate a Molt expression, returning a result.
+* Use the `molt::Interp::eval_body` method to evaluate a Molt script that is the body
+  of a control structure.
 
-* Use the `molt::expr_test` method to evaluate a Molt boolean expression.
+* Use the `molt::expr` function to evaluate a Molt expression, returning a Molt `Value`,
+  or `molt::expr_bool`, `molt::expr_int`, and `molt::expr_float` for results of specific
+  types.
 
 * Use the `molt_shell::repl` function to provide an interactive REPL to the user.
 
-* Use the `molt_shell::script` function to evaluate a script file.
+* Use the `molt_shell::script` function to evaluate a script file (or just load the script's
+  content and pass it to `molt::Interp::eval`).
 
 ## Evaluating Scripts with `eval`
 
@@ -32,6 +36,10 @@ let value: Value = interp.eval("...some Molt code...")?;
 ```
 
 The explicit `Value` type declaration is included for clarity.
+
+The `molt::Interp::eval_value` method has identical semantics, but evaluates the string
+representation of a molt `Value`. In this case, the `Value` will cache the parsed internal
+form of the script to speed up subsequent evaluations.
 
 ## Evaluating Scripts with `eval_body`
 
@@ -103,7 +111,7 @@ See [The `MoltResult` Type](./molt_result.md) for more information.
 
 The explicit `Value` type declaration is included for clarity.
 
-## Evaluating Expressions with `expr` and `bool_expr`.
+## Evaluating Expressions with `expr` and `expr_bool`.
 
 Evaluating Molt expressions is similar.  To get any expression result (usually a
 numeric or boolean `Value`), use the `Interp::expr` method.
@@ -120,10 +128,10 @@ let mut interp = Interp::new();
 let value: Value = interp.expr("1 + 1")?;
 ```
 
-Use `Interp::bool_expr` when a specifically boolean result is wanted:
+Use `Interp::expr_bool` when a specifically boolean result is wanted:
 
 ```rust
-let flag: bool = interp.bool_expr("1 == 1")?;
+let flag: bool = interp.expr_bool("1 == 1")?;
 ```
 
 (See the [`expr`](../ref/expr.md) command reference for more about Molt expressions.)
@@ -132,7 +140,7 @@ let flag: bool = interp.bool_expr("1 == 1")?;
 
 An interactive user shell or "REPL" (Read-Eval-Print-Loop) can be a great convenience
 when developing and debugging application scripts; it can also be useful tool for
-administering server processes.  To provide an interactive, use
+administering server processes.  To provide an interactive shell, use
 the `molt_shell::repl` function.
 
 ```
@@ -169,6 +177,6 @@ let mut interp = Interp::new();
 if args.len() > 1 {
     molt_shell::script(&mut interp, &args[1..]);
 } else {
-    eprintln!("Usage: myshell *filename.tcl");
+    eprintln!("Usage: myshell filename.tcl");
 }
 ```

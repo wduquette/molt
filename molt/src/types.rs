@@ -189,3 +189,36 @@ impl Subcommand {
         )
     }
 }
+
+/// The name of a variable.  For scalar variables, `index` is `None`; for array variables,
+/// `index` is `Some(String)`.  This value is returned by `Value::as_var_name`.
+#[derive(Debug, Eq, PartialEq)]
+pub struct VarName {
+    name: String,
+    index: Option<String>,
+}
+
+impl VarName {
+    /// Creates a scalar variable name.
+    pub fn scalar(name: String) -> Self {
+        Self { name, index: None }
+    }
+
+    /// Creates an array element name given its variable name and index string.
+    pub fn array(name: String, index: String) -> Self {
+        Self {
+            name,
+            index: Some(index),
+        }
+    }
+
+    /// Returns the parsed variable name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Returns the parsed array index, if any.
+    pub fn index(&self) -> Option<&str> {
+        self.index.as_ref().map(|x| &**x)
+    }
+}

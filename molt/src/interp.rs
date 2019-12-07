@@ -150,7 +150,6 @@ use std::time::Instant;
 /// # }
 /// ```
 #[derive(Default)]
-#[allow(dead_code)] // TEMP
 pub struct Interp {
     // Command Table
     commands: HashMap<String, Rc<dyn Command>>,
@@ -243,6 +242,7 @@ impl Interp {
         // denial-of-service kinds of problems, e.g., for, while, proc, rename, and those
         // that can't.
         interp.add_command("append", commands::cmd_append);
+        interp.add_command("array", commands::cmd_array);
         interp.add_command("assert_eq", commands::cmd_assert_eq);
         interp.add_command("break", commands::cmd_break);
         interp.add_command("catch", commands::cmd_catch);
@@ -327,6 +327,14 @@ impl Interp {
         self.eval_value(&value)
     }
 
+    /// Evaluates a script one command at a time.  Returns the [`Value`](../value/struct.Value.html)
+    /// of the last command in the script, or the value of any explicit `return` call in the
+    /// script, or any error thrown by the script.  Other
+    /// [`ResultCode`](../types/enum.ResultCode.html) values are converted to normal errors.
+    ///
+    /// Use this method (or [`eval`](#method.eval) to evaluate arbitrary scripts.
+    /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
+    ///
     pub fn eval_value(&mut self, value: &Value) -> MoltResult {
         // TODO: Could probably do better, here.  If the value is already a list, for
         // example, can maybe evaluate it as a command without using as_script().
@@ -392,8 +400,8 @@ impl Interp {
         self.eval_script(&*body.as_script()?)
     }
 
-    // Evals a parsed Script, producing a normal MoltResult.
-    // Also used by expr.rs.
+    /// Evaluates a parsed Script, producing a normal MoltResult.
+    /// Also used by expr.rs.
     pub(crate) fn eval_script(&mut self, script: &Script) -> MoltResult {
         let mut result_value = Value::empty();
 
@@ -423,8 +431,8 @@ impl Interp {
         Ok(result_value)
     }
 
-    // Evaluates a WordVec, producing a list of Values.  The expansion operator is handled
-    // as a special case.
+    /// Evaluates a WordVec, producing a list of Values.  The expansion operator is handled
+    /// as a special case.
     fn eval_word_vec(&mut self, words: &[Word]) -> Result<MoltList, ResultCode> {
         let mut list: MoltList = Vec::new();
 
@@ -442,11 +450,15 @@ impl Interp {
         Ok(list)
     }
 
-    // Evaluates a single word.  This is also used by expr.rs.
+    /// Evaluates a single word, producing a value.  This is also used by expr.rs.
     pub(crate) fn eval_word(&mut self, word: &Word) -> MoltResult {
         match word {
             Word::Value(val) => Ok(val.clone()),
-            Word::VarRef(name) => self.var(name),
+            Word::VarRef(name) => self.scalar(name),
+            Word::ArrayRef(name, index_word) => {
+                let index = self.eval_word(index_word)?;
+                self.element(name, index.as_str())
+            }
             Word::Script(script) => self.eval_script(script),
             Word::Tokens(tokens) => {
                 let tlist = self.eval_word_vec(tokens)?;
@@ -823,39 +835,165 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Variable Handling
 
-    /// Retrieves the value of the named variable in the current scope, if any.
-    pub fn var(&self, name: &str) -> MoltResult {
-        match self.scopes.get(name) {
-            Some(v) => molt_ok!(v.clone()),
-            None => molt_err!("can't read \"{}\": no such variable", name),
+    /// Retrieves the value of the named scalar variable in the current scope.
+    ///
+    /// Returns an error if the variable is not found, or if the variable is an array variable.
+    pub fn scalar(&self, name: &str) -> MoltResult {
+        self.scopes.get(name)
+    }
+
+    /// Retrieves the value of the named array element in the current scope.
+    ///
+    /// Returns an error if the element is not found, or the variable is not an
+    /// array variable.
+    pub fn element(&self, name: &str, index: &str) -> MoltResult {
+        self.scopes.get_elem(name, index)
+    }
+
+    /// Retrieves the value of the variable in the current scope.
+    ///
+    /// Returns an error if the variable is a scalar and the name names an array element,
+    /// and vice versa.
+    pub fn var(&self, var_name: &Value) -> MoltResult {
+        let var_name = &*var_name.as_var_name();
+        match var_name.index() {
+            Some(index) => self.element(var_name.name(), index),
+            None => self.scalar(var_name.name()),
         }
     }
 
-    /// Sets the value of the named variable in the current scope, creating the variable
-    /// if necessary, and returning the value.
-    pub fn set_and_return(&mut self, name: &str, value: Value) -> Value {
-        self.scopes.set(name, value.clone());
-
-        value
-    }
-
-    /// Sets the value of the named variable in the current scope, creating the variable
+    /// Sets the value of the named scalar variable in the current scope, creating the variable
     /// if necessary.
     ///
-    /// Ultimately, this should be set_var.
-    pub fn set_var(&mut self, name: &str, value: &Value) {
-        self.scopes.set(name, value.clone());
+    /// Returns an error if the variable exists and is an array variable.
+    pub fn set_scalar(&mut self, name: &str, value: Value) -> Result<(), ResultCode> {
+        self.scopes.set(name, value)
     }
 
-    /// Unsets the value of the named variable in the current scope
-    pub fn unset_var(&mut self, name: &str) {
+    /// Sets the value of the named scalar variable in the current scope, creating the variable
+    /// if necessary, and returning the value.
+    ///
+    /// Returns an error if the variable exists and is an array variable.
+    pub fn set_scalar_return(&mut self, name: &str, value: Value) -> MoltResult {
+        // Clone the value, since we'll be returning it out again.
+        self.scopes.set(name, value.clone())?;
+        Ok(value)
+    }
+
+    /// Sets the value of an array element in the current scope, creating the variable
+    /// if necessary.
+    ///
+    /// Returns an error if the variable exists and is not an array variable.
+    ///
+    /// TODO: test needed
+    pub fn set_element(&mut self, name: &str, index: &str, value: Value) -> Result<(), ResultCode> {
+        self.scopes.set_elem(name, index, value)
+    }
+
+    /// Sets the value of an array element in the current scope, creating the variable
+    /// if necessary, and returning the value.
+    ///
+    /// Returns an error if the variable exists and is not an array variable.
+    ///
+    /// TODO: test needed
+    pub fn set_element_return(&mut self, name: &str, index: &str, value: Value) -> MoltResult {
+        // Clone the value, since we'll be returning it out again.
+        self.scopes.set_elem(name, index, value.clone())?;
+        Ok(value)
+    }
+
+    /// Sets the value of the variable in the current scope, if any.
+    ///
+    /// Returns an error if the variable is scalar and the name names an array element,
+    /// and vice-versa.
+    ///
+    /// TODO: test needed
+    pub fn set_var(&mut self, var_name: &Value, value: Value) -> Result<(), ResultCode> {
+        let var_name = &*var_name.as_var_name();
+        match var_name.index() {
+            Some(index) => self.set_element(var_name.name(), index, value),
+            None => self.set_scalar(var_name.name(), value),
+        }
+    }
+
+    /// Sets the value of the variable in the current scope, if any, and returns its value.
+    ///
+    /// Returns an error if the variable is scalar and the name names an array element,
+    /// and vice-versa.
+    ///
+    /// TODO: test needed
+    pub fn set_var_return(&mut self, var_name: &Value, value: Value) -> MoltResult {
+        let var_name = &*var_name.as_var_name();
+        match var_name.index() {
+            Some(index) => self.set_element_return(var_name.name(), index, value),
+            None => self.set_scalar_return(var_name.name(), value),
+        }
+    }
+
+    /// Unsets the value of the named variable or array element in the current scope
+    pub fn unset_var(&mut self, name: &Value) {
+        let var_name = name.as_var_name();
+
+        if let Some(index) = var_name.index()  {
+            self.unset_element(var_name.name(), index);
+        } else {
+            self.unset(var_name.name());
+        }
+    }
+
+    /// Unsets a variable given its name.
+    pub fn unset(&mut self, name: &str,) {
         self.scopes.unset(name);
+    }
+
+    /// Unsets a single element in an array.  Nothing happens if the index doesn't
+    /// exist, or if the variable is not an array variable.
+    pub fn unset_element(&mut self, array_name: &str, index: &str) {
+        self.scopes.unset_element(array_name, index);
+    }
+
+    /// Unsets an array variable givne its name.  Nothing happens if the variable doesn't
+    /// exist, or if the variable is not an array variable.
+    pub fn array_unset(&mut self, array_name: &str) {
+        self.scopes.array_unset(array_name);
     }
 
     /// Gets a vector of the visible var names.
     pub fn vars_in_scope(&self) -> MoltList {
         self.scopes.vars_in_scope()
     }
+
+    /// Determines whether or not the name is the name of an array variable.
+    pub fn array_exists(&self, array_name: &str) -> bool {
+        self.scopes.array_exists(array_name)
+    }
+
+    /// Gets a flat vector of the keys and values from the given array
+    pub fn array_get(&self, array_name: &str) -> MoltList {
+        self.scopes.array_get(array_name)
+    }
+
+    /// Merges a flat vector of keys and values into the given array
+    /// It's an error if the vector has an odd number of elements.
+    pub fn array_set(&mut self, array_name: &str, kvlist: &[Value]) -> MoltResult {
+        if kvlist.len() % 2 == 0 {
+            self.scopes.array_set(array_name, kvlist)?;
+            molt_ok!()
+        } else {
+            molt_err!("list must have an even number of elements")
+        }
+    }
+
+    /// Gets a vector of the indices of the given array
+    pub fn array_names(&self, array_name: &str) -> MoltList {
+        self.scopes.array_indices(array_name)
+    }
+
+    /// Gets a vector of the indices of the given array
+    pub fn array_size(&self, array_name: &str) -> usize {
+        self.scopes.array_size(array_name)
+    }
+
 
     /// Pushes a variable scope on to the scope stack.
     /// Procs use this to define their local scope.
@@ -874,6 +1012,8 @@ impl Interp {
     }
 
     /// Links the variable name in the current scope to the given scope.
+    /// Note: the level is the absolute level, not the level relative to the
+    /// current stack level, i.e., level=0 is the global scope.
     pub fn upvar(&mut self, level: usize, name: &str) {
         assert!(level <= self.scopes.current(), "Invalid scope level");
         self.scopes.upvar(level, name);
@@ -972,7 +1112,7 @@ impl Command for CommandProc {
             // if any.  Note that "args" has special meaning only if it's the
             // final arg spec in the list.
             if vec[0].as_str() == "args" && speci == self.args.len() - 1 {
-                interp.set_and_return("args", Value::from(&argv[argi..]));
+                interp.set_scalar("args", Value::from(&argv[argi..]))?;
 
                 // We've processed all of the args
                 argi = argv.len();
@@ -982,14 +1122,14 @@ impl Command for CommandProc {
             // NEXT, do we have a matching argument?
             if argi < argv.len() {
                 // Pair them up
-                interp.set_var(vec[0].as_str(), &argv[argi]);
+                interp.set_scalar(vec[0].as_str(), argv[argi].clone())?;
                 argi += 1;
                 continue;
             }
 
             // NEXT, do we have a default value?
             if vec.len() == 2 {
-                interp.set_var(vec[0].as_str(), &vec[1]);
+                interp.set_scalar(vec[0].as_str(), vec[1].clone())?;
             } else {
                 // We don't; we're missing a required argument.
                 return self.wrong_num_args(name);

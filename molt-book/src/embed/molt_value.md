@@ -39,7 +39,7 @@ let f = Value::from(&[Value::from(1), Value::from(2)]);  // &[Value]
 
 And in fact, a `Value` can contain any Rust type that supports the `Display`,
 `Debug`, and `FromStr` types via the `Value::from_other` method.  Such types are
-called "external types in the Molt documentation set.
+called "external types" in the Molt documentation set.
 
 ## Cloning Values
 

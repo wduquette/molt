@@ -144,6 +144,17 @@
 //! }
 //! ```
 //!
+//! # Special Implementation Types
+//!
+//! Values can also be interpreted as two special types, `Script` and `VarName`.  The
+//! Interpreter uses the (non-public) `as_script` method to parse script bodies for
+//! evaluation; generally this means that a script will get parsed only once.
+//!
+//! Similarly, `as_var_name` interprets a variable name reference as a `VarName`, which
+//! contains the variable name and, optionally, an array index.  This is usually hidden
+//! from the extension author by the `var` and `set_var` methods, but it is available if
+//! publically if needed.
+//!
 //! [`Value`]: struct.Value.html
 
 use crate::expr::Datum;
@@ -155,6 +166,7 @@ use crate::types::MoltFloat;
 use crate::types::MoltInt;
 use crate::types::MoltList;
 use crate::types::ResultCode;
+use crate::types::VarName;
 use std::any::Any;
 use std::any::TypeId;
 use std::cell::RefCell;
@@ -761,6 +773,39 @@ impl Value {
         Ok(script)
     }
 
+    /// Returns the `Value` as an `Rc<VarName>`, parsing the
+    /// value's string representation if necessary.  This type is usually hidden by the
+    /// `Interp`'s `var` and `set_var` methods, which use it implicitly; however it is
+    /// available to extension authors if need be.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::{Value, VarName};
+    ///
+    /// let value = Value::from("my_var");
+    /// let var_name = value.as_var_name();
+    /// assert_eq!(var_name.name(), "my_var");
+    /// assert_eq!(var_name.index(), None);
+    ///
+    /// let value = Value::from("my_array(1)");
+    /// let var_name = value.as_var_name();
+    /// assert_eq!(var_name.name(), "my_array");
+    /// assert_eq!(var_name.index(), Some("1"));
+    /// ```
+    pub fn as_var_name(&self) -> Rc<VarName> {
+        // FIRST, if we have the desired type, return it.
+        if let DataRep::VarName(var_name) = &*self.inner.data_rep.borrow() {
+            return var_name.clone();
+        }
+
+        // NEXT, try to parse the string_rep as a variable name.
+        let var_name = Rc::new(parser::parse_varname_literal(self.as_str()));
+
+        *self.inner.data_rep.borrow_mut() = DataRep::VarName(var_name.clone());
+        var_name
+    }
+
     /// Creates a new `Value` containing the given value of some user type.
     ///
     /// The user type must meet certain constraints; see the
@@ -984,6 +1029,9 @@ enum DataRep {
     /// A Script
     Script(Rc<Script>),
 
+    /// A Variable Name
+    VarName(Rc<VarName>),
+
     /// An external data type
     Other(Rc<dyn MoltAny>),
 
@@ -999,6 +1047,7 @@ impl Display for DataRep {
             DataRep::Flt(flt) => Value::fmt_float(f, *flt),
             DataRep::List(list) => write!(f, "{}", list_to_string(&*list)),
             DataRep::Script(script) => write!(f, "{:?}", script),
+            DataRep::VarName(var_name) => write!(f, "{:?}", var_name),
             DataRep::Other(other) => write!(f, "{}", other),
             DataRep::None => write!(f, ""),
         }
@@ -1259,6 +1308,17 @@ mod tests {
 
         let val = Value::from("a {b");
         assert_eq!(val.as_script(), molt_err!("missing close-brace"));
+    }
+
+    #[test]
+    fn as_var_name() {
+        let val = Value::from("a");
+        assert_eq!(val.as_var_name().name(), "a");
+        assert_eq!(val.as_var_name().index(), None);
+
+        let val = Value::from("a(b)");
+        assert_eq!(val.as_var_name().name(), "a");
+        assert_eq!(val.as_var_name().index(), Some("b"));
     }
 
     #[test]

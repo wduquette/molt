@@ -71,7 +71,24 @@ pub fn cmd_array_get(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 /// # array set arrayName list
 pub fn cmd_array_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 4, 4, "arrayName list")?;
-    interp.array_set(argv[2].as_str(), &*argv[3].as_list()?)
+
+    // This odd little dance provides the same semantics as Standard TCL.  If the
+    // given var_name has an index, the array is created (if it didn't exist)
+    // but no data is added to it, and the command returns an error.
+    let var_name = argv[2].as_var_name();
+
+    if var_name.index().is_none() {
+        interp.array_set(var_name.name(), &*argv[3].as_list()?)
+    } else {
+        // This line will create the array if it doesn't exist, and throw an error if the
+        // named variable exists but isn't an array.  This is a little wacky, but it's
+        // what TCL 8.6 does.
+        interp.array_set(var_name.name(), &*Value::empty().as_list()?)?;
+
+        // And this line throws an error because the full name the caller specified is an
+        // element, not the array itself.
+        molt_err!("can't set \"{}\": variable isn't array", &argv[2])
+    }
 }
 
 /// # array size arrayName

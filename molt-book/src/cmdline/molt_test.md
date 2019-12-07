@@ -9,7 +9,7 @@ much simpler, at present). Any arguments are passed to the test harness
 
 `molt test` is often used to execute an entire test suite, spread over
 multiple files.  To simplify writing such a suite, `molt test` assumes
-that the folder contain the specified *filename* is the base folder for
+that the folder containing the specified *filename* is the base folder for
 the test suite, and sets the current working directory to that folder.
 This allows the named test script to use [**source**](../ref/source.md) to
 load other test scripts using paths relative to its own location.
@@ -25,11 +25,11 @@ For example,
 
 ```tcl
 $ molt test good_tests.tcl
-molt 0.1.0 -- Test Harness
+molt 0.2.0 -- Test Harness
 
 5 tests, 5 passed, 0 failed, 0 errors
 $ molt test bad_tests.tcl
-molt 0.1.0 -- Test Harness
+molt 0.2.0 -- Test Harness
 
 *** FAILED mytest-1.1 some proc
 Expected -ok <this result>

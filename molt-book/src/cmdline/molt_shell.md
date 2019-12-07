@@ -8,7 +8,7 @@ When called without any arguments, the command invokes the interactive interpret
 
 ```tcl
 $ molt shell
-Molt 0.1.0
+Molt 0.2.0
 %
 ```
 
@@ -42,3 +42,21 @@ $ molt shell args.tcl a b c
 arg0 = args.tcl
 argv = a b c
 $
+
+## TCL Liens
+
+The Standard TCL shell, `tclsh`, provides a number of features that Molt currently does not.
+
+*   A `.tclshrc` file for initializing interactive shells.
+    *   This can be added if there is demand; however, Molt is not primarily intended
+        for general purpose scripting.
+
+*   An option to execute a script and then start the interactive shell.
+    *   This can be added if there is demand.
+
+*   Environment variables for locating the interpreter's library of TCL code, locally
+    installed TCL packages, etc.
+    *   Molt's library of TCL code is compiled into the interpreter, rather than being
+        loaded from disk at run-time.
+    *   At present, Molt has no support for externally-defined TCL packages
+        (other than the `source` command).

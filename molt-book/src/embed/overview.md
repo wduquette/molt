@@ -35,10 +35,11 @@ let mut interp = Interp::empty();
 // Add application-specific commands
 ```
 
-This is useful if you wish to use the Molt interpreter as a safe file parser.  Eventually there will be an API for adding specific standard Molt commands back into an empty
+This is useful if you wish to use the Molt interpreter as a safe file parser.  
+
+Eventually there will be an API for adding specific standard Molt commands back into an empty
 interpreter so that the application can create a custom command set (e.g., including
 variable access and control structures but excluding file I/O), but that hasn't yet
 been implemented.
-
 
 We'll cover the remaining topics in the following sections.

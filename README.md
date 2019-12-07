@@ -24,6 +24,7 @@ command argument into multiple arguments:
 
 ```text
 % set a {a b c}
+a b c
 % list 1 2 $a 3 4
 1 2 {a b c} 3 4
 % list 1 2 {*}$a 3 4

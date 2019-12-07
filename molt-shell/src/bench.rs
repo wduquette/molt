@@ -164,7 +164,7 @@ fn strip_quotes(string: &str) -> String {
 fn write_formatted_text(ctx: &Context) {
     write_version();
     println!();
-    println!("{:>8} {:>8} -- Benchmark", "Micros", "Norm");
+    println!("{:>8} {:>8} -- Benchmark", "Nanos", "Norm");
 
     let baseline = ctx.baseline();
 

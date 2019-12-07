@@ -2,9 +2,9 @@
 
 **Available in [**molt test**](../molt_test.md) scripts only!**
 
-The `test` command is used to test Molt commands, whether built-in or coded
-in Molt.  It executes a Molt script, and compares the result against an
-expected value, which may be an `-ok` result or an `-error` message.
+The `test` command executes its body as a Molt script and compares its result
+to an expected value.  It may be used to test Molt commands, whether built-in or coded
+in Molt.  The expected value may be an `-ok` result or an `-error` message.
 
 The *name* and *description* are used to identify the test in the output.  The
 *name* can be any string, but the convention is to use the format
@@ -14,7 +14,8 @@ will allow the user to filter the set of tests on this name string.
 The test is executed in its own local variable scope; variables used by the
 test will be cleaned up automatically at the end of the test.  The
 [**global**](../../ref/global.md) command may be used to reference global variables; however,
-changes to these must be cleaned up explicitly.
+changes to these must be cleaned up explicitly.  Similarly, any
+[**procs**](../../ref/proc.md) defined by the test must be cleaned up explicitly.
 
 The `test` command has two forms, a brief form and an extended form with more options.
 
@@ -37,13 +38,13 @@ In the extended form, the details of the test are specified using options:
   test.  The test is flagged as an **error** if the setup script returns anything
   but a normal result.
 
-* **-body**: indicates the test's *body*, which is interpreted as in the brief form.
+* **-body**: indicates the test's *body*, which is interpreted as described above.
 
 * **-cleanup**: indicates a cleanup script, which will be executed after the body of the
-  test.  The test is flagged as an **error** if the setup script returns anything but
+  test.  The test is flagged as an **error** if the cleanup script returns anything but
   a normal result.
 
-* **-ok | -error**: indicates the expected value, as in the brief form.
+* **-ok | -error**: indicates the expected value, as described above.
 
 ## Examples
 

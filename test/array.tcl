@@ -163,6 +163,18 @@ test array-6.4 {array set, old var, empty list} {
     match_dicts {x 3 y 2 z 4} [array get a]
 } -ok {1}
 
+test array-6.5 {array set on index} {
+    catch {
+        array set a(1) {a b c d}
+    } result1
+
+    catch {
+        set a 1
+    } result2
+
+    list $result1 $result2
+} -ok {{can't set "a(1)": variable isn't array} {can't set "a": variable is array}}
+
 #----------------------------------------------------------------------------
 # Cleanup
 

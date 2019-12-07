@@ -2,20 +2,93 @@
 
 [![Crates.io](https://img.shields.io/crates/v/molt.svg)](https://crates.io/crates/molt)
 
-The goal of this project is to build a minimal version of TCL for embedding in Rust
-apps and for scripting Rust libraries.  See
-[The Molt Book](https://wduquette.github.io/molt) for details
+Molt is a minimal implementation of the TCL language for embedding in Rust apps and for
+scripting Rust libraries.  See [The Molt Book](https://wduquette.github.io/molt) for details
 and user documentation.
+
+## New in Molt 0.2.0
+
+**Associative Arrays:** Molt now includes TCL's associative array variables:
+
+```text
+% set a(1) "Howdy"
+Howdy
+% set a(foo.bar) 5
+5
+% puts [array get a]
+1 Howdy foo.bar 5
+```
+
+**The Expansion Operator:** Molt now supports the `{*}` operator, which expands a single
+command argument into multiple arguments:
+
+```text
+% set a {a b c}
+% list 1 2 $a 3 4
+1 2 {a b c} 3 4
+% list 1 2 {*}$a 3 4
+1 2 a b c 3 4
+```
+
+**Rust API Changes:**
+
+*   The addition of array variables required changes to the `molt::Interp` struct's API for
+    setting and retrieving variables.  In particular, the `molt::Interp::var`,
+    `molt::Interp::set_var`, and `molt::Interp::set_and_return` methods now take the variable
+    name as a `&Value` rather than a `&str`; this simplifies client code, and means that most
+    commands implemented in Rust that work with variables don't need to care whether the
+    variable in question is a scalar or an array element.
+
+
+## Coming Attractions
+
+At this point Molt is capable and robust enough for real work, though the Rust-level API is
+not yet completely stable.  Standard Rust `0.y.z` semantic versioning applies: ".y" changes
+can break the Rust-level API, ".z" changes will not.
+
+*   Feature: Regex and Glob pattern matching by Molt commands
+*   Improved support for implementing Molt commands in Rust that require associated context
+    data.
+*   Testing improvements
+*   Documentation improvements
+
+## Why Molt Exists
+
+Using Molt, you can:
+
+*   Create a shell interpreter for scripting and interactive testing of your Rust crates.
+*   Provide your Rust applications with an interactive REPL for debugging and
+    administration.
+*   Extend your Rust application with scripts provided at compile-time or at run-time.
+*   Allow your users to script your applications and libraries.
 
 See the [`molt-sample` repo](https://github.com/wduquette/molt-sample) for a sample Molt client
 skeleton.
 
-**NOTE:** A big part of this effort is defining and refining the Rust API used to
-interact with and extend the interpreter.  At this point in development the API
-can change without notice!  (And if you have suggestions for improvement, feel
-free to write an issue.)
+## Molt and Standard TCL
 
-## Building
+Molt is intended to be lightweight and require minimal dependencies, so that it can be added
+to any project without greatly increasing its footprint.  (At present, the core
+language is a single library create with no dependencies at all!)  As such, it does not provide
+all of the features of Standard TCL (e.g., TCL 8.6).
+
+At the same time, Molt's implementation of TCL should be consistent with TCL 8.6 so far as it
+goes.  Some archaic commands and command features are omitted; some changes
+are made so Molt works better in the Rust ecosystem. (E.g., Molt's notion of whitespace is
+the same as Rust's.) All liens against Standard TCL are documented in
+the [The Molt Book](https://wduquette.github.io/molt).
+
+No effort has been made to make the Rust-level API for extending Molt in Rust look like
+Standard TCL's C API; rather, the goal is to make the Rust-level API as simple and ergonomic
+as possible. **Note**: A big part of this effort is defining and refining the Rust API used
+to interact with and extend the interpreter. If you have comments or suggestions for
+improvement, please contact me or write an issue!
+
+## Building and Installation
+
+The easiest approach is to get the latest Molt through `crates.io`.  Look for the
+`molt`, `molt-shell`, and `molt-app` crates, or add them to your dependencies list
+in `cargo.toml`.
 
 To build Molt:
 
@@ -39,85 +112,6 @@ $ cargo run shell
 ```
 $ cargo run test test/all.tcl
 ```
-
-## TODO Items
-
-*   Revise expr.rs to separate parsing from evaluation.
-*   Cleanup
-    *   Look at how to best store proc details for efficient execution.
-    *   Ponder the MoltList API, and consider if we can make it cleaner?
-        *   Can add methods to MoltList in value.rs: `impl Vec<Value>`.  At least, I think
-            I can.
-    *   Consider whether var names should be stored as Values.
-    *   Consider whether molt::MoltFloat, molt::MoltInt, and molt::MoltList should be
-        molt::Float, molt::Int, and molt::List.
-*   Add Interp::eval_file(), and implement `source` in terms of it.
-*   Investigate performance of basic benchmarks.
-*   Issues from wduquette/molt.
-*   Add complete tests for the existing Tcl commands.
-    *   Test expression parser thoroughly
-        * Add tests for "eq", "ne", "in", "ni"
-* Implement stack traces
-  * Need not mimic TCL's output.
-* Implement remaining math functions in `expr`
-* Continue to add commands from the "next" list, below.
-* Flesh out Rust tests and Rust API docs in the code base.
-  * Follow API design guide from the RUST nursery.
-  * Design public API using `pub use` in `lib.rs`, so the examples read
-    properly from the user's point of view.
-* Define molt extension architecture
-  * E.g., the ability to add extensions to Molt as Rust crates.
-* Add costly features to core molt (e.g., regexp, glob) as Rust features.
-  * `molt test` needs to be able to filter tests based on the available
-    features.
-* On-going:
-    * Document Molt's TCL dialect using mdbook, and publish to GitHub pages.
-* Consider generalizing the Subcommand array mechanism; standard command sets
-  can be defined the same way, and loaded into the interpreter on creation.
-
-The following commands need to get implemented next.
-
-* `cd`, `pwd`
-* `concat`
-* `eval`
-* `info level`
-* `info commands` with glob matching
-* The remaining list commands
-* `string` (relevant subcommands)
-* `upvar`
-
-The following commands are not implemented by Molt at the present time,
-but most will probably be added eventually.
-
-* `array`
-* `cd`
-* `concat`
-* `dict`
-* `eval`
-* `format` (complex!)
-  * Might want two versions, one with printf syntax and one that's rustier.
-* `info *`` (most subcommands)
-* `lassign`
-* `linsert`
-* `lmap`
-* `lrange`
-* `lrepeat`
-* `lreplace`
-* `lreverse`
-* `lsearch`
-* `lset`
-* `lsort`
-* `pwd`
-* `regexp`
-* `regsub`
-* `split`
-* `string *` (most subcommands)
-* `subst`
-* `switch`
-* `throw`
-* `try`
-* `uplevel`
-* `upvar`
 
 ## Acknowledgements
 

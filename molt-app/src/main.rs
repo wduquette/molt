@@ -27,7 +27,7 @@ fn main() {
                 }
             }
             "test" => {
-                if molt_shell::test_harness(&mut interp, &args[2..]).is_ok() {
+                if molt::test_harness(&mut interp, &args[2..]).is_ok() {
                     std::process::exit(0);
                 } else {
                     std::process::exit(1);

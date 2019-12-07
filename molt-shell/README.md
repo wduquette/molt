@@ -3,7 +3,6 @@
 The `molt-shell` crate provides application frameworks for use with the Molt TCL interpreter:
 
 *   A interpreter shell (REPL)
-*   A test harness
 *   A benchmark harness
 
 The Molt Book (and the rustdoc) explain how to create each of these kinds of apps; or see

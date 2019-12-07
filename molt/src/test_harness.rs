@@ -2,7 +2,7 @@
 //!
 //! A Molt test script is a Molt script containing tests of Molt code.  Each
 //! test is a call of the Molt `test` command provided by the
-//! `molt_shell::test_harness` module.  The tests are executed in the context of the
+//! `molt::test_harness` module.  The tests are executed in the context of the
 //! the application's `molt::Interp` (and so can test application-specific commands).
 //!
 //! The test harness keeps track of the number of tests executed, and whether they
@@ -22,12 +22,13 @@
 //!
 //! See the Molt Book (or the Molt test suite) for examples of test scripts.
 
-use molt::molt_ok;
-use molt::Command;
-use molt::Interp;
-use molt::MoltResult;
-use molt::ResultCode;
-use molt::Value;
+use crate::molt_ok;
+use crate::Command;
+use crate::Interp;
+use crate::MoltResult;
+use crate::ResultCode;
+use crate::Value;
+use crate::check_args;
 use std::cell::RefCell;
 use std::env;
 use std::fs;
@@ -61,7 +62,7 @@ use std::rc::Rc;
 ///
 /// // NEXT, evaluate the file, if any.
 /// if args.len() > 1 {
-///     molt_shell::test_harness(&mut interp, &args[1..]);
+///     molt::test_harness(&mut interp, &args[1..]);
 /// } else {
 ///     eprintln!("Usage: mytest *filename.tcl");
 /// }
@@ -226,7 +227,7 @@ impl TestCommand {
     }
 
     fn fancy_test(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        molt::check_args(
+        check_args(
             1,
             argv,
             4,
@@ -284,7 +285,7 @@ impl TestCommand {
     }
 
     fn simple_test(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        molt::check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
+        check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
 
         // FIRST, get the test context
         let mut ctx = self.ctx.borrow_mut();
@@ -368,7 +369,7 @@ impl TestCommand {
 impl Command for TestCommand {
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         // FIRST, check the minimum command line.
-        molt::check_args(1, argv, 4, 0, "name description args...")?;
+        check_args(1, argv, 4, 0, "name description args...")?;
 
         // NEXT, see which kind of command it is.
         let arg = argv[3].as_str();

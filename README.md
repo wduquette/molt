@@ -33,6 +33,9 @@ a b c
 
 **Rust API Changes:**
 
+*   The Molt test harness code has moved from `molt_shell:test_harness` to `molt::test_harness`,
+    so that it can be used in the `molt/tests/tcl_tests.rs` integration test.
+
 *   The addition of array variables required changes to the `molt::Interp` struct's API for
     setting and retrieving variables.  In particular, the `molt::Interp::var`,
     `molt::Interp::set_var`, and `molt::Interp::set_and_return` methods now take the variable
@@ -108,11 +111,14 @@ $ cargo build
 $ cargo run shell
 ```
 
-* To run the language test suite
+* To run just the language test suite
 
 ```
-$ cargo run test test/all.tcl
+$ cargo run test molt/tests/all.tcl
 ```
+
+As of Molt 0.2.0, the language tests are also run by `cargo test`; however, it's much easier to
+see the output of the individual tests using the above command.
 
 ## Acknowledgements
 

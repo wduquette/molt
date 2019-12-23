@@ -186,12 +186,8 @@ impl Command {
     /// Execute the command according to its kind.
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         match self {
-            Command::Func(func, context_id) => {
-                func(interp, *context_id, argv)
-            }
-            Command::Proc(proc) => {
-                proc.execute(interp, argv)
-            }
+            Command::Func(func, context_id) => func(interp, *context_id, argv),
+            Command::Proc(proc) => proc.execute(interp, argv),
         }
     }
 
@@ -199,7 +195,7 @@ impl Command {
     fn context_id(&self) -> ContextID {
         match self {
             Command::Func(_, context_id) => *context_id,
-            _ => NULL_CONTEXT
+            _ => NULL_CONTEXT,
         }
     }
 }
@@ -246,7 +242,10 @@ impl ContextBox {
     /// Panics if the count is already 0.
     #[allow(dead_code)] // TODO: Remove once the design is complete.
     fn decrement(&mut self) -> bool {
-        assert!(self.ref_count != 0, "attempted to decrement context ref count below zero");
+        assert!(
+            self.ref_count != 0,
+            "attempted to decrement context ref count below zero"
+        );
         self.ref_count -= 1;
         self.ref_count == 0
     }
@@ -679,18 +678,17 @@ impl Interp {
     /// This is the normal way to add commands requiring application context to
     /// the interpreter.  The context data will be forgotten when the last command to
     /// reference it is discarded.
-    pub fn add_context_command(
-        &mut self,
-        name: &str,
-        func: CommandFunc,
-        context_id: ContextID,
-    ) {
+    pub fn add_context_command(&mut self, name: &str, func: CommandFunc, context_id: ContextID) {
         // TODO: Issue: currently, no way to decrement it when the command is removed!
         if context_id != NULL_CONTEXT {
-            self.context_map.get_mut(&context_id).expect("unknown context ID").increment();
+            self.context_map
+                .get_mut(&context_id)
+                .expect("unknown context ID")
+                .increment();
         }
 
-        self.commands.insert(name.into(), Rc::new(Command::Func(func, context_id)));
+        self.commands
+            .insert(name.into(), Rc::new(Command::Func(func, context_id)));
     }
 
     /// Adds a procedure to the interpreter.
@@ -703,7 +701,8 @@ impl Interp {
             body: body.to_string(),
         };
 
-        self.commands.insert(name.into(), Rc::new(Command::Proc(proc)));
+        self.commands
+            .insert(name.into(), Rc::new(Command::Proc(proc)));
     }
 
     /// Determines whether the interpreter contains a command with the given
@@ -729,16 +728,21 @@ impl Interp {
     /// Removes the command with the given name.
     pub fn remove_command(&mut self, name: &str) {
         // FIRST, get the command's context ID, if any.
-        let context_id =
-            self.commands.get(name).expect("undefined command").context_id();
-
+        let context_id = self
+            .commands
+            .get(name)
+            .expect("undefined command")
+            .context_id();
 
         // NEXT, If it has a context ID, decrement its reference count; and if the reference
         // is zero, remove the context.
-        if context_id != NULL_CONTEXT && self.context_map
+        if context_id != NULL_CONTEXT
+            && self
+                .context_map
                 .get_mut(&context_id)
                 .expect("unknown context ID")
-                .decrement() {
+                .decrement()
+        {
             self.context_map.remove(&context_id);
         }
 
@@ -1482,7 +1486,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected="unknown context ID")]
+    #[should_panic(expected = "unknown context ID")]
     fn context_forgotten_2_commands() {
         let mut interp = Interp::new();
 

@@ -1,12 +1,10 @@
 # Defining Commands
 
 At base, a Molt command is a Rust function that performs some kind of work and optionally
-returns a value in the context of a specific Rust interpreter.  There are four ways an
+returns a value in the context of a specific Rust interpreter.  There are two ways an
 application (or library crate) can define application-specific Rust commands:
 
-* As a simple Rust `CommandFunc` function
-* As a Rust `ContextCommandFunc` function that can access application-specific context
-* As a Rust `Command` object
+* As a Rust `CommandFunc` function
 * As a Molt procedure, or `proc`.
 
 ## `CommandFunc` Commands
@@ -14,14 +12,14 @@ application (or library crate) can define application-specific Rust commands:
 A `CommandFunc` command is any Rust function that implements `CommandFunc`:
 
 ```rust
-pub type CommandFunc = fn(&mut Interp, &[Value]) -> MoltResult;
+pub type CommandFunc = fn(&mut Interp, ContextID, &[Value]) -> MoltResult;
 ```
 
 For example, here's a simple command that takes one argument and returns it
 unchanged.
 
 ```rust
-fn cmd_ident(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+fn cmd_ident(_interp: &mut Interp, _context_id: ContextID, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 2, "value")?;
 
     molt_ok!(argv[1].clone())
@@ -29,7 +27,7 @@ fn cmd_ident(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 ```
 
 The `argv` vector contains the arguments to the command, beginning with the
-command's name.  The `check_args` method verifies that the command has a write
+command's name.  The `check_args` method verifies that the command has the right
 number of arguments, and returns the standard Tcl error message if not.  Finally,
 it uses `molt_ok!` to return its first argument.
 
@@ -39,12 +37,12 @@ Install this command into the interpreter using the `Interp::add_command` method
 interp.add_command("ident", cmd_ident);
 ```
 
-## `ContextCommandFunc` Commands
+## `CommandFunc` Commands with Context
 
-Normal `CommandFunc` commands are useful when extending the Molt language itself, but don't
-help much when adding commands to manipulate the application and its data.  In this case,
-it's often best to use a `ContextCommandFunc` in conjunction with the interpreter's
-_context cache_.
+A normal `CommandFunc` is useful when extending the Molt language itself; but
+application-specific commands need to manipulate the application and its data.  In this case,
+add the required data to the interpreter's _context cache_.  The cached data can be retrieved,
+used, and mutated by commands tagged with the relevant context ID.
 
 The context cache is a hash map that allows the interpreter to keep arbitrary data and make
 it available to commands. The usual pattern is like this:
@@ -69,7 +67,8 @@ fn cmd_whatsit(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mo
 
     let ctx = interp.context::<AppContext>(context_id);
 
-    // Save the first argument to the AppContext's text field.
+    // Append the first argument's string rep to the
+    // AppContext struct's text field.
     ctx.text.push_str(argv[1].as_str());
 
     molt_ok!()
@@ -86,42 +85,80 @@ fn main() {
 }
 ```
 
-## `Command` Objects
+The saved `AppContext` will be dropped automatically if the `whatsit` command is
+removed from the interpreter.
 
-Sometimes it's desirable to include more data as part of the command itself.  In this
-case one can define a type that implements the `Command` trait, and register an instance
-with the interp.
+## Commands with Shared Context
 
-```rust
-struct MyCommand {
-    b: RefCell<String>,
+Any number of Molt commands can share a single cached context struct:
+
+```
+    let interp = Interp::new();
+    let id = interp.save_context(AppContext::new());
+
+    interp.add_context_command("first", cmd_first, id);
+    interp.add_context_command("second", cmd_second, id);
+    interp.add_context_command("third", cmd_third, id);
+    ...
+```
+
+The context struct will persist in the cache until the final command is removed (or, of
+course, until the interpreter is dropped).
+
+## Molt Objects
+
+The standard way to represent an object in TCL is to define a command with attached
+context data. The command's methods are implemented as subcommands.
+
+The context cache supports this pattern trivially.  Define the object's instance variables
+as a context struct, and define a command to create instances.
+
+```
+// Instance Data
+struct InstanceContext { text: String }
+
+// Command to make an instance
+fn cmd_make(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 2, "name")?;
+
+    let id = interp.save_context(InstanceContext::new());
+
+    interp.add_context_command(argv[1].as_str(), cmd_instance, id);
+
+    molt_ok!()
 }
 
-impl Command for MyCommand {
-    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        ...
-    }
+// Instance Command
+fn cmd_instance(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 2, 0, "subcommand ?args...?")?;
+
+    // Get the context
+    let ctx = interp.context::<AppContext>(context_id);
+
+    // Do stuff based on argv[1], the subcommand.
+    ...
+}
+
+// Registering the command
+fn main() {
+    let interp = Interp::new();
+
+    interp.add_command("make", cmd_make);
+
+    ...
 }
 ```
 
-The instance is added to the interpreter using the `add_command_object` method:
+Then, in Molt code you can create an object called `fred`, use its methods, and then
+destroy it by renaming it to the empty string. 
 
-```rust
-interp.add_command_object("my_command", MyCommand::new());
+```tcl
+% make fred
+% fred do_something 1 2 3
+...
+% rename fred ""
 ```
 
-This allows many additional patterns of use.  For example, objects in Tcl are often
-represented as commands with associated data.  This can be handled using `Command` objects,
-optionally in conjunction with the context cache:
-
-*   Command `myclass` creates a new instance, a Tcl command with its own context record
-    in the context cache.
-*   The new instance can read and write from its instance data as needed.
-*   The code of the "class" is defined by a struct that implements the `Command` trait.
-*   The struct should also implement the `Drop` trait to release the context record
-    when the object goes away.
-
-TODO: We really need a bigger discussion of how to define Molt objects in Rust.
 
 ## Molt Procedures
 

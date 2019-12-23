@@ -40,7 +40,7 @@ a b c
 The Molt test harness code has moved from `molt_shell:test_harness` to `molt::test_harness`,
 so that it can be used in the `molt/tests/tcl_tests.rs` integration test.
 
-### Rust API Change: Variable Methods
+### Rust API Change: Variable Access
 
 The addition of array variables required changes to the `molt::Interp` struct's API for
 setting and retrieving variables.  In particular, the `molt::Interp::var`,

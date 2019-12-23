@@ -683,7 +683,7 @@ pub fn cmd_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
     if argv.len() == 3 {
         interp.set_var_return(&argv[1], argv[2].clone())
     } else {
-        molt_ok!(interp.var(&argv[1])?.clone())
+        molt_ok!(interp.var(&argv[1])?)
     }
 }
 

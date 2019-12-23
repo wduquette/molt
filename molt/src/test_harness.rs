@@ -22,13 +22,13 @@
 //!
 //! See the Molt Book (or the Molt test suite) for examples of test scripts.
 
-use crate::types::ContextID;
+use crate::check_args;
 use crate::molt_ok;
+use crate::types::ContextID;
 use crate::Interp;
 use crate::MoltResult;
 use crate::ResultCode;
 use crate::Value;
-use crate::check_args;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -297,10 +297,7 @@ fn fancy_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mol
             }
             _ => {
                 incr_errors(interp, context_id);
-                info.print_helper_error(
-                    "test command",
-                    &format!("invalid option: \"{}\"", val),
-                );
+                info.print_helper_error("test command", &format!("invalid option: \"{}\"", val));
                 return molt_ok!();
             }
         }

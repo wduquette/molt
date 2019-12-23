@@ -94,7 +94,7 @@ impl ScopeStack {
             Some(Var::Scalar(value)) => Ok(value.clone()),
             Some(Var::Array(_)) => molt_err!("can't read \"{}\": variable is array", name),
             Some(_) => unreachable!(),
-            None => molt_err!("can't read \"{}\": no such variable", name)
+            None => molt_err!("can't read \"{}\": no such variable", name),
         }
     }
 
@@ -108,11 +108,15 @@ impl ScopeStack {
                 if let Some(val) = map.get(index) {
                     Ok(val.clone())
                 } else {
-                    molt_err!("can't read \"{}({})\": no such element in array", name, index)
+                    molt_err!(
+                        "can't read \"{}({})\": no such element in array",
+                        name,
+                        index
+                    )
                 }
             }
             Some(_) => unreachable!(),
-            None => molt_err!("can't read \"{}\": no such variable", name)
+            None => molt_err!("can't read \"{}\": no such variable", name),
         }
     }
 
@@ -266,7 +270,7 @@ impl ScopeStack {
             Some(Var::Array(map)) => {
                 let mut list = Vec::new();
 
-                for (key,value) in map {
+                for (key, value) in map {
                     list.push(Value::from(key));
                     list.push(value.clone());
                 }
@@ -293,9 +297,7 @@ impl ScopeStack {
 
         match self.var_mut(self.current(), name) {
             Some(Var::Upvar(_)) => unreachable!(),
-            Some(Var::Scalar(_)) => {
-                molt_err!("can't array set \"{}\": variable isn't array", name)
-            }
+            Some(Var::Scalar(_)) => molt_err!("can't array set \"{}\": variable isn't array", name),
             Some(Var::Array(map)) => {
                 // It was already an array; just add the new elements.
                 insert_kvlist(map, &kvlist);
@@ -367,12 +369,11 @@ impl ScopeStack {
 }
 
 // Insert the flat key-value list into the map.
-fn insert_kvlist(map: &mut HashMap<String,Value>, list: &[Value]) {
+fn insert_kvlist(map: &mut HashMap<String, Value>, list: &[Value]) {
     for kv in list.chunks(2) {
         map.insert(kv[0].as_str().into(), kv[1].clone());
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -396,7 +397,10 @@ mod tests {
         assert_eq!(ss.get("b"), molt_err!("can't read \"b\": no such variable"));
 
         let _ = ss.set_elem("c", "1", "one".into());
-        assert_eq!(ss.get("c"), molt_err!("can't read \"c\": variable is array"));
+        assert_eq!(
+            ss.get("c"),
+            molt_err!("can't read \"c\": variable is array")
+        );
     }
 
     #[test]
@@ -407,13 +411,22 @@ mod tests {
         let out = ss.get_elem("a", "1");
         assert_eq!(out.unwrap().as_str(), "one");
 
-        assert_eq!(ss.get_elem("b", "1"), molt_err!("can't read \"b\": no such variable"));
+        assert_eq!(
+            ss.get_elem("b", "1"),
+            molt_err!("can't read \"b\": no such variable")
+        );
 
         let _ = ss.set_elem("c", "1", "one".into());
-        assert_eq!(ss.get_elem("c", "2"), molt_err!("can't read \"c(2)\": no such element in array"));
+        assert_eq!(
+            ss.get_elem("c", "2"),
+            molt_err!("can't read \"c(2)\": no such element in array")
+        );
 
         let _ = ss.set("d", "".into());
-        assert_eq!(ss.get_elem("d", "1"), molt_err!("can't read \"d(1)\": variable isn't array"));
+        assert_eq!(
+            ss.get_elem("d", "1"),
+            molt_err!("can't read \"d(1)\": variable isn't array")
+        );
     }
 
     #[test]
@@ -709,7 +722,9 @@ mod tests {
 
         // Can't update scalar
         assert!(ss.set("z", "0".into()).is_ok());
-        assert_eq!(ss.array_set("z", &kvlist),
-            molt_err!("can't array set \"z\": variable isn't array"));
+        assert_eq!(
+            ss.array_set("z", &kvlist),
+            molt_err!("can't array set \"z\": variable isn't array")
+        );
     }
 }

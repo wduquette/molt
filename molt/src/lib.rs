@@ -6,8 +6,8 @@
 
 pub use crate::interp::Interp;
 pub use crate::list::list_to_string;
-pub use crate::types::*;
 pub use crate::test_harness::test_harness;
+pub use crate::types::*;
 
 mod commands;
 mod eval_ptr;

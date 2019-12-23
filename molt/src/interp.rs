@@ -934,7 +934,7 @@ impl Interp {
     pub fn unset_var(&mut self, name: &Value) {
         let var_name = name.as_var_name();
 
-        if let Some(index) = var_name.index()  {
+        if let Some(index) = var_name.index() {
             self.unset_element(var_name.name(), index);
         } else {
             self.unset(var_name.name());
@@ -942,7 +942,7 @@ impl Interp {
     }
 
     /// Unsets a variable given its name.
-    pub fn unset(&mut self, name: &str,) {
+    pub fn unset(&mut self, name: &str) {
         self.scopes.unset(name);
     }
 
@@ -993,7 +993,6 @@ impl Interp {
     pub fn array_size(&self, array_name: &str) -> usize {
         self.scopes.array_size(array_name)
     }
-
 
     /// Pushes a variable scope on to the scope stack.
     /// Procs use this to define their local scope.

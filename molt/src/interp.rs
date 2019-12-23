@@ -1462,4 +1462,47 @@ mod tests {
 
         // Should panic!
     }
+
+    #[test]
+    #[should_panic]
+    fn context_forgotten_1_command() {
+        let mut interp = Interp::new();
+
+        // Save a context object.
+        let id = interp.save_context(String::from("ABC"));
+
+        // Use it with a command.
+        interp.add_context_command("dummy", dummy_cmd, id);
+
+        // Remove the command.
+        interp.remove_command("dummy");
+
+        // Try to retrieve it; this should panic.
+        let _ctx = interp.context::<String>(id);
+    }
+
+    #[test]
+    #[should_panic(expected="unknown context ID")]
+    fn context_forgotten_2_commands() {
+        let mut interp = Interp::new();
+
+        // Save a context object.
+        let id = interp.save_context(String::from("ABC"));
+
+        // Use it with a command.
+        interp.add_context_command("dummy", dummy_cmd, id);
+        interp.add_context_command("dummy2", dummy_cmd, id);
+
+        // Remove the command.
+        interp.remove_command("dummy");
+        assert_eq!(interp.context::<String>(id), "ABC");
+        interp.remove_command("dummy2");
+
+        // Try to retrieve it; this should panic.
+        let _ctx = interp.context::<String>(id);
+    }
+
+    fn dummy_cmd(_: &mut Interp, _: ContextID, _: &[Value]) -> MoltResult {
+        molt_err!("Not really meant to be called")
+    }
 }

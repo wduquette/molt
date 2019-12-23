@@ -183,7 +183,7 @@ enum Command {
 }
 
 impl Command {
-    // Execute the command according to its kind.
+    /// Execute the command according to its kind.
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         match self {
             Command::Func(func, context_id) => {
@@ -192,6 +192,14 @@ impl Command {
             Command::Proc(proc) => {
                 proc.execute(interp, argv)
             }
+        }
+    }
+
+    /// Gets the command's context, or NULL_CONTEXT if none.
+    fn context_id(&self) -> ContextID {
+        match self {
+            Command::Func(_, context_id) => *context_id,
+            _ => NULL_CONTEXT
         }
     }
 }
@@ -720,6 +728,21 @@ impl Interp {
 
     /// Removes the command with the given name.
     pub fn remove_command(&mut self, name: &str) {
+        // FIRST, get the command's context ID, if any.
+        let context_id =
+            self.commands.get(name).expect("undefined command").context_id();
+
+
+        // NEXT, If it has a context ID, decrement its reference count; and if the reference
+        // is zero, remove the context.
+        if context_id != NULL_CONTEXT && self.context_map
+                .get_mut(&context_id)
+                .expect("unknown context ID")
+                .decrement() {
+            self.context_map.remove(&context_id);
+        }
+
+        // FINALLY, remove the command itself.
         self.commands.remove(name);
     }
 

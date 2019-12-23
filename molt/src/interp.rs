@@ -151,7 +151,7 @@ use std::time::Instant;
 #[derive(Default)]
 pub struct Interp {
     // Command Table
-    commands: HashMap<String, Rc<dyn Command>>,
+    commands: HashMap<String, Rc<Command>>,
 
     // Variable Table
     scopes: ScopeStack,
@@ -173,25 +173,28 @@ pub struct Interp {
     profile_map: HashMap<String, ProfileRecord>,
 }
 
-/// A trait defining a Molt command object: a struct that implements a command (and may also
-/// have context data).
-///
-/// A simple command should be defined as a [`CommandFunc`]; define a full-fledged `Command`
-/// struct when the command needs access to context data other than that provided by the
-/// the interpreter itself.  For example, application-specific commands will often need
-/// access to application data, which can be provided as attributes of the `Command`
-/// struct.
-///
-/// TODO: Revise this so that `argv: &[Value]`.
-///
-/// [`CommandFunc`]: type.CommandFunc.html
-trait Command {
-    /// The `Command`'s execution method: the Molt interpreter calls this method  to
-    /// execute the command.  The method receives the object itself, the interpreter,
-    /// and an array representing the command and its arguments.
-    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult;
+/// A command defined in the interpreter.
+enum Command {
+    /// A binary command implemented as a Rust CommandFunc.
+    Func(CommandFunc, ContextID),
+
+    /// A Molt procedure
+    Proc(Procedure),
 }
 
+impl Command {
+    // Execute the command according to its kind.
+    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
+        match self {
+            Command::Func(func, context_id) => {
+                func(interp, *context_id, argv)
+            }
+            Command::Proc(proc) => {
+                proc.execute(interp, argv)
+            }
+        }
+    }
+}
 
 /// Sentinal value for command functions with no related context.
 ///
@@ -233,6 +236,7 @@ impl ContextBox {
     /// and false otherwise.
     ///
     /// Panics if the count is already 0.
+    #[allow(dead_code)] // TODO: Remove once the design is complete.
     fn decrement(&mut self) -> bool {
         assert!(self.ref_count != 0, "attempted to decrement context ref count below zero");
         self.ref_count -= 1;
@@ -673,12 +677,12 @@ impl Interp {
         func: CommandFunc,
         context_id: ContextID,
     ) {
-        let command = CommandFuncWrapper::new(func, context_id);
         // TODO: Issue: currently, no way to decrement it when the command is removed!
         if context_id != NULL_CONTEXT {
             self.context_map.get_mut(&context_id).expect("unknown context ID").increment();
         }
-        self.add_command_object(name, command);
+
+        self.commands.insert(name.into(), Rc::new(Command::Func(func, context_id)));
     }
 
     /// Adds a procedure to the interpreter.
@@ -686,19 +690,12 @@ impl Interp {
     /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
     /// as for the `proc` command and the `commands::cmd_proc` function.
     pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &str) {
-        let command = CommandProc {
+        let proc = Procedure {
             args: args.to_owned(),
             body: body.to_string(),
         };
 
-        self.add_command_object(name, command);
-    }
-
-    /// Adds a command to the interpreter using a `Command` object.
-    ///
-    /// TODO: Replace with Command enum
-    fn add_command_object<T: 'static + Command>(&mut self, name: &str, command: T) {
-        self.commands.insert(name.into(), Rc::new(command));
+        self.commands.insert(name.into(), Rc::new(Command::Proc(proc)));
     }
 
     /// Determines whether the interpreter contains a command with the given
@@ -1094,33 +1091,15 @@ impl Interp {
     }
 }
 
-/// A struct that wraps a CommandFunc and implements the Command trait.
-struct CommandFuncWrapper {
-    func: CommandFunc,
-    context_id: ContextID,
-}
-
-impl CommandFuncWrapper {
-    fn new(func: CommandFunc, context_id: ContextID) -> Self {
-        Self { func, context_id }
-    }
-}
-
-impl Command for CommandFuncWrapper {
-    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        (self.func)(interp, self.context_id, argv)
-    }
-}
-
-// EvalPtr structure for a proc.
-struct CommandProc {
+// Procedure Definition: much to do here!
+struct Procedure {
     args: MoltList,
     body: String,
 }
 
-// TODO: Need to work out how we're going to store the CommandProc details for
+// TODO: Need to work out how we're going to store the Procedure details for
 // best efficiency.
-impl Command for CommandProc {
+impl Procedure {
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         let name = argv[0].as_str();
 
@@ -1181,9 +1160,7 @@ impl Command for CommandProc {
         // interp.eval() returns only Ok or a real error.
         result
     }
-}
 
-impl CommandProc {
     // Outputs the wrong # args message for the proc.  The name is passed in
     // because it can be changed via the `rename` command.
     fn wrong_num_args(&self, name: &str) -> MoltResult {
@@ -1461,18 +1438,5 @@ mod tests {
         let _ctx = interp.context::<Vec<String>>(id);
 
         // Should panic!
-    }
-
-    #[test]
-    #[should_panic]
-    fn context_forget() {
-        let mut interp = Interp::new();
-
-        // Save a context object.
-        let id = interp.save_context(String::from("ABC"));
-
-        // Retrieve it.
-        let ctx = interp.context::<String>(id);
-        assert_eq!(*ctx, "ABC");
     }
 }

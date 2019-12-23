@@ -161,7 +161,8 @@ pub struct Interp {
     last_context_id: u64,
 
     // Context Map
-    context_map: HashMap<ContextID, Box<dyn Any>>,
+    // TODO: Remove: context_map: HashMap<ContextID, Box<dyn Any>>,
+    context_map: HashMap<ContextID, ContextBox>,
 
     // Defines the recursion limit for Interp::eval().
     recursion_limit: usize,
@@ -171,6 +172,20 @@ pub struct Interp {
 
     // Profile Map
     profile_map: HashMap<String, ProfileRecord>,
+}
+
+struct ContextBox {
+    data: Box<dyn Any>,
+    ref_count: usize,
+}
+
+impl ContextBox {
+    pub fn new<T: 'static>(data: T) -> Self {
+        Self {
+            data: Box::new(data),
+            ref_count: 0,
+        }
+    }
 }
 
 struct ProfileRecord {
@@ -723,7 +738,7 @@ impl Interp {
     /// ```
     pub fn save_context<T: 'static>(&mut self, data: T) -> ContextID {
         let id = self.context_id();
-        self.context_map.insert(id, Box::new(data));
+        self.context_map.insert(id, ContextBox::new(data));
         id
     }
 
@@ -756,6 +771,7 @@ impl Interp {
         self.context_map
             .get_mut(&id)
             .expect("unknown context ID")
+            .data
             .downcast_mut::<T>()
             .expect("context type mismatch")
     }
@@ -829,7 +845,7 @@ impl Interp {
     /// interp.set_context(id, data);
     /// ```
     pub fn set_context<T: 'static>(&mut self, id: ContextID, data: T) {
-        self.context_map.insert(id, Box::new(data));
+        self.context_map.insert(id, ContextBox::new(data));
     }
 
     //--------------------------------------------------------------------------------------------

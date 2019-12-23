@@ -827,27 +827,6 @@ impl Interp {
             .expect("context type mismatch")
     }
 
-    /// Removes a context record from the context cache.  Clears the data from
-    /// the cache when it is no longer needed.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::interp::Interp;
-    ///
-    /// let mut interp = Interp::new();
-    /// let data: Vec<String> = Vec::new();
-    /// let id = interp.save_context(data);
-    ///
-    /// // Later...
-    /// interp.forget_context(id);
-    /// ```
-    ///
-    pub fn forget_context(&mut self, id: ContextID) {
-        self.context_map.remove(&id);
-    }
-
     /// Generates a unique context ID for command context data.
     ///
     /// Normally the client will use [`save_context`](#method.save_context) to
@@ -1495,11 +1474,5 @@ mod tests {
         // Retrieve it.
         let ctx = interp.context::<String>(id);
         assert_eq!(*ctx, "ABC");
-
-        // Forget it
-        interp.forget_context(id);
-
-        // Retrieve it; should panic.
-        let _ctx = interp.context::<String>(id);
     }
 }

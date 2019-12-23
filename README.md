@@ -8,7 +8,9 @@ and user documentation.
 
 ## New in Molt 0.2.0
 
-**Associative Arrays:** Molt now includes TCL's associative array variables:
+### Associative Arrays
+
+Molt now includes TCL's associative array variables:
 
 ```text
 % set a(1) "Howdy"
@@ -19,7 +21,9 @@ Howdy
 1 Howdy foo.bar 5
 ```
 
-**The Expansion Operator:** Molt now supports the `{*}` operator, which expands a single
+### The Expansion Operator
+
+Molt now supports TCL's `{*}` operator, which expands a single
 command argument into multiple arguments:
 
 ```text
@@ -31,18 +35,49 @@ a b c
 1 2 a b c 3 4
 ```
 
-**Rust API Changes:**
+### Rust API Change: Test Harness
 
-*   The Molt test harness code has moved from `molt_shell:test_harness` to `molt::test_harness`,
-    so that it can be used in the `molt/tests/tcl_tests.rs` integration test.
+The Molt test harness code has moved from `molt_shell:test_harness` to `molt::test_harness`,
+so that it can be used in the `molt/tests/tcl_tests.rs` integration test.
 
-*   The addition of array variables required changes to the `molt::Interp` struct's API for
-    setting and retrieving variables.  In particular, the `molt::Interp::var`,
-    `molt::Interp::set_var`, and `molt::Interp::set_and_return` methods now take the variable
-    name as a `&Value` rather than a `&str`; this simplifies client code, and means that most
-    commands implemented in Rust that work with variables don't need to care whether the
-    variable in question is a scalar or an array element.
+### Rust API Change: Variable Methods
 
+The addition of array variables required changes to the `molt::Interp` struct's API for
+setting and retrieving variables.  In particular, the `molt::Interp::var`,
+`molt::Interp::set_var`, and `molt::Interp::set_and_return` methods now take the variable
+name as a `&Value` rather than a `&str`; this simplifies client code, and means that most
+commands implemented in Rust that work with variables don't need to care whether the
+variable in question is a scalar or an array element.
+
+### Rust API Change: Command Definition
+
+Defining Molt commands in Rust has been simplified.  
+
+First, the `Command` trait has been removed.  It was intended to provide a way to
+attach context data to a command; but it was not very good for mutable data, and had
+no way to share data among related commands (a common pattern).
+
+Second, the interpreter's context cache has been improved.  Multiple commands can share a
+context ID (and hence access to the shared context); and the cached data will be dropped
+automatically when the last such command is removed from the interpreter.
+
+Third, there is now only one command function signature:
+
+```
+fn my_command(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+    ...
+}
+```
+
+Commands that don't use a cached context should be defined as follows:
+
+```
+fn my_command(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    ...
+}
+```
+
+See [The Molt Book](https://wduquette.github.io/molt) and the Rust doc for examples.
 
 ## Coming Attractions
 
@@ -51,8 +86,6 @@ not yet completely stable.  Standard Rust `0.y.z` semantic versioning applies: "
 can break the Rust-level API, ".z" changes will not.
 
 *   Feature: Regex and Glob pattern matching by Molt commands
-*   Improved support for implementing Molt commands in Rust that require associated context
-    data.
 *   Testing improvements
 *   Documentation improvements
 

@@ -98,42 +98,15 @@ impl ResultCode {
 #[derive(Eq, PartialEq, Debug, Hash, Copy, Clone)]
 pub struct ContextID(pub(crate) u64);
 
-/// A trait defining a Molt command object: a struct that implements a command (and may also
-/// have context data).
-///
-/// A simple command should be defined as a [`CommandFunc`]; define a full-fledged `Command`
-/// struct when the command needs access to context data other than that provided by the
-/// the interpreter itself.  For example, application-specific commands will often need
-/// access to application data, which can be provided as attributes of the `Command`
-/// struct.
-///
-/// TODO: Revise this so that `argv: &[Value]`.
-///
-/// [`CommandFunc`]: type.CommandFunc.html
-pub trait Command {
-    /// The `Command`'s execution method: the Molt interpreter calls this method  to
-    /// execute the command.  The method receives the object itself, the interpreter,
-    /// and an array representing the command and its arguments.
-    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult;
-}
-
-/// A simple command function, used to implement a command without any attached
-/// context data (other than the [`Interp`] itself).
-///
-/// The command function receives the interpreter and an array representing the
-/// command and its arguments.
-///
-/// [`Interp`]: ../interp/struct.Interp.html
-pub type CommandFunc = fn(&mut Interp, &[Value]) -> MoltResult;
-
-/// A simple command function, used to implement a command that retrieves
-/// application context from the [`Interp`]'s context cache.
+/// A function used to implement a binary Molt command.  The command may retrieve
+/// its application context from the [`Interp`]'s context cache if it was defined
+/// with a context ID.
 ///
 /// The command function receives the interpreter, the context ID, and an array
 /// representing the command and its arguments.
 ///
 /// [`Interp`]: ../interp/struct.Interp.html
-pub type ContextCommandFunc = fn(&mut Interp, ContextID, &[Value]) -> MoltResult;
+pub type CommandFunc = fn(&mut Interp, ContextID, &[Value]) -> MoltResult;
 
 /// Used for defining subcommands of ensemble commands.
 ///

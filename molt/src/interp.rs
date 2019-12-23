@@ -117,7 +117,6 @@ use crate::parser;
 use crate::parser::Script;
 use crate::parser::Word;
 use crate::scope::ScopeStack;
-use crate::types::Command;
 use crate::types::*;
 use crate::value::Value;
 use std::any::Any;
@@ -174,17 +173,70 @@ pub struct Interp {
     profile_map: HashMap<String, ProfileRecord>,
 }
 
+/// A trait defining a Molt command object: a struct that implements a command (and may also
+/// have context data).
+///
+/// A simple command should be defined as a [`CommandFunc`]; define a full-fledged `Command`
+/// struct when the command needs access to context data other than that provided by the
+/// the interpreter itself.  For example, application-specific commands will often need
+/// access to application data, which can be provided as attributes of the `Command`
+/// struct.
+///
+/// TODO: Revise this so that `argv: &[Value]`.
+///
+/// [`CommandFunc`]: type.CommandFunc.html
+trait Command {
+    /// The `Command`'s execution method: the Molt interpreter calls this method  to
+    /// execute the command.  The method receives the object itself, the interpreter,
+    /// and an array representing the command and its arguments.
+    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult;
+}
+
+
+/// Sentinal value for command functions with no related context.
+///
+/// **NOTE**: it would make no sense to use `Option<ContextID>` instead of a sentinal
+/// value.  Whether or not a command has related context is known at compile
+/// time, and is an essential part of the command's definition; it never changes.
+/// Commands with context will access the function's context_id argument; and
+/// and commands without have no reason to do so.  Using a sentinel allows the same
+/// function type to be used for all binary Molt commands with minimal hassle to the
+/// client developer.
+const NULL_CONTEXT: ContextID = ContextID(0);
+
+/// A container for a command's context struct, containing the context in a box,
+/// and a reference count.
+///
+/// The reference count is incremented when the context's ID is used with a command,
+/// and decremented when the command is forgotten.  If the reference count is
+/// decremented to zero, the context is removed.
 struct ContextBox {
     data: Box<dyn Any>,
     ref_count: usize,
 }
 
 impl ContextBox {
-    pub fn new<T: 'static>(data: T) -> Self {
+    /// Creates a new context box for the given data, and sets its reference count to 0.
+    fn new<T: 'static>(data: T) -> Self {
         Self {
             data: Box::new(data),
             ref_count: 0,
         }
+    }
+
+    /// Increments the context's reference count.
+    fn increment(&mut self) {
+        self.ref_count += 1;
+    }
+
+    /// Decrements the context's reference count.  Returns true if the count is now 0,
+    /// and false otherwise.
+    ///
+    /// Panics if the count is already 0.
+    fn decrement(&mut self) -> bool {
+        assert!(self.ref_count != 0, "attempted to decrement context ref count below zero");
+        self.ref_count -= 1;
+        self.ref_count == 0
     }
 }
 
@@ -596,37 +648,36 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Command Definition and Handling
 
-    /// Adds a command defined by a `CommandFunc` to the interpreter. This is the normal way to
-    /// add commands to the interpreter.
+    /// Adds a binary command with no related context to the interpreter.  This is the normal
+    /// way to add most commands.
     ///
     /// # Accessing Application Data
     ///
     /// When embedding Molt in an application, it is common to define commands that require
     /// mutable or immutable access to application data.  If the command requires
-    /// access to data other than that provided by the `Interp` itself, e.g., application data,
-    /// consider adding the relevant data structure to the context cache and then use
-    /// [`add_context_command`](#method.add_context_command).  Alternatively, define a struct that
-    /// implements `Command` and use [`add_command_object`](#method.add_command_object).
+    /// access to data other than that provided by the `Interp` itself,
+    /// add the relevant data structure to the context cache, receiving a `ContextID`, and
+    /// then use [`add_context_command`](#method.add_context_command).
     pub fn add_command(&mut self, name: &str, func: CommandFunc) {
-        let command = CommandFuncWrapper::new(func);
-        self.add_command_object(name, command);
+        self.add_context_command(name, func, NULL_CONTEXT);
     }
 
-    /// Adds a command defined by a `ContextCommandFunc` to the interpreter.
+    /// Adds a binary command with related context data to the interpreter.
     ///
     /// This is the normal way to add commands requiring application context to
-    /// the interpreter.  It is up to the module creating the context to free it when it is
-    /// no longer required.
-    ///
-    /// **Warning**: Do not use this method to define a TCL object, i.e., a command with
-    /// its own data and lifetime.  Use a type that implements `Command` and `Drop`.
+    /// the interpreter.  The context data will be forgotten when the last command to
+    /// reference it is discarded.
     pub fn add_context_command(
         &mut self,
         name: &str,
-        func: ContextCommandFunc,
+        func: CommandFunc,
         context_id: ContextID,
     ) {
-        let command = ContextCommandFuncWrapper::new(func, context_id);
+        let command = CommandFuncWrapper::new(func, context_id);
+        // TODO: Issue: currently, no way to decrement it when the command is removed!
+        if context_id != NULL_CONTEXT {
+            self.context_map.get_mut(&context_id).expect("unknown context ID").increment();
+        }
         self.add_command_object(name, command);
     }
 
@@ -645,8 +696,8 @@ impl Interp {
 
     /// Adds a command to the interpreter using a `Command` object.
     ///
-    /// Use this when defining a command that requires application context.
-    pub fn add_command_object<T: 'static + Command>(&mut self, name: &str, command: T) {
+    /// TODO: Replace with Command enum
+    fn add_command_object<T: 'static + Command>(&mut self, name: &str, command: T) {
         self.commands.insert(name.into(), Rc::new(command));
     }
 
@@ -1067,33 +1118,16 @@ impl Interp {
 /// A struct that wraps a CommandFunc and implements the Command trait.
 struct CommandFuncWrapper {
     func: CommandFunc,
-}
-
-impl CommandFuncWrapper {
-    fn new(func: CommandFunc) -> Self {
-        Self { func }
-    }
-}
-
-impl Command for CommandFuncWrapper {
-    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        (self.func)(interp, argv)
-    }
-}
-
-/// A struct that wraps a ContextCommandFunc and implements the Command trait.
-struct ContextCommandFuncWrapper {
-    func: ContextCommandFunc,
     context_id: ContextID,
 }
 
-impl ContextCommandFuncWrapper {
-    fn new(func: ContextCommandFunc, context_id: ContextID) -> Self {
+impl CommandFuncWrapper {
+    fn new(func: CommandFunc, context_id: ContextID) -> Self {
         Self { func, context_id }
     }
 }
 
-impl Command for ContextCommandFuncWrapper {
+impl Command for CommandFuncWrapper {
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         (self.func)(interp, self.context_id, argv)
     }

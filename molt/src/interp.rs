@@ -1,43 +1,108 @@
 //! The Molt Interpreter
 //!
-//! TODO: This should be primary documentation on using the Molt Interp.
-//!
 //! The [`Interp`] struct is the primary API for embedding Molt into a Rust application.
 //! Given an `Interp`, the application may:
 //!
-//! * Evaluate scripts
+//! * Evaluate scripts and expressions
 //! * Check scripts for completeness
 //! * Extend the language by defining new Molt commands in Rust
-//! * Set and get Molt variables in command bodies
-//! * Interpret Molt values as a variety of data types.
-//! * Access application data the context cache
+//! * Set and get Molt variables
+//! * Access application data via the context cache
 //!
 //! The following describes the features of the [`Interp`] in general; follow the links for
-//! specifics of the various types and methods.
+//! specifics of the various types and methods. See also [The Molt Book] for a general
+//! introduction to Molt and its API.
 //!
 //! # Interp is not Sync!
 //!
-//! The `Interp` class (and the rest of Molt) is intended for use in a single thread.  It is
-//! safe to have multiple `Interps` in different threads; but use `String` (or another `Sync`)
-//! when passing data between them.  In particular, `Value` is not `Sync`.
+//! The [`Interp`] class (and the rest of Molt) is intended for use in a single thread.  It is
+//! safe to have `Interps` in different threads; but use `String` (or another `Sync`)
+//! when passing data between them.  In particular, [`Value`] is not `Sync`.
 //!
 //! # Creating an Interpreter
 //!
 //! There are two ways to create an interpreter.  The usual way is to call
 //! [`Interp::new`](struct.Interp.html#method.new), which creates an interpreter and populates
-//! it with all of the standard Molt commands.  Alternatively,
-//! [`Interp::empty`](struct.Interp.html#method.empty) creates an interpreter with no commands,
-//! allowing the application to define only those commands it needs.  This is useful when the goal
-//! is to provide the application with a simple, non-scriptable console command set.
+//! it with all of the standard Molt commands.  The application can then add any
+//! application-specific commands.
 //!
-//! TODO: Define a way to add various subsets of the standard commands to an initially
+//! Alternatively, [`Interp::empty`](struct.Interp.html#method.empty) creates an interpreter
+//! with no built-in commands, allowing the application to define only those commands it needs.
+//! Such an empty interpreter can be configured as the parser for data and configuration files,
+//! or as the basis for a simple, non-scriptable console command set.
+//!
+//! **TODO**: Define a way to add various subsets of the standard commands to an initially
 //! empty interpreter.
 //!
 //! ```
 //! use molt::Interp;
 //! let mut interp = Interp::new();
-//! // ...
+//!
+//! // add commands, evaluate scripts, etc.
 //! ```
+//!
+//! # Defining New Commands
+//!
+//! The usual reason for embedding Molt in an application is to extend it with
+//! application-specific commands.  There are several ways to do this.
+//!
+//! The simplest method, and the one used by most of Molt's built-in commands, is to define a
+//! [`CommandFunc`] and register it with the interpreter using the
+//! [`Interp::add_command`](struct.Interp.html#method.add_command) method. A `CommandFunc` is
+//! simply a Rust function that returns a [`MoltResult`] given an interpreter and a slice of Molt
+//! [`Value`] objects representing the command name and its arguments. The function may interpret
+//! the array of arguments in any way it likes.
+//!
+//! The following example defines a command called `square` that squares an integer value.
+//!
+//! ```
+//! use molt::Interp;
+//! use molt::check_args;
+//! use molt::molt_ok;
+//! use molt::types::*;
+//!
+//! # let _ = dummy();
+//! # fn dummy() -> MoltResult {
+//! // FIRST, create the interpreter and add the needed command.
+//! let mut interp = Interp::new();
+//! interp.add_command("square", cmd_square);
+//!
+//! // NEXT, try using the new command.
+//! let val = interp.eval("square 5")?;
+//! assert_eq!(val.as_str(), "25");
+//! # molt_ok!()
+//! # }
+//!
+//! // The command: square intValue
+//! fn cmd_square(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//!     // FIRST, check the number of arguments.  Returns an appropriate error
+//!     // for the wrong number of arguments.
+//!     check_args(1, argv, 2, 2, "intValue")?;
+//!
+//!     // NEXT, get the intValue argument as an int.  Returns an appropriate error
+//!     // if the argument can't be interpreted as an integer.
+//!     let intValue = argv[1].as_int()?;
+//!
+//!     // NEXT, return the product.
+//!     molt_ok!(intValue * intValue)
+//! }
+//! ```
+//!
+//! The new command can then be used in a Molt interpreter:
+//!
+//! ```tcl
+//! % square 5
+//! 25
+//! % set a [square 6]
+//! 36
+//! % puts "a=$a"
+//! a=36
+//! ```
+//!
+//!
+//! TODO: describe context commands
+//!
+//! TODO: flesh out Molt's ensemble command API, and then describe how to define ensemble commands.
 //!
 //! # Evaluating Scripts
 //!
@@ -77,35 +142,16 @@
 //!
 //! # Checking Scripts for Completeness
 //!
-//! The [`Interp::complete`](struct.Interp.html#method.complete) checks whether a Molt script is
-//! complete: i.e., that it contains no unterminated quoted or braced strings that
-//! would prevent it from being evaluated as Molt code.  This is primarily useful when
+//! The [`Interp::complete`](struct.Interp.html#method.complete) method checks whether a Molt
+//! script is complete: e.g., that it contains no unterminated quoted or braced strings,
+//! that would prevent it from being evaluated as Molt code.  This is useful when
 //! implementing a Read-Eval-Print-Loop, as it allows the REPL to easily determine whether it
 //! should evaluate the input immediately or ask for an additional line of input.
 //!
-//! # Defining New Commands
-//!
-//! The usual reason for embedding Molt in an application is to extend it with
-//! application-specific commands.  There are a number of ways to do this.
-//!
-//! The simplest method, and the one used by most of Molt's built-in commands, is to define a
-//! [`CommandFunc`] and register it with the interpreter using the
-//! [`Interp::add_command`](struct.Interp.html#method.add_command) method:
-//!
-//! ```pub type CommandFunc = fn(&mut Interp, &[Value]) -> MoltResult;```
-//!
-//! A `CommandFunc` is simply a Rust function that accepts an interpreter and a slice of Molt
-//! [`Value`] objects and returns a [`MoltResult`].  The slice of [`Value`] objects represents
-//! the name of the command and its arguments, which the function may interpret in any way it
-//! desires.
-//!
-//! TODO: describe context commands and command objects.
-//!
-//! TODO: flesh out Molt's ensemble command API, and then describe how to define ensemble commands.
-//!
-//! [`MoltResult`]: ../types/struct.MoltResult.html
-//! [`ResultCode`]: ../types/struct.ResultCode.html
-//! [`CommandFunc`]: ../types/struct.CommandFunc.html
+//! [The Molt Book]: https://wduquette.github.io/molt/
+//! [`MoltResult`]: ../types/type.MoltResult.html
+//! [`ResultCode`]: ../types/enum.ResultCode.html
+//! [`CommandFunc`]: ../types/type.CommandFunc.html
 //! [`Value`]: ../Value/struct.Value.html
 //! [`Interp`]: struct.Interp.html
 

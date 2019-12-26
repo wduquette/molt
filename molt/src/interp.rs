@@ -198,7 +198,31 @@
 //! }
 //! ```
 //!
-//! TODO: flesh out Molt's ensemble command API, and then describe how to define ensemble commands.
+//! # Ensemble Commands
+//!
+//! An _ensemble command_ is simply a command with subcommands, like the standard Molt `info`
+//! and `array` commands.  At the Rust level, it is simply a command that looks up its subcommand
+//! (e.g., `argv[1]`) in an array of `Subcommand` structs and executes it as a command.
+//!
+//! **TODO:** Flesh out the API for ensemble commands, and add examples here.
+//!
+//! # Object Commands
+//!
+//! An _object command_ is an _ensemble command_ that represents an object; the classic TCL
+//! examples are the TK widgets.  The pattern for defining object commands is as follows:
+//!
+//! * A constructor command that creates instances of the given object type.  (We use the word
+//!   *type* rather than *class* because inheritance is usually neither involved or available.)
+//!
+//! * An instance is an ensemble command:
+//!   * Whose name is provided to the constructor
+//!   * That has an associated context structure, initialized by the constructor, that belongs
+//!     to it alone.
+//!
+//! * Each of the object's subcommand functions is passed the object's context ID, so that all
+//!   can access the object's data.
+//!
+//! **TODO:** Include an example of an object command.
 //!
 //! # Evaluating Scripts
 //!

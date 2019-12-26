@@ -296,7 +296,9 @@ use std::time::Instant;
 /// embedding Molt into a Rust application.  The application creates an instance
 /// of `Interp`, configures with it the required set of application-specific
 /// and standard Molt commands, and then uses it to evaluate Molt scripts and
-/// expressions.
+/// expressions.  See the
+/// [module level documentation](index.html)
+/// for an overview.
 ///
 /// # Example
 ///
@@ -304,9 +306,9 @@ use std::time::Instant;
 /// Molt commands.
 ///
 /// ```
-/// # use molt::types::*;
-/// # use molt::Interp;
-/// # use molt::molt_ok;
+/// use molt::types::*;
+/// use molt::Interp;
+/// use molt::molt_ok;
 /// # fn dummy() -> MoltResult {
 /// let mut interp = Interp::new();
 /// let four = interp.eval("expr {2 + 2}")?;
@@ -458,7 +460,7 @@ impl Interp {
         }
     }
 
-    /// Creates a new Molt interpreter, pre-populated with the standard Molt commands.
+    /// Creates a new Molt interpreter that is pre-populated with the standard Molt commands.
     /// Use [`command_names`](#method.command_names) (or the `info commands` Molt command)
     /// to retrieve the full list, and the [`add_command`](#method.add_command) family of
     /// methods to extend the interpreter with new commands.
@@ -532,12 +534,12 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Script and Expression Evaluation
 
-    /// Evaluates a script one command at a time.  Returns the [`Value`](../value/struct.Value.html)
+    /// Evaluates a script one command at a time.  Returns the [`Value`](../value/index.html)
     /// of the last command in the script, or the value of any explicit `return` call in the
     /// script, or any error thrown by the script.  Other
     /// [`ResultCode`](../types/enum.ResultCode.html) values are converted to normal errors.
     ///
-    /// Use this method (or [`eval_value`](#method.eval_value) to evaluate arbitrary scripts.
+    /// Use this method (or [`eval_value`](#method.eval_value)) to evaluate arbitrary scripts.
     /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
     ///
     /// # Example
@@ -548,8 +550,11 @@ impl Interp {
     /// ```
     /// # use molt::types::*;
     /// # use molt::Interp;
+    ///
     /// let mut interp = Interp::new();
+    ///
     /// let input = "set a 1";
+    ///
     /// match interp.eval(input) {
     ///    Ok(val) => {
     ///        // Computed a Value
@@ -559,10 +564,7 @@ impl Interp {
     ///        // Got an error; print it out.
     ///        println!("Error: {}", msg);
     ///    }
-    ///    _ => {
-    ///        // Won't ever happen, but the compiler doesn't know that.
-    ///        // panic!() if you like.
-    ///    }
+    ///    _ => unreachable!(),
     /// }
     /// ```
 
@@ -571,21 +573,24 @@ impl Interp {
         self.eval_value(&value)
     }
 
-    /// Evaluates a script one command at a time.  Returns the [`Value`](../value/struct.Value.html)
+    /// Evaluates the string value of a [`Value`] as a script.  Returns the `Value`
     /// of the last command in the script, or the value of any explicit `return` call in the
     /// script, or any error thrown by the script.  Other
     /// [`ResultCode`](../types/enum.ResultCode.html) values are converted to normal errors.
     ///
-    /// Use this method (or [`eval`](#method.eval) to evaluate arbitrary scripts.
+    /// This method is equivalent to [`eval`](#method.eval), but works on a `Value` rather
+    /// than on a string slice.  Use it or `eval` to evaluate arbitrary scripts.
     /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
     ///
+    /// [`Value`]: ../value/index.html
     pub fn eval_value(&mut self, value: &Value) -> MoltResult {
         // TODO: Could probably do better, here.  If the value is already a list, for
         // example, can maybe evaluate it as a command without using as_script().
         // Tricky, though.  Don't want to have to parse it as a list.  Need a quick way
-        // to determine if something is already a list.
+        // to determine if something is already a list.  (Might need two methods!)
 
         // FIRST, check the number of nesting levels
+        // TODO: This should probably be in eval_body!  Check Tcl 7/8.
         self.num_levels += 1;
 
         if self.num_levels > self.recursion_limit {
@@ -735,7 +740,8 @@ impl Interp {
     }
 
     /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html) and
-    /// returns its value.  The expression is passed a `Value` which is interpreted as a `String`.
+    /// returns its value.  The expression is passed as a `Value` which is interpreted as a
+    /// `String`.
     ///
     /// # Example
     /// ```
@@ -828,24 +834,18 @@ impl Interp {
     /// Adds a binary command with no related context to the interpreter.  This is the normal
     /// way to add most commands.
     ///
-    /// # Accessing Application Data
-    ///
-    /// When embedding Molt in an application, it is common to define commands that require
-    /// mutable or immutable access to application data.  If the command requires
-    /// access to data other than that provided by the `Interp` itself,
-    /// add the relevant data structure to the context cache, receiving a `ContextID`, and
-    /// then use [`add_context_command`](#method.add_context_command).
+    /// If the command needs access to some form of application or context data,
+    /// use [`add_context_command`](#method.add_context_command) instead.  See the
+    /// [module level documentation](index.html) for an overview and examples.
     pub fn add_command(&mut self, name: &str, func: CommandFunc) {
         self.add_context_command(name, func, NULL_CONTEXT);
     }
 
     /// Adds a binary command with related context data to the interpreter.
     ///
-    /// This is the normal way to add commands requiring application context to
-    /// the interpreter.  The context data will be forgotten when the last command to
-    /// reference it is discarded.
+    /// This is the normal way to add commands requiring application context.  See the
+    /// [module level documentation](index.html) for an overview and examples.
     pub fn add_context_command(&mut self, name: &str, func: CommandFunc, context_id: ContextID) {
-        // TODO: Issue: currently, no way to decrement it when the command is removed!
         if context_id != NULL_CONTEXT {
             self.context_map
                 .get_mut(&context_id)
@@ -871,7 +871,7 @@ impl Interp {
             .insert(name.into(), Rc::new(Command::Proc(proc)));
     }
 
-    /// Determines whether the interpreter contains a command with the given
+    /// Determines whether or not the interpreter contains a command with the given
     /// name.
     pub fn has_command(&self, name: &str) -> bool {
         self.commands.contains_key(name)
@@ -883,6 +883,24 @@ impl Interp {
     /// name.  This is intentional: it is a common TCL programming technique to wrap an
     /// existing command by renaming it and defining a new command with the old name that
     /// calls the original command at its new name.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// interp.rename_command("expr", "=");
+    ///
+    /// let sum = interp.eval("= {1 + 1}")?.as_int()?;
+    ///
+    /// assert_eq!(sum, 2);
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn rename_command(&mut self, old_name: &str, new_name: &str) {
         if let Some(cmd) = self.commands.get(old_name) {
             let cmd = Rc::clone(cmd);
@@ -892,6 +910,22 @@ impl Interp {
     }
 
     /// Removes the command with the given name.
+    ///
+    /// This would typically be done when destroying an object command.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// use molt::molt_ok;
+    ///
+    /// let mut interp = Interp::new();
+    ///
+    /// interp.remove_command("set");  // You'll be sorry....
+    ///
+    /// assert!(!interp.has_command("set"));
+    /// ```
     pub fn remove_command(&mut self, name: &str) {
         // FIRST, get the command's context ID, if any.
         let context_id = self
@@ -918,6 +952,19 @@ impl Interp {
 
     /// Gets a vector of the names of the existing commands.
     ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// use molt::molt_ok;
+    ///
+    /// let mut interp = Interp::new();
+    ///
+    /// for name in interp.command_names() {
+    ///     println!("Found command: {}", name);
+    /// }
+    /// ```
     pub fn command_names(&self) -> MoltList {
         let vec: MoltList = self
             .commands
@@ -932,7 +979,11 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Interpreter Configuration
 
-    /// Gets the interpreter's recursion limit.
+    /// Gets the interpreter's recursion limit: how deep the stack of script evaluations may be.
+    ///
+    /// A script stack level is added by each nested script evaluation (i.e., by each call)
+    /// to [`eval`](#method.eval), [`eval_value`](#method.eval_value), or
+    /// [`eval_body`](#method.eval_body).
     ///
     /// # Example
     /// ```
@@ -945,7 +996,12 @@ impl Interp {
         self.recursion_limit
     }
 
-    /// Sets the interpreter's recursion limit.  The default is 1000.
+    /// Sets the interpreter's recursion limit: how deep the stack of script evaluations may
+    /// be.  The default is 1000.
+    ///
+    /// A script stack level is added by each nested script evaluation (i.e., by each call)
+    /// to [`eval`](#method.eval), [`eval_value`](#method.eval_value), or
+    /// [`eval_body`](#method.eval_body).
     ///
     /// # Example
     /// ```
@@ -962,10 +1018,11 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Context Cache
 
-    /// Saves the client context data in the interpreter's context cache,
+    /// Saves the client's context data in the interpreter's context cache,
     /// returning a generated context ID.  Client commands can retrieve the data
     /// given the ID.
     ///
+    /// See the [module level documentation](index.html) for an overview and examples.
     ///
     /// # Example
     ///
@@ -983,7 +1040,9 @@ impl Interp {
         id
     }
 
-    /// Retrieves mutable client context given the context ID.
+    /// Retrieves mutable client context data given the context ID.
+    ///
+    /// See the [module level documentation](index.html) for an overview and examples.
     ///
     /// # Example
     ///

@@ -99,8 +99,104 @@
 //! a=36
 //! ```
 //!
+//! # Managing Application or Library-Specific Data
 //!
-//! TODO: describe context commands
+//! Molt provides a number of data types out of the box: strings, numbers, and lists.  However,
+//! any data type that can be unambiguously converted to and from a string can be easily
+//! integrated into Molt. See the [`value`] module for details.
+//!
+//! Other data types _cannot_ be represented as strings in this way, e.g., file handles,
+//! database handles, or keys into complex application data structures.  Such types can be
+//! represented as _key strings_ or as _object commands_.  In Standard TCL/TK, for example,
+//! open files are represented as strings like `file1`, `file2`, etc.  The commands for
+//! reading and writing to files know how to look these keys up in the relevant data structure.
+//! TK widgets, on the other hand, are presented as object commands: a command with subcommands
+//! where the command itself knows how to access the relevant data structure.
+//!
+//! Application-specific commands often need access to the application's data structure.
+//! Often many commands will need access to the same data structure.  This is often the case
+//! for complex binary extensions as well (families of Molt commands implemented as a reusable
+//! crate), where all of the commands in the extension need access to some body of
+//! extension-specific data.
+//!
+//! All of these patterns (and others) are implemented by means of the interpreter's
+//! _context cache_, which is a means of relating mutable data to a particular command or
+//! family of commands.  See below.
+//!
+//! # Commands and the Context Cache
+//!
+//! Most Molt commands require access only to the Molt interpreter in order to do their
+//! work.  Some need mutable or immutable access to command-specific data (which is often
+//! application-specific data).  This is provided by means of the interpreter's
+//! _context cache_:
+//!
+//! * The interpreter is asked for a new `ContextID`, an ID that is unique in that interpreter.
+//!
+//! * The client associates the context ID with a new instance of a context data structure,
+//!   usually a struct.  This data structure is added to the context cache.
+//!
+//!   * This struct may contain the data required by the command(s), or keys allowing it
+//!     to access the data elsewhere.
+//!
+//! * The `ContextID` is provided to the interpreter when adding commands that require that
+//!   context.
+//!
+//! * A command can mutably access its context data when it is executed.
+//!
+//! * The cached data is dropped when the last command referencing a `ContextID` is removed
+//!   from the interpreter.
+//!
+//! This mechanism supports all of the patterns described above.  For example, Molt's
+//! test harness provides a `test` command that defines a single test.  When it executes, it must
+//! increment a number of statistics: the total number of tests, the number of successes, the
+//! number of failures, etc.  This can be implemented as follows:
+//!
+//! ```
+//! use molt::Interp;
+//! use molt::check_args;
+//! use molt::molt_ok;
+//! use molt::types::*;
+//!
+//! // The context structure to hold the stats
+//! struct Stats {
+//!     num_tests: usize,
+//!     num_passed: usize,
+//!     num_failed: usize,
+//! }
+//!
+//! // Whatever methods the app needs
+//! impl Stats {
+//!     fn new() -> Self {
+//!         Self { num_tests: 0, num_passed: 0, num_failed: 0}
+//!     }
+//! }
+//!
+//! # let _ = dummy();
+//! # fn dummy() -> MoltResult {
+//! // Create the interpreter.
+//! let mut interp = Interp::new();
+//!
+//! // Create the context struct, assigning a context ID
+//! let context_id = interp.save_context(Stats::new());
+//!
+//! // Add the `test` command with the given context.
+//! interp.add_context_command("test", cmd_test, context_id);
+//!
+//! // Try using the new command.  It should increment the `num_passed` statistic.
+//! let val = interp.eval("test ...")?;
+//! assert_eq!(interp.context::<Stats>(context_id).num_passed, 1);
+//! # molt_ok!()
+//! # }
+//!
+//! // A stub test command.  It ignores its arguments, and
+//! // increments the `num_passed` statistic in its context.
+//! fn cmd_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+//!     // Pretend it passed
+//!     interp.context::<Stats>(context_id).num_passed += 1;
+//!
+//!     molt_ok!()
+//! }
+//! ```
 //!
 //! TODO: flesh out Molt's ensemble command API, and then describe how to define ensemble commands.
 //!
@@ -152,7 +248,7 @@
 //! [`MoltResult`]: ../types/type.MoltResult.html
 //! [`ResultCode`]: ../types/enum.ResultCode.html
 //! [`CommandFunc`]: ../types/type.CommandFunc.html
-//! [`Value`]: ../Value/struct.Value.html
+//! [`Value`]: ../value/index.html
 //! [`Interp`]: struct.Interp.html
 
 use crate::commands;

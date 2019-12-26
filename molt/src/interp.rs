@@ -827,9 +827,123 @@ impl Interp {
     pub fn expr_float(&mut self, expr: &Value) -> Result<MoltFloat, ResultCode> {
         expr::expr(self, expr)?.as_float()
     }
-    
+
     //--------------------------------------------------------------------------------------------
     // Variable Handling
+
+    /// Retrieves the value of the named variable in the current scope.  The `var_name` may
+    /// name a scalar variable or an array element.  This is the normal way to retrieve the
+    /// value of a variable named by a command argument.
+    ///
+    /// Returns an error if the variable is a scalar and the name names an array element,
+    /// and vice versa.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a" using a script.
+    /// interp.eval("set a 1")?;
+    ///
+    /// // The value of the scalar variable "a".
+    /// let val = interp.var(&Value::from("a"))?;
+    /// assert_eq!(val.as_str(), "1");
+    ///
+    /// // Set the value of the array element "b(1)" using a script.
+    /// interp.eval("set b(1) Howdy")?;
+    ///
+    /// // The value of the array element "b(1)":
+    /// let val = interp.var(&Value::from("b(1)"))?;
+    /// assert_eq!(val.as_str(), "Howdy");
+    /// # molt_ok!()
+    /// # }
+    /// ```
+    pub fn var(&self, var_name: &Value) -> MoltResult {
+        let var_name = &*var_name.as_var_name();
+        match var_name.index() {
+            Some(index) => self.element(var_name.name(), index),
+            None => self.scalar(var_name.name()),
+        }
+    }
+
+    /// Sets the value of the variable in the current scope.  The `var_name` may name a
+    /// scalar variable or an array element.  This is the usual way to assign a value to
+    /// a variable named by a command argument.
+    ///
+    /// Returns an error if the variable is scalar and the name names an array element,
+    /// and vice-versa.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a"
+    /// let scalar = Value::from("a");  // The variable name
+    /// interp.set_var(&scalar, Value::from("1"))?;
+    /// assert_eq!(interp.var(&scalar)?.as_str(), "1");
+    ///
+    /// // Set the value of the array element "b(1)":
+    /// let element = Value::from("b(1)");  // The variable name
+    /// interp.set_var(&element, Value::from("howdy"))?;
+    /// assert_eq!(interp.var(&element)?.as_str(), "howdy");
+    /// # molt_ok!()
+    /// # }
+    /// ```
+    pub fn set_var(&mut self, var_name: &Value, value: Value) -> Result<(), ResultCode> {
+        let var_name = &*var_name.as_var_name();
+        match var_name.index() {
+            Some(index) => self.set_element(var_name.name(), index, value),
+            None => self.set_scalar(var_name.name(), value),
+        }
+    }
+
+    /// Sets the value of the variable in the current scope, return its value.  The `var_name`
+    /// may name a
+    /// scalar variable or an array element.  This is the usual way to assign a value to
+    /// a variable named by a command argument when the command is expected to return the
+    /// value.
+    ///
+    /// Returns an error if the variable is scalar and the name names an array element,
+    /// and vice-versa.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a"
+    /// let scalar = Value::from("a");  // The variable name
+    /// assert_eq!(interp.set_var_return(&scalar, Value::from("1"))?.as_str(), "1");
+    ///
+    /// // Set the value of the array element "b(1)":
+    /// let element = Value::from("b(1)");  // The variable name
+    /// interp.set_var(&element, Value::from("howdy"))?;
+    /// assert_eq!(interp.set_var_return(&element, Value::from("1"))?.as_str(), "1");
+    /// # molt_ok!()
+    /// # }
+    /// ```
+    pub fn set_var_return(&mut self, var_name: &Value, value: Value) -> MoltResult {
+        let var_name = &*var_name.as_var_name();
+        match var_name.index() {
+            Some(index) => self.set_element_return(var_name.name(), index, value),
+            None => self.set_scalar_return(var_name.name(), value),
+        }
+    }
+
 
     /// Retrieves the value of the named scalar variable in the current scope.
     ///
@@ -844,8 +958,10 @@ impl Interp {
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
+    /// // Set the value of the scalar variable "a" using a script.
     /// interp.eval("set a 1")?;
     ///
+    /// // The value of the scalar variable "a".
     /// let val = interp.scalar("a")?;
     /// assert_eq!(val.as_str(), "1");
     /// # molt_ok!()
@@ -855,30 +971,26 @@ impl Interp {
         self.scopes.get(name)
     }
 
-    /// Retrieves the value of the named array element in the current scope.
-    ///
-    /// Returns an error if the element is not found, or the variable is not an
-    /// array variable.
-    pub fn element(&self, name: &str, index: &str) -> MoltResult {
-        self.scopes.get_elem(name, index)
-    }
-
-    /// Retrieves the value of the variable in the current scope.
-    ///
-    /// Returns an error if the variable is a scalar and the name names an array element,
-    /// and vice versa.
-    pub fn var(&self, var_name: &Value) -> MoltResult {
-        let var_name = &*var_name.as_var_name();
-        match var_name.index() {
-            Some(index) => self.element(var_name.name(), index),
-            None => self.scalar(var_name.name()),
-        }
-    }
-
     /// Sets the value of the named scalar variable in the current scope, creating the variable
     /// if necessary.
     ///
     /// Returns an error if the variable exists and is an array variable.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a"
+    /// interp.set_scalar("a", Value::from("1"))?;
+    /// assert_eq!(interp.scalar("a")?.as_str(), "1");
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn set_scalar(&mut self, name: &str, value: Value) -> Result<(), ResultCode> {
         self.scopes.set(name, value)
     }
@@ -887,10 +999,52 @@ impl Interp {
     /// if necessary, and returning the value.
     ///
     /// Returns an error if the variable exists and is an array variable.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a"
+    /// assert_eq!(interp.set_scalar_return("a", Value::from("1"))?.as_str(), "1");
+    /// # molt_ok!()
+    /// # }
     pub fn set_scalar_return(&mut self, name: &str, value: Value) -> MoltResult {
         // Clone the value, since we'll be returning it out again.
         self.scopes.set(name, value.clone())?;
         Ok(value)
+    }
+
+
+    /// Retrieves the value of the named array element in the current scope.
+    ///
+    /// Returns an error if the element is not found, or the variable is not an
+    /// array variable.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the array element variable "a(1)" using a script.
+    /// interp.eval("set a(1) Howdy")?;
+    ///
+    /// // The value of the array element "a(1)".
+    /// let val = interp.element("a", "1")?;
+    /// assert_eq!(val.as_str(), "Howdy");
+    /// # molt_ok!()
+    /// # }
+    /// ```
+    pub fn element(&self, name: &str, index: &str) -> MoltResult {
+        self.scopes.get_elem(name, index)
     }
 
     /// Sets the value of an array element in the current scope, creating the variable
@@ -898,7 +1052,21 @@ impl Interp {
     ///
     /// Returns an error if the variable exists and is not an array variable.
     ///
-    /// TODO: test needed
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a"
+    /// interp.set_element("b", "1", Value::from("xyz"))?;
+    /// assert_eq!(interp.element("b", "1")?.as_str(), "xyz");
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn set_element(&mut self, name: &str, index: &str, value: Value) -> Result<(), ResultCode> {
         self.scopes.set_elem(name, index, value)
     }
@@ -908,39 +1076,24 @@ impl Interp {
     ///
     /// Returns an error if the variable exists and is not an array variable.
     ///
-    /// TODO: test needed
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a"
+    /// assert_eq!(interp.set_element_return("b", "1", Value::from("xyz"))?.as_str(), "xyz");
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn set_element_return(&mut self, name: &str, index: &str, value: Value) -> MoltResult {
         // Clone the value, since we'll be returning it out again.
         self.scopes.set_elem(name, index, value.clone())?;
         Ok(value)
-    }
-
-    /// Sets the value of the variable in the current scope, if any.
-    ///
-    /// Returns an error if the variable is scalar and the name names an array element,
-    /// and vice-versa.
-    ///
-    /// TODO: test needed
-    pub fn set_var(&mut self, var_name: &Value, value: Value) -> Result<(), ResultCode> {
-        let var_name = &*var_name.as_var_name();
-        match var_name.index() {
-            Some(index) => self.set_element(var_name.name(), index, value),
-            None => self.set_scalar(var_name.name(), value),
-        }
-    }
-
-    /// Sets the value of the variable in the current scope, if any, and returns its value.
-    ///
-    /// Returns an error if the variable is scalar and the name names an array element,
-    /// and vice-versa.
-    ///
-    /// TODO: test needed
-    pub fn set_var_return(&mut self, var_name: &Value, value: Value) -> MoltResult {
-        let var_name = &*var_name.as_var_name();
-        match var_name.index() {
-            Some(index) => self.set_element_return(var_name.name(), index, value),
-            None => self.set_scalar_return(var_name.name(), value),
-        }
     }
 
     /// Unsets the value of the named variable or array element in the current scope

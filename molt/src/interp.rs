@@ -1,43 +1,228 @@
 //! The Molt Interpreter
 //!
-//! TODO: This should be primary documentation on using the Molt Interp.
-//!
 //! The [`Interp`] struct is the primary API for embedding Molt into a Rust application.
 //! Given an `Interp`, the application may:
 //!
-//! * Evaluate scripts
+//! * Evaluate scripts and expressions
 //! * Check scripts for completeness
 //! * Extend the language by defining new Molt commands in Rust
-//! * Set and get Molt variables in command bodies
-//! * Interpret Molt values as a variety of data types.
-//! * Access application data the context cache
+//! * Set and get Molt variables
+//! * Access application data via the context cache
 //!
 //! The following describes the features of the [`Interp`] in general; follow the links for
-//! specifics of the various types and methods.
+//! specifics of the various types and methods. See also [The Molt Book] for a general
+//! introduction to Molt and its API.
 //!
 //! # Interp is not Sync!
 //!
-//! The `Interp` class (and the rest of Molt) is intended for use in a single thread.  It is
-//! safe to have multiple `Interps` in different threads; but use `String` (or another `Sync`)
-//! when passing data between them.  In particular, `Value` is not `Sync`.
+//! The [`Interp`] class (and the rest of Molt) is intended for use in a single thread.  It is
+//! safe to have `Interps` in different threads; but use `String` (or another `Sync`)
+//! when passing data between them.  In particular, [`Value`] is not `Sync`.
 //!
 //! # Creating an Interpreter
 //!
 //! There are two ways to create an interpreter.  The usual way is to call
 //! [`Interp::new`](struct.Interp.html#method.new), which creates an interpreter and populates
-//! it with all of the standard Molt commands.  Alternatively,
-//! [`Interp::empty`](struct.Interp.html#method.empty) creates an interpreter with no commands,
-//! allowing the application to define only those commands it needs.  This is useful when the goal
-//! is to provide the application with a simple, non-scriptable console command set.
+//! it with all of the standard Molt commands.  The application can then add any
+//! application-specific commands.
 //!
-//! TODO: Define a way to add various subsets of the standard commands to an initially
+//! Alternatively, [`Interp::empty`](struct.Interp.html#method.empty) creates an interpreter
+//! with no built-in commands, allowing the application to define only those commands it needs.
+//! Such an empty interpreter can be configured as the parser for data and configuration files,
+//! or as the basis for a simple, non-scriptable console command set.
+//!
+//! **TODO**: Define a way to add various subsets of the standard commands to an initially
 //! empty interpreter.
 //!
 //! ```
 //! use molt::Interp;
 //! let mut interp = Interp::new();
-//! // ...
+//!
+//! // add commands, evaluate scripts, etc.
 //! ```
+//!
+//! # Defining New Commands
+//!
+//! The usual reason for embedding Molt in an application is to extend it with
+//! application-specific commands.  There are several ways to do this.
+//!
+//! The simplest method, and the one used by most of Molt's built-in commands, is to define a
+//! [`CommandFunc`] and register it with the interpreter using the
+//! [`Interp::add_command`](struct.Interp.html#method.add_command) method. A `CommandFunc` is
+//! simply a Rust function that returns a [`MoltResult`] given an interpreter and a slice of Molt
+//! [`Value`] objects representing the command name and its arguments. The function may interpret
+//! the array of arguments in any way it likes.
+//!
+//! The following example defines a command called `square` that squares an integer value.
+//!
+//! ```
+//! use molt::Interp;
+//! use molt::check_args;
+//! use molt::molt_ok;
+//! use molt::types::*;
+//!
+//! # let _ = dummy();
+//! # fn dummy() -> MoltResult {
+//! // FIRST, create the interpreter and add the needed command.
+//! let mut interp = Interp::new();
+//! interp.add_command("square", cmd_square);
+//!
+//! // NEXT, try using the new command.
+//! let val = interp.eval("square 5")?;
+//! assert_eq!(val.as_str(), "25");
+//! # molt_ok!()
+//! # }
+//!
+//! // The command: square intValue
+//! fn cmd_square(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//!     // FIRST, check the number of arguments.  Returns an appropriate error
+//!     // for the wrong number of arguments.
+//!     check_args(1, argv, 2, 2, "intValue")?;
+//!
+//!     // NEXT, get the intValue argument as an int.  Returns an appropriate error
+//!     // if the argument can't be interpreted as an integer.
+//!     let intValue = argv[1].as_int()?;
+//!
+//!     // NEXT, return the product.
+//!     molt_ok!(intValue * intValue)
+//! }
+//! ```
+//!
+//! The new command can then be used in a Molt interpreter:
+//!
+//! ```tcl
+//! % square 5
+//! 25
+//! % set a [square 6]
+//! 36
+//! % puts "a=$a"
+//! a=36
+//! ```
+//!
+//! # Managing Application or Library-Specific Data
+//!
+//! Molt provides a number of data types out of the box: strings, numbers, and lists.  However,
+//! any data type that can be unambiguously converted to and from a string can be easily
+//! integrated into Molt. See the [`value`] module for details.
+//!
+//! Other data types _cannot_ be represented as strings in this way, e.g., file handles,
+//! database handles, or keys into complex application data structures.  Such types can be
+//! represented as _key strings_ or as _object commands_.  In Standard TCL/TK, for example,
+//! open files are represented as strings like `file1`, `file2`, etc.  The commands for
+//! reading and writing to files know how to look these keys up in the relevant data structure.
+//! TK widgets, on the other hand, are presented as object commands: a command with subcommands
+//! where the command itself knows how to access the relevant data structure.
+//!
+//! Application-specific commands often need access to the application's data structure.
+//! Often many commands will need access to the same data structure.  This is often the case
+//! for complex binary extensions as well (families of Molt commands implemented as a reusable
+//! crate), where all of the commands in the extension need access to some body of
+//! extension-specific data.
+//!
+//! All of these patterns (and others) are implemented by means of the interpreter's
+//! _context cache_, which is a means of relating mutable data to a particular command or
+//! family of commands.  See below.
+//!
+//! # Commands and the Context Cache
+//!
+//! Most Molt commands require access only to the Molt interpreter in order to do their
+//! work.  Some need mutable or immutable access to command-specific data (which is often
+//! application-specific data).  This is provided by means of the interpreter's
+//! _context cache_:
+//!
+//! * The interpreter is asked for a new `ContextID`, an ID that is unique in that interpreter.
+//!
+//! * The client associates the context ID with a new instance of a context data structure,
+//!   usually a struct.  This data structure is added to the context cache.
+//!
+//!   * This struct may contain the data required by the command(s), or keys allowing it
+//!     to access the data elsewhere.
+//!
+//! * The `ContextID` is provided to the interpreter when adding commands that require that
+//!   context.
+//!
+//! * A command can mutably access its context data when it is executed.
+//!
+//! * The cached data is dropped when the last command referencing a `ContextID` is removed
+//!   from the interpreter.
+//!
+//! This mechanism supports all of the patterns described above.  For example, Molt's
+//! test harness provides a `test` command that defines a single test.  When it executes, it must
+//! increment a number of statistics: the total number of tests, the number of successes, the
+//! number of failures, etc.  This can be implemented as follows:
+//!
+//! ```
+//! use molt::Interp;
+//! use molt::check_args;
+//! use molt::molt_ok;
+//! use molt::types::*;
+//!
+//! // The context structure to hold the stats
+//! struct Stats {
+//!     num_tests: usize,
+//!     num_passed: usize,
+//!     num_failed: usize,
+//! }
+//!
+//! // Whatever methods the app needs
+//! impl Stats {
+//!     fn new() -> Self {
+//!         Self { num_tests: 0, num_passed: 0, num_failed: 0}
+//!     }
+//! }
+//!
+//! # let _ = dummy();
+//! # fn dummy() -> MoltResult {
+//! // Create the interpreter.
+//! let mut interp = Interp::new();
+//!
+//! // Create the context struct, assigning a context ID
+//! let context_id = interp.save_context(Stats::new());
+//!
+//! // Add the `test` command with the given context.
+//! interp.add_context_command("test", cmd_test, context_id);
+//!
+//! // Try using the new command.  It should increment the `num_passed` statistic.
+//! let val = interp.eval("test ...")?;
+//! assert_eq!(interp.context::<Stats>(context_id).num_passed, 1);
+//! # molt_ok!()
+//! # }
+//!
+//! // A stub test command.  It ignores its arguments, and
+//! // increments the `num_passed` statistic in its context.
+//! fn cmd_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+//!     // Pretend it passed
+//!     interp.context::<Stats>(context_id).num_passed += 1;
+//!
+//!     molt_ok!()
+//! }
+//! ```
+//!
+//! # Ensemble Commands
+//!
+//! An _ensemble command_ is simply a command with subcommands, like the standard Molt `info`
+//! and `array` commands.  At the Rust level, it is simply a command that looks up its subcommand
+//! (e.g., `argv[1]`) in an array of `Subcommand` structs and executes it as a command.
+//!
+//! **TODO:** Flesh out the API for ensemble commands, and add examples here.
+//!
+//! # Object Commands
+//!
+//! An _object command_ is an _ensemble command_ that represents an object; the classic TCL
+//! examples are the TK widgets.  The pattern for defining object commands is as follows:
+//!
+//! * A constructor command that creates instances of the given object type.  (We use the word
+//!   *type* rather than *class* because inheritance is usually neither involved or available.)
+//!
+//! * An instance is an ensemble command:
+//!   * Whose name is provided to the constructor
+//!   * That has an associated context structure, initialized by the constructor, that belongs
+//!     to it alone.
+//!
+//! * Each of the object's subcommand functions is passed the object's context ID, so that all
+//!   can access the object's data.
+//!
+//! **TODO:** Include an example of an object command.
 //!
 //! # Evaluating Scripts
 //!
@@ -77,36 +262,17 @@
 //!
 //! # Checking Scripts for Completeness
 //!
-//! The [`Interp::complete`](struct.Interp.html#method.complete) checks whether a Molt script is
-//! complete: i.e., that it contains no unterminated quoted or braced strings that
-//! would prevent it from being evaluated as Molt code.  This is primarily useful when
+//! The [`Interp::complete`](struct.Interp.html#method.complete) method checks whether a Molt
+//! script is complete: e.g., that it contains no unterminated quoted or braced strings,
+//! that would prevent it from being evaluated as Molt code.  This is useful when
 //! implementing a Read-Eval-Print-Loop, as it allows the REPL to easily determine whether it
 //! should evaluate the input immediately or ask for an additional line of input.
 //!
-//! # Defining New Commands
-//!
-//! The usual reason for embedding Molt in an application is to extend it with
-//! application-specific commands.  There are a number of ways to do this.
-//!
-//! The simplest method, and the one used by most of Molt's built-in commands, is to define a
-//! [`CommandFunc`] and register it with the interpreter using the
-//! [`Interp::add_command`](struct.Interp.html#method.add_command) method:
-//!
-//! ```pub type CommandFunc = fn(&mut Interp, &[Value]) -> MoltResult;```
-//!
-//! A `CommandFunc` is simply a Rust function that accepts an interpreter and a slice of Molt
-//! [`Value`] objects and returns a [`MoltResult`].  The slice of [`Value`] objects represents
-//! the name of the command and its arguments, which the function may interpret in any way it
-//! desires.
-//!
-//! TODO: describe context commands and command objects.
-//!
-//! TODO: flesh out Molt's ensemble command API, and then describe how to define ensemble commands.
-//!
-//! [`MoltResult`]: ../types/struct.MoltResult.html
-//! [`ResultCode`]: ../types/struct.ResultCode.html
-//! [`CommandFunc`]: ../types/struct.CommandFunc.html
-//! [`Value`]: ../Value/struct.Value.html
+//! [The Molt Book]: https://wduquette.github.io/molt/
+//! [`MoltResult`]: ../types/type.MoltResult.html
+//! [`ResultCode`]: ../types/enum.ResultCode.html
+//! [`CommandFunc`]: ../types/type.CommandFunc.html
+//! [`Value`]: ../value/index.html
 //! [`Interp`]: struct.Interp.html
 
 use crate::commands;
@@ -117,7 +283,6 @@ use crate::parser;
 use crate::parser::Script;
 use crate::parser::Word;
 use crate::scope::ScopeStack;
-use crate::types::Command;
 use crate::types::*;
 use crate::value::Value;
 use std::any::Any;
@@ -131,7 +296,9 @@ use std::time::Instant;
 /// embedding Molt into a Rust application.  The application creates an instance
 /// of `Interp`, configures with it the required set of application-specific
 /// and standard Molt commands, and then uses it to evaluate Molt scripts and
-/// expressions.
+/// expressions.  See the
+/// [module level documentation](index.html)
+/// for an overview.
 ///
 /// # Example
 ///
@@ -139,9 +306,9 @@ use std::time::Instant;
 /// Molt commands.
 ///
 /// ```
-/// # use molt::types::*;
-/// # use molt::Interp;
-/// # use molt::molt_ok;
+/// use molt::types::*;
+/// use molt::Interp;
+/// use molt::molt_ok;
 /// # fn dummy() -> MoltResult {
 /// let mut interp = Interp::new();
 /// let four = interp.eval("expr {2 + 2}")?;
@@ -152,7 +319,7 @@ use std::time::Instant;
 #[derive(Default)]
 pub struct Interp {
     // Command Table
-    commands: HashMap<String, Rc<dyn Command>>,
+    commands: HashMap<String, Rc<Command>>,
 
     // Variable Table
     scopes: ScopeStack,
@@ -161,7 +328,8 @@ pub struct Interp {
     last_context_id: u64,
 
     // Context Map
-    context_map: HashMap<ContextID, Box<dyn Any>>,
+    // TODO: Remove: context_map: HashMap<ContextID, Box<dyn Any>>,
+    context_map: HashMap<ContextID, ContextBox>,
 
     // Defines the recursion limit for Interp::eval().
     recursion_limit: usize,
@@ -171,6 +339,84 @@ pub struct Interp {
 
     // Profile Map
     profile_map: HashMap<String, ProfileRecord>,
+}
+
+/// A command defined in the interpreter.
+enum Command {
+    /// A binary command implemented as a Rust CommandFunc.
+    Func(CommandFunc, ContextID),
+
+    /// A Molt procedure
+    Proc(Procedure),
+}
+
+impl Command {
+    /// Execute the command according to its kind.
+    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
+        match self {
+            Command::Func(func, context_id) => func(interp, *context_id, argv),
+            Command::Proc(proc) => proc.execute(interp, argv),
+        }
+    }
+
+    /// Gets the command's context, or NULL_CONTEXT if none.
+    fn context_id(&self) -> ContextID {
+        match self {
+            Command::Func(_, context_id) => *context_id,
+            _ => NULL_CONTEXT,
+        }
+    }
+}
+
+/// Sentinal value for command functions with no related context.
+///
+/// **NOTE**: it would make no sense to use `Option<ContextID>` instead of a sentinal
+/// value.  Whether or not a command has related context is known at compile
+/// time, and is an essential part of the command's definition; it never changes.
+/// Commands with context will access the function's context_id argument; and
+/// and commands without have no reason to do so.  Using a sentinel allows the same
+/// function type to be used for all binary Molt commands with minimal hassle to the
+/// client developer.
+const NULL_CONTEXT: ContextID = ContextID(0);
+
+/// A container for a command's context struct, containing the context in a box,
+/// and a reference count.
+///
+/// The reference count is incremented when the context's ID is used with a command,
+/// and decremented when the command is forgotten.  If the reference count is
+/// decremented to zero, the context is removed.
+struct ContextBox {
+    data: Box<dyn Any>,
+    ref_count: usize,
+}
+
+impl ContextBox {
+    /// Creates a new context box for the given data, and sets its reference count to 0.
+    fn new<T: 'static>(data: T) -> Self {
+        Self {
+            data: Box::new(data),
+            ref_count: 0,
+        }
+    }
+
+    /// Increments the context's reference count.
+    fn increment(&mut self) {
+        self.ref_count += 1;
+    }
+
+    /// Decrements the context's reference count.  Returns true if the count is now 0,
+    /// and false otherwise.
+    ///
+    /// Panics if the count is already 0.
+    #[allow(dead_code)] // TODO: Remove once the design is complete.
+    fn decrement(&mut self) -> bool {
+        assert!(
+            self.ref_count != 0,
+            "attempted to decrement context ref count below zero"
+        );
+        self.ref_count -= 1;
+        self.ref_count == 0
+    }
 }
 
 struct ProfileRecord {
@@ -214,7 +460,7 @@ impl Interp {
         }
     }
 
-    /// Creates a new Molt interpreter, pre-populated with the standard Molt commands.
+    /// Creates a new Molt interpreter that is pre-populated with the standard Molt commands.
     /// Use [`command_names`](#method.command_names) (or the `info commands` Molt command)
     /// to retrieve the full list, and the [`add_command`](#method.add_command) family of
     /// methods to extend the interpreter with new commands.
@@ -288,12 +534,12 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Script and Expression Evaluation
 
-    /// Evaluates a script one command at a time.  Returns the [`Value`](../value/struct.Value.html)
+    /// Evaluates a script one command at a time.  Returns the [`Value`](../value/index.html)
     /// of the last command in the script, or the value of any explicit `return` call in the
     /// script, or any error thrown by the script.  Other
     /// [`ResultCode`](../types/enum.ResultCode.html) values are converted to normal errors.
     ///
-    /// Use this method (or [`eval_value`](#method.eval_value) to evaluate arbitrary scripts.
+    /// Use this method (or [`eval_value`](#method.eval_value)) to evaluate arbitrary scripts.
     /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
     ///
     /// # Example
@@ -304,8 +550,11 @@ impl Interp {
     /// ```
     /// # use molt::types::*;
     /// # use molt::Interp;
+    ///
     /// let mut interp = Interp::new();
+    ///
     /// let input = "set a 1";
+    ///
     /// match interp.eval(input) {
     ///    Ok(val) => {
     ///        // Computed a Value
@@ -315,10 +564,7 @@ impl Interp {
     ///        // Got an error; print it out.
     ///        println!("Error: {}", msg);
     ///    }
-    ///    _ => {
-    ///        // Won't ever happen, but the compiler doesn't know that.
-    ///        // panic!() if you like.
-    ///    }
+    ///    _ => unreachable!(),
     /// }
     /// ```
 
@@ -327,21 +573,24 @@ impl Interp {
         self.eval_value(&value)
     }
 
-    /// Evaluates a script one command at a time.  Returns the [`Value`](../value/struct.Value.html)
+    /// Evaluates the string value of a [`Value`] as a script.  Returns the `Value`
     /// of the last command in the script, or the value of any explicit `return` call in the
     /// script, or any error thrown by the script.  Other
     /// [`ResultCode`](../types/enum.ResultCode.html) values are converted to normal errors.
     ///
-    /// Use this method (or [`eval`](#method.eval) to evaluate arbitrary scripts.
+    /// This method is equivalent to [`eval`](#method.eval), but works on a `Value` rather
+    /// than on a string slice.  Use it or `eval` to evaluate arbitrary scripts.
     /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
     ///
+    /// [`Value`]: ../value/index.html
     pub fn eval_value(&mut self, value: &Value) -> MoltResult {
         // TODO: Could probably do better, here.  If the value is already a list, for
         // example, can maybe evaluate it as a command without using as_script().
         // Tricky, though.  Don't want to have to parse it as a list.  Need a quick way
-        // to determine if something is already a list.
+        // to determine if something is already a list.  (Might need two methods!)
 
         // FIRST, check the number of nesting levels
+        // TODO: This should probably be in eval_body!  Check Tcl 7/8.
         self.num_levels += 1;
 
         if self.num_levels > self.recursion_limit {
@@ -491,7 +740,8 @@ impl Interp {
     }
 
     /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html) and
-    /// returns its value.  The expression is passed a `Value` which is interpreted as a `String`.
+    /// returns its value.  The expression is passed as a `Value` which is interpreted as a
+    /// `String`.
     ///
     /// # Example
     /// ```
@@ -579,281 +829,40 @@ impl Interp {
     }
 
     //--------------------------------------------------------------------------------------------
-    // Command Definition and Handling
-
-    /// Adds a command defined by a `CommandFunc` to the interpreter. This is the normal way to
-    /// add commands to the interpreter.
-    ///
-    /// # Accessing Application Data
-    ///
-    /// When embedding Molt in an application, it is common to define commands that require
-    /// mutable or immutable access to application data.  If the command requires
-    /// access to data other than that provided by the `Interp` itself, e.g., application data,
-    /// consider adding the relevant data structure to the context cache and then use
-    /// [`add_context_command`](#method.add_context_command).  Alternatively, define a struct that
-    /// implements `Command` and use [`add_command_object`](#method.add_command_object).
-    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
-        let command = CommandFuncWrapper::new(func);
-        self.add_command_object(name, command);
-    }
-
-    /// Adds a command defined by a `ContextCommandFunc` to the interpreter.
-    ///
-    /// This is the normal way to add commands requiring application context to
-    /// the interpreter.  It is up to the module creating the context to free it when it is
-    /// no longer required.
-    ///
-    /// **Warning**: Do not use this method to define a TCL object, i.e., a command with
-    /// its own data and lifetime.  Use a type that implements `Command` and `Drop`.
-    pub fn add_context_command(
-        &mut self,
-        name: &str,
-        func: ContextCommandFunc,
-        context_id: ContextID,
-    ) {
-        let command = ContextCommandFuncWrapper::new(func, context_id);
-        self.add_command_object(name, command);
-    }
-
-    /// Adds a procedure to the interpreter.
-    ///
-    /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
-    /// as for the `proc` command and the `commands::cmd_proc` function.
-    pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &str) {
-        let command = CommandProc {
-            args: args.to_owned(),
-            body: body.to_string(),
-        };
-
-        self.add_command_object(name, command);
-    }
-
-    /// Adds a command to the interpreter using a `Command` object.
-    ///
-    /// Use this when defining a command that requires application context.
-    pub fn add_command_object<T: 'static + Command>(&mut self, name: &str, command: T) {
-        self.commands.insert(name.into(), Rc::new(command));
-    }
-
-    /// Determines whether the interpreter contains a command with the given
-    /// name.
-    pub fn has_command(&self, name: &str) -> bool {
-        self.commands.contains_key(name)
-    }
-
-    /// Renames the command.
-    ///
-    /// **Note:** This does not update procedures that reference the command under the old
-    /// name.  This is intentional: it is a common TCL programming technique to wrap an
-    /// existing command by renaming it and defining a new command with the old name that
-    /// calls the original command at its new name.
-    pub fn rename_command(&mut self, old_name: &str, new_name: &str) {
-        if let Some(cmd) = self.commands.get(old_name) {
-            let cmd = Rc::clone(cmd);
-            self.commands.remove(old_name);
-            self.commands.insert(new_name.into(), cmd);
-        }
-    }
-
-    /// Removes the command with the given name.
-    pub fn remove_command(&mut self, name: &str) {
-        self.commands.remove(name);
-    }
-
-    /// Gets a vector of the names of the existing commands.
-    ///
-    pub fn command_names(&self) -> MoltList {
-        let vec: MoltList = self
-            .commands
-            .keys()
-            .cloned()
-            .map(|x| Value::from(&x))
-            .collect();
-
-        vec
-    }
-
-    //--------------------------------------------------------------------------------------------
-    // Interpreter Configuration
-
-    /// Gets the interpreter's recursion limit.
-    ///
-    /// # Example
-    /// ```
-    /// # use molt::types::*;
-    /// # use molt::interp::Interp;
-    /// let mut interp = Interp::new();
-    /// assert_eq!(interp.recursion_limit(), 1000);
-    /// ```
-    pub fn recursion_limit(&self) -> usize {
-        self.recursion_limit
-    }
-
-    /// Sets the interpreter's recursion limit.  The default is 1000.
-    ///
-    /// # Example
-    /// ```
-    /// # use molt::types::*;
-    /// # use molt::interp::Interp;
-    /// let mut interp = Interp::new();
-    /// interp.set_recursion_limit(100);
-    /// assert_eq!(interp.recursion_limit(), 100);
-    /// ```
-    pub fn set_recursion_limit(&mut self, limit: usize) {
-        self.recursion_limit = limit;
-    }
-
-    //--------------------------------------------------------------------------------------------
-    // Context Cache
-
-    /// Saves the client context data in the interpreter's context cache,
-    /// returning a generated context ID.  Client commands can retrieve the data
-    /// given the ID.
-    ///
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::interp::Interp;
-    ///
-    /// let mut interp = Interp::new();
-    /// let data: Vec<String> = Vec::new();
-    /// let id = interp.save_context(data);
-    /// ```
-    pub fn save_context<T: 'static>(&mut self, data: T) -> ContextID {
-        let id = self.context_id();
-        self.context_map.insert(id, Box::new(data));
-        id
-    }
-
-    /// Retrieves mutable client context given the context ID.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::interp::Interp;
-    ///
-    /// let mut interp = Interp::new();
-    /// let data: Vec<String> = Vec::new();
-    /// let id = interp.save_context(data);
-    ///
-    /// // Later...
-    /// let data: &mut Vec<String> = interp.context(id);
-    /// data.push("New Value".into());
-    ///
-    /// // Or
-    /// let data = interp.context::<Vec<String>>(id);
-    /// data.push("New Value".into());
-    /// ```
-    ///
-    /// # Panics
-    ///
-    /// This call panics if the context ID is unknown, or if the retrieved data
-    /// has an unexpected type.
-    pub fn context<T: 'static>(&mut self, id: ContextID) -> &mut T {
-        self.context_map
-            .get_mut(&id)
-            .expect("unknown context ID")
-            .downcast_mut::<T>()
-            .expect("context type mismatch")
-    }
-
-    /// Removes a context record from the context cache.  Clears the data from
-    /// the cache when it is no longer needed.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::interp::Interp;
-    ///
-    /// let mut interp = Interp::new();
-    /// let data: Vec<String> = Vec::new();
-    /// let id = interp.save_context(data);
-    ///
-    /// // Later...
-    /// interp.forget_context(id);
-    /// ```
-    ///
-    pub fn forget_context(&mut self, id: ContextID) {
-        self.context_map.remove(&id);
-    }
-
-    /// Generates a unique context ID for command context data.
-    ///
-    /// Normally the client will use [`save_context`](#method.save_context) to
-    /// save the context data and generate the client ID in one operation, rather than
-    /// call this explicitly.
-    ////
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::interp::Interp;
-    ///
-    /// let mut interp = Interp::new();
-    /// let id1 = interp.context_id();
-    /// let id2 = interp.context_id();
-    /// assert_ne!(id1, id2);
-    /// ```
-    pub fn context_id(&mut self) -> ContextID {
-        // TODO: Practically speaking we won't overflow u64; but practically speaking
-        // we should check any.
-        self.last_context_id += 1;
-        ContextID(self.last_context_id)
-    }
-
-    /// Saves a client context value in the interpreter for the given
-    /// context ID.  Client commands can retrieve the data given the context ID.
-    ///
-    /// Normally the client will use [`save_context`](#method.save_context) to
-    /// save the context data and generate the client ID in one operation, rather than
-    /// call this explicitly.
-    ///
-    /// TODO: This method allows the user to generate a context ID and
-    /// put data into the context cache as two separate steps; and to update the
-    /// the data in the context cache for a given ID.  I'm not at all sure that
-    /// either of those things is a good idea.  Waiting to see.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::interp::Interp;
-    ///
-    /// let mut interp = Interp::new();
-    /// let id = interp.context_id();
-    /// let data: Vec<String> = Vec::new();
-    /// interp.set_context(id, data);
-    /// ```
-    pub fn set_context<T: 'static>(&mut self, id: ContextID, data: T) {
-        self.context_map.insert(id, Box::new(data));
-    }
-
-    //--------------------------------------------------------------------------------------------
     // Variable Handling
 
-    /// Retrieves the value of the named scalar variable in the current scope.
-    ///
-    /// Returns an error if the variable is not found, or if the variable is an array variable.
-    pub fn scalar(&self, name: &str) -> MoltResult {
-        self.scopes.get(name)
-    }
-
-    /// Retrieves the value of the named array element in the current scope.
-    ///
-    /// Returns an error if the element is not found, or the variable is not an
-    /// array variable.
-    pub fn element(&self, name: &str, index: &str) -> MoltResult {
-        self.scopes.get_elem(name, index)
-    }
-
-    /// Retrieves the value of the variable in the current scope.
+    /// Retrieves the value of the named variable in the current scope.  The `var_name` may
+    /// name a scalar variable or an array element.  This is the normal way to retrieve the
+    /// value of a variable named by a command argument.
     ///
     /// Returns an error if the variable is a scalar and the name names an array element,
     /// and vice versa.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a" using a script.
+    /// interp.eval("set a 1")?;
+    ///
+    /// // The value of the scalar variable "a".
+    /// let val = interp.var(&Value::from("a"))?;
+    /// assert_eq!(val.as_str(), "1");
+    ///
+    /// // Set the value of the array element "b(1)" using a script.
+    /// interp.eval("set b(1) Howdy")?;
+    ///
+    /// // The value of the array element "b(1)":
+    /// let val = interp.var(&Value::from("b(1)"))?;
+    /// assert_eq!(val.as_str(), "Howdy");
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn var(&self, var_name: &Value) -> MoltResult {
         let var_name = &*var_name.as_var_name();
         match var_name.index() {
@@ -862,10 +871,126 @@ impl Interp {
         }
     }
 
+    /// Sets the value of the variable in the current scope.  The `var_name` may name a
+    /// scalar variable or an array element.  This is the usual way to assign a value to
+    /// a variable named by a command argument.
+    ///
+    /// Returns an error if the variable is scalar and the name names an array element,
+    /// and vice-versa.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a"
+    /// let scalar = Value::from("a");  // The variable name
+    /// interp.set_var(&scalar, Value::from("1"))?;
+    /// assert_eq!(interp.var(&scalar)?.as_str(), "1");
+    ///
+    /// // Set the value of the array element "b(1)":
+    /// let element = Value::from("b(1)");  // The variable name
+    /// interp.set_var(&element, Value::from("howdy"))?;
+    /// assert_eq!(interp.var(&element)?.as_str(), "howdy");
+    /// # molt_ok!()
+    /// # }
+    /// ```
+    pub fn set_var(&mut self, var_name: &Value, value: Value) -> Result<(), ResultCode> {
+        let var_name = &*var_name.as_var_name();
+        match var_name.index() {
+            Some(index) => self.set_element(var_name.name(), index, value),
+            None => self.set_scalar(var_name.name(), value),
+        }
+    }
+
+    /// Sets the value of the variable in the current scope, return its value.  The `var_name`
+    /// may name a
+    /// scalar variable or an array element.  This is the usual way to assign a value to
+    /// a variable named by a command argument when the command is expected to return the
+    /// value.
+    ///
+    /// Returns an error if the variable is scalar and the name names an array element,
+    /// and vice-versa.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a"
+    /// let scalar = Value::from("a");  // The variable name
+    /// assert_eq!(interp.set_var_return(&scalar, Value::from("1"))?.as_str(), "1");
+    ///
+    /// // Set the value of the array element "b(1)":
+    /// let element = Value::from("b(1)");  // The variable name
+    /// interp.set_var(&element, Value::from("howdy"))?;
+    /// assert_eq!(interp.set_var_return(&element, Value::from("1"))?.as_str(), "1");
+    /// # molt_ok!()
+    /// # }
+    /// ```
+    pub fn set_var_return(&mut self, var_name: &Value, value: Value) -> MoltResult {
+        let var_name = &*var_name.as_var_name();
+        match var_name.index() {
+            Some(index) => self.set_element_return(var_name.name(), index, value),
+            None => self.set_scalar_return(var_name.name(), value),
+        }
+    }
+
+
+    /// Retrieves the value of the named scalar variable in the current scope.
+    ///
+    /// Returns an error if the variable is not found, or if the variable is an array variable.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a" using a script.
+    /// interp.eval("set a 1")?;
+    ///
+    /// // The value of the scalar variable "a".
+    /// let val = interp.scalar("a")?;
+    /// assert_eq!(val.as_str(), "1");
+    /// # molt_ok!()
+    /// # }
+    /// ```
+    pub fn scalar(&self, name: &str) -> MoltResult {
+        self.scopes.get(name)
+    }
+
     /// Sets the value of the named scalar variable in the current scope, creating the variable
     /// if necessary.
     ///
     /// Returns an error if the variable exists and is an array variable.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a"
+    /// interp.set_scalar("a", Value::from("1"))?;
+    /// assert_eq!(interp.scalar("a")?.as_str(), "1");
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn set_scalar(&mut self, name: &str, value: Value) -> Result<(), ResultCode> {
         self.scopes.set(name, value)
     }
@@ -874,10 +999,52 @@ impl Interp {
     /// if necessary, and returning the value.
     ///
     /// Returns an error if the variable exists and is an array variable.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a"
+    /// assert_eq!(interp.set_scalar_return("a", Value::from("1"))?.as_str(), "1");
+    /// # molt_ok!()
+    /// # }
     pub fn set_scalar_return(&mut self, name: &str, value: Value) -> MoltResult {
         // Clone the value, since we'll be returning it out again.
         self.scopes.set(name, value.clone())?;
         Ok(value)
+    }
+
+
+    /// Retrieves the value of the named array element in the current scope.
+    ///
+    /// Returns an error if the element is not found, or the variable is not an
+    /// array variable.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the array element variable "a(1)" using a script.
+    /// interp.eval("set a(1) Howdy")?;
+    ///
+    /// // The value of the array element "a(1)".
+    /// let val = interp.element("a", "1")?;
+    /// assert_eq!(val.as_str(), "Howdy");
+    /// # molt_ok!()
+    /// # }
+    /// ```
+    pub fn element(&self, name: &str, index: &str) -> MoltResult {
+        self.scopes.get_elem(name, index)
     }
 
     /// Sets the value of an array element in the current scope, creating the variable
@@ -885,7 +1052,21 @@ impl Interp {
     ///
     /// Returns an error if the variable exists and is not an array variable.
     ///
-    /// TODO: test needed
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a"
+    /// interp.set_element("b", "1", Value::from("xyz"))?;
+    /// assert_eq!(interp.element("b", "1")?.as_str(), "xyz");
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn set_element(&mut self, name: &str, index: &str, value: Value) -> Result<(), ResultCode> {
         self.scopes.set_elem(name, index, value)
     }
@@ -895,46 +1076,31 @@ impl Interp {
     ///
     /// Returns an error if the variable exists and is not an array variable.
     ///
-    /// TODO: test needed
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// // Set the value of the scalar variable "a"
+    /// assert_eq!(interp.set_element_return("b", "1", Value::from("xyz"))?.as_str(), "xyz");
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn set_element_return(&mut self, name: &str, index: &str, value: Value) -> MoltResult {
         // Clone the value, since we'll be returning it out again.
         self.scopes.set_elem(name, index, value.clone())?;
         Ok(value)
     }
 
-    /// Sets the value of the variable in the current scope, if any.
-    ///
-    /// Returns an error if the variable is scalar and the name names an array element,
-    /// and vice-versa.
-    ///
-    /// TODO: test needed
-    pub fn set_var(&mut self, var_name: &Value, value: Value) -> Result<(), ResultCode> {
-        let var_name = &*var_name.as_var_name();
-        match var_name.index() {
-            Some(index) => self.set_element(var_name.name(), index, value),
-            None => self.set_scalar(var_name.name(), value),
-        }
-    }
-
-    /// Sets the value of the variable in the current scope, if any, and returns its value.
-    ///
-    /// Returns an error if the variable is scalar and the name names an array element,
-    /// and vice-versa.
-    ///
-    /// TODO: test needed
-    pub fn set_var_return(&mut self, var_name: &Value, value: Value) -> MoltResult {
-        let var_name = &*var_name.as_var_name();
-        match var_name.index() {
-            Some(index) => self.set_element_return(var_name.name(), index, value),
-            None => self.set_scalar_return(var_name.name(), value),
-        }
-    }
-
     /// Unsets the value of the named variable or array element in the current scope
     pub fn unset_var(&mut self, name: &Value) {
         let var_name = name.as_var_name();
 
-        if let Some(index) = var_name.index()  {
+        if let Some(index) = var_name.index() {
             self.unset_element(var_name.name(), index);
         } else {
             self.unset(var_name.name());
@@ -942,7 +1108,7 @@ impl Interp {
     }
 
     /// Unsets a variable given its name.
-    pub fn unset(&mut self, name: &str,) {
+    pub fn unset(&mut self, name: &str) {
         self.scopes.unset(name);
     }
 
@@ -994,7 +1160,6 @@ impl Interp {
         self.scopes.array_size(array_name)
     }
 
-
     /// Pushes a variable scope on to the scope stack.
     /// Procs use this to define their local scope.
     pub fn push_scope(&mut self) {
@@ -1017,6 +1182,305 @@ impl Interp {
     pub fn upvar(&mut self, level: usize, name: &str) {
         assert!(level <= self.scopes.current(), "Invalid scope level");
         self.scopes.upvar(level, name);
+    }
+
+    //--------------------------------------------------------------------------------------------
+    // Command Definition and Handling
+
+    /// Adds a binary command with no related context to the interpreter.  This is the normal
+    /// way to add most commands.
+    ///
+    /// If the command needs access to some form of application or context data,
+    /// use [`add_context_command`](#method.add_context_command) instead.  See the
+    /// [module level documentation](index.html) for an overview and examples.
+    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
+        self.add_context_command(name, func, NULL_CONTEXT);
+    }
+
+    /// Adds a binary command with related context data to the interpreter.
+    ///
+    /// This is the normal way to add commands requiring application context.  See the
+    /// [module level documentation](index.html) for an overview and examples.
+    pub fn add_context_command(&mut self, name: &str, func: CommandFunc, context_id: ContextID) {
+        if context_id != NULL_CONTEXT {
+            self.context_map
+                .get_mut(&context_id)
+                .expect("unknown context ID")
+                .increment();
+        }
+
+        self.commands
+            .insert(name.into(), Rc::new(Command::Func(func, context_id)));
+    }
+
+    /// Adds a procedure to the interpreter.
+    ///
+    /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
+    /// as for the `proc` command and the `commands::cmd_proc` function.
+    pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &str) {
+        let proc = Procedure {
+            args: args.to_owned(),
+            body: body.to_string(),
+        };
+
+        self.commands
+            .insert(name.into(), Rc::new(Command::Proc(proc)));
+    }
+
+    /// Determines whether or not the interpreter contains a command with the given
+    /// name.
+    pub fn has_command(&self, name: &str) -> bool {
+        self.commands.contains_key(name)
+    }
+
+    /// Renames the command.
+    ///
+    /// **Note:** This does not update procedures that reference the command under the old
+    /// name.  This is intentional: it is a common TCL programming technique to wrap an
+    /// existing command by renaming it and defining a new command with the old name that
+    /// calls the original command at its new name.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// interp.rename_command("expr", "=");
+    ///
+    /// let sum = interp.eval("= {1 + 1}")?.as_int()?;
+    ///
+    /// assert_eq!(sum, 2);
+    /// # molt_ok!()
+    /// # }
+    /// ```
+    pub fn rename_command(&mut self, old_name: &str, new_name: &str) {
+        if let Some(cmd) = self.commands.get(old_name) {
+            let cmd = Rc::clone(cmd);
+            self.commands.remove(old_name);
+            self.commands.insert(new_name.into(), cmd);
+        }
+    }
+
+    /// Removes the command with the given name.
+    ///
+    /// This would typically be done when destroying an object command.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// use molt::molt_ok;
+    ///
+    /// let mut interp = Interp::new();
+    ///
+    /// interp.remove_command("set");  // You'll be sorry....
+    ///
+    /// assert!(!interp.has_command("set"));
+    /// ```
+    pub fn remove_command(&mut self, name: &str) {
+        // FIRST, get the command's context ID, if any.
+        let context_id = self
+            .commands
+            .get(name)
+            .expect("undefined command")
+            .context_id();
+
+        // NEXT, If it has a context ID, decrement its reference count; and if the reference
+        // is zero, remove the context.
+        if context_id != NULL_CONTEXT
+            && self
+                .context_map
+                .get_mut(&context_id)
+                .expect("unknown context ID")
+                .decrement()
+        {
+            self.context_map.remove(&context_id);
+        }
+
+        // FINALLY, remove the command itself.
+        self.commands.remove(name);
+    }
+
+    /// Gets a vector of the names of the existing commands.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// use molt::molt_ok;
+    ///
+    /// let mut interp = Interp::new();
+    ///
+    /// for name in interp.command_names() {
+    ///     println!("Found command: {}", name);
+    /// }
+    /// ```
+    pub fn command_names(&self) -> MoltList {
+        let vec: MoltList = self
+            .commands
+            .keys()
+            .cloned()
+            .map(|x| Value::from(&x))
+            .collect();
+
+        vec
+    }
+
+    //--------------------------------------------------------------------------------------------
+    // Interpreter Configuration
+
+    /// Gets the interpreter's recursion limit: how deep the stack of script evaluations may be.
+    ///
+    /// A script stack level is added by each nested script evaluation (i.e., by each call)
+    /// to [`eval`](#method.eval), [`eval_value`](#method.eval_value), or
+    /// [`eval_body`](#method.eval_body).
+    ///
+    /// # Example
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::interp::Interp;
+    /// let mut interp = Interp::new();
+    /// assert_eq!(interp.recursion_limit(), 1000);
+    /// ```
+    pub fn recursion_limit(&self) -> usize {
+        self.recursion_limit
+    }
+
+    /// Sets the interpreter's recursion limit: how deep the stack of script evaluations may
+    /// be.  The default is 1000.
+    ///
+    /// A script stack level is added by each nested script evaluation (i.e., by each call)
+    /// to [`eval`](#method.eval), [`eval_value`](#method.eval_value), or
+    /// [`eval_body`](#method.eval_body).
+    ///
+    /// # Example
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::interp::Interp;
+    /// let mut interp = Interp::new();
+    /// interp.set_recursion_limit(100);
+    /// assert_eq!(interp.recursion_limit(), 100);
+    /// ```
+    pub fn set_recursion_limit(&mut self, limit: usize) {
+        self.recursion_limit = limit;
+    }
+
+    //--------------------------------------------------------------------------------------------
+    // Context Cache
+
+    /// Saves the client's context data in the interpreter's context cache,
+    /// returning a generated context ID.  Client commands can retrieve the data
+    /// given the ID.
+    ///
+    /// See the [module level documentation](index.html) for an overview and examples.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::interp::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let data: Vec<String> = Vec::new();
+    /// let id = interp.save_context(data);
+    /// ```
+    pub fn save_context<T: 'static>(&mut self, data: T) -> ContextID {
+        let id = self.context_id();
+        self.context_map.insert(id, ContextBox::new(data));
+        id
+    }
+
+    /// Retrieves mutable client context data given the context ID.
+    ///
+    /// See the [module level documentation](index.html) for an overview and examples.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::interp::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let data: Vec<String> = Vec::new();
+    /// let id = interp.save_context(data);
+    ///
+    /// // Later...
+    /// let data: &mut Vec<String> = interp.context(id);
+    /// data.push("New Value".into());
+    ///
+    /// // Or
+    /// let data = interp.context::<Vec<String>>(id);
+    /// data.push("New Value".into());
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// This call panics if the context ID is unknown, or if the retrieved data
+    /// has an unexpected type.
+    pub fn context<T: 'static>(&mut self, id: ContextID) -> &mut T {
+        self.context_map
+            .get_mut(&id)
+            .expect("unknown context ID")
+            .data
+            .downcast_mut::<T>()
+            .expect("context type mismatch")
+    }
+
+    /// Generates a unique context ID for command context data.
+    ///
+    /// Normally the client will use [`save_context`](#method.save_context) to
+    /// save the context data and generate the client ID in one operation, rather than
+    /// call this explicitly.
+    ////
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::interp::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let id1 = interp.context_id();
+    /// let id2 = interp.context_id();
+    /// assert_ne!(id1, id2);
+    /// ```
+    pub fn context_id(&mut self) -> ContextID {
+        // TODO: Practically speaking we won't overflow u64; but practically speaking
+        // we should check any.
+        self.last_context_id += 1;
+        ContextID(self.last_context_id)
+    }
+
+    /// Saves a client context value in the interpreter for the given
+    /// context ID.  Client commands can retrieve the data given the context ID.
+    ///
+    /// Normally the client will use [`save_context`](#method.save_context) to
+    /// save the context data and generate the client ID in one operation, rather than
+    /// call this explicitly.
+    ///
+    /// TODO: This method allows the user to generate a context ID and
+    /// put data into the context cache as two separate steps; and to update the
+    /// the data in the context cache for a given ID.  I'm not at all sure that
+    /// either of those things is a good idea.  Waiting to see.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::interp::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let id = interp.context_id();
+    /// let data: Vec<String> = Vec::new();
+    /// interp.set_context(id, data);
+    /// ```
+    pub fn set_context<T: 'static>(&mut self, id: ContextID, data: T) {
+        self.context_map.insert(id, ContextBox::new(data));
     }
 
     //--------------------------------------------------------------------------------------------
@@ -1049,50 +1513,15 @@ impl Interp {
     }
 }
 
-/// A struct that wraps a CommandFunc and implements the Command trait.
-struct CommandFuncWrapper {
-    func: CommandFunc,
-}
-
-impl CommandFuncWrapper {
-    fn new(func: CommandFunc) -> Self {
-        Self { func }
-    }
-}
-
-impl Command for CommandFuncWrapper {
-    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        (self.func)(interp, argv)
-    }
-}
-
-/// A struct that wraps a ContextCommandFunc and implements the Command trait.
-struct ContextCommandFuncWrapper {
-    func: ContextCommandFunc,
-    context_id: ContextID,
-}
-
-impl ContextCommandFuncWrapper {
-    fn new(func: ContextCommandFunc, context_id: ContextID) -> Self {
-        Self { func, context_id }
-    }
-}
-
-impl Command for ContextCommandFuncWrapper {
-    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        (self.func)(interp, self.context_id, argv)
-    }
-}
-
-// EvalPtr structure for a proc.
-struct CommandProc {
+// Procedure Definition: much to do here!
+struct Procedure {
     args: MoltList,
     body: String,
 }
 
-// TODO: Need to work out how we're going to store the CommandProc details for
+// TODO: Need to work out how we're going to store the Procedure details for
 // best efficiency.
-impl Command for CommandProc {
+impl Procedure {
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         let name = argv[0].as_str();
 
@@ -1153,9 +1582,7 @@ impl Command for CommandProc {
         // interp.eval() returns only Ok or a real error.
         result
     }
-}
 
-impl CommandProc {
     // Outputs the wrong # args message for the proc.  The name is passed in
     // because it can be changed via the `rename` command.
     fn wrong_num_args(&self, name: &str) -> MoltResult {
@@ -1437,20 +1864,44 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn context_forget() {
+    fn context_forgotten_1_command() {
         let mut interp = Interp::new();
 
         // Save a context object.
         let id = interp.save_context(String::from("ABC"));
 
-        // Retrieve it.
-        let ctx = interp.context::<String>(id);
-        assert_eq!(*ctx, "ABC");
+        // Use it with a command.
+        interp.add_context_command("dummy", dummy_cmd, id);
 
-        // Forget it
-        interp.forget_context(id);
+        // Remove the command.
+        interp.remove_command("dummy");
 
-        // Retrieve it; should panic.
+        // Try to retrieve it; this should panic.
         let _ctx = interp.context::<String>(id);
+    }
+
+    #[test]
+    #[should_panic(expected = "unknown context ID")]
+    fn context_forgotten_2_commands() {
+        let mut interp = Interp::new();
+
+        // Save a context object.
+        let id = interp.save_context(String::from("ABC"));
+
+        // Use it with a command.
+        interp.add_context_command("dummy", dummy_cmd, id);
+        interp.add_context_command("dummy2", dummy_cmd, id);
+
+        // Remove the command.
+        interp.remove_command("dummy");
+        assert_eq!(interp.context::<String>(id), "ABC");
+        interp.remove_command("dummy2");
+
+        // Try to retrieve it; this should panic.
+        let _ctx = interp.context::<String>(id);
+    }
+
+    fn dummy_cmd(_: &mut Interp, _: ContextID, _: &[Value]) -> MoltResult {
+        molt_err!("Not really meant to be called")
     }
 }

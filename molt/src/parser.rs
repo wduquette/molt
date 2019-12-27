@@ -51,6 +51,7 @@
 use crate::check_args;
 use crate::eval_ptr::EvalPtr;
 use crate::interp::Interp;
+use crate::types::ContextID;
 use crate::types::MoltResult;
 use crate::types::ResultCode;
 use crate::types::VarName;
@@ -555,7 +556,7 @@ impl Tokens {
 ///
 /// A command for parsing an arbitrary script and outputting the parsed form.
 /// This is an undocumented debugging aid.  The output can be greatly improved.
-pub fn cmd_parse(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+pub fn cmd_parse(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 2, "script")?;
 
     let script = &argv[1];

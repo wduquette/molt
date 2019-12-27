@@ -193,7 +193,8 @@ administration.</li>
 <p>See the <a href="https://github.com/wduquette/molt-sample"><code>molt-sample</code> repo</a> for a sample Molt client
 skeleton.</p>
 <a class="header" href="#new-in-molt-02" id="new-in-molt-02"><h2>New in Molt 0.2</h2></a>
-<p><strong>Associative Arrays:</strong> Molt now includes TCL's associative array variables:</p>
+<a class="header" href="#associative-arrays" id="associative-arrays"><h3>Associative Arrays</h3></a>
+<p>Molt now includes TCL's associative array variables:</p>
 <pre><code class="language-text">% set a(1) &quot;Howdy&quot;
 Howdy
 % set a(foo.bar) 5
@@ -201,7 +202,8 @@ Howdy
 % puts [array get a]
 1 Howdy foo.bar 5
 </code></pre>
-<p><strong>The Expansion Operator:</strong> Molt now supports the <code>{*}</code> operator, which expands a single
+<a class="header" href="#the-expansion-operator" id="the-expansion-operator"><h3>The Expansion Operator</h3></a>
+<p>Molt now supports TCL's <code>{*}</code> operator, which expands a single
 command argument into multiple arguments:</p>
 <pre><code class="language-text">% set a {a b c}
 a b c
@@ -210,23 +212,40 @@ a b c
 % list 1 2 {*}$a 3 4
 1 2 a b c 3 4
 </code></pre>
-<p><strong>Rust API Changes:</strong></p>
-<ul>
-<li>The addition of array variables required changes to the <code>molt::Interp</code> struct's API for
+<a class="header" href="#rust-api-change-test-harness" id="rust-api-change-test-harness"><h3>Rust API Change: Test Harness</h3></a>
+<p>The Molt test harness code has moved from <code>molt_shell:test_harness</code> to <code>molt::test_harness</code>,
+so that it can be used in the <code>molt/tests/tcl_tests.rs</code> integration test.</p>
+<a class="header" href="#rust-api-change-variable-access" id="rust-api-change-variable-access"><h3>Rust API Change: Variable Access</h3></a>
+<p>The addition of array variables required changes to the <code>molt::Interp</code> struct's API for
 setting and retrieving variables.  In particular, the <code>molt::Interp::var</code>,
 <code>molt::Interp::set_var</code>, and <code>molt::Interp::set_and_return</code> methods now take the variable
 name as a <code>&amp;Value</code> rather than a <code>&amp;str</code>; this simplifies client code, and means that most
 commands implemented in Rust that work with variables don't need to care whether the
-variable in question is a scalar or an array element.</li>
-</ul>
+variable in question is a scalar or an array element.</p>
+<a class="header" href="#rust-api-change-command-definition" id="rust-api-change-command-definition"><h3>Rust API Change: Command Definition</h3></a>
+<p>Defining Molt commands in Rust has been simplified.</p>
+<p>First, the <code>Command</code> trait has been removed.  It was intended to provide a way to
+attach context data to a command; but it was not very good for mutable data, and had
+no way to share data among related commands (a common pattern).</p>
+<p>Second, the interpreter's context cache has been improved.  Multiple commands can share a
+context ID (and hence access to the shared context); and the cached data will be dropped
+automatically when the last such command is removed from the interpreter.</p>
+<p>Third, there is now only one command function signature:</p>
+<pre><code>fn my_command(interp: &amp;mut Interp, context_id: ContextID, argv: &amp;[Value]) -&gt; MoltResult {
+    ...
+}
+</code></pre>
+<p>Commands that don't use a cached context should be defined as follows:</p>
+<pre><code>fn my_command(interp: &amp;mut Interp, _: ContextID, argv: &amp;[Value]) -&gt; MoltResult {
+    ...
+}
+</code></pre>
 <a class="header" href="#coming-attractions" id="coming-attractions"><h2>Coming Attractions</h2></a>
 <p>At this point Molt is capable and robust enough for real work, though the Rust-level API is
 not yet completely stable.  Standard Rust <code>0.y.z</code> semantic versioning applies: &quot;.y&quot; changes
 can break the Rust-level API, &quot;.z&quot; changes will not.</p>
 <ul>
 <li>Feature: Regex and Glob pattern matching by Molt commands</li>
-<li>Improved support for implementing Molt commands in Rust that require associated context
-data.</li>
 <li>Testing improvements</li>
 <li>Documentation improvements</li>
 </ul>

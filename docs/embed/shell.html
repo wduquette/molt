@@ -141,6 +141,48 @@
                 <div id="content" class="content">
                     <main>
                         <a class="header" href="#custom-shells" id="custom-shells"><h1>Custom Shells</h1></a>
+<p>A custom Molt shell is simply an application that:</p>
+<ul>
+<li>Creates a Molt <code>interp</code></li>
+<li>Adds any desired commands by the methods described in the previous section</li>
+<li>Passes the <code>interp</code> to <code>molt_shell::repl</code> (for an interactive shell)</li>
+<li>Passes the <code>interp</code> and a file to <code>molt_shell::script</code></li>
+</ul>
+<p>The <a href="https://github.com/wduquette/molt-sample">sample Molt application</a> provides a full
+example; here's a sketch:</p>
+<pre><code>fn main() {
+    use std::env;
+
+    // FIRST, get the command line arguments.
+    let args: Vec&lt;String&gt; = env::args().collect();
+
+    // NEXT, create and initialize the interpreter.
+    let mut interp = Interp::new();
+
+    // NOTE: commands can be added to the interpreter here, e.g.,
+
+    // Add a single module
+    interp.add_command(&quot;hello&quot;, cmd_hello);
+
+    // Install a Molt extension crate
+    molt_sample::install(&amp;mut interp).expect(&quot;Could not install.&quot;);
+
+    // NEXT, evaluate the file, if any.
+    if args.len() &gt; 1 {
+        molt_shell::script(&amp;mut interp, &amp;args[1..]);
+    } else {
+        molt_shell::repl(&amp;mut interp, &quot;% &quot;);
+    }
+}
+
+pub fn cmd_hello(_interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
+    // Correct number of arguments?
+    check_args(1, argv, 2, 2, &quot;name&quot;)?;
+
+    println!(&quot;Hello, {}&quot;, argv[1].as_str());
+    molt_ok!()
+}
+</code></pre>
 
                     </main>
 

@@ -193,7 +193,8 @@ administration.</li>
 <p>See the <a href="https://github.com/wduquette/molt-sample"><code>molt-sample</code> repo</a> for a sample Molt client
 skeleton.</p>
 <a class="header" href="#new-in-molt-02" id="new-in-molt-02"><h2>New in Molt 0.2</h2></a>
-<p><strong>Associative Arrays:</strong> Molt now includes TCL's associative array variables:</p>
+<a class="header" href="#associative-arrays" id="associative-arrays"><h3>Associative Arrays</h3></a>
+<p>Molt now includes TCL's associative array variables:</p>
 <pre><code class="language-text">% set a(1) &quot;Howdy&quot;
 Howdy
 % set a(foo.bar) 5
@@ -201,7 +202,8 @@ Howdy
 % puts [array get a]
 1 Howdy foo.bar 5
 </code></pre>
-<p><strong>The Expansion Operator:</strong> Molt now supports the <code>{*}</code> operator, which expands a single
+<a class="header" href="#the-expansion-operator" id="the-expansion-operator"><h3>The Expansion Operator</h3></a>
+<p>Molt now supports TCL's <code>{*}</code> operator, which expands a single
 command argument into multiple arguments:</p>
 <pre><code class="language-text">% set a {a b c}
 a b c
@@ -210,23 +212,40 @@ a b c
 % list 1 2 {*}$a 3 4
 1 2 a b c 3 4
 </code></pre>
-<p><strong>Rust API Changes:</strong></p>
-<ul>
-<li>The addition of array variables required changes to the <code>molt::Interp</code> struct's API for
+<a class="header" href="#rust-api-change-test-harness" id="rust-api-change-test-harness"><h3>Rust API Change: Test Harness</h3></a>
+<p>The Molt test harness code has moved from <code>molt_shell:test_harness</code> to <code>molt::test_harness</code>,
+so that it can be used in the <code>molt/tests/tcl_tests.rs</code> integration test.</p>
+<a class="header" href="#rust-api-change-variable-access" id="rust-api-change-variable-access"><h3>Rust API Change: Variable Access</h3></a>
+<p>The addition of array variables required changes to the <code>molt::Interp</code> struct's API for
 setting and retrieving variables.  In particular, the <code>molt::Interp::var</code>,
 <code>molt::Interp::set_var</code>, and <code>molt::Interp::set_and_return</code> methods now take the variable
 name as a <code>&amp;Value</code> rather than a <code>&amp;str</code>; this simplifies client code, and means that most
 commands implemented in Rust that work with variables don't need to care whether the
-variable in question is a scalar or an array element.</li>
-</ul>
+variable in question is a scalar or an array element.</p>
+<a class="header" href="#rust-api-change-command-definition" id="rust-api-change-command-definition"><h3>Rust API Change: Command Definition</h3></a>
+<p>Defining Molt commands in Rust has been simplified.</p>
+<p>First, the <code>Command</code> trait has been removed.  It was intended to provide a way to
+attach context data to a command; but it was not very good for mutable data, and had
+no way to share data among related commands (a common pattern).</p>
+<p>Second, the interpreter's context cache has been improved.  Multiple commands can share a
+context ID (and hence access to the shared context); and the cached data will be dropped
+automatically when the last such command is removed from the interpreter.</p>
+<p>Third, there is now only one command function signature:</p>
+<pre><code>fn my_command(interp: &amp;mut Interp, context_id: ContextID, argv: &amp;[Value]) -&gt; MoltResult {
+    ...
+}
+</code></pre>
+<p>Commands that don't use a cached context should be defined as follows:</p>
+<pre><code>fn my_command(interp: &amp;mut Interp, _: ContextID, argv: &amp;[Value]) -&gt; MoltResult {
+    ...
+}
+</code></pre>
 <a class="header" href="#coming-attractions" id="coming-attractions"><h2>Coming Attractions</h2></a>
 <p>At this point Molt is capable and robust enough for real work, though the Rust-level API is
 not yet completely stable.  Standard Rust <code>0.y.z</code> semantic versioning applies: &quot;.y&quot; changes
 can break the Rust-level API, &quot;.z&quot; changes will not.</p>
 <ul>
 <li>Feature: Regex and Glob pattern matching by Molt commands</li>
-<li>Improved support for implementing Molt commands in Rust that require associated context
-data.</li>
 <li>Testing improvements</li>
 <li>Documentation improvements</li>
 </ul>
@@ -1234,12 +1253,10 @@ return molt_ok!(&quot;The answer is {}.&quot;, x);
 </code></pre>
 <a class="header" href="#defining-commands" id="defining-commands"><h1>Defining Commands</h1></a>
 <p>At base, a Molt command is a Rust function that performs some kind of work and optionally
-returns a value in the context of a specific Rust interpreter.  There are four ways an
+returns a value in the context of a specific Rust interpreter.  There are two ways an
 application (or library crate) can define application-specific Rust commands:</p>
 <ul>
-<li>As a simple Rust <code>CommandFunc</code> function</li>
-<li>As a Rust <code>ContextCommandFunc</code> function that can access application-specific context</li>
-<li>As a Rust <code>Command</code> object</li>
+<li>As a Rust <code>CommandFunc</code> function</li>
 <li>As a Molt procedure, or <code>proc</code>.</li>
 </ul>
 <a class="header" href="#commandfunc-commands" id="commandfunc-commands"><h2><code>CommandFunc</code> Commands</h2></a>
@@ -1247,21 +1264,21 @@ application (or library crate) can define application-specific Rust commands:</p
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
-pub type CommandFunc = fn(&amp;mut Interp, &amp;[Value]) -&gt; MoltResult;
+pub type CommandFunc = fn(&amp;mut Interp, ContextID, &amp;[Value]) -&gt; MoltResult;
 #}</code></pre></pre>
 <p>For example, here's a simple command that takes one argument and returns it
 unchanged.</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
-fn cmd_ident(_interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
+fn cmd_ident(_interp: &amp;mut Interp, _context_id: ContextID, argv: &amp;[Value]) -&gt; MoltResult {
     check_args(1, argv, 2, 2, &quot;value&quot;)?;
 
     molt_ok!(argv[1].clone())
 }
 #}</code></pre></pre>
 <p>The <code>argv</code> vector contains the arguments to the command, beginning with the
-command's name.  The <code>check_args</code> method verifies that the command has a write
+command's name.  The <code>check_args</code> method verifies that the command has the right
 number of arguments, and returns the standard Tcl error message if not.  Finally,
 it uses <code>molt_ok!</code> to return its first argument.</p>
 <p>Install this command into the interpreter using the <code>Interp::add_command</code> method:</p>
@@ -1270,11 +1287,11 @@ it uses <code>molt_ok!</code> to return its first argument.</p>
 #fn main() {
 interp.add_command(&quot;ident&quot;, cmd_ident);
 #}</code></pre></pre>
-<a class="header" href="#contextcommandfunc-commands" id="contextcommandfunc-commands"><h2><code>ContextCommandFunc</code> Commands</h2></a>
-<p>Normal <code>CommandFunc</code> commands are useful when extending the Molt language itself, but don't
-help much when adding commands to manipulate the application and its data.  In this case,
-it's often best to use a <code>ContextCommandFunc</code> in conjunction with the interpreter's
-<em>context cache</em>.</p>
+<a class="header" href="#commandfunc-commands-with-context" id="commandfunc-commands-with-context"><h2><code>CommandFunc</code> Commands with Context</h2></a>
+<p>A normal <code>CommandFunc</code> is useful when extending the Molt language itself; but
+application-specific commands need to manipulate the application and its data.  In this case,
+add the required data to the interpreter's <em>context cache</em>.  The cached data can be retrieved,
+used, and mutated by commands tagged with the relevant context ID.</p>
 <p>The context cache is a hash map that allows the interpreter to keep arbitrary data and make
 it available to commands. The usual pattern is like this:</p>
 <ul>
@@ -1302,7 +1319,8 @@ fn cmd_whatsit(interp: &amp;mut Interp, context_id: ContextID, argv: &amp;[Value
 
     let ctx = interp.context::&lt;AppContext&gt;(context_id);
 
-    // Save the first argument to the AppContext's text field.
+    // Append the first argument's string rep to the
+    // AppContext struct's text field.
     ctx.text.push_str(argv[1].as_str());
 
     molt_ok!()
@@ -1318,41 +1336,66 @@ fn main() {
     ...
 }
 </code></pre></pre>
-<a class="header" href="#command-objects" id="command-objects"><h2><code>Command</code> Objects</h2></a>
-<p>Sometimes it's desirable to include more data as part of the command itself.  In this
-case one can define a type that implements the <code>Command</code> trait, and register an instance
-with the interp.</p>
-<pre><pre class="playpen"><code class="language-rust">
-# #![allow(unused_variables)]
-#fn main() {
-struct MyCommand {
-    b: RefCell&lt;String&gt;,
+<p>The saved <code>AppContext</code> will be dropped automatically if the <code>whatsit</code> command is
+removed from the interpreter.</p>
+<a class="header" href="#commands-with-shared-context" id="commands-with-shared-context"><h2>Commands with Shared Context</h2></a>
+<p>Any number of Molt commands can share a single cached context struct:</p>
+<pre><code>    let interp = Interp::new();
+    let id = interp.save_context(AppContext::new());
+
+    interp.add_context_command(&quot;first&quot;, cmd_first, id);
+    interp.add_context_command(&quot;second&quot;, cmd_second, id);
+    interp.add_context_command(&quot;third&quot;, cmd_third, id);
+    ...
+</code></pre>
+<p>The context struct will persist in the cache until the final command is removed (or, of
+course, until the interpreter is dropped).</p>
+<a class="header" href="#molt-objects" id="molt-objects"><h2>Molt Objects</h2></a>
+<p>The standard way to represent an object in TCL is to define a command with attached
+context data. The command's methods are implemented as subcommands.</p>
+<p>The context cache supports this pattern trivially.  Define the object's instance variables
+as a context struct, and define a command to create instances.</p>
+<pre><code>// Instance Data
+struct InstanceContext { text: String }
+
+// Command to make an instance
+fn cmd_make(interp: &amp;mut Interp, _: ContextID, argv: &amp;[Value]) -&gt; MoltResult {
+    check_args(1, argv, 2, 2, &quot;name&quot;)?;
+
+    let id = interp.save_context(InstanceContext::new());
+
+    interp.add_context_command(argv[1].as_str(), cmd_instance, id);
+
+    molt_ok!()
 }
 
-impl Command for MyCommand {
-    fn execute(&amp;self, interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
-        ...
-    }
+// Instance Command
+fn cmd_instance(interp: &amp;mut Interp, _: ContextID, argv: &amp;[Value]) -&gt; MoltResult {
+    check_args(1, argv, 2, 0, &quot;subcommand ?args...?&quot;)?;
+
+    // Get the context
+    let ctx = interp.context::&lt;AppContext&gt;(context_id);
+
+    // Do stuff based on argv[1], the subcommand.
+    ...
 }
-#}</code></pre></pre>
-<p>The instance is added to the interpreter using the <code>add_command_object</code> method:</p>
-<pre><pre class="playpen"><code class="language-rust">
-# #![allow(unused_variables)]
-#fn main() {
-interp.add_command_object(&quot;my_command&quot;, MyCommand::new());
-#}</code></pre></pre>
-<p>This allows many additional patterns of use.  For example, objects in Tcl are often
-represented as commands with associated data.  This can be handled using <code>Command</code> objects,
-optionally in conjunction with the context cache:</p>
-<ul>
-<li>Command <code>myclass</code> creates a new instance, a Tcl command with its own context record
-in the context cache.</li>
-<li>The new instance can read and write from its instance data as needed.</li>
-<li>The code of the &quot;class&quot; is defined by a struct that implements the <code>Command</code> trait.</li>
-<li>The struct should also implement the <code>Drop</code> trait to release the context record
-when the object goes away.</li>
-</ul>
-<p>TODO: We really need a bigger discussion of how to define Molt objects in Rust.</p>
+
+// Registering the command
+fn main() {
+    let interp = Interp::new();
+
+    interp.add_command(&quot;make&quot;, cmd_make);
+
+    ...
+}
+</code></pre>
+<p>Then, in Molt code you can create an object called <code>fred</code>, use its methods, and then
+destroy it by renaming it to the empty string.</p>
+<pre><code class="language-tcl">% make fred
+% fred do_something 1 2 3
+...
+% rename fred &quot;&quot;
+</code></pre>
 <a class="header" href="#molt-procedures" id="molt-procedures"><h2>Molt Procedures</h2></a>
 <p>A Molt procedure is a routine coded in Tcl and defined using the <code>proc</code> command. A
 crate can compile Tcl procedures into itself using the <code>include_str!</code> macro.  Start
@@ -1544,6 +1587,48 @@ if args.len() &gt; 1 {
 }
 </code></pre>
 <a class="header" href="#custom-shells" id="custom-shells"><h1>Custom Shells</h1></a>
+<p>A custom Molt shell is simply an application that:</p>
+<ul>
+<li>Creates a Molt <code>interp</code></li>
+<li>Adds any desired commands by the methods described in the previous section</li>
+<li>Passes the <code>interp</code> to <code>molt_shell::repl</code> (for an interactive shell)</li>
+<li>Passes the <code>interp</code> and a file to <code>molt_shell::script</code></li>
+</ul>
+<p>The <a href="https://github.com/wduquette/molt-sample">sample Molt application</a> provides a full
+example; here's a sketch:</p>
+<pre><code>fn main() {
+    use std::env;
+
+    // FIRST, get the command line arguments.
+    let args: Vec&lt;String&gt; = env::args().collect();
+
+    // NEXT, create and initialize the interpreter.
+    let mut interp = Interp::new();
+
+    // NOTE: commands can be added to the interpreter here, e.g.,
+
+    // Add a single module
+    interp.add_command(&quot;hello&quot;, cmd_hello);
+
+    // Install a Molt extension crate
+    molt_sample::install(&amp;mut interp).expect(&quot;Could not install.&quot;);
+
+    // NEXT, evaluate the file, if any.
+    if args.len() &gt; 1 {
+        molt_shell::script(&amp;mut interp, &amp;args[1..]);
+    } else {
+        molt_shell::repl(&amp;mut interp, &quot;% &quot;);
+    }
+}
+
+pub fn cmd_hello(_interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
+    // Correct number of arguments?
+    check_args(1, argv, 2, 2, &quot;name&quot;)?;
+
+    println!(&quot;Hello, {}&quot;, argv[1].as_str());
+    molt_ok!()
+}
+</code></pre>
 <a class="header" href="#molt-library-crates" id="molt-library-crates"><h1>Molt Library Crates</h1></a>
 <p>A Molt library crate is simply a Rust crate that can install commands into a
 Molt interpreter using any of the methods described in this chapter.<br />

@@ -3,26 +3,33 @@
 //! The [`Value`] struct is the standard representation of a data value
 //! in the Molt language.  It represents a single immutable data value; the
 //! data is reference-counted, so instances can be cloned efficiently.  Its
-//! content may be any TCL data value: a number, a list, a string, or a value of
+//! content may be any TCL data value: e.g., a number, a list, a string, or a value of
 //! an arbitrary type that meets certain requirements.
 //!
-//! In TCL, "everything is a string".  Every value is defined by its _string
-//! representation_, e.g., "one two three" is the _string rep_ of a
-//! list with three items, "one", "two", and "three".  A string that is a valid string
-//! for multiple types can be interpreted as any of those types; for example, the
-//! string "5" can be a string, the integer 5, or a list of one element, "5".
+//! In TCL, "everything is a string": every value is defined by its _string
+//! representation_, or _string rep_.  For example, "one two three" is the string rep of a
+//! list with three items, the strings "one", "two", and "three".  A string that is a
+//! valid string rep for multiple types can be interpreted as any of those types;
+//! for example, the string "5" can be used as a string, the integer 5, or a list of one
+//! element, the value "5".
+//!
+//! Internally, the `Value` can also have a `data representation`, or `data rep`, that
+//! reflects how the value has been most recently used.  Once a `Value` has been used
+//! as a list, it will continue to be efficiently used as a list (until it is used something
+//! with a different data rep).
 //!
 //! # Value is not Sync!
 //!
 //! A `Value` is associated with a particular `Interp` and changes internally to optimize
 //! performance within that `Interp`.  Consequently, `Values` are not `Sync`.  `Values`
 //! may be used to pass values between `Interps` in the same thread (at the cost of
-//! potential shimmering), but between threads one should pass the string rep instead.
+//! potential shimmering), but between threads one should pass the value's string rep instead.
 //!
 //! # Comparisons
 //!
-//! If two `Value`'s are compared for equality in Rust, Rust compares their string reps.
-//! In TCL expressions the `==` and `!=` operators compare numbers and the
+//! If two `Value`'s are compared for equality in Rust, Rust compares their string reps;
+//! the client may also use the two `Values` as some other type before comparing them.  In
+//! TCL expressions the `==` and `!=` operators compare numbers and the
 //! `eq` and `ne` operators compare string reps.
 //!
 //! # Internal Representation
@@ -33,7 +40,7 @@
 //! data representation, or _data rep_.
 //!
 //! A `Value` can have just a string rep, just a data rep, or both.
-//! Like the `Tcl_Obj` in standard TCL, the `Value` is like a stork: it
+//! Like the `Tcl_Obj` in standard TCL, the `Value` is like a two-legged stork: it
 //! can stand one leg, the other leg, or both legs.
 //!
 //! A client can ask the `Value` for its string, which is always available
@@ -41,8 +48,8 @@
 //! computed, the string rep never changes.)  A client can also ask
 //! the `Value` for any other type it desires.  If the requested data rep
 //! is already available, it will be returned; otherwise, the `Value` will
-//! attempt to parse it from the string_rep.  The last successful conversion is
-//! cached for later.
+//! attempt to parse it from the string_rep, returning an error result on failure.  The
+//! most recent data rep is cached for later.
 //!
 //! For example, consider the following sequence:
 //!
@@ -51,7 +58,7 @@
 //!
 //! * The client asks for the string, and the string rep "5" is computed.
 //!
-//! * The client asks for the value's integer value.  It's available and is returned.
+//! * The client asks for the value's integer value.  It is available and is returned.
 //!
 //! * The client asks for the value's value as a MoltList.  This is possible, because
 //!   the string "5" can be interpreted as a list of one element, the
@@ -61,15 +68,16 @@
 //! out efficiently using only the the data rep, incurring the parsing cost at most
 //! once, while preserving TCL's "everything is a string" semantics.
 //!
-//! Converting from one data rep to another is expensive, as it involves parsing
-//! the string value.  Performance suffers when code switches rapidly from one data
+//! **Shimmering**: Converting from one data rep to another is expensive, as it involves parsing
+//! the string value.  Performance can suffer if the user's code switches rapidly from one data
 //! rep to another, e.g., in a tight loop.  The effect, which is known as "shimmering",
-//! can usually be avoided with a little care.
+//! can usually be avoided with a little care.  Note that accessing the value's string rep
+//! doesn't cause shimmering; the string is always readily available.
 //!
-//! `Value` handles strings, integers, floating-point values, and lists as
+//! `Value` handles strings, integers, floating-point values, lists, and a few other things as
 //! special cases, since they are part of the language and are so frequently used.
-//! In addition, a `Value` can also contain _external types_: Rust types that meet
-//! certain requirements.
+//! In addition, a `Value` can also contain _external types_: Rust types that implement
+//! certain traits.
 //!
 //! # External Types
 //!
@@ -182,21 +190,28 @@ use std::str::FromStr;
 /// The `Value` type. See [the module level documentation](index.html) for more.
 #[derive(Clone)]
 pub struct Value {
+    /// The actual data, to be shared among multiple instances of `Value`.
     inner: Rc<InnerValue>,
 }
 
+/// The inner value of a `Value`, to be wrapped in an `Rc<T>` so that `Values` can be shared.
 #[derive(Debug)]
 struct InnerValue {
     string_rep: UnsafeCell<Option<String>>,
     data_rep: RefCell<DataRep>,
 }
 impl std::fmt::Debug for Value {
+    /// The Debug formatter for values.
+    ///
+    /// TODO: This should indicate something about the data rep as well, especially for
+    /// values in which the string rep isn't yet set.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Value[{}]", self.as_str())
     }
 }
 
 impl Value {
+    /// Creates a value whose `InnerValue` is defined by its string rep.
     fn inner_from_string(str: String) -> Self {
         let inner = InnerValue {
             string_rep: UnsafeCell::new(Some(str)),
@@ -208,6 +223,7 @@ impl Value {
         }
     }
 
+    /// Creates a value whose `InnerValue` is defined by its data rep.
     fn inner_from_data(data: DataRep) -> Self {
         let inner = InnerValue {
             string_rep: UnsafeCell::new(None),
@@ -221,19 +237,20 @@ impl Value {
 }
 
 impl Display for Value {
+    /// The `Display` formatter for `Value`.  Outputs the value's string rep.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
+impl Eq for Value {}
 impl PartialEq for Value {
-    // Two Values are equal if their string representations are equal.
+    /// Two Values are equal if their string representations are equal.  Application code will
+    /// often want to compare values numerically.
     fn eq(&self, other: &Self) -> bool {
         self.as_str() == other.as_str()
     }
 }
-
-impl Eq for Value {}
 
 impl From<String> for Value {
     /// Creates a new `Value` from the given String.
@@ -266,8 +283,6 @@ impl From<&str> for Value {
     }
 }
 
-// TODO: Not clear why this is needed when we've `impl From<&str>`, but it makes the
-// molt_err! macro happy.
 impl From<&String> for Value {
     /// Creates a new `Value` from the given string reference.
     ///
@@ -329,6 +344,7 @@ impl From<MoltFloat> for Value {
     /// will yield exactly the same floating point number when it is parsed.  Rust
     /// will format the number `5.0` as `5`, turning it into a integer if parsed naively. So
     /// there is more work to be done here.
+    ///
     /// # Example
     ///
     /// ```
@@ -380,7 +396,8 @@ impl Value {
     /// Returns the empty `Value`, a value whose string representation is the empty
     /// string.
     ///
-    /// TODO: This should really be a constant.
+    /// TODO: This should really be a constant, but there's way to build it as one
+    /// unless I use lazy_static.
     pub fn empty() -> Value {
         Value::inner_from_string("".into())
     }

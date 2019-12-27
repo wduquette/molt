@@ -23,7 +23,7 @@ use molt::molt_ok;
 /// # square *x*
 ///
 /// Computes the square of a value
-pub fn cmd_square(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+pub fn cmd_square(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     // Correct number of arguments?
     check_args(1, argv, 2, 2, "x")?;
 

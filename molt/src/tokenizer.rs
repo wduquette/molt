@@ -33,6 +33,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// Returns the entire input.
+    #[allow(dead_code)]
     pub fn input(&self) -> &str {
         self.input
     }
@@ -48,6 +49,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     // Returns the remainder of the input starting at the given mark.
+    #[allow(dead_code)]
     pub fn tail(&self, mark: usize) -> &str {
         &self.input[mark..]
     }
@@ -78,6 +80,7 @@ impl<'a> Tokenizer<'a> {
 
     /// Get the token between the mark and the index.  Returns "" if
     /// mark == index.
+    #[allow(dead_code)]
     pub fn token2(&self, mark: usize, index: usize) -> &str {
         assert!(mark <= index, "mark follows index");
         &self.input[mark..index]

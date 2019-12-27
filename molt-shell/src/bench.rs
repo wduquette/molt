@@ -253,7 +253,7 @@ fn measure_cmd(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mo
 /// # ident value
 ///
 /// Returns its argument.
-fn cmd_ident(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+fn cmd_ident(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 2, "value")?;
 
     molt_ok!(argv[1].clone())
@@ -262,6 +262,6 @@ fn cmd_ident(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
 /// # ok ...
 ///
 /// Takes any number of arguments, and returns "".
-fn cmd_ok(_interp: &mut Interp, _argv: &[Value]) -> MoltResult {
+fn cmd_ok(_interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
     molt_ok!()
 }

@@ -1,4 +1,21 @@
 //! Public Type Declarations
+//!
+//! This module defines a number of types used throughout Molt's public API.
+//!
+//! The most important types are [`Value`], the type of data values in the Molt
+//! language, and [`MoltResult`], Molt's standard `Result<T,E>` type.  `MoltResult`
+//! is an alias for `Result<Value,ResultCode>`, where [`ResultCode`] represents all
+//! of the ways a Molt script might return early: errors, explicit returns, breaks,
+//! and continues.  [`MoltInt`], [`MoltFloat`], and [`MoltList`] are simple type aliases
+//! defining Molt's internal representation for integers, floats, and TCL lists.
+//!
+//! [`MoltResult`]: type.MoltResult.html
+//! [`MoltInt`]: type.MoltInt.html
+//! [`MoltFloat`]: type.MoltFloat.html
+//! [`MoltList`]: type.MoltList.html
+//! [`ResultCode`]: enum.ResultCode.html
+//! [`Value`]: ../value/index.html
+//! [`interp`]: interp/index.html
 
 use crate::interp::Interp;
 pub use crate::value::Value;
@@ -15,65 +32,81 @@ pub type MoltInt = i64;
 
 /// The standard floating point type for Molt code.
 ///
-/// The interpreter uses this type internally for all Molt floating-pojint values.
+/// The interpreter uses this type internally for all Molt floating-point values.
 /// The primary reason for defining this as a type alias is future-proofing: at
-/// some point we may wish to replace `MoltFloat` with a more powerful type that
-/// supports BigNums, or switch to `f128`.
+/// some point we may wish to replace `MoltFloat` with `f128`.
 pub type MoltFloat = f64;
 
 /// The standard list type for Molt code.
 ///
 /// Lists are an important data structure, both in Molt code proper and in Rust code
-/// that implements and works with Molt commands.  A list is a list of `Value`s.
+/// that implements and works with Molt commands.  A list is a vector of `Value`s.
 pub type MoltList = Vec<Value>;
 
-/// Molt's standard `Result<T,E>` type.
+/// The standard `Result<T,E>` type for Molt code.
 ///
-/// This is the most common result value returned by Molt code.  The
-/// `Ok` type is `Value`, the standard Molt value type; the `Err` type is
-/// [`ResultCode`], which encompasses the four exceptional Molt return values.
+/// This is the return value of all Molt commands, and the most common return value
+/// throughout the Molt code base.  Every Molt command returns a [`Value`] on success;
+/// if the command has no explicit return value, it returns the empty `Value`, a `Value`
+/// whose string representation is the empty string.
+///
+/// A Molt command returns a [`ResultCode`] whenever the calling Molt script should
+/// return early: on error, when returning an explicit result via the `return` command,
+/// or when breaking out of a loop via the `break` or `continue` commands.
+///
+/// Many of the functions in Molt's Rust API also return `MoltResult`, for easy use within
+/// Molt command definitions.
 ///
 /// [`ResultCode`]: enum.ResultCode.html
+/// [`Value`]: ../value/index.html
 pub type MoltResult = Result<Value, ResultCode>;
 
-/// Exceptional results of evaluating a Molt script.
+/// This enum represents the possible exceptional results of evaluating a Molt script, as
+/// used in [`MoltResult`].  It is often used in the `Result<_,ResultCode>` type of other
+/// functions in the Molt API, so that these functions can easily return errors when used
+/// in the definition of Molt commands.
 ///
-/// A Molt script can return a normal result, as indicated by the `Ok`
-/// [`MoltResult`], or it can return one of a number of exceptional results, which
+/// A Molt script can return a normal result, as indicated by [`MoltResult`]'s `Ok`
+/// variant, or it can return one of a number of exceptional results, which
 /// will bubble up the call stack in the usual way until caught.
 ///
 /// * `Error(Value)`: This code indicates a Molt error; the `Value` is the error message
-///   for display to the user.
+///   for display to the user. (But see "Future Work", below.)
 ///
 /// * `Return(Value)`: This code indicates that a Molt procedure called the
 ///   `return` command.  The `Value` is the returned value, or the empty value if
-///   no value was returned.  This result will bubble up until it reaches the top-level
-///   of the procedure, which will then return the value as a normal `Ok` result.  If
-///   it is received when evaluating an arbitrary script, i.e., if `return` is called outside
-///   of any procedure, the interpreter will convert it into a normal `Ok` result.
+///   `return` was called without a return value.  This result will bubble up until it
+///   reaches the top-level of the procedure, which will then return the value as a
+///   normal `Ok` result.  If it is received when evaluating an arbitrary script, i.e.,
+///   if `return` is called outside of any procedure, the interpreter will convert it into
+///   a normal `Ok` result.
 ///
-/// * `Break`: This code indicates that the Molt `break` command was called.  It will
-///   break out of the inmost enclosing loop in the usual way.  When returned outside a
+/// * `Break`: This code indicates a script called the Molt `break` command.  It will
+///   break out of the inmost enclosing loop in the usual way.  If it is returned outside a
 ///   loop (or some user-defined control structure that supports `break`), the interpreter
 ///   will convert it into an error.
 ///
-/// * `Continue`: This code indicates that the Molt `continue` command was called.  It will
-///   continue with the next iteration of the inmost enclosing loop in the usual way.
-///   When returned outside a loop (or some user-defined control structure that supports
-///   `continue`), the interpreter will convert it into an error.
+/// * `Continue`: This code indicates that a script called the Molt `continue` command.  It
+///   will continue with the next iteration of the inmost enclosing loop in the usual
+///   way. If it is returned outside a loop (or some user-defined control structure that
+///   supports `continue`), the interpreter will convert it into an error.
 ///
 /// Client code will usually see only the `Error` code; the others will most often be caught
-/// and handled within the interpreter.
+/// and handled within the interpreter.  However, client code may explicitly catch and handle
+/// the `Return`, `Break`, and `Continue` codes at both the Rust and the TCL level
+/// (see the `catch` command) in order to implement application-specific control structures.
 ///
 /// # Future Work
 ///
-/// * Standard TCL includes more information with non-`Ok` results, especially for error cases.
-///   Ultimately, this type will be need to be extended to support that.
+/// * Standard TCL includes more information with non-`Ok` results, especially for error
+///   cases. Ultimately, this type will be need to be extended to support that.
 ///
 /// * Standard TCL allows for an arbitrary number of result codes, which in turn allows the
 ///   application to define an arbitrary number of new kinds of control structures that are
 ///   distinct from the standard ones.  At some point we might wish to add one or more
-///   generic result codes, parallel to `Break` and `Continue`, for this purpose.
+///   generic result codes, parallel to `Break` and `Continue`, for this purpose.  (However,
+///   in over two decades of TCL programming I've never seen the need to use generic result
+///   codes.)
 ///
 /// [`MoltResult`]: type.MoltResult.html
 #[derive(Eq, PartialEq, Clone, Debug)]
@@ -85,7 +118,7 @@ pub enum ResultCode {
 }
 
 impl ResultCode {
-    /// Indicates whether the result code is an `Error(String)`.
+    /// Indicates whether the result code is an `Error`.
     pub fn is_error(&self) -> bool {
         match self {
             ResultCode::Error(_) => true,
@@ -94,55 +127,39 @@ impl ResultCode {
     }
 }
 
-/// A unique identifier, used to identify cached context data.
+/// A unique identifier, used to identify cached context data within a given
+/// interpreter.  For more information see the discussion of command definition
+/// and the context cache in [The Molt Book] and the [`interp`] module.
+///
+/// [The Molt Book]: https://wduquette.github.io/molt/
+/// [`interp`]: ../interp/index.html
+
 #[derive(Eq, PartialEq, Debug, Hash, Copy, Clone)]
-pub struct ContextID(pub u64);
+pub struct ContextID(pub(crate) u64);
 
-/// A trait defining a Molt command object: a struct that implements a command (and may also
-/// have context data).
+/// A function used to implement a binary Molt command. For more information see the
+/// discussion of command definition in [The Molt Book] and the [`interp`] module.
 ///
-/// A simple command should be defined as a [`CommandFunc`]; define a full-fledged `Command`
-/// struct when the command needs access to context data other than that provided by the
-/// the interpreter itself.  For example, application-specific commands will often need
-/// access to application data, which can be provided as attributes of the `Command`
-/// struct.
+/// The command may retrieve its application context from the [`interp`]'s context cache
+/// if it was defined with a [`ContextID`].
 ///
-/// TODO: Revise this so that `argv: &[Value]`.
-///
-/// [`CommandFunc`]: type.CommandFunc.html
-pub trait Command {
-    /// The `Command`'s execution method: the Molt interpreter calls this method  to
-    /// execute the command.  The method receives the object itself, the interpreter,
-    /// and an array representing the command and its arguments.
-    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult;
-}
-
-/// A simple command function, used to implement a command without any attached
-/// context data (other than the [`Interp`] itself).
-///
-/// The command function receives the interpreter and an array representing the
-/// command and its arguments.
-///
-/// [`Interp`]: ../interp/struct.Interp.html
-pub type CommandFunc = fn(&mut Interp, &[Value]) -> MoltResult;
-
-/// A simple command function, used to implement a command that retrieves
-/// application context from the [`Interp`]'s context cache.
-///
-/// The command function receives the interpreter, the context ID, and an array
+/// The command function receives the interpreter, the context ID, and a slice
 /// representing the command and its arguments.
 ///
-/// [`Interp`]: ../interp/struct.Interp.html
-pub type ContextCommandFunc = fn(&mut Interp, ContextID, &[Value]) -> MoltResult;
+/// [The Molt Book]: https://wduquette.github.io/molt/
+/// [`interp`]: ../interp/index.html
+/// [`ContextID`]: struct.ContextID.html
+pub type CommandFunc = fn(&mut Interp, ContextID, &[Value]) -> MoltResult;
 
-/// Used for defining subcommands of ensemble commands.
+/// A Molt command that has subcommands is called an _ensemble_ command.  In Rust code,
+/// the ensemble is defined as an array of `Subcommand` structs, each one mapping from
+/// a subcommand name to the implementing [`CommandFunc`].  For more information,
+/// see the discussion of command definition in [The Molt Book] and the [`interp`] module.
 ///
-/// The tuple fields are the subcommand's name and [`CommandFunc`].
+/// The tuple fields are the subcommand's name and implementing [`CommandFunc`].
 ///
-/// TODO: This interface isn't yet stable; we probably want to support [`Command`]
-/// instead of [`CommandFunc`].
-///
-/// [`Command`]: trait.Command.html
+/// [The Molt Book]: https://wduquette.github.io/molt/
+/// [`interp`]: ../interp/index.html
 /// [`CommandFunc`]: type.CommandFunc.html
 pub struct Subcommand(pub &'static str, pub CommandFunc);
 
@@ -156,42 +173,55 @@ impl Subcommand {
     /// # TCL Notes
     ///
     /// * In standard TCL, subcommand lookups accept any unambiguous prefix of the
-    ///   subcommand name, as a convenience for interactive use.  Molt does not.
-    pub fn find<'a>(subs: &'a [Subcommand], sub: &str) -> Result<&'a Subcommand, ResultCode> {
-        for subcmd in subs {
-            if subcmd.0 == sub {
+    ///   subcommand name, as a convenience for interactive use.  Molt does not, as it
+    ///   is confusing when used in scripts.
+    pub fn find<'a>(
+        ensemble: &'a [Subcommand],
+        sub_name: &str,
+    ) -> Result<&'a Subcommand, ResultCode> {
+        for subcmd in ensemble {
+            if subcmd.0 == sub_name {
                 return Ok(subcmd);
             }
         }
 
         let mut names = String::new();
-        names.push_str(subs[0].0);
-        let last = subs.len() - 1;
+        names.push_str(ensemble[0].0);
+        let last = ensemble.len() - 1;
 
-        if subs.len() > 1 {
+        if ensemble.len() > 1 {
             names.push_str(", ");
         }
 
-        if subs.len() > 2 {
-            let vec: Vec<&str> = subs[1..last].iter().map(|x| x.0).collect();
+        if ensemble.len() > 2 {
+            let vec: Vec<&str> = ensemble[1..last].iter().map(|x| x.0).collect();
             names.push_str(&vec.join(", "));
         }
 
-        if subs.len() > 1 {
+        if ensemble.len() > 1 {
             names.push_str(", or ");
-            names.push_str(subs[last].0);
+            names.push_str(ensemble[last].0);
         }
 
         molt_err!(
             "unknown or ambiguous subcommand \"{}\": must be {}",
-            sub,
+            sub_name,
             &names
         )
     }
 }
 
-/// The name of a variable.  For scalar variables, `index` is `None`; for array variables,
-/// `index` is `Some(String)`.  This value is returned by `Value::as_var_name`.
+/// In TCL, variable references have two forms.  A string like "_some_var_(_some_index_)" is
+/// the name of an array element; any other string is the name of a scalar variable.  This
+/// struct is used when parsing variable references.  The `name` is the variable name proper;
+/// the `index` is either `None` for scalar variables or `Some(String)` for array elements.
+///
+/// The Molt [`interp`]'s variable access API usually handles this automatically.  Should a
+/// command need to distinguish between the two cases it can do so by using the
+/// the [`Value`] struct's `Value::as_var_name` method.
+///
+/// [`Value`]: ../value/index.html
+/// [`interp`]: ../interp/index.html
 #[derive(Debug, Eq, PartialEq)]
 pub struct VarName {
     name: String,
@@ -199,12 +229,12 @@ pub struct VarName {
 }
 
 impl VarName {
-    /// Creates a scalar variable name.
+    /// Creates a scalar `VarName` given the variable's name.
     pub fn scalar(name: String) -> Self {
         Self { name, index: None }
     }
 
-    /// Creates an array element name given its variable name and index string.
+    /// Creates an array element `VarName` given the element's variable name and index string.
     pub fn array(name: String, index: String) -> Self {
         Self {
             name,

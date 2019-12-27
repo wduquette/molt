@@ -1106,7 +1106,6 @@ impl Interp {
         }
     }
 
-
     /// Retrieves the value of the named scalar variable in the current scope.
     ///
     /// Returns an error if the variable is not found, or if the variable is an array variable.
@@ -1180,7 +1179,6 @@ impl Interp {
         self.scopes.set(name, value.clone())?;
         Ok(value)
     }
-
 
     /// Retrieves the value of the named array element in the current scope.
     ///

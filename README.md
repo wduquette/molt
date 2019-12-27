@@ -77,6 +77,9 @@ fn my_command(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
 }
 ```
 
+Fourth, the `Interp::call_subcommand` method has been added, as a convenience for
+defining ensemble commands (commands with subcommands).
+
 See [The Molt Book](https://wduquette.github.io/molt) and the Rust doc for examples.
 
 ## Coming Attractions

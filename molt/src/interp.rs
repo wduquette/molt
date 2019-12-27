@@ -41,6 +41,90 @@
 //! // add commands, evaluate scripts, etc.
 //! ```
 //!
+//! # Evaluating Scripts
+//!
+//! There are a number of ways to evaluate Molt scripts.  The simplest is to pass the script
+//! as a string to `Interp::eval`.  The interpreter evaluates the string as a Molt script, and
+//! returns either a normal [`Value`] containing the result, or a Molt error. The script is
+//! evaluated in the caller's context: if called at the application level, the script will be
+//! evaluated in the interpreter's global scope; if called by a Molt command, it will be
+//! evaluated in the scope in which that command is executing.
+//!
+//! For example, the following snippet uses the Molt `expr` command to evaluate an expression.
+//!
+//! ```
+//! use molt::Interp;
+//! use molt::molt_ok;
+//! use molt::types::*;
+//!
+//! # let _ = dummy();
+//! # fn dummy() -> MoltResult {
+//! // FIRST, create the interpreter and add the needed command.
+//! let mut interp = Interp::new();
+//!
+//! // NEXT, evaluate a script containing an expression
+//! let val = interp.eval("expr {2 + 2}")?;
+//! assert_eq!(val.as_str(), "4");
+//! assert_eq!(val.as_int()?, 4);
+//! # molt_ok!()
+//! # }
+//! ```
+//!
+//! [`Interp::eval_value`](struct.Interp.html#method.eval_value) evaluates the string
+//! representation of a `Value` as a script.
+//! [`Interp::eval_body`](struct.Interp.html#method.eval_body) is used to evaluate the body
+//! of loops and other control structures.  Unlike `Interp::eval` and `Interp::eval_value`, it
+//! passes the `return`, `break`, and `continue` result codes back to the caller for handling.
+//!
+//! All of these methods return [`MoltResult`]:
+//!
+//! ```ignore
+//! pub type MoltResult = Result<Value, ResultCode>;
+//! ```
+//!
+//! [`Value`] is the type of all Molt values (i.e., values that can be passed as parameters and
+//! stored in variables).  [`ResultCode`] is an enum that encompasses all of the kinds of
+//! exceptional return from Molt code, including errors, `return`, `break`, and `continue`.
+//!
+//! # Evaluating Expressions
+//!
+//! In Molt, as in Standard Tcl, algebraic expressions are evaluated by the `expr` command.  At
+//! the Rust level this feature is provided by the
+//! [`Interp::expr`](struct.Interp.html#method.expr) method, which takes the expression as a
+//! [`Value`] and returns the computed `Value` or an error.
+//!
+//! There are three convenience methods,
+//! [`Interp::expr_bool`](struct.Interp.html#method.expr_bool),
+//! [`Interp::expr_int`](struct.Interp.html#method.expr_int), and
+//! [`Interp::expr_float`](struct.Interp.html#method.expr_float), which streamline the computation
+//! of a particular kind of value, and return an error if the computed result is not of that type.
+//!
+//! For example, the following code shows how a command can evaluate a string as a boolean value,
+//! as in the `if` or `while` commands:
+//!
+//! ```
+//! use molt::Interp;
+//! use molt::molt_ok;
+//! use molt::types::*;
+//!
+//! # let _ = dummy();
+//! # fn dummy() -> MoltResult {
+//! // FIRST, create the interpreter
+//! let mut interp = Interp::new();
+//!
+//! // NEXT, get an expression as a Value.  In a command body it would
+//! // usually be passed in as a Value.
+//! let expr = Value::from("1 < 2");
+//!
+//! // NEXT, evaluate it!
+//! assert!(interp.expr_bool(&expr)?);
+//! # molt_ok!()
+//! # }
+//! ```
+//!
+//! These methods will return an error if the string cannot be interpreted
+//! as an expression of the relevant type.
+//!
 //! # Defining New Commands
 //!
 //! The usual reason for embedding Molt in an application is to extend it with
@@ -98,6 +182,68 @@
 //! % puts "a=$a"
 //! a=36
 //! ```
+//!
+//! # Accessing Variables
+//!
+//! Molt defines two kinds of variables, scalars and arrays.  A scalar variable is a named holder
+//! for a [`Value`].  An array variable is a named hash table whose elements are named holders
+//! for `Values`.  Each element in an array is like a scalar in its own right.  In Molt code
+//! the two kinds of variables are accessed as follows:
+//!
+//! ```tcl
+//! % set myScalar 1
+//! 1
+//! % set myArray(myElem) 2
+//! 2
+//! % puts "$myScalar $myArray(myElem)"
+//! 1 2
+//! ```
+//!
+//! In theory, any string can be a valid variable or array index string.  In practice, variable
+//! names usually follow the normal rules for identifiers: letters, digits and underscores,
+//! beginning with a letter, while array index strings usually don't contain parentheses and
+//! so forth.  But array index strings can be arbitrarily complex, and so a single TCL array can
+//! contain a vast variety of data structures.
+//!
+//! Molt commands will usually use the
+//! [`Interp::var`](struct.Interp.html#method.var),
+//! [`Interp::set_var`](struct.Interp.html#method.set_var), and
+//! [`Interp::set_var_return`](struct.Interp.html#method.set_var_return) methods to set and
+//! retrieve variables.  Each takes a variable reference as a `Value`.  `Interp::var` retrieves
+//! the variable's value as a `Value`, return an error if the variable doesn't exist.
+//! `Interp::set_var` and `Interp::set_var_return` set the variable's value, creating the
+//! variable or array element if it doesn't exist.
+//!
+//! `Interp::set_var_return` returns the value assigned to the variable, which is convenient
+//! for commands that return the value assigned to the variable.  The standard `set` command,
+//! for example, returns the assigned or retrieved value; it is defined like this:
+//!
+//! ```
+//! use molt::Interp;
+//! use molt::check_args;
+//! use molt::molt_ok;
+//! use molt::types::*;
+//!
+//! pub fn cmd_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//!    check_args(1, argv, 2, 3, "varName ?newValue?")?;
+//!
+//!    if argv.len() == 3 {
+//!        interp.set_var_return(&argv[1], argv[2].clone())
+//!    } else {
+//!        molt_ok!(interp.var(&argv[1])?)
+//!    }
+//!}
+//! ```
+//!
+//! At times it can be convenient to explicitly access a scalar variable or array element by
+//! by name.  The methods
+//! [`Interp::scalar`](struct.Interp.html#method.scalar),
+//! [`Interp::set_scalar`](struct.Interp.html#method.set_scalar),
+//! [`Interp::set_scalar_return`](struct.Interp.html#method.set_scalar_return),
+//! [`Interp::element`](struct.Interp.html#method.element),
+//! [`Interp::set_element`](struct.Interp.html#method.set_element), and
+//! [`Interp::set_element_return`](struct.Interp.html#method.set_element_return)
+//! provide this access.
 //!
 //! # Managing Application or Library-Specific Data
 //!
@@ -224,42 +370,6 @@
 //!
 //! **TODO:** Include an example of an object command.
 //!
-//! # Evaluating Scripts
-//!
-//! There are a number of ways to evaluate Molt scripts, all of which return [`MoltResult`]:
-//!
-//! ```ignore
-//! pub type MoltResult = Result<Value, ResultCode>;
-//! ```
-//!
-//! [`Value`] is the type of all Molt values (i.e., values that can be passed as parameters and
-//! stored in variables).  [`ResultCode`] is an enum that encompasses all of the kinds of
-//! exceptional return from Molt code, including errors, `return`, `break`, and `continue`.
-//!
-//! [`Interp::eval`](struct.Interp.html#method.eval) and
-//! [`Interp::eval_value`](struct.Interp.html#method.eval_value) evaluate a string as a Molt
-//! script, and return either a normal `Value` or a Molt error.  The script is evaluated in
-//! the caller's context: if called at the application level, the script will be evaluated in
-//! the interpreter's global scope; if called by a Molt command, it will be evaluated in the
-//! scope in which that command is executing.
-//!
-//! [`Interp::eval_body`](struct.Interp.html#method.eval_body) is used to evaluate the body
-//! of loops and other control structures.  Unlike `Interp::eval`, it passes the
-//! `return`, `break`, and `continue` result codes back to the caller for handling.
-//!
-//! # Evaluating Expressions
-//!
-//! In Molt, as in Standard Tcl, algebraic expressions are evaluated by the `expr` command.  At
-//! the Rust level this feature is provided by the
-//! [`Interp::expr`](struct.Interp.html#method.expr) method, which takes the expression as a
-//! [`Value`] and returns the computed `Value` or an error.
-//!
-//! There are three convenience methods,
-//! [`Interp::expr_bool`](struct.Interp.html#method.expr_bool),
-//! [`Interp::expr_int`](struct.Interp.html#method.expr_int), and
-//! [`Interp::expr_float`](struct.Interp.html#method.expr_float), which streamline the computation
-//! of a particular kind of value, and return an error if the computed result is not of that type.
-//!
 //! # Checking Scripts for Completeness
 //!
 //! The [`Interp::complete`](struct.Interp.html#method.complete) method checks whether a Molt
@@ -275,6 +385,7 @@
 //! [`Value`]: ../value/index.html
 //! [`Interp`]: struct.Interp.html
 
+use crate::check_args;
 use crate::commands;
 use crate::expr;
 use crate::molt_err;
@@ -1096,7 +1207,56 @@ impl Interp {
         Ok(value)
     }
 
-    /// Unsets the value of the named variable or array element in the current scope
+    /// Unsets a variable, whether scalar or array, given its name in the current scope.  For
+    /// arrays this is the name of the array proper, e.g., `myArray`, not the name of an
+    /// element, e.g., `myArray(1)`.
+    ///
+    /// It is _not_ an error to unset a variable that doesn't exist.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// interp.set_scalar("a", Value::from("1"))?;
+    /// interp.set_element("b", "1", Value::from("2"))?;
+    ///
+    /// interp.unset("a"); // Unset scalar
+    /// interp.unset("b"); // Unset entire array
+    /// # molt_ok!()
+    /// # }
+    /// ```
+    pub fn unset(&mut self, name: &str) {
+        self.scopes.unset(name);
+    }
+
+    /// Unsets the value of the named variable or array element in the current scope.
+    ///
+    /// It is _not_ an error to unset a variable that doesn't exist.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// let scalar = Value::from("a");
+    /// let array = Value::from("b");
+    /// let elem = Value::from("b(1)");
+    ///
+    /// interp.unset_var(&scalar); // Unset scalar
+    /// interp.unset_var(&elem);   // Unset array element
+    /// interp.unset_var(&array);  // Unset entire array
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn unset_var(&mut self, name: &Value) {
         let var_name = name.as_var_name();
 
@@ -1107,40 +1267,164 @@ impl Interp {
         }
     }
 
-    /// Unsets a variable given its name.
-    pub fn unset(&mut self, name: &str) {
-        self.scopes.unset(name);
-    }
-
-    /// Unsets a single element in an array.  Nothing happens if the index doesn't
-    /// exist, or if the variable is not an array variable.
+    /// Unsets a single element in an array given the array name and index.
+    ///
+    /// It is _not_ an error to unset an array element that doesn't exist.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::*;
+    /// use molt::Interp;
+    /// use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// interp.set_element("b", "1", Value::from("2"))?;
+    ///
+    /// interp.unset_element("b", "1");
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn unset_element(&mut self, array_name: &str, index: &str) {
         self.scopes.unset_element(array_name, index);
     }
 
-    /// Unsets an array variable givne its name.  Nothing happens if the variable doesn't
-    /// exist, or if the variable is not an array variable.
-    pub fn array_unset(&mut self, array_name: &str) {
-        self.scopes.array_unset(array_name);
-    }
-
-    /// Gets a vector of the visible var names.
+    /// Gets a list of the names of the variables that are visible in the current scope.
+    /// The list includes the names of array variables but not elements within them.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    ///
+    /// # let mut interp = Interp::new();
+    /// for name in interp.vars_in_scope() {
+    ///     println!("Found variable: {}", name);
+    /// }
+    /// ```
     pub fn vars_in_scope(&self) -> MoltList {
         self.scopes.vars_in_scope()
     }
 
+    /// Links the variable name in the current scope to the given scope.
+    /// Note: the level is the absolute level, not the level relative to the
+    /// current stack level, i.e., level=0 is the global scope.
+    ///
+    /// This method is used to implement the `upvar` command, which allows variables to be
+    /// passed by name; client code should rarely need to access it directly.
+    pub fn upvar(&mut self, level: usize, name: &str) {
+        assert!(level <= self.scopes.current(), "Invalid scope level");
+        self.scopes.upvar(level, name);
+    }
+
+    /// Pushes a variable scope (i.e., a stack level) onto the scope stack.
+    ///
+    /// Procs use this to define their local scope.  Client code should seldom need to call
+    /// this directly, but it can be useful in a few cases.  For example, the Molt
+    /// test harness's `test` command runs its body in a local scope as an aid to test
+    /// cleanup.
+    ///
+    /// **Note:** a command that pushes a scope must also call `Interp::pop_scope` before it
+    /// exits!
+    pub fn push_scope(&mut self) {
+        self.scopes.push();
+    }
+
+    /// Pops a variable scope (i.e., a stack level) off of the scope stack.  Calls to
+    /// `Interp::push_scope` and `Interp::pop_scope` must exist in pairs.
+    pub fn pop_scope(&mut self) {
+        self.scopes.pop();
+    }
+
+    /// Return the current scope level.  The global scope is level `0`; each call to
+    /// `Interp::push_scope` adds a level, and each call to `Interp::pop_scope` removes it.
+    /// This method is used with `Interp::upvar` to access the caller's scope when a variable
+    /// is passed by name.
+    pub fn scope_level(&self) -> usize {
+        self.scopes.current()
+    }
+
+    ///-----------------------------------------------------------------------------------
+    /// Array Manipulation Methods
+    ///
+    /// These provide the infrastructure for the `array` command.
+
+    /// Unsets an array variable givee its name.  Nothing happens if the variable doesn't
+    /// exist, or if the variable is not an array variable.
+    pub(crate) fn array_unset(&mut self, array_name: &str) {
+        self.scopes.array_unset(array_name);
+    }
+
     /// Determines whether or not the name is the name of an array variable.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::Interp;
+    /// # use molt::types::*;
+    /// # use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// # let mut interp = Interp::new();
+    /// interp.set_scalar("a", Value::from(1))?;
+    /// interp.set_element("b", "1", Value::from(2));
+    ///
+    /// assert!(!interp.array_exists("a"));
+    /// assert!(interp.array_exists("b"));
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn array_exists(&self, array_name: &str) -> bool {
         self.scopes.array_exists(array_name)
     }
 
-    /// Gets a flat vector of the keys and values from the given array
+    /// Gets a flat vector of the keys and values from the named array.  This is used to
+    /// implement the `array get` command.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    ///
+    /// # let mut interp = Interp::new();
+    /// for txt in interp.array_get("myArray") {
+    ///     println!("Found index or value: {}", txt);
+    /// }
+    /// ```
     pub fn array_get(&self, array_name: &str) -> MoltList {
         self.scopes.array_get(array_name)
     }
 
-    /// Merges a flat vector of keys and values into the given array
-    /// It's an error if the vector has an odd number of elements.
+    /// Merges a flat vector of keys and values into the named array.
+    /// It's an error if the vector has an odd number of elements, or if the named variable
+    /// is a scalar.  This method is used to implement the `array set` command.
+    ///
+    /// # Example
+    ///
+    /// For example, the following Rust code is equivalent to the following Molt code:
+    ///
+    /// ```tcl
+    /// # Set individual elements
+    /// set myArray(a) 1
+    /// set myArray(b) 2
+    ///
+    /// # Set all at once
+    /// array set myArray { a 1 b 2 }
+    /// ```
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// # use molt::molt_ok;
+    ///
+    /// # fn dummy() -> MoltResult {
+    /// # let mut interp = Interp::new();
+    /// interp.array_set("myArray", &vec!["a".into(), "1".into(), "b".into(), "2".into()])?;
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn array_set(&mut self, array_name: &str, kvlist: &[Value]) -> MoltResult {
         if kvlist.len() % 2 == 0 {
             self.scopes.array_set(array_name, kvlist)?;
@@ -1150,38 +1434,47 @@ impl Interp {
         }
     }
 
-    /// Gets a vector of the indices of the given array
+    /// Gets a list of the indices of the given array.  This is used to implement the
+    /// `array names` command.  If the variable does not exist (or is not an array variable),
+    /// the method returns the empty list.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    ///
+    /// # let mut interp = Interp::new();
+    /// for name in interp.array_names("myArray") {
+    ///     println!("Found index : {}", name);
+    /// }
+    /// ```
     pub fn array_names(&self, array_name: &str) -> MoltList {
         self.scopes.array_indices(array_name)
     }
 
-    /// Gets a vector of the indices of the given array
+    /// Gets the number of elements in the named array.  Returns 0 if the variable doesn't exist
+    /// (or isn't an array variable).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    ///
+    /// # use molt::molt_ok;
+    /// # fn dummy() -> MoltResult {
+    /// let mut interp = Interp::new();
+    ///
+    /// assert_eq!(interp.array_size("a"), 0);
+    ///
+    /// interp.set_element("a", "1", Value::from("xyz"))?;
+    /// assert_eq!(interp.array_size("a"), 1);
+    /// # molt_ok!()
+    /// # }
+    /// ```
     pub fn array_size(&self, array_name: &str) -> usize {
         self.scopes.array_size(array_name)
-    }
-
-    /// Pushes a variable scope on to the scope stack.
-    /// Procs use this to define their local scope.
-    pub fn push_scope(&mut self) {
-        self.scopes.push();
-    }
-
-    /// Pops a variable scope off of the scope stack.
-    pub fn pop_scope(&mut self) {
-        self.scopes.pop();
-    }
-
-    /// Return the current scope level
-    pub fn scope_level(&self) -> usize {
-        self.scopes.current()
-    }
-
-    /// Links the variable name in the current scope to the given scope.
-    /// Note: the level is the absolute level, not the level relative to the
-    /// current stack level, i.e., level=0 is the global scope.
-    pub fn upvar(&mut self, level: usize, name: &str) {
-        assert!(level <= self.scopes.current(), "Invalid scope level");
-        self.scopes.upvar(level, name);
     }
 
     //--------------------------------------------------------------------------------------------
@@ -1330,6 +1623,33 @@ impl Interp {
             .collect();
 
         vec
+    }
+
+    /// Calls a subcommand of the current command, looking up its name in an array of
+    /// `Subcommand` tuples.
+    ///
+    /// The subcommand, if found, is called with the same `context_id` and `argv` as its
+    /// parent ensemble.  `subc` is the index of the subcommand's name in the `argv` array;
+    /// in most cases it will be `1`, but it is possible to define subcommands with
+    /// subcommands of their own.  The `subcommands` argument is a borrow of an array of
+    /// `Subcommand` records, each defining a subcommand's name and `CommandFunc`.
+    ///
+    /// If the subcommand name is found in the array, the matching `CommandFunc` is called.
+    /// otherwise, the error message gives the ensemble syntax.  If an invalid subcommand
+    /// name was provided, the error message includes the valid options.
+    ///
+    /// See the implementation of the `array` command in `commands.rs` and the
+    /// [module level documentation](index.html) for examples.
+    pub fn call_subcommand(
+        &mut self,
+        context_id: ContextID,
+        argv: &[Value],
+        subc: usize,
+        subcommands: &[Subcommand],
+    ) -> MoltResult {
+        check_args(subc, argv, subc + 1, 0, "subcommand ?arg ...?")?;
+        let rec = Subcommand::find(subcommands, argv[subc].as_str())?;
+        (rec.1)(self, context_id, argv)
     }
 
     //--------------------------------------------------------------------------------------------
@@ -1486,6 +1806,7 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Profiling
 
+    /// Unstable; use at own risk.
     pub fn profile_save(&mut self, name: &str, start: std::time::Instant) {
         let dur = Instant::now().duration_since(start).as_nanos();
         let rec = self
@@ -1497,10 +1818,12 @@ impl Interp {
         rec.nanos += dur;
     }
 
+    /// Unstable; use at own risk.
     pub fn profile_clear(&mut self) {
         self.profile_map.clear();
     }
 
+    /// Unstable; use at own risk.
     pub fn profile_dump(&self) {
         if self.profile_map.is_empty() {
             println!("no profile data");

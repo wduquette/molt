@@ -33,10 +33,7 @@ pub fn cmd_append(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
 
 /// # array *subcommand* ?*arg*...?
 pub fn cmd_array(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
-    let subc = Subcommand::find(&ARRAY_SUBCOMMANDS, argv[1].as_str())?;
-
-    (subc.1)(interp, context_id, argv)
+    interp.call_subcommand(context_id, argv, 1, &ARRAY_SUBCOMMANDS)
 }
 
 const ARRAY_SUBCOMMANDS: [Subcommand; 6] = [
@@ -441,10 +438,7 @@ pub fn cmd_incr(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
 
 /// # info *subcommand* ?*arg*...?
 pub fn cmd_info(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
-    let subc = Subcommand::find(&INFO_SUBCOMMANDS, argv[1].as_str())?;
-
-    (subc.1)(interp, context_id, argv)
+    interp.call_subcommand(context_id, argv, 1, &INFO_SUBCOMMANDS)
 }
 
 const INFO_SUBCOMMANDS: [Subcommand; 3] = [

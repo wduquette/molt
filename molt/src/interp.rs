@@ -350,7 +350,39 @@
 //! and `array` commands.  At the Rust level, it is simply a command that looks up its subcommand
 //! (e.g., `argv[1]`) in an array of `Subcommand` structs and executes it as a command.
 //!
-//! **TODO:** Flesh out the API for ensemble commands, and add examples here.
+//! The [`Interp::call_subcommand`](struct.Interp.html#method.call_subcommand) method is used
+//! to look up and call the relevant command function, handling all relevant errors in the
+//! TCL-standard way.
+//!
+//! For example, the `array` command is defined as follows.
+//!
+//! ```ignore
+//! const ARRAY_SUBCOMMANDS: [Subcommand; 6] = [
+//!     Subcommand("exists", cmd_array_exists),
+//!     Subcommand("get", cmd_array_get),
+//!     // ...
+//! ];
+//!
+//! pub fn cmd_array(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+//!     interp.call_subcommand(context_id, argv, 1, &ARRAY_SUBCOMMANDS)
+//! }
+//!
+//! pub fn cmd_array_exists(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//!     check_args(2, argv, 3, 3, "arrayName")?;
+//!     molt_ok!(Value::from(interp.array_exists(argv[2].as_str())))
+//! }
+//!
+//! // ...
+//! ```
+//!
+//! The `cmd_array` and `cmd_array_exists` functions are just normal Molt `CommandFunc`
+//! functions.  The `array` command is added to the interpreter using `Interp::add_command`
+//! in the usual way. Note that the `context_id` is passed to the subcommand functions, though
+//! in this case it isn't needed.
+//!
+//! Also, notice that the call to `check_args` in `cmd_array_exists` has `2` as its first
+//! argument, rather than `1`.  That indicates that the first two arguments represent the
+//! command being called, e.g., `array exists`.
 //!
 //! # Object Commands
 //!
@@ -368,7 +400,26 @@
 //! * Each of the object's subcommand functions is passed the object's context ID, so that all
 //!   can access the object's data.
 //!
-//! **TODO:** Include an example of an object command.
+//! Thus, the constructor command will do the following:
+//!
+//! * Create and initialize a context structure, assigning it a `ContextID` via
+//!   `Interp::save_context`.
+//!   * The context structure may be initialized with default values, or configured further
+//!     based on the constructor command's arguments.
+//!
+//! * Determine a name for the new instance.
+//!   * The name is usually passed in as an argument, but can be computed.
+//!
+//! * Create the instance using `Interp::add_context_command` and the instance's ensemble
+//!   `CommandFunc`.
+//!
+//! * Usually, return the name of the newly created command.
+//!
+//! Note that there's no real difference between defining a simple ensemble like `array`, as
+//! shown above, and defining an object command as described here, except that:
+//!
+//! * The instance is usually created "on the fly" rather than at interpreter initialization.
+//! * The instance will always have data in the context cache.
 //!
 //! # Checking Scripts for Completeness
 //!

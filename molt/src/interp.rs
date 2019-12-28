@@ -1558,10 +1558,10 @@ impl Interp {
     ///
     /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
     /// as for the `proc` command and the `commands::cmd_proc` function.
-    pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &str) {
+    pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &Value) {
         let proc = Procedure {
             args: args.to_owned(),
-            body: body.to_string(),
+            body: body.clone(),
         };
 
         self.commands
@@ -1887,7 +1887,7 @@ impl Interp {
 // Procedure Definition: much to do here!
 struct Procedure {
     args: MoltList,
-    body: String,
+    body: Value,
 }
 
 // TODO: Need to work out how we're going to store the Procedure details for
@@ -1943,7 +1943,7 @@ impl Procedure {
         }
 
         // NEXT, evaluate the proc's body, getting the result.
-        let result = interp.eval(&self.body);
+        let result = interp.eval_value(&self.body);
 
         // NEXT, pop the scope off of the stack; we're done with it.
         interp.pop_scope();

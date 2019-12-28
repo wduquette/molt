@@ -587,7 +587,6 @@ pub fn cmd_proc(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
     // FIRST, get the arguments
     let name = argv[1].as_str();
     let args = &*argv[2].as_list()?;
-    let body = argv[3].as_str();
 
     // NEXT, validate the argument specs
     for arg in args {
@@ -601,7 +600,7 @@ pub fn cmd_proc(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
     }
 
     // NEXT, add the command.
-    interp.add_proc(name, args, body);
+    interp.add_proc(name, args, &argv[3]);
 
     molt_ok!()
 }

@@ -1558,9 +1558,12 @@ impl Interp {
     ///
     /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
     /// as for the `proc` command and the `commands::cmd_proc` function.
-    pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &Value) {
+    ///
+    /// TODO: If this method is ever made public, the parameter list validation done
+    /// in cmd_proc should be moved here.
+    pub(crate) fn add_proc(&mut self, name: &str, parms: &[Value], body: &Value) {
         let proc = Procedure {
-            args: args.to_owned(),
+            parms: parms.to_owned(),
             body: body.clone(),
         };
 
@@ -1887,8 +1890,17 @@ impl Interp {
 /// How a procedure is defined: as an argument list and a body script.
 /// The argument list is a list of Values, and the body is a Value; each will
 /// retain its parsed form.
+///
+/// NOTE: We do not save the procedure's name; the name exists only in the
+/// commands table, and can be changed there freely.  The procedure truly doesn't
+/// know what its name is except when it is being executed.
 struct Procedure {
-    args: MoltList,
+    /// The procedure's parameter list.  Each item in the list is a name or a
+    /// name/default value pair.  (This is verified by the `proc` command.)
+    parms: MoltList,
+
+    /// The procedure's body string, as a Value.  As such, it retains both its
+    /// string value, as needed for introspection, and its parsed Script.
     body: Value,
 }
 
@@ -1900,7 +1912,7 @@ impl Procedure {
         // NEXT, process the proc's argument list.
         let mut argi = 1; // Skip the proc's name
 
-        for (speci, spec) in self.args.iter().enumerate() {
+        for (speci, spec) in self.parms.iter().enumerate() {
             // FIRST, get the parameter as a vector.  It should be a list of
             // one or two elements.
             let vec = &*spec.as_list()?; // Should never fail
@@ -1909,7 +1921,7 @@ impl Procedure {
             // NEXT, if this is the args parameter, give the remaining args,
             // if any.  Note that "args" has special meaning only if it's the
             // final arg spec in the list.
-            if vec[0].as_str() == "args" && speci == self.args.len() - 1 {
+            if vec[0].as_str() == "args" && speci == self.parms.len() - 1 {
                 interp.set_scalar("args", Value::from(&argv[argi..]))?;
 
                 // We've processed all of the args
@@ -1959,11 +1971,11 @@ impl Procedure {
         msg.push_str("wrong # args: should be \"");
         msg.push_str(name.as_str());
 
-        for (i, arg) in self.args.iter().enumerate() {
+        for (i, arg) in self.parms.iter().enumerate() {
             msg.push(' ');
 
             // "args" has special meaning only in the last place.
-            if arg.as_str() == "args" && i == self.args.len() - 1 {
+            if arg.as_str() == "args" && i == self.parms.len() - 1 {
                 msg.push_str("?arg ...?");
                 break;
             }

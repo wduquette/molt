@@ -1884,18 +1884,16 @@ impl Interp {
     }
 }
 
-// Procedure Definition: much to do here!
+/// How a procedure is defined: as an argument list and a body script.
+/// The argument list is a list of Values, and the body is a Value; each will
+/// retain its parsed form.
 struct Procedure {
     args: MoltList,
     body: Value,
 }
 
-// TODO: Need to work out how we're going to store the Procedure details for
-// best efficiency.
 impl Procedure {
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        let name = argv[0].as_str();
-
         // FIRST, push the proc's local scope onto the stack.
         interp.push_scope();
 
@@ -1932,14 +1930,14 @@ impl Procedure {
                 interp.set_scalar(vec[0].as_str(), vec[1].clone())?;
             } else {
                 // We don't; we're missing a required argument.
-                return self.wrong_num_args(name);
+                return self.wrong_num_args(&argv[0]);
             }
         }
 
         // NEXT, do we have any arguments left over?
 
         if argi != argv.len() {
-            return self.wrong_num_args(name);
+            return self.wrong_num_args(&argv[0]);
         }
 
         // NEXT, evaluate the proc's body, getting the result.
@@ -1956,10 +1954,10 @@ impl Procedure {
 
     // Outputs the wrong # args message for the proc.  The name is passed in
     // because it can be changed via the `rename` command.
-    fn wrong_num_args(&self, name: &str) -> MoltResult {
+    fn wrong_num_args(&self, name: &Value) -> MoltResult {
         let mut msg = String::new();
         msg.push_str("wrong # args: should be \"");
-        msg.push_str(name);
+        msg.push_str(name.as_str());
 
         for (i, arg) in self.args.iter().enumerate() {
             msg.push(' ');

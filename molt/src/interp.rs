@@ -1723,6 +1723,25 @@ impl Interp {
         molt_err!("\"{}\" isn't a procedure", procname.as_str())
     }
 
+    /// Returns a list of the names of the arguments of the named procedure, or an
+    /// error if the name doesn't name a procedure.
+    pub fn proc_args(&self, procname: &Value) -> MoltResult {
+        if let Some(cmd) = self.commands.get(procname.as_str()) {
+            if let Command::Proc(proc) = &**cmd {
+                // Note: the item is guaranteed to be parsible as a list of 1 or 2 elements.
+                let vec: MoltList = proc
+                    .parms
+                    .iter()
+                    .map(|item| item.as_list().expect("invalid proc parms")[0].clone())
+                    .collect();
+                return molt_ok!(Value::from(vec));
+            }
+        }
+
+        molt_err!("\"{}\" isn't a procedure", procname.as_str())
+
+    }
+
     /// Calls a subcommand of the current command, looking up its name in an array of
     /// `Subcommand` tuples.
     ///

@@ -4,11 +4,17 @@ Returns information about the state of the Molt interpreter.
 
 | Subcommand                              | Description                                      |
 | --------------------------------------- | ------------------------------------------------ |
-| [info body](#info-body)                 | Gets procedure body                              |
+| [info args](#info-args-procname)        | Names of procedure's arguments                   |
+| [info body](#info-body-procname)        | Gets procedure body                              |
 | [info commands](#info-commands)         | Names of all defined commands                    |
 | [info complete](#info-complete-command) | Is this string a syntactically complete command? |
 | [info procs](#info-procs)               | Names of all defined procedures                  |
 | [info vars](#info-vars)                 | Names of all variables in the current scope      |
+
+## info args *procname*
+
+Retrieves a list of the names of the arguments of the named procedure.  Returns an error
+if the command is undefined or is a binary command.
 
 ## info body *procname*
 

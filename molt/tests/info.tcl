@@ -7,7 +7,7 @@ test info-1.1 {info errors} {
 # TODO: Really need glob matching.
 test info-1.2 {info errors} {
     info nonesuch
-} -error {unknown or ambiguous subcommand "nonesuch": must be body, commands, complete, procs, or vars}
+} -error {unknown or ambiguous subcommand "nonesuch": must be args, body, commands, complete, procs, or vars}
 
 test info-2.1 {info complete errors} {
     info complete
@@ -96,3 +96,19 @@ test info-5.3 {info body command, defined} -setup {
 } -cleanup {
     rename thisProc ""
 } -ok { puts "Hello, world!" }
+
+test info-6.1 {info args command, binary command} {
+    info args set
+} -error {"set" isn't a procedure}
+
+test info-6.2 {info args command, undefined} {
+    info args nonesuch
+} -error {"nonesuch" isn't a procedure}
+
+test info-6.3 {info args command, defined} -setup {
+    proc thisProc {a b {c 1}} {}
+} -body {
+    info args thisProc
+} -cleanup {
+    rename thisProc ""
+} -ok {a b c}

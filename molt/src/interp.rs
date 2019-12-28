@@ -1711,6 +1711,17 @@ impl Interp {
         vec
     }
 
+    /// Returns the body of the named procedure, or an error if the name doesn't
+    /// name a procedure.
+    pub fn proc_body(&self, procname: &Value) -> MoltResult {
+        if let Some(cmd) = self.commands.get(procname.as_str()) {
+            if let Command::Proc(proc) = &**cmd {
+                return molt_ok!(proc.body.clone());
+            }
+        }
+
+        molt_err!("\"{}\" isn't a procedure", procname.as_str())
+    }
 
     /// Calls a subcommand of the current command, looking up its name in an array of
     /// `Subcommand` tuples.

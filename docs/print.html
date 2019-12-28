@@ -932,11 +932,15 @@ for {set a 1} {$a &lt; 10} {incr a} {
 <a class="header" href="#info-subcommand-arg-" id="info-subcommand-arg-"><h1>info <em>subcommand</em> ?<em>arg</em> ...?</h1></a>
 <p>Returns information about the state of the Molt interpreter.</p>
 <table><thead><tr><th> Subcommand                              </th><th> Description                                      </th></tr></thead><tbody>
+<tr><td> <a href="#info-body">info body</a>                 </td><td> Gets procedure body                              </td></tr>
 <tr><td> <a href="#info-commands">info commands</a>         </td><td> Names of all defined commands                    </td></tr>
 <tr><td> <a href="#info-complete-command">info complete</a> </td><td> Is this string a syntactically complete command? </td></tr>
 <tr><td> <a href="#info-procs">info procs</a>               </td><td> Names of all defined procedures                  </td></tr>
 <tr><td> <a href="#info-vars">info vars</a>                 </td><td> Names of all variables in the current scope      </td></tr>
 </tbody></table>
+<a class="header" href="#info-body-procname" id="info-body-procname"><h2>info body <em>procname</em></h2></a>
+<p>Retrieves the body of the named procedure.  Returns an error if the command is undefined or
+is a binary command.</p>
 <a class="header" href="#info-commands" id="info-commands"><h2>info commands</h2></a>
 <p>Returns an unsorted list of the names of the commands defined in the interpreter,
 including both binary commands and procedures.</p>

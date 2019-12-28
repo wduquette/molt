@@ -528,6 +528,15 @@ impl Command {
             _ => NULL_CONTEXT,
         }
     }
+
+    /// Returns true if the command is a proc, and false otherwise.
+    fn is_proc(&self) -> bool {
+        if let Command::Proc(_) = self {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 /// Sentinal value for command functions with no related context.
@@ -1675,6 +1684,33 @@ impl Interp {
 
         vec
     }
+
+    /// Gets a vector of the names of the existing procedures.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// use molt::molt_ok;
+    ///
+    /// let mut interp = Interp::new();
+    ///
+    /// for name in interp.proc_names() {
+    ///     println!("Found procedure: {}", name);
+    /// }
+    /// ```
+    pub fn proc_names(&self) -> MoltList {
+        let vec: MoltList = self
+            .commands
+            .iter()
+            .filter(|(_, cmd)| cmd.is_proc())
+            .map(|(name,_)| Value::from(name))
+            .collect();
+
+        vec
+    }
+
 
     /// Calls a subcommand of the current command, looking up its name in an array of
     /// `Subcommand` tuples.

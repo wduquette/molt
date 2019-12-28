@@ -2,11 +2,13 @@
 
 This command queries and manipulates array variables.
 
-* [array exists](#array-exists)
-* [array get](#array-get)
-* [array names](#array-names)
-* [array size](#array-size)
-* [array unset](#array-unset)
+| Subcommand                    | Description                                  |
+| ----------------------------- | -------------------------------------------- |
+| [array exists](#array-exists) | Is the string the name of an array variable? |
+| [array get](#array-get)       | A dictionary of the array's elements by name |
+| [array names](#array-names)   | A list of the array's indices                |
+| [array size](#array-size)     | The number of elements in the array          |
+| [array unset](#array-unset)   | Unsets an array variable                     |
 
 **TCL Liens**
 

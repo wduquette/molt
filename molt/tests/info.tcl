@@ -1,16 +1,13 @@
 # Test Script: info command.
 
-
 test info-1.1 {info errors} {
     info
 } -error {wrong # args: should be "info subcommand ?arg ...?"}
 
-# TODO: really need glob matching or something; as it is, this won't
-# pass with tclsh.  Or, I need a way to limit tests to the right
-# context, as with tcltest.
+# TODO: Really need glob matching.
 test info-1.2 {info errors} {
     info nonesuch
-} -error {unknown or ambiguous subcommand "nonesuch": must be commands, complete, or vars}
+} -error {unknown or ambiguous subcommand "nonesuch": must be commands, complete, procs, or vars}
 
 test info-2.1 {info complete errors} {
     info complete
@@ -69,3 +66,17 @@ test info-3.3 {info vars command} -setup {
 } -cleanup {
     rename myproc ""
 } -ok {x}
+
+test info-4.1 {info procs command, added procs} -setup {
+    proc thisProc {} {}
+    proc thatProc {} {}
+} -body {
+    set procs [info procs]
+    list \
+        [expr {"thisProc" in $procs}] \
+        [expr {"thatProc" in $procs}] \
+        [expr {"set" in $procs}]
+} -cleanup {
+    rename thisProc ""
+    rename thatProc ""
+} -ok {1 1 0}

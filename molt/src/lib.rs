@@ -20,7 +20,7 @@
 //! [`types`]: types/index.html
 //! [`test_harness`]: test_harness/index.html
 
-#![doc(html_root_url = "https://docs.rs/molt/0.2.0")]
+#![doc(html_root_url = "https://docs.rs/molt/0.2.1")]
 
 pub use crate::interp::Interp;
 pub use crate::test_harness::test_harness;

@@ -1,6 +1,6 @@
 [package]
 name = "molt"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Will Duquette <will@wjduquette.com>"]
 edition = "2018"
 description = "Embeddable TCL interpreter for Rust applications"

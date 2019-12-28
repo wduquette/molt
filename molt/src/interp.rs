@@ -752,7 +752,6 @@ impl Interp {
         // to determine if something is already a list.  (Might need two methods!)
 
         // FIRST, check the number of nesting levels
-        // TODO: This should probably be in eval_body!  Check Tcl 7/8.
         self.num_levels += 1;
 
         if self.num_levels > self.recursion_limit {

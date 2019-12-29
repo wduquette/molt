@@ -56,6 +56,7 @@ Molt now supports the following subcommands of the `info` command:
 
 * `info args`
 * `info body`
+* `info cmdtype`
 * `info default`
 * `info procs`
 

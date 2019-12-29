@@ -48,6 +48,16 @@ Using Molt, you can:
 See the [`molt-sample` repo](https://github.com/wduquette/molt-sample) for a sample Molt client
 skeleton.
 
+## New in Molt 0.2.1
+
+### More `info` Subcommands
+
+Molt now supports the following subcommands of the `info` command:
+
+* `info args`
+* `info body`
+* `info procs`
+
 ## New in Molt 0.2
 
 ### Associative Arrays

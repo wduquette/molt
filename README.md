@@ -8,6 +8,16 @@ Molt is a minimal implementation of the TCL language for embedding in Rust apps 
 scripting Rust libraries.  See [The Molt Book](https://wduquette.github.io/molt) for details
 and user documentation.
 
+## New in Molt 0.2.1
+
+### More `info` Subcommands
+
+Molt now supports the following subcommands of the `info` command:
+
+* `info args`
+* `info body`
+* `info procs`
+
 ## New in Molt 0.2.0
 
 ### Associative Arrays

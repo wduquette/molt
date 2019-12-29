@@ -1,6 +1,7 @@
 # Molt -- More Or Less TCL
 
 [![Crates.io](https://img.shields.io/crates/v/molt.svg)](https://crates.io/crates/molt)
+[!MoltLogo.png](MoltLogo.png)
 
 Molt is a minimal implementation of the TCL language for embedding in Rust apps and for
 scripting Rust libraries.  See [The Molt Book](https://wduquette.github.io/molt) for details

@@ -528,6 +528,15 @@ impl Command {
             _ => NULL_CONTEXT,
         }
     }
+
+    /// Returns true if the command is a proc, and false otherwise.
+    fn is_proc(&self) -> bool {
+        if let Command::Proc(_) = self {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 /// Sentinal value for command functions with no related context.
@@ -1558,10 +1567,13 @@ impl Interp {
     ///
     /// This is how to add a Molt `proc` to the interpreter.  The arguments are the same
     /// as for the `proc` command and the `commands::cmd_proc` function.
-    pub(crate) fn add_proc(&mut self, name: &str, args: &[Value], body: &str) {
+    ///
+    /// TODO: If this method is ever made public, the parameter list validation done
+    /// in cmd_proc should be moved here.
+    pub(crate) fn add_proc(&mut self, name: &str, parms: &[Value], body: &Value) {
         let proc = Procedure {
-            args: args.to_owned(),
-            body: body.to_string(),
+            parms: parms.to_owned(),
+            body: body.clone(),
         };
 
         self.commands
@@ -1671,6 +1683,62 @@ impl Interp {
             .collect();
 
         vec
+    }
+
+    /// Gets a vector of the names of the existing procedures.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    /// use molt::molt_ok;
+    ///
+    /// let mut interp = Interp::new();
+    ///
+    /// for name in interp.proc_names() {
+    ///     println!("Found procedure: {}", name);
+    /// }
+    /// ```
+    pub fn proc_names(&self) -> MoltList {
+        let vec: MoltList = self
+            .commands
+            .iter()
+            .filter(|(_, cmd)| cmd.is_proc())
+            .map(|(name, _)| Value::from(name))
+            .collect();
+
+        vec
+    }
+
+    /// Returns the body of the named procedure, or an error if the name doesn't
+    /// name a procedure.
+    pub fn proc_body(&self, procname: &Value) -> MoltResult {
+        if let Some(cmd) = self.commands.get(procname.as_str()) {
+            if let Command::Proc(proc) = &**cmd {
+                return molt_ok!(proc.body.clone());
+            }
+        }
+
+        molt_err!("\"{}\" isn't a procedure", procname.as_str())
+    }
+
+    /// Returns a list of the names of the arguments of the named procedure, or an
+    /// error if the name doesn't name a procedure.
+    pub fn proc_args(&self, procname: &Value) -> MoltResult {
+        if let Some(cmd) = self.commands.get(procname.as_str()) {
+            if let Command::Proc(proc) = &**cmd {
+                // Note: the item is guaranteed to be parsible as a list of 1 or 2 elements.
+                let vec: MoltList = proc
+                    .parms
+                    .iter()
+                    .map(|item| item.as_list().expect("invalid proc parms")[0].clone())
+                    .collect();
+                return molt_ok!(Value::from(vec));
+            }
+        }
+
+        molt_err!("\"{}\" isn't a procedure", procname.as_str())
     }
 
     /// Calls a subcommand of the current command, looking up its name in an array of
@@ -1884,25 +1952,32 @@ impl Interp {
     }
 }
 
-// Procedure Definition: much to do here!
+/// How a procedure is defined: as an argument list and a body script.
+/// The argument list is a list of Values, and the body is a Value; each will
+/// retain its parsed form.
+///
+/// NOTE: We do not save the procedure's name; the name exists only in the
+/// commands table, and can be changed there freely.  The procedure truly doesn't
+/// know what its name is except when it is being executed.
 struct Procedure {
-    args: MoltList,
-    body: String,
+    /// The procedure's parameter list.  Each item in the list is a name or a
+    /// name/default value pair.  (This is verified by the `proc` command.)
+    parms: MoltList,
+
+    /// The procedure's body string, as a Value.  As such, it retains both its
+    /// string value, as needed for introspection, and its parsed Script.
+    body: Value,
 }
 
-// TODO: Need to work out how we're going to store the Procedure details for
-// best efficiency.
 impl Procedure {
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        let name = argv[0].as_str();
-
         // FIRST, push the proc's local scope onto the stack.
         interp.push_scope();
 
         // NEXT, process the proc's argument list.
         let mut argi = 1; // Skip the proc's name
 
-        for (speci, spec) in self.args.iter().enumerate() {
+        for (speci, spec) in self.parms.iter().enumerate() {
             // FIRST, get the parameter as a vector.  It should be a list of
             // one or two elements.
             let vec = &*spec.as_list()?; // Should never fail
@@ -1911,7 +1986,7 @@ impl Procedure {
             // NEXT, if this is the args parameter, give the remaining args,
             // if any.  Note that "args" has special meaning only if it's the
             // final arg spec in the list.
-            if vec[0].as_str() == "args" && speci == self.args.len() - 1 {
+            if vec[0].as_str() == "args" && speci == self.parms.len() - 1 {
                 interp.set_scalar("args", Value::from(&argv[argi..]))?;
 
                 // We've processed all of the args
@@ -1932,18 +2007,18 @@ impl Procedure {
                 interp.set_scalar(vec[0].as_str(), vec[1].clone())?;
             } else {
                 // We don't; we're missing a required argument.
-                return self.wrong_num_args(name);
+                return self.wrong_num_args(&argv[0]);
             }
         }
 
         // NEXT, do we have any arguments left over?
 
         if argi != argv.len() {
-            return self.wrong_num_args(name);
+            return self.wrong_num_args(&argv[0]);
         }
 
         // NEXT, evaluate the proc's body, getting the result.
-        let result = interp.eval(&self.body);
+        let result = interp.eval_value(&self.body);
 
         // NEXT, pop the scope off of the stack; we're done with it.
         interp.pop_scope();
@@ -1956,16 +2031,16 @@ impl Procedure {
 
     // Outputs the wrong # args message for the proc.  The name is passed in
     // because it can be changed via the `rename` command.
-    fn wrong_num_args(&self, name: &str) -> MoltResult {
+    fn wrong_num_args(&self, name: &Value) -> MoltResult {
         let mut msg = String::new();
         msg.push_str("wrong # args: should be \"");
-        msg.push_str(name);
+        msg.push_str(name.as_str());
 
-        for (i, arg) in self.args.iter().enumerate() {
+        for (i, arg) in self.parms.iter().enumerate() {
             msg.push(' ');
 
             // "args" has special meaning only in the last place.
-            if arg.as_str() == "args" && i == self.args.len() - 1 {
+            if arg.as_str() == "args" && i == self.parms.len() - 1 {
                 msg.push_str("?arg ...?");
                 break;
             }

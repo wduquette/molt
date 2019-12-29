@@ -1,16 +1,13 @@
 # Test Script: info command.
 
-
 test info-1.1 {info errors} {
     info
 } -error {wrong # args: should be "info subcommand ?arg ...?"}
 
-# TODO: really need glob matching or something; as it is, this won't
-# pass with tclsh.  Or, I need a way to limit tests to the right
-# context, as with tcltest.
+# TODO: Really need glob matching.
 test info-1.2 {info errors} {
     info nonesuch
-} -error {unknown or ambiguous subcommand "nonesuch": must be commands, complete, or vars}
+} -error {unknown or ambiguous subcommand "nonesuch": must be args, body, commands, complete, procs, or vars}
 
 test info-2.1 {info complete errors} {
     info complete
@@ -69,3 +66,49 @@ test info-3.3 {info vars command} -setup {
 } -cleanup {
     rename myproc ""
 } -ok {x}
+
+test info-4.1 {info procs command, added procs} -setup {
+    proc thisProc {} {}
+    proc thatProc {} {}
+} -body {
+    set procs [info procs]
+    list \
+        [expr {"thisProc" in $procs}] \
+        [expr {"thatProc" in $procs}] \
+        [expr {"set" in $procs}]
+} -cleanup {
+    rename thisProc ""
+    rename thatProc ""
+} -ok {1 1 0}
+
+test info-5.1 {info body command, binary command} {
+    info body set
+} -error {"set" isn't a procedure}
+
+test info-5.2 {info body command, undefined} {
+    info body nonesuch
+} -error {"nonesuch" isn't a procedure}
+
+test info-5.3 {info body command, defined} -setup {
+    proc thisProc {} { puts "Hello, world!" }
+} -body {
+    info body thisProc
+} -cleanup {
+    rename thisProc ""
+} -ok { puts "Hello, world!" }
+
+test info-6.1 {info args command, binary command} {
+    info args set
+} -error {"set" isn't a procedure}
+
+test info-6.2 {info args command, undefined} {
+    info args nonesuch
+} -error {"nonesuch" isn't a procedure}
+
+test info-6.3 {info args command, defined} -setup {
+    proc thisProc {a b {c 1}} {}
+} -body {
+    info args thisProc
+} -cleanup {
+    rename thisProc ""
+} -ok {a b c}

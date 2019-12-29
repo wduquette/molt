@@ -2,9 +2,21 @@
 
 [![Crates.io](https://img.shields.io/crates/v/molt.svg)](https://crates.io/crates/molt)
 
+![MoltLogo.png](MoltLogo.png)
+
 Molt is a minimal implementation of the TCL language for embedding in Rust apps and for
 scripting Rust libraries.  See [The Molt Book](https://wduquette.github.io/molt) for details
 and user documentation.
+
+## New in Molt 0.2.1
+
+### More `info` Subcommands
+
+Molt now supports the following subcommands of the `info` command:
+
+* `info args`
+* `info body`
+* `info procs`
 
 ## New in Molt 0.2.0
 
@@ -157,6 +169,7 @@ see the output of the individual tests using the above command.
 
 I've gotten help from many people in this endeavor; here's a (necessarily partial) list.
 
+* Mary Duquette, for the Molt logo
 * Jonathan Castello, for general Rust info
 * Kevin Kenny, for help with TCL numerics and general encouragement
 * Don Porter, for help with TCL parsing

@@ -619,13 +619,13 @@ assert_eq $y abc
 </code></pre>
 <a class="header" href="#array-subcommand-arg-" id="array-subcommand-arg-"><h1>array <em>subcommand</em> ?<em>arg</em> ...?</h1></a>
 <p>This command queries and manipulates array variables.</p>
-<ul>
-<li><a href="#array-exists">array exists</a></li>
-<li><a href="#array-get">array get</a></li>
-<li><a href="#array-names">array names</a></li>
-<li><a href="#array-size">array size</a></li>
-<li><a href="#array-unset">array unset</a></li>
-</ul>
+<table><thead><tr><th> Subcommand                    </th><th> Description                                  </th></tr></thead><tbody>
+<tr><td> <a href="#array-exists">array exists</a> </td><td> Is the string the name of an array variable? </td></tr>
+<tr><td> <a href="#array-get">array get</a>       </td><td> A dictionary of the array's elements by name </td></tr>
+<tr><td> <a href="#array-names">array names</a>   </td><td> A list of the array's indices                </td></tr>
+<tr><td> <a href="#array-size">array size</a>     </td><td> The number of elements in the array          </td></tr>
+<tr><td> <a href="#array-unset">array unset</a>   </td><td> Unsets an array variable                     </td></tr>
+</tbody></table>
 <p><strong>TCL Liens</strong></p>
 <ul>
 <li>Does not support filtering using glob or regex matches at this time.  The plan is to
@@ -931,20 +931,34 @@ for {set a 1} {$a &lt; 10} {incr a} {
 </code></pre>
 <a class="header" href="#info-subcommand-arg-" id="info-subcommand-arg-"><h1>info <em>subcommand</em> ?<em>arg</em> ...?</h1></a>
 <p>Returns information about the state of the Molt interpreter.</p>
-<ul>
-<li><a href="#info-commands">info commands</a></li>
-<li><a href="#info-complete-command">info complete</a></li>
-<li><a href="#info-vars">info vars</a></li>
-</ul>
+<table><thead><tr><th> Subcommand                              </th><th> Description                                      </th></tr></thead><tbody>
+<tr><td> <a href="#info-args-procname">info args</a>        </td><td> Names of procedure's arguments                   </td></tr>
+<tr><td> <a href="#info-body-procname">info body</a>        </td><td> Gets procedure body                              </td></tr>
+<tr><td> <a href="#info-commands">info commands</a>         </td><td> Names of all defined commands                    </td></tr>
+<tr><td> <a href="#info-complete-command">info complete</a> </td><td> Is this string a syntactically complete command? </td></tr>
+<tr><td> <a href="#info-procs">info procs</a>               </td><td> Names of all defined procedures                  </td></tr>
+<tr><td> <a href="#info-vars">info vars</a>                 </td><td> Names of all variables in the current scope      </td></tr>
+</tbody></table>
+<a class="header" href="#info-args-procname" id="info-args-procname"><h2>info args <em>procname</em></h2></a>
+<p>Retrieves a list of the names of the arguments of the named procedure.  Returns an error
+if the command is undefined or is a binary command.</p>
+<a class="header" href="#info-body-procname" id="info-body-procname"><h2>info body <em>procname</em></h2></a>
+<p>Retrieves the body of the named procedure.  Returns an error if the command is undefined or
+is a binary command.</p>
 <a class="header" href="#info-commands" id="info-commands"><h2>info commands</h2></a>
-<p>Returns an unsorted list of the commands defined in the interpreter,
-including both binary commands and procs.</p>
+<p>Returns an unsorted list of the names of the commands defined in the interpreter,
+including both binary commands and procedures.</p>
 <p><strong>TCL Liens</strong>: does not support filtering the list using a <code>glob</code>
 pattern.</p>
 <a class="header" href="#info-complete-command" id="info-complete-command"><h2>info complete <em>command</em></h2></a>
 <p>Returns 1 if the command appears to be a complete Tcl command, i.e., it
 has no unmatched quotes, braces, or brackets, and 0 otherwise.  REPLs can
 use this to allow the user to build up a multi-line command.</p>
+<a class="header" href="#info-procs" id="info-procs"><h2>info procs</h2></a>
+<p>Returns an unsorted list of the names of the procedures defined in the interpreter,
+omitting binary commands.</p>
+<p><strong>TCL Liens</strong>: does not support filtering the list using a <code>glob</code>
+pattern.</p>
 <a class="header" href="#info-vars" id="info-vars"><h2>info vars</h2></a>
 <p>Returns an unsorted list of the names of all variables that are visible
 in the current scope, whether global or local.</p>

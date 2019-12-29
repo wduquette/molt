@@ -21,7 +21,7 @@
 //! [`test_harness`]: test_harness/index.html
 
 #![doc(html_root_url = "https://docs.rs/molt/0.2.1")]
-#![doc(html_logo_url = "https://github.com/wduquette/molt/raw/master/MoltLogo-small.png")]
+#![doc(html_logo_url = "https://github.com/wduquette/molt/raw/master/MoltLogo.png")]
 
 pub use crate::interp::Interp;
 pub use crate::test_harness::test_harness;

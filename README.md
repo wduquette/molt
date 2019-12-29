@@ -1,6 +1,7 @@
 # Molt -- More Or Less TCL
 
 [![Crates.io](https://img.shields.io/crates/v/molt.svg)](https://crates.io/crates/molt)
+
 ![MoltLogo.png](MoltLogo.png)
 
 Molt is a minimal implementation of the TCL language for embedding in Rust apps and for
@@ -158,6 +159,7 @@ see the output of the individual tests using the above command.
 
 I've gotten help from many people in this endeavor; here's a (necessarily partial) list.
 
+* Mary Duquette, for the Molt logo
 * Jonathan Castello, for general Rust info
 * Kevin Kenny, for help with TCL numerics and general encouragement
 * Don Porter, for help with TCL parsing

@@ -1705,7 +1705,7 @@ impl Interp {
             .commands
             .iter()
             .filter(|(_, cmd)| cmd.is_proc())
-            .map(|(name,_)| Value::from(name))
+            .map(|(name, _)| Value::from(name))
             .collect();
 
         vec
@@ -1739,7 +1739,6 @@ impl Interp {
         }
 
         molt_err!("\"{}\" isn't a procedure", procname.as_str())
-
     }
 
     /// Calls a subcommand of the current command, looking up its name in an array of

@@ -7,7 +7,7 @@ test info-1.1 {info errors} {
 # TODO: Really need glob matching.
 test info-1.2 {info errors} {
     info nonesuch
-} -error {unknown or ambiguous subcommand "nonesuch": must be args, body, commands, complete, default, procs, or vars}
+} -error {unknown or ambiguous subcommand "nonesuch": must be args, body, cmdtype, commands, complete, default, procs, or vars}
 
 test info-2.1 {info complete errors} {
     info complete
@@ -146,3 +146,15 @@ test info-7.5 {info default command, default} -setup {
 } -cleanup {
     rename myproc ""
 } -ok {1 defval}
+
+test info-8.1 {info cmdtype command, undefined} {
+    info cmdtype nonesuch
+} -error {"nonesuch" isn't a command}
+
+test info-8.2 {info cmdtype command} -setup {
+    proc myproc {arg1 arg2} {}
+} -body {
+    list [info cmdtype set] [info cmdtype myproc]
+} -cleanup {
+    rename myproc ""
+} -ok {native proc}

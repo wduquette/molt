@@ -506,7 +506,7 @@ pub struct Interp {
 /// A command defined in the interpreter.
 enum Command {
     /// A binary command implemented as a Rust CommandFunc.
-    Func(CommandFunc, ContextID),
+    Native(CommandFunc, ContextID),
 
     /// A Molt procedure
     Proc(Procedure),
@@ -516,15 +516,23 @@ impl Command {
     /// Execute the command according to its kind.
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         match self {
-            Command::Func(func, context_id) => func(interp, *context_id, argv),
+            Command::Native(func, context_id) => func(interp, *context_id, argv),
             Command::Proc(proc) => proc.execute(interp, argv),
+        }
+    }
+
+    /// Returns a value naming the command type.
+    fn cmdtype(&self) -> Value {
+        match self {
+            Command::Native(_, _) => Value::from("native"),
+            Command::Proc(_) => Value::from("proc"),
         }
     }
 
     /// Gets the command's context, or NULL_CONTEXT if none.
     fn context_id(&self) -> ContextID {
         match self {
-            Command::Func(_, context_id) => *context_id,
+            Command::Native(_, context_id) => *context_id,
             _ => NULL_CONTEXT,
         }
     }
@@ -1560,7 +1568,7 @@ impl Interp {
         }
 
         self.commands
-            .insert(name.into(), Rc::new(Command::Func(func, context_id)));
+            .insert(name.into(), Rc::new(Command::Native(func, context_id)));
     }
 
     /// Adds a procedure to the interpreter.
@@ -1683,6 +1691,16 @@ impl Interp {
             .collect();
 
         vec
+    }
+
+    /// Returns the body of the named procedure, or an error if the name doesn't
+    /// name a procedure.
+    pub fn command_type(&self, command: &str) -> MoltResult {
+        if let Some(cmd) = self.commands.get(command) {
+            molt_ok!(cmd.cmdtype())
+        } else {
+            molt_err!("\"{}\" isn't a command", command)
+        }
     }
 
     /// Gets a vector of the names of the existing procedures.

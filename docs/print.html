@@ -198,6 +198,7 @@ skeleton.</p>
 <ul>
 <li><code>info args</code></li>
 <li><code>info body</code></li>
+<li><code>info default</code></li>
 <li><code>info procs</code></li>
 </ul>
 <a class="header" href="#new-in-molt-02" id="new-in-molt-02"><h2>New in Molt 0.2</h2></a>
@@ -942,6 +943,7 @@ for {set a 1} {$a &lt; 10} {incr a} {
 <table><thead><tr><th> Subcommand                              </th><th> Description                                      </th></tr></thead><tbody>
 <tr><td> <a href="#info-args-procname">info args</a>        </td><td> Names of procedure's arguments                   </td></tr>
 <tr><td> <a href="#info-body-procname">info body</a>        </td><td> Gets procedure body                              </td></tr>
+<tr><td> <a href="#info-cmdtype-command">info cmdtype</a>   </td><td> Queries a command's type                         </td></tr>
 <tr><td> <a href="#info-commands">info commands</a>         </td><td> Names of all defined commands                    </td></tr>
 <tr><td> <a href="#info-complete-command">info complete</a> </td><td> Is this string a syntactically complete command? </td></tr>
 <tr><td> <a href="#info-default-procname-arg-varname">info default</a> </td><td> A procedure argument's default value  </td></tr>
@@ -966,6 +968,19 @@ is a binary command.</p>
 puts &quot;Hello, $name&quot;
 %
 </code></pre>
+<a class="header" href="#info-cmdtype-command" id="info-cmdtype-command"><h2>info cmdtype <em>command</em></h2></a>
+<p>Retrieves the named command's type, either <code>native</code> or <code>proc</code>.  The <em>command</em> is <code>native</code> if it's
+implemented in Rust and <code>proc</code> if it's implemented as a TCL procedure.</p>
+<pre><code class="language-tcl">% proc myproc {} { ... }
+% info cmdtype set
+native
+% info cmdtype myproc
+proc
+%
+</code></pre>
+<p><strong>TCL Liens</strong>: Standard TCL defines a variety of other command types, e.g., slave interpreters,
+interpreter aliases, objects, and so forth.  These will be added naturally if and when they are
+added to Molt.</p>
 <a class="header" href="#info-commands" id="info-commands"><h2>info commands</h2></a>
 <p>Returns an unsorted list of the names of the commands defined in the interpreter,
 including both binary commands and procedures.</p>

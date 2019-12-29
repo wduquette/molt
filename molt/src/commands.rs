@@ -441,9 +441,10 @@ pub fn cmd_info(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> M
     interp.call_subcommand(context_id, argv, 1, &INFO_SUBCOMMANDS)
 }
 
-const INFO_SUBCOMMANDS: [Subcommand; 7] = [
+const INFO_SUBCOMMANDS: [Subcommand; 8] = [
     Subcommand("args", cmd_info_args),
     Subcommand("body", cmd_info_body),
+    Subcommand("cmdtype", cmd_info_cmdtype),
     Subcommand("commands", cmd_info_commands),
     Subcommand("complete", cmd_info_complete),
     Subcommand("default", cmd_info_default),
@@ -461,6 +462,12 @@ pub fn cmd_info_args(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltR
 pub fn cmd_info_body(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "procname")?;
     interp.proc_body(&argv[2].as_str())
+}
+
+/// # info cmdtype *command*
+pub fn cmd_info_cmdtype(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "command")?;
+    interp.command_type(&argv[2].as_str())
 }
 
 /// # info commands ?*pattern*?

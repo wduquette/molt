@@ -6,6 +6,7 @@ Returns information about the state of the Molt interpreter.
 | --------------------------------------- | ------------------------------------------------ |
 | [info args](#info-args-procname)        | Names of procedure's arguments                   |
 | [info body](#info-body-procname)        | Gets procedure body                              |
+| [info cmdtype](#info-cmdtype-command)   | Queries a command's type                         |
 | [info commands](#info-commands)         | Names of all defined commands                    |
 | [info complete](#info-complete-command) | Is this string a syntactically complete command? |
 | [info default](#info-default-procname-arg-varname) | A procedure argument's default value  |
@@ -39,6 +40,24 @@ For example,
 puts "Hello, $name"
 %
 ```
+
+## info cmdtype *command*
+
+Retrieves the named command's type, either `native` or `proc`.  The *command* is `native` if it's
+implemented in Rust and `proc` if it's implemented as a TCL procedure.
+
+```tcl
+% proc myproc {} { ... }
+% info cmdtype set
+native
+% info cmdtype myproc
+proc
+%
+```
+
+**TCL Liens**: Standard TCL defines a variety of other command types, e.g., slave interpreters,
+interpreter aliases, objects, and so forth.  These will be added naturally if and when they are
+added to Molt.
 
 ## info commands
 

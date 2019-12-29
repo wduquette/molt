@@ -1713,20 +1713,20 @@ impl Interp {
 
     /// Returns the body of the named procedure, or an error if the name doesn't
     /// name a procedure.
-    pub fn proc_body(&self, procname: &Value) -> MoltResult {
-        if let Some(cmd) = self.commands.get(procname.as_str()) {
+    pub fn proc_body(&self, procname: &str) -> MoltResult {
+        if let Some(cmd) = self.commands.get(procname) {
             if let Command::Proc(proc) = &**cmd {
                 return molt_ok!(proc.body.clone());
             }
         }
 
-        molt_err!("\"{}\" isn't a procedure", procname.as_str())
+        molt_err!("\"{}\" isn't a procedure", procname)
     }
 
     /// Returns a list of the names of the arguments of the named procedure, or an
     /// error if the name doesn't name a procedure.
-    pub fn proc_args(&self, procname: &Value) -> MoltResult {
-        if let Some(cmd) = self.commands.get(procname.as_str()) {
+    pub fn proc_args(&self, procname: &str) -> MoltResult {
+        if let Some(cmd) = self.commands.get(procname) {
             if let Command::Proc(proc) = &**cmd {
                 // Note: the item is guaranteed to be parsible as a list of 1 or 2 elements.
                 let vec: MoltList = proc
@@ -1738,7 +1738,34 @@ impl Interp {
             }
         }
 
-        molt_err!("\"{}\" isn't a procedure", procname.as_str())
+        molt_err!("\"{}\" isn't a procedure", procname)
+    }
+
+    /// Returns the default value of the named argument of the named procedure, if it has one.
+    /// Returns an error if the procedure has no such argument, or the `procname` doesn't name
+    /// a procedure.
+    pub fn proc_default(&self, procname: &str, arg: &str) -> Result<Option<Value>, ResultCode> {
+        if let Some(cmd) = self.commands.get(procname) {
+            if let Command::Proc(proc) = &**cmd {
+                for argvec in &proc.parms {
+                    let argvec = argvec.as_list()?; // Should never fail
+                    if argvec[0].as_str() == arg {
+                        if argvec.len() == 2 {
+                            return Ok(Some(argvec[1].clone()));
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+                }
+                return molt_err!(
+                    "procedure \"{}\" doesn't have an argument \"{}\"",
+                    procname,
+                    arg
+                );
+            }
+        }
+
+        molt_err!("\"{}\" isn't a procedure", procname)
     }
 
     /// Calls a subcommand of the current command, looking up its name in an array of

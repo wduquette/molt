@@ -192,6 +192,14 @@ administration.</li>
 </ul>
 <p>See the <a href="https://github.com/wduquette/molt-sample"><code>molt-sample</code> repo</a> for a sample Molt client
 skeleton.</p>
+<a class="header" href="#new-in-molt-021" id="new-in-molt-021"><h2>New in Molt 0.2.1</h2></a>
+<a class="header" href="#more-info-subcommands" id="more-info-subcommands"><h3>More <code>info</code> Subcommands</h3></a>
+<p>Molt now supports the following subcommands of the <code>info</code> command:</p>
+<ul>
+<li><code>info args</code></li>
+<li><code>info body</code></li>
+<li><code>info procs</code></li>
+</ul>
 <a class="header" href="#new-in-molt-02" id="new-in-molt-02"><h2>New in Molt 0.2</h2></a>
 <a class="header" href="#associative-arrays" id="associative-arrays"><h3>Associative Arrays</h3></a>
 <p>Molt now includes TCL's associative array variables:</p>
@@ -936,15 +944,28 @@ for {set a 1} {$a &lt; 10} {incr a} {
 <tr><td> <a href="#info-body-procname">info body</a>        </td><td> Gets procedure body                              </td></tr>
 <tr><td> <a href="#info-commands">info commands</a>         </td><td> Names of all defined commands                    </td></tr>
 <tr><td> <a href="#info-complete-command">info complete</a> </td><td> Is this string a syntactically complete command? </td></tr>
+<tr><td> <a href="#info-default-procname-arg-varname">info default</a> </td><td> A procedure argument's default value  </td></tr>
 <tr><td> <a href="#info-procs">info procs</a>               </td><td> Names of all defined procedures                  </td></tr>
 <tr><td> <a href="#info-vars">info vars</a>                 </td><td> Names of all variables in the current scope      </td></tr>
 </tbody></table>
 <a class="header" href="#info-args-procname" id="info-args-procname"><h2>info args <em>procname</em></h2></a>
 <p>Retrieves a list of the names of the arguments of the named procedure.  Returns an error
 if the command is undefined or is a binary command.</p>
+<p>For example,</p>
+<pre><code class="language-tcl">% proc myproc {a b c} { ... }
+% info args myproc
+a b c
+%
+</code></pre>
 <a class="header" href="#info-body-procname" id="info-body-procname"><h2>info body <em>procname</em></h2></a>
 <p>Retrieves the body of the named procedure.  Returns an error if the command is undefined or
 is a binary command.</p>
+<p>For example,</p>
+<pre><code class="language-tcl">% proc myproc {name} { puts &quot;Hello, $name&quot; }
+% info body myproc
+puts &quot;Hello, $name&quot;
+%
+</code></pre>
 <a class="header" href="#info-commands" id="info-commands"><h2>info commands</h2></a>
 <p>Returns an unsorted list of the names of the commands defined in the interpreter,
 including both binary commands and procedures.</p>
@@ -954,6 +975,37 @@ pattern.</p>
 <p>Returns 1 if the command appears to be a complete Tcl command, i.e., it
 has no unmatched quotes, braces, or brackets, and 0 otherwise.  REPLs can
 use this to allow the user to build up a multi-line command.</p>
+<p>For example,</p>
+<pre><code class="language-tcl">% info complete { puts &quot;Hello, world!&quot; }
+1
+% info complete { puts &quot;Hello, world! }
+0
+%
+</code></pre>
+<a class="header" href="#info-default-procname-arg-varname" id="info-default-procname-arg-varname"><h2>info default <em>procname</em> <em>arg</em> <em>varname</em></h2></a>
+<p>Retrieves the default value of procedure <em>procname</em>'s argument called <em>arg</em>.  If <em>arg</em> has
+a default value, <code>info default</code> returns 1 and assigns the default value to the variable
+called <em>varname</em>.  Otherwise, <code>info default</code> returns 0 and assigns the empty string to the
+variable called <em>varname</em>.</p>
+<p>The command throws an error if:</p>
+<ul>
+<li><em>procname</em> doesn't name a procedure</li>
+<li>The procedure <em>procname</em> has no argument called <em>arg</em></li>
+<li>The value can't be assigned to a variable called <em>varname</em>.</li>
+</ul>
+<p>In the following example, <code>myproc</code> has two arguments, <code>a</code> and <code>b</code>.  <code>a</code> has no default value;
+<code>b</code> has the default value <code>Howdy</code>.</p>
+<pre><code class="language-tcl">% proc myproc {a {b Howdy}} { ... }
+% info default myproc a defvalue
+0
+% puts &quot;&lt;$defval&gt;&quot;
+&lt;&gt;
+% info default myproc b defvalue
+1
+% puts &quot;&lt;$defval&gt;&quot;
+&lt;Howdy&gt;
+%
+</code></pre>
 <a class="header" href="#info-procs" id="info-procs"><h2>info procs</h2></a>
 <p>Returns an unsorted list of the names of the procedures defined in the interpreter,
 omitting binary commands.</p>

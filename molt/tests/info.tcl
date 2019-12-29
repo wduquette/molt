@@ -7,7 +7,7 @@ test info-1.1 {info errors} {
 # TODO: Really need glob matching.
 test info-1.2 {info errors} {
     info nonesuch
-} -error {unknown or ambiguous subcommand "nonesuch": must be args, body, commands, complete, procs, or vars}
+} -error {unknown or ambiguous subcommand "nonesuch": must be args, body, commands, complete, default, procs, or vars}
 
 test info-2.1 {info complete errors} {
     info complete
@@ -112,3 +112,37 @@ test info-6.3 {info args command, defined} -setup {
 } -cleanup {
     rename thisProc ""
 } -ok {a b c}
+
+test info-7.1 {info default command, binary command} {
+    info default set arg val
+} -error {"set" isn't a procedure}
+
+test info-7.2 {info default command, undefined} {
+    info default nonesuch arg val
+} -error {"nonesuch" isn't a procedure}
+
+test info-7.3 {info default command, undefined arg} -setup {
+    proc myproc {arg1 arg2} {}
+} -body {
+    info default myproc arg3 val
+} -cleanup {
+    rename myproc ""
+} -error {procedure "myproc" doesn't have an argument "arg3"}
+
+test info-7.4 {info default command, no default} -setup {
+    proc myproc {arg1 arg2} {}
+} -body {
+    set flag [info default myproc arg1 val]
+    list $flag $val
+} -cleanup {
+    rename myproc ""
+} -ok {0 {}}
+
+test info-7.5 {info default command, default} -setup {
+    proc myproc {arg1 {arg2 defval}} {}
+} -body {
+    set flag [info default myproc arg2 val]
+    list $flag $val
+} -cleanup {
+    rename myproc ""
+} -ok {1 defval}

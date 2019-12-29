@@ -441,11 +441,12 @@ pub fn cmd_info(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> M
     interp.call_subcommand(context_id, argv, 1, &INFO_SUBCOMMANDS)
 }
 
-const INFO_SUBCOMMANDS: [Subcommand; 6] = [
+const INFO_SUBCOMMANDS: [Subcommand; 7] = [
     Subcommand("args", cmd_info_args),
     Subcommand("body", cmd_info_body),
     Subcommand("commands", cmd_info_commands),
     Subcommand("complete", cmd_info_complete),
+    Subcommand("default", cmd_info_default),
     Subcommand("procs", cmd_info_procs),
     Subcommand("vars", cmd_info_vars),
 ];
@@ -453,18 +454,31 @@ const INFO_SUBCOMMANDS: [Subcommand; 6] = [
 /// # info args *procname*
 pub fn cmd_info_args(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "procname")?;
-    interp.proc_args(&argv[2])
+    interp.proc_args(&argv[2].as_str())
 }
 
 /// # info body *procname*
 pub fn cmd_info_body(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "procname")?;
-    interp.proc_body(&argv[2])
+    interp.proc_body(&argv[2].as_str())
 }
 
 /// # info commands ?*pattern*?
 pub fn cmd_info_commands(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
     molt_ok!(Value::from(interp.command_names()))
+}
+
+/// # info default *procname* *arg* *varname*
+pub fn cmd_info_default(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 5, 5, "procname arg varname")?;
+
+    if let Some(val) = interp.proc_default(&argv[2].as_str(), &argv[3].as_str())? {
+        interp.set_var(&argv[4], val)?;
+        molt_ok!(1)
+    } else {
+        interp.set_var(&argv[4], Value::empty())?;
+        molt_ok!(0)
+    }
 }
 
 /// # info complete *command*

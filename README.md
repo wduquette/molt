@@ -8,20 +8,15 @@ Molt is a minimal implementation of the TCL language for embedding in Rust apps 
 scripting Rust libraries.  See [The Molt Book](https://wduquette.github.io/molt) for details
 and user documentation.
 
-## New in Molt 0.2.1
+## New in Molt 0.2.2
 
-### More `info` Subcommands
+### Dictionaries and the `dict` command
 
-Molt now supports the following subcommands of the `info` command:
+Molt now supports TCL dictionary values.  The `dict` command supports the following
+subcommands:
 
-* `info args`
-* `info cmdtype`
-* `info body`
-* `info default`
-* `info exists`
-* `info globals` (no glob-filtering as yet)
-* `info locals` (no glob-filtering as yet)
-* `info procs`
+*   dict create
+*   dict size
 
 ## New in Molt 0.2.0
 
@@ -51,6 +46,19 @@ a b c
 % list 1 2 {*}$a 3 4
 1 2 a b c 3 4
 ```
+
+### More `info` Subcommands
+
+Molt now supports the following subcommands of the `info` command:
+
+* `info args`
+* `info cmdtype`
+* `info body`
+* `info default`
+* `info exists`
+* `info globals` (no glob-filtering as yet)
+* `info locals` (no glob-filtering as yet)
+* `info procs`
 
 ### Rust API Change: Test Harness
 

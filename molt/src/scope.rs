@@ -38,6 +38,17 @@ enum Var {
     New,
 }
 
+impl Var {
+    /// This is an upvar'd variable?
+    fn is_upvar(&self) -> bool {
+        if let Var::Upvar(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+}
+
 impl Debug for Var {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -243,6 +254,32 @@ impl ScopeStack {
     /// Gets a list of the names of the variables defined in the current scope.
     pub fn vars_in_scope(&self) -> MoltList {
         self.stack[self.current()]
+            .map
+            .keys()
+            .cloned()
+            .map(|x| Value::from(&x))
+            .collect()
+    }
+
+    /// Gets a list of the local variables defined in the current scope.  Upvar'd variables
+    /// are not local; and no variables are local in the global scope.
+    pub fn vars_in_local_scope(&self) -> MoltList {
+        // If we are at the global scope, there are no local variables.
+        if self.current() == 0 {
+            return Vec::new();
+        }
+
+        self.stack[self.current()]
+            .map
+            .iter()
+            .filter(|(_,v)| !v.is_upvar())
+            .map(|(k,_)| Value::from(k))
+            .collect()
+    }
+
+    /// Gets a list of the variables defined in the global scope.
+    pub fn vars_in_global_scope(&self) -> MoltList {
+        self.stack[0]
             .map
             .keys()
             .cloned()
@@ -617,6 +654,65 @@ mod tests {
         ss.unset("b");
         assert_eq!(ss.vars_in_scope().len(), 1);
         assert!(!ss.vars_in_scope().contains(&Value::from("b")));
+    }
+
+    #[test]
+    fn test_vars_in_local_scope() {
+        let mut ss = ScopeStack::new();
+
+        // Add var to global scope.  It isn't local.
+        ss.set("a", Value::from("1")).expect("ok");
+        assert!(ss.vars_in_local_scope().is_empty());
+
+        // Push a scope; no vars initially
+        ss.push();
+        assert!(ss.vars_in_scope().is_empty());
+
+        // Add vars to local scope
+        ss.set("a", Value::from("1")).expect("ok");
+        ss.set_elem("b", "1", Value::from("1")).expect("ok");
+        assert_eq!(ss.vars_in_local_scope().len(), 2);
+        assert!(ss.vars_in_local_scope().contains(&Value::from("a")));
+        assert!(ss.vars_in_local_scope().contains(&Value::from("b")));
+
+        // Upvar a var; it isn't local.
+        ss.upvar(0, "c");
+        assert_eq!(ss.vars_in_local_scope().len(), 2);
+        assert!(!ss.vars_in_local_scope().contains(&Value::from("c")));
+
+        // Push a scope; no local vars
+        ss.push();
+        assert!(ss.vars_in_scope().is_empty());
+    }
+
+    #[test]
+    fn test_vars_in_global_scope() {
+        let mut ss = ScopeStack::new();
+
+        assert!(ss.vars_in_global_scope().is_empty());
+
+        // Add vars to global scope.
+        ss.set("a", Value::from("1")).expect("ok");
+        ss.set_elem("b", "1", Value::from("1")).expect("ok");
+        assert!(ss.vars_in_global_scope().len() == 2);
+        assert!(ss.vars_in_global_scope().contains(&Value::from("a")));
+        assert!(ss.vars_in_global_scope().contains(&Value::from("b")));
+        assert!(!ss.vars_in_global_scope().contains(&Value::from("c")));
+
+        // Push a scope.  No change.
+        ss.push();
+        assert!(ss.vars_in_global_scope().len() == 2);
+        assert!(ss.vars_in_global_scope().contains(&Value::from("a")));
+        assert!(ss.vars_in_global_scope().contains(&Value::from("b")));
+        assert!(!ss.vars_in_global_scope().contains(&Value::from("c")));
+
+        // Add a var to local scope. No change.
+        ss.set("c", Value::from("1")).expect("ok");
+        
+        assert!(ss.vars_in_global_scope().len() == 2);
+        assert!(ss.vars_in_global_scope().contains(&Value::from("a")));
+        assert!(ss.vars_in_global_scope().contains(&Value::from("b")));
+        assert!(!ss.vars_in_global_scope().contains(&Value::from("c")));
     }
 
     #[test]

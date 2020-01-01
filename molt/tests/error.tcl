@@ -21,4 +21,6 @@ test error-2.2 {error exits proc} -setup {
     list $x $code $msg
 } -cleanup {
     rename myproc ""
+    global x
+    unset x
 } -ok {before 1 {simulated error}}

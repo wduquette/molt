@@ -1382,6 +1382,44 @@ impl Interp {
         self.scopes.vars_in_scope()
     }
 
+    /// Gets a list of the names of the variables defined in the global scope.
+    /// The list includes the names of array variables but not elements within them.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    ///
+    /// # let mut interp = Interp::new();
+    /// for name in interp.vars_in_global_scope() {
+    ///     println!("Found variable: {}", name);
+    /// }
+    /// ```
+    pub fn vars_in_global_scope(&self) -> MoltList {
+        self.scopes.vars_in_global_scope()
+    }
+
+    /// Gets a list of the names of the variables defined in the local scope.
+    /// This does not include variables brought into scope via `global` or `upvar`, or any
+    /// variables defined in the global scope.
+    /// The list includes the names of array variables but not elements within them.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::Interp;
+    /// use molt::types::*;
+    ///
+    /// # let mut interp = Interp::new();
+    /// for name in interp.vars_in_local_scope() {
+    ///     println!("Found variable: {}", name);
+    /// }
+    /// ```
+    pub fn vars_in_local_scope(&self) -> MoltList {
+        self.scopes.vars_in_local_scope()
+    }
+
     /// Links the variable name in the current scope to the given scope.
     /// Note: the level is the absolute level, not the level relative to the
     /// current stack level, i.e., level=0 is the global scope.

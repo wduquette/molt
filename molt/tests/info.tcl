@@ -7,7 +7,7 @@ test info-1.1 {info errors} {
 # TODO: Really need glob matching.
 test info-1.2 {info errors} {
     info nonesuch
-} -error {unknown or ambiguous subcommand "nonesuch": must be args, body, cmdtype, commands, complete, default, exists, procs, or vars}
+} -error {unknown or ambiguous subcommand "nonesuch": must be args, body, cmdtype, commands, complete, default, exists, globals, locals, procs, or vars}
 
 test info-2.1 {info complete errors} {
     info complete
@@ -179,3 +179,66 @@ test info-9.4 {info exists command, array set} {
 
     info exists b
 } -ok {1}
+
+test info-10.1 {info globals command: some defined; toplevel} -body {
+    # Note: we don't test for emptiness before we define globals.  Eventually there will be
+    # standard variables defined, which would break the test.
+    global a b
+    set a 1
+    set b(1) 1
+    list [expr {"a" in [info globals]}] \
+         [expr {"b" in [info globals]}]
+} -cleanup {
+    global a b
+    unset a b
+} -ok {1 1}
+
+test info-10.2 {info globals command: some defined; in proc} -setup {
+    proc myproc {} {
+        info globals
+    }
+} -body {
+    global a b
+    set a 1
+    set b(1) 1
+    set list [myproc]
+    list [expr {"a" in $list}] \
+         [expr {"b" in $list}]
+} -cleanup {
+    rename myproc ""
+    global a b
+    unset a b
+} -ok {1 1}
+
+test info-11.1 {info locals command: toplevel} -body {
+    global a b
+    set a 1
+    set b(1) 1
+    # Globals aren't local
+    info locals
+} -cleanup {
+    global a b
+    unset a b
+} -ok {}
+
+test info-11.2 {info globals command: some defined; in proc} -setup {
+    proc myproc {c} {
+        set d 1
+        set e(1) 2
+        info locals
+    }
+} -body {
+    global a b
+    set a 1
+    set b(1) 1
+    set list [myproc x]
+    list [expr {"a" in $list}] \
+         [expr {"b" in $list}] \
+         [expr {"c" in $list}] \
+         [expr {"d" in $list}] \
+         [expr {"e" in $list}]
+} -cleanup {
+    rename myproc ""
+    global a b
+    unset a b
+} -ok {0 0 1 1 1}

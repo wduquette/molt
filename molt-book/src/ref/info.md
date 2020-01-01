@@ -2,17 +2,19 @@
 
 Returns information about the state of the Molt interpreter.
 
-| Subcommand                              | Description                                      |
-| --------------------------------------- | ------------------------------------------------ |
-| [info args](#info-args-procname)        | Names of procedure's arguments                   |
-| [info body](#info-body-procname)        | Gets procedure body                              |
-| [info cmdtype](#info-cmdtype-command)   | Queries a command's type                         |
-| [info commands](#info-commands)         | Names of all defined commands                    |
-| [info complete](#info-complete-command) | Is this string a syntactically complete command? |
-| [info default](#info-default-procname-arg-varname) | A procedure argument's default value  |
-| [info exists](#info-exists-varname)     | Is this a variable in the current scope?         |
-| [info procs](#info-procs)               | Names of all defined procedures                  |
-| [info vars](#info-vars)                 | Names of all variables in the current scope      |
+| Subcommand                              | Description                                       |
+| --------------------------------------- | ------------------------------------------------- |
+| [info args](#info-args-procname)        | Names of procedure's arguments                    |
+| [info body](#info-body-procname)        | Gets procedure body                               |
+| [info cmdtype](#info-cmdtype-command)   | Queries a command's type                          |
+| [info commands](#info-commands)         | Names of all defined commands                     |
+| [info complete](#info-complete-command) | Is this string a syntactically complete command?  |
+| [info default](#info-default-procname-arg-varname) | A procedure argument's default value   |
+| [info exists](#info-exists-varname)     | Is this a variable in the current scope?          |
+| [info globals](#info-globals)           | Names of all variables in the global scope        |
+| [info locals](#info-locals)             | Names of all local variables in the current scope |
+| [info procs](#info-procs)               | Names of all defined procedures                   |
+| [info vars](#info-vars)                 | Names of all variables in the current scope       |
 
 ## info args *procname*
 
@@ -134,6 +136,23 @@ Returns 1 if *varname* is the name of a variable or array element in the current
 % info exists b(2)
 0
 ```
+
+## info globals
+
+Returns an unsorted list of the names of all variables defined in the global scope.
+
+**TCL Liens**: does not support filtering the list using a `glob`
+pattern.
+
+## info locals
+
+Returns an unsorted list of the names of all local variables defined in the current scope, e.g.,
+`proc` arguments and variables defined locally, but no variables brought in from other scopes
+via `global` or `upvar`.
+
+**TCL Liens**: does not support filtering the list using a `glob`
+pattern.
+
 
 ## info procs
 

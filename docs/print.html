@@ -200,6 +200,9 @@ skeleton.</p>
 <li><code>info body</code></li>
 <li><code>info cmdtype</code></li>
 <li><code>info default</code></li>
+<li><code>info exists</code></li>
+<li><code>info globals</code> (no glob-filtering as yet)</li>
+<li><code>info locals</code> (no glob-filtering as yet)</li>
 <li><code>info procs</code></li>
 </ul>
 <a class="header" href="#new-in-molt-02" id="new-in-molt-02"><h2>New in Molt 0.2</h2></a>
@@ -941,16 +944,18 @@ for {set a 1} {$a &lt; 10} {incr a} {
 </code></pre>
 <a class="header" href="#info-subcommand-arg-" id="info-subcommand-arg-"><h1>info <em>subcommand</em> ?<em>arg</em> ...?</h1></a>
 <p>Returns information about the state of the Molt interpreter.</p>
-<table><thead><tr><th> Subcommand                              </th><th> Description                                      </th></tr></thead><tbody>
-<tr><td> <a href="#info-args-procname">info args</a>        </td><td> Names of procedure's arguments                   </td></tr>
-<tr><td> <a href="#info-body-procname">info body</a>        </td><td> Gets procedure body                              </td></tr>
-<tr><td> <a href="#info-cmdtype-command">info cmdtype</a>   </td><td> Queries a command's type                         </td></tr>
-<tr><td> <a href="#info-commands">info commands</a>         </td><td> Names of all defined commands                    </td></tr>
-<tr><td> <a href="#info-complete-command">info complete</a> </td><td> Is this string a syntactically complete command? </td></tr>
-<tr><td> <a href="#info-default-procname-arg-varname">info default</a> </td><td> A procedure argument's default value  </td></tr>
-<tr><td> <a href="#info-exists-varname">info exists</a>     </td><td> Is this a variable in the current scope?         </td></tr>
-<tr><td> <a href="#info-procs">info procs</a>               </td><td> Names of all defined procedures                  </td></tr>
-<tr><td> <a href="#info-vars">info vars</a>                 </td><td> Names of all variables in the current scope      </td></tr>
+<table><thead><tr><th> Subcommand                              </th><th> Description                                       </th></tr></thead><tbody>
+<tr><td> <a href="#info-args-procname">info args</a>        </td><td> Names of procedure's arguments                    </td></tr>
+<tr><td> <a href="#info-body-procname">info body</a>        </td><td> Gets procedure body                               </td></tr>
+<tr><td> <a href="#info-cmdtype-command">info cmdtype</a>   </td><td> Queries a command's type                          </td></tr>
+<tr><td> <a href="#info-commands">info commands</a>         </td><td> Names of all defined commands                     </td></tr>
+<tr><td> <a href="#info-complete-command">info complete</a> </td><td> Is this string a syntactically complete command?  </td></tr>
+<tr><td> <a href="#info-default-procname-arg-varname">info default</a> </td><td> A procedure argument's default value   </td></tr>
+<tr><td> <a href="#info-exists-varname">info exists</a>     </td><td> Is this a variable in the current scope?          </td></tr>
+<tr><td> <a href="#info-globals">info globals</a>           </td><td> Names of all variables in the global scope        </td></tr>
+<tr><td> <a href="#info-locals">info locals</a>             </td><td> Names of all local variables in the current scope </td></tr>
+<tr><td> <a href="#info-procs">info procs</a>               </td><td> Names of all defined procedures                   </td></tr>
+<tr><td> <a href="#info-vars">info vars</a>                 </td><td> Names of all variables in the current scope       </td></tr>
 </tbody></table>
 <a class="header" href="#info-args-procname" id="info-args-procname"><h2>info args <em>procname</em></h2></a>
 <p>Retrieves a list of the names of the arguments of the named procedure.  Returns an error
@@ -1041,6 +1046,16 @@ variable called <em>varname</em>.</p>
 % info exists b(2)
 0
 </code></pre>
+<a class="header" href="#info-globals" id="info-globals"><h2>info globals</h2></a>
+<p>Returns an unsorted list of the names of all variables defined in the global scope.</p>
+<p><strong>TCL Liens</strong>: does not support filtering the list using a <code>glob</code>
+pattern.</p>
+<a class="header" href="#info-locals" id="info-locals"><h2>info locals</h2></a>
+<p>Returns an unsorted list of the names of all local variables defined in the current scope, e.g.,
+<code>proc</code> arguments and variables defined locally, but no variables brought in from other scopes
+via <code>global</code> or <code>upvar</code>.</p>
+<p><strong>TCL Liens</strong>: does not support filtering the list using a <code>glob</code>
+pattern.</p>
 <a class="header" href="#info-procs" id="info-procs"><h2>info procs</h2></a>
 <p>Returns an unsorted list of the names of the procedures defined in the interpreter,
 omitting binary commands.</p>

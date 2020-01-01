@@ -18,6 +18,9 @@ Molt now supports the following subcommands of the `info` command:
 * `info cmdtype`
 * `info body`
 * `info default`
+* `info exists`
+* `info globals` (no glob-filtering as yet)
+* `info locals` (no glob-filtering as yet)
 * `info procs`
 
 ## New in Molt 0.2.0

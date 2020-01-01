@@ -159,26 +159,32 @@ test expr-3.1 {logical} {
     lexpr {1 && 1} {1 && 0} {0 && 1} {0 && 0}
 } -ok {1 0 0 0}
 
-test expr-3.2 {logical} {
+test expr-3.2 {logical} -body {
     global a b
     set a ""
     set b ""
     # bflag should not execute.
     set result [expr {[aflag 0] && [bflag 1]}]
     list $result $a $b
+} -cleanup {
+    global a b
+    unset a b
 } -ok {0 A {}}
 
 test expr-3.3 {logical} {
     lexpr {1 || 1} {1 || 0} {0 || 1} {0 || 0}
 } -ok {1 1 1 0}
 
-test expr-3.4 {logical} {
+test expr-3.4 {logical} -body {
     global a b
     set a ""
     set b ""
     # bflag should not execute.
     set result [expr {[aflag 1] || [bflag 1]}]
     list $result $a $b
+} -cleanup {
+    global a b
+    unset a b
 } -ok {1 A {}}
 
 test expr-3.5 {logical} {
@@ -263,7 +269,7 @@ proc b {} {
     return 2
 }
 
-test expr-6.2 {questy} {
+test expr-6.2 {questy} -body {
     global a b
     set a 0
     set b 0
@@ -272,9 +278,12 @@ test expr-6.2 {questy} {
     # [a] should not have executed.  If it did,
     # $a will be 1.
     list $result $a $b
+} -cleanup {
+    global a b
+    unset a b
 } -ok {2 0 2}
 
-test expr-6.3 {questy} {
+test expr-6.3 {questy} -body {
     global a b
     set a 0
     set b 0
@@ -283,4 +292,12 @@ test expr-6.3 {questy} {
     # [b] should not have executed.  If it did,
     # $b will be 2.
     list $result $a $b
+} -cleanup {
+    global a b
+    unset a b
 } -ok {1 1 0}
+
+rename aflag ""
+rename bflag ""
+rename a ""
+rename b ""

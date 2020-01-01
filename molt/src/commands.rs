@@ -441,7 +441,7 @@ pub fn cmd_info(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> M
     interp.call_subcommand(context_id, argv, 1, &INFO_SUBCOMMANDS)
 }
 
-const INFO_SUBCOMMANDS: [Subcommand; 9] = [
+const INFO_SUBCOMMANDS: [Subcommand; 11] = [
     Subcommand("args", cmd_info_args),
     Subcommand("body", cmd_info_body),
     Subcommand("cmdtype", cmd_info_cmdtype),
@@ -449,6 +449,8 @@ const INFO_SUBCOMMANDS: [Subcommand; 9] = [
     Subcommand("complete", cmd_info_complete),
     Subcommand("default", cmd_info_default),
     Subcommand("exists", cmd_info_exists),
+    Subcommand("globals", cmd_info_globals),
+    Subcommand("locals", cmd_info_locals),
     Subcommand("procs", cmd_info_procs),
     Subcommand("vars", cmd_info_vars),
 ];
@@ -506,12 +508,24 @@ pub fn cmd_info_complete(interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
     }
 }
 
+/// # info globals
+/// TODO: Add glob matching as a feature, and provide optional pattern argument.
+pub fn cmd_info_globals(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
+    molt_ok!(Value::from(interp.vars_in_global_scope()))
+}
+
+/// # info locals
+/// TODO: Add glob matching as a feature, and provide optional pattern argument.
+pub fn cmd_info_locals(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
+    molt_ok!(Value::from(interp.vars_in_local_scope()))
+}
+
 /// # info procs ?*pattern*?
 pub fn cmd_info_procs(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
     molt_ok!(Value::from(interp.proc_names()))
 }
 
-/// # info vars ?*pattern*?
+/// # info vars
 /// TODO: Add glob matching as a feature, and provide optional pattern argument.
 pub fn cmd_info_vars(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
     molt_ok!(Value::from(interp.vars_in_scope()))

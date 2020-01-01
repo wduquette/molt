@@ -166,14 +166,13 @@
 //! [`Value`]: struct.Value.html
 
 use crate::dict::dict_to_string;
-use std::hash::Hasher;
-use std::hash::Hash;
-use crate::types::MoltDict;
+use crate::dict::list_to_dict;
 use crate::expr::Datum;
 use crate::list::get_list;
 use crate::list::list_to_string;
 use crate::parser;
 use crate::parser::Script;
+use crate::types::MoltDict;
 use crate::types::MoltFloat;
 use crate::types::MoltInt;
 use crate::types::MoltList;
@@ -183,9 +182,10 @@ use std::any::Any;
 use std::any::TypeId;
 use std::cell::RefCell;
 use std::cell::UnsafeCell;
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fmt::Display;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -198,7 +198,6 @@ pub struct Value {
     /// The actual data, to be shared among multiple instances of `Value`.
     inner: Rc<InnerValue>,
 }
-
 
 impl Hash for Value {
     // A Value is hashed according to its string rep; all Values with the same string rep
@@ -616,12 +615,7 @@ impl Value {
             return molt_err!("missing value to go with key");
         }
 
-        let mut dict = HashMap::new();
-        for i in (0..(list.len() - 1)).step_by(2) {
-            dict.insert(list[i].clone(), list[i+1].clone());
-        }
-
-        let dict = Rc::new(dict);
+        let dict = Rc::new(list_to_dict(&list));
 
         *self.inner.data_rep.borrow_mut() = DataRep::Dict(dict.clone());
 
@@ -653,7 +647,6 @@ impl Value {
     pub fn to_dict(&self) -> Result<MoltDict, ResultCode> {
         Ok((&*self.as_dict()?).to_owned())
     }
-
 
     /// Tries to return the `Value` as a `MoltInt`, parsing the
     /// value's string representation if necessary.
@@ -1187,6 +1180,7 @@ impl Display for DataRep {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dict::dict_create;
     use std::fmt;
     use std::str::FromStr;
 
@@ -1302,7 +1296,7 @@ mod tests {
         // NOTE: we aren't testing dict formatting and parsing here.
         // We *are* testing that Value can convert dicts to and from strings.
         // and back again.
-        let mut dict: MoltDict = HashMap::new();
+        let mut dict = dict_create();
         dict.insert(Value::from("abc"), Value::from("def"));
         let dictval = Value::from(dict);
         assert_eq!(dictval.as_str(), "abc def");

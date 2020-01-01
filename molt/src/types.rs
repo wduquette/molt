@@ -17,9 +17,9 @@
 //! [`Value`]: ../value/index.html
 //! [`interp`]: interp/index.html
 
-use std::collections::HashMap;
 use crate::interp::Interp;
 pub use crate::value::Value;
+use std::collections::HashMap;
 
 // Molt Numeric Types
 

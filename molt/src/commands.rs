@@ -2,6 +2,8 @@
 //!
 //! This module defines the standard Molt commands.
 
+use crate::dict::dict_create;
+use crate::dict::list_to_dict;
 use crate::interp::Interp;
 use crate::types::*;
 use crate::*;
@@ -174,7 +176,7 @@ pub fn cmd_dict(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> M
 }
 
 const DICT_SUBCOMMANDS: [Subcommand; 9] = [
-    Subcommand("create", cmd_dict_dummy),
+    Subcommand("create", cmd_dict_create),
     Subcommand("exists", cmd_dict_dummy),
     Subcommand("get", cmd_dict_dummy),
     Subcommand("keys", cmd_dict_dummy),
@@ -185,8 +187,26 @@ const DICT_SUBCOMMANDS: [Subcommand; 9] = [
     Subcommand("values", cmd_dict_dummy),
 ];
 
-pub fn cmd_dict_dummy(_: &mut Interp, _: ContextID, _: &[Value]) -> MoltResult {
+fn cmd_dict_dummy(_: &mut Interp, _: ContextID, _: &[Value]) -> MoltResult {
     molt_err!("not yet implemented")
+}
+
+fn cmd_dict_create(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    // FIRST, we need an even number of arguments.
+    if argv.len() % 2 != 0 {
+        return molt_err!(
+            "wrong # args: should be \"{} {}\"",
+            Value::from(&argv[0..2]).to_string(),
+            "?key value?"
+        );
+    }
+
+    // NEXT, return the value.
+    if argv.len() > 2 {
+        molt_ok!(Value::from(list_to_dict(&argv[2..])))
+    } else {
+        molt_ok!(Value::from(dict_create()))
+    }
 }
 
 /// error *message*

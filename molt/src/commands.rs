@@ -168,6 +168,27 @@ pub fn cmd_continue(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltR
     Err(ResultCode::Continue)
 }
 
+/// # dict *subcommand* ?*arg*...?
+pub fn cmd_dict(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+    interp.call_subcommand(context_id, argv, 1, &DICT_SUBCOMMANDS)
+}
+
+const DICT_SUBCOMMANDS: [Subcommand; 9] = [
+    Subcommand("create", cmd_dict_dummy),
+    Subcommand("exists", cmd_dict_dummy),
+    Subcommand("get", cmd_dict_dummy),
+    Subcommand("keys", cmd_dict_dummy),
+    Subcommand("remove", cmd_dict_dummy),
+    Subcommand("set", cmd_dict_dummy),
+    Subcommand("size", cmd_dict_dummy),
+    Subcommand("unset", cmd_dict_dummy),
+    Subcommand("values", cmd_dict_dummy),
+];
+
+pub fn cmd_dict_dummy(_: &mut Interp, _: ContextID, _: &[Value]) -> MoltResult {
+    molt_err!("not yet implemented")
+}
+
 /// error *message*
 ///
 /// Returns an error with the given message.

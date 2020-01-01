@@ -6,6 +6,7 @@ from keys to values.  As usual with hash maps, the order of keys is undefined.
 | Subcommand                            | Description                                  |
 | ------------------------------------- | -------------------------------------------- |
 | [dict create](#dict-create-key-value) | Creates a dictionary                         |
+| [dict size](#dict-size-dictionary)    | The number of elements in the dictionary     |
 
 **TCL Liens**
 
@@ -22,4 +23,15 @@ Creates a dictionary given any number of key/value pairs.
 a 1 b 2
 % dict get $dict a
 1
+```
+
+## dict size *dictionary*
+
+Gets the number of entries in the *dictionary*.
+
+```
+% set dict [dict create a 1 b 2 c 3]
+a 1 b 2 c 3
+% dict size $dict
+3
 ```

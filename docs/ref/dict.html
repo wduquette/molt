@@ -145,6 +145,7 @@
 from keys to values.  As usual with hash maps, the order of keys is undefined.</p>
 <table><thead><tr><th> Subcommand                            </th><th> Description                                  </th></tr></thead><tbody>
 <tr><td> <a href="#dict-create-key-value">dict create</a> </td><td> Creates a dictionary                         </td></tr>
+<tr><td> <a href="#dict-size-dictionary">dict size</a>    </td><td> The number of elements in the dictionary     </td></tr>
 </tbody></table>
 <p><strong>TCL Liens</strong></p>
 <ul>
@@ -158,6 +159,13 @@ at this time.  The plan is to support glob and regex matching as an optional fea
 a 1 b 2
 % dict get $dict a
 1
+</code></pre>
+<a class="header" href="#dict-size-dictionary" id="dict-size-dictionary"><h2>dict size <em>dictionary</em></h2></a>
+<p>Gets the number of entries in the <em>dictionary</em>.</p>
+<pre><code>% set dict [dict create a 1 b 2 c 3]
+a 1 b 2 c 3
+% dict size $dict
+3
 </code></pre>
 
                     </main>

@@ -182,7 +182,7 @@ const DICT_SUBCOMMANDS: [Subcommand; 9] = [
     Subcommand("keys", cmd_dict_dummy),
     Subcommand("remove", cmd_dict_dummy),
     Subcommand("set", cmd_dict_dummy),
-    Subcommand("size", cmd_dict_dummy),
+    Subcommand("size", cmd_dict_size),
     Subcommand("unset", cmd_dict_dummy),
     Subcommand("values", cmd_dict_dummy),
 ];
@@ -207,6 +207,13 @@ fn cmd_dict_create(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     } else {
         molt_ok!(Value::from(dict_create()))
     }
+}
+
+fn cmd_dict_size(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "dictionary")?;
+
+    let dict = argv[2].as_dict()?;
+    molt_ok!(dict.len() as MoltInt)
 }
 
 /// error *message*

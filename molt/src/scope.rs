@@ -166,6 +166,18 @@ impl ScopeStack {
         }
     }
 
+    /// Returns true if there's a variable with the given name, of whatever type, and
+    /// false otherwise.
+    pub fn exists(&self, name: &str) -> bool {
+        self.var(self.current(), name).is_some()
+    }
+
+    /// Returns true if there's a variable with the given name, of whatever type, and
+    /// false otherwise.
+    pub fn elem_exists(&self, name: &str, index: &str) -> bool {
+        self.get_elem(name, index).is_ok()
+    }
+
     /// Unsets a variable in the current scope, i.e., removes it from the scope.
     /// If the variable is a reference to another scope, the variable is removed from that
     /// scope as well.
@@ -726,5 +738,20 @@ mod tests {
             ss.array_set("z", &kvlist),
             molt_err!("can't array set \"z\": variable isn't array")
         );
+    }
+
+    #[test]
+    fn test_exists() {
+        let mut ss = ScopeStack::new();
+        ss.set("a", "1".into()).expect("success");
+        ss.set_elem("b", "1", "2".into()).expect("success");
+
+        assert!(!ss.exists("nonesuch"));
+        assert!(!ss.elem_exists("nonesuch", "1"));
+        assert!(!ss.elem_exists("b", "2"));
+
+        assert!(ss.exists("a"));
+        assert!(ss.exists("b"));
+        assert!(ss.elem_exists("b", "1"));
     }
 }

@@ -441,13 +441,14 @@ pub fn cmd_info(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> M
     interp.call_subcommand(context_id, argv, 1, &INFO_SUBCOMMANDS)
 }
 
-const INFO_SUBCOMMANDS: [Subcommand; 8] = [
+const INFO_SUBCOMMANDS: [Subcommand; 9] = [
     Subcommand("args", cmd_info_args),
     Subcommand("body", cmd_info_body),
     Subcommand("cmdtype", cmd_info_cmdtype),
     Subcommand("commands", cmd_info_commands),
     Subcommand("complete", cmd_info_complete),
     Subcommand("default", cmd_info_default),
+    Subcommand("exists", cmd_info_exists),
     Subcommand("procs", cmd_info_procs),
     Subcommand("vars", cmd_info_vars),
 ];
@@ -486,6 +487,12 @@ pub fn cmd_info_default(interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mo
         interp.set_var(&argv[4], Value::empty())?;
         molt_ok!(0)
     }
+}
+
+/// # info exists *varname*
+pub fn cmd_info_exists(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "varname")?;
+    Ok(interp.var_exists(&argv[2]).into())
 }
 
 /// # info complete *command*

@@ -10,6 +10,7 @@ Returns information about the state of the Molt interpreter.
 | [info commands](#info-commands)         | Names of all defined commands                    |
 | [info complete](#info-complete-command) | Is this string a syntactically complete command? |
 | [info default](#info-default-procname-arg-varname) | A procedure argument's default value  |
+| [info exists](#info-exists-varname)     | Is this a variable in the current scope?         |
 | [info procs](#info-procs)               | Names of all defined procedures                  |
 | [info vars](#info-vars)                 | Names of all variables in the current scope      |
 
@@ -110,6 +111,28 @@ In the following example, `myproc` has two arguments, `a` and `b`.  `a` has no d
 % puts "<$defval>"
 <Howdy>
 %
+```
+
+## info exists *varname*
+
+Returns 1 if *varname* is the name of a variable or array element in the current scope, and
+0 otherwise.
+
+```tcl
+% set a 1
+1
+% set b(1) 1
+1
+% info exists a
+1
+% info exists b
+1
+% info exists c
+0
+% info exists b(1)
+1
+% info exists b(2)
+0
 ```
 
 ## info procs

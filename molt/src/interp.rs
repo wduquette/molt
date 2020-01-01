@@ -1049,6 +1049,15 @@ impl Interp {
         }
     }
 
+    /// Returns 1 if the named variable is defined and exists, and 0 otherwise.
+    pub fn var_exists(&self, var_name: &Value) -> bool {
+        let var_name = &*var_name.as_var_name();
+        match var_name.index() {
+            Some(index) => self.scopes.elem_exists(var_name.name(), index),
+            None => self.scopes.exists(var_name.name()),
+        }
+    }
+
     /// Sets the value of the variable in the current scope.  The `var_name` may name a
     /// scalar variable or an array element.  This is the usual way to assign a value to
     /// a variable named by a command argument.

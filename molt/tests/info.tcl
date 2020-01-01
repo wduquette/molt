@@ -7,7 +7,7 @@ test info-1.1 {info errors} {
 # TODO: Really need glob matching.
 test info-1.2 {info errors} {
     info nonesuch
-} -error {unknown or ambiguous subcommand "nonesuch": must be args, body, cmdtype, commands, complete, default, procs, or vars}
+} -error {unknown or ambiguous subcommand "nonesuch": must be args, body, cmdtype, commands, complete, default, exists, procs, or vars}
 
 test info-2.1 {info complete errors} {
     info complete
@@ -158,3 +158,24 @@ test info-8.2 {info cmdtype command} -setup {
 } -cleanup {
     rename myproc ""
 } -ok {native proc}
+
+test info-9.1 {info exists command, no such variable} {
+    info exists nonesuch
+} -ok {0}
+
+test info-9.2 {info exists command, scalar} {
+    set a 1
+    info exists a
+} -ok {1}
+
+test info-9.3 {info exists command, array} {
+    set b(1) xyz
+    list [info exists b] [info exists b(1)] [info exists b(2)]
+} -ok {1 1 0}
+
+test info-9.4 {info exists command, array set} {
+    # Creates variable, but it has no items
+    array set b {}
+
+    info exists b
+} -ok {1}

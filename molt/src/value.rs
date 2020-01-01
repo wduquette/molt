@@ -165,6 +165,10 @@
 //!
 //! [`Value`]: struct.Value.html
 
+use crate::dict::dict_to_string;
+use std::hash::Hasher;
+use std::hash::Hash;
+use crate::types::MoltDict;
 use crate::expr::Datum;
 use crate::list::get_list;
 use crate::list::list_to_string;
@@ -179,6 +183,7 @@ use std::any::Any;
 use std::any::TypeId;
 use std::cell::RefCell;
 use std::cell::UnsafeCell;
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::rc::Rc;
@@ -194,12 +199,22 @@ pub struct Value {
     inner: Rc<InnerValue>,
 }
 
+
+impl Hash for Value {
+    // A Value is hashed according to its string rep; all Values with the same string rep
+    // are identical.
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_str().hash(state);
+    }
+}
+
 /// The inner value of a `Value`, to be wrapped in an `Rc<T>` so that `Values` can be shared.
 #[derive(Debug)]
 struct InnerValue {
     string_rep: UnsafeCell<Option<String>>,
     data_rep: RefCell<DataRep>,
 }
+
 impl std::fmt::Debug for Value {
     /// The Debug formatter for values.
     ///
@@ -314,6 +329,26 @@ impl From<bool> for Value {
     /// ```
     fn from(flag: bool) -> Self {
         Value::inner_from_data(DataRep::Bool(flag))
+    }
+}
+
+impl From<MoltDict> for Value {
+    /// Creates a new `Value` whose data representation is a `MoltDict`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::Value;
+    /// use molt::types::MoltDict;
+    /// use std::collections::HashMap;
+    ///
+    /// let mut dict: MoltDict = HashMap::new();
+    /// dict.insert(Value::from("abc"), Value::from("123"));
+    /// let value = Value::from(dict);
+    /// assert_eq!(value.as_str(), "abc 123");
+    /// ```
+    fn from(dict: MoltDict) -> Self {
+        Value::inner_from_data(DataRep::Dict(Rc::new(dict)))
     }
 }
 
@@ -545,6 +580,80 @@ impl Value {
             _ => molt_err!("expected boolean but got \"{}\"", orig),
         }
     }
+
+    /// Tries to return the `Value` as an `Rc<MoltDict>`, parsing the
+    /// value's string representation if necessary.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::rc::Rc;
+    /// use molt::types::Value;
+    /// use molt::types::MoltDict;
+    /// use molt::types::ResultCode;
+    /// # fn dummy() -> Result<(),ResultCode> {
+    ///
+    /// let value = Value::from("abc 1234");
+    /// let dict: Rc<MoltDict> = value.as_dict()?;
+    ///
+    /// assert_eq!(dict.len(), 1);
+    /// assert_eq!(dict.get(&Value::from("abc")), Some(&Value::from("1234")));
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn as_dict(&self) -> Result<Rc<MoltDict>, ResultCode> {
+        // FIRST, if we have the desired type, return it.
+        if let DataRep::Dict(dict) = &*self.inner.data_rep.borrow() {
+            return Ok(dict.clone());
+        }
+
+        // NEXT, try to parse the string_rep as a list; then turn it into a dict.
+        let str = self.as_str();
+        let list = get_list(str)?;
+
+        if list.len() % 2 != 0 {
+            return molt_err!("missing value to go with key");
+        }
+
+        let mut dict = HashMap::new();
+        for i in (0..(list.len() - 1)).step_by(2) {
+            dict.insert(list[i].clone(), list[i+1].clone());
+        }
+
+        let dict = Rc::new(dict);
+
+        *self.inner.data_rep.borrow_mut() = DataRep::Dict(dict.clone());
+
+        Ok(dict)
+    }
+
+    /// Tries to return the `Value` as a `MoltDict`, parsing the
+    /// value's string representation if necessary.
+    ///
+    /// Use [`as_dict`](#method.as_dict) when simply referring to the dict's content;
+    /// use this method when constructing a new dict from the old one.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use molt::types::Value;
+    /// use molt::types::MoltDict;
+    /// use molt::types::ResultCode;
+    /// # fn dummy() -> Result<String,ResultCode> {
+    ///
+    /// let value = Value::from("abc 1234");
+    /// let dict: MoltDict = value.to_dict()?;
+    /// assert_eq!(dict.len(), 2);
+    /// assert_eq!(dict.get(&Value::from("abc")), Some(&Value::from("1234")));
+    ///
+    /// # Ok("dummy".to_string())
+    /// # }
+    /// ```
+    pub fn to_dict(&self) -> Result<MoltDict, ResultCode> {
+        Ok((&*self.as_dict()?).to_owned())
+    }
+
 
     /// Tries to return the `Value` as a `MoltInt`, parsing the
     /// value's string representation if necessary.
@@ -1034,6 +1143,9 @@ enum DataRep {
     /// A Boolean
     Bool(bool),
 
+    /// A Molt Dictionary
+    Dict(Rc<MoltDict>),
+
     /// A Molt integer
     Int(MoltInt),
 
@@ -1060,6 +1172,7 @@ impl Display for DataRep {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             DataRep::Bool(flag) => write!(f, "{}", if *flag { 1 } else { 0 }),
+            DataRep::Dict(dict) => write!(f, "{}", dict_to_string(&*dict)),
             DataRep::Int(int) => write!(f, "{}", int),
             DataRep::Flt(flt) => Value::fmt_float(f, *flt),
             DataRep::List(list) => write!(f, "{}", list_to_string(&*list)),
@@ -1182,6 +1295,40 @@ mod tests {
             Value::get_bool(" Nonesuch "),
             molt_err!("expected boolean but got \" Nonesuch \"")
         );
+    }
+
+    #[test]
+    fn from_as_dict() {
+        // NOTE: we aren't testing dict formatting and parsing here.
+        // We *are* testing that Value can convert dicts to and from strings.
+        // and back again.
+        let mut dict: MoltDict = HashMap::new();
+        dict.insert(Value::from("abc"), Value::from("def"));
+        let dictval = Value::from(dict);
+        assert_eq!(dictval.as_str(), "abc def");
+
+        let dictval = Value::from("qrs xyz");
+        let result = dictval.as_dict();
+
+        assert!(result.is_ok());
+
+        if let Ok(rcdict) = result {
+            assert_eq!(rcdict.len(), 1);
+            assert_eq!(rcdict.get(&Value::from("qrs")), Some(&Value::from("xyz")));
+        }
+    }
+
+    #[test]
+    fn to_dict() {
+        let dictval = Value::from("qrs xyz");
+        let result = dictval.to_dict();
+
+        assert!(result.is_ok());
+
+        if let Ok(dict) = result {
+            assert_eq!(dict.len(), 1);
+            assert_eq!(dict.get(&Value::from("qrs")), Some(&Value::from("xyz")));
+        }
     }
 
     #[test]

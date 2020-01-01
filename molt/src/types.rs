@@ -17,6 +17,7 @@
 //! [`Value`]: ../value/index.html
 //! [`interp`]: interp/index.html
 
+use std::collections::HashMap;
 use crate::interp::Interp;
 pub use crate::value::Value;
 
@@ -42,6 +43,11 @@ pub type MoltFloat = f64;
 /// Lists are an important data structure, both in Molt code proper and in Rust code
 /// that implements and works with Molt commands.  A list is a vector of `Value`s.
 pub type MoltList = Vec<Value>;
+
+/// The standard dictionary type for Molt code.
+///
+/// A dictionary is a mapping from `Value` to `Value`.
+pub type MoltDict = HashMap<Value, Value>;
 
 /// The standard `Result<T,E>` type for Molt code.
 ///

@@ -2,6 +2,7 @@
 //!
 //! This module defines the standard Molt commands.
 
+use crate::dict::dict_path_remove;
 use crate::dict::dict_new;
 use crate::dict::dict_path_insert;
 use crate::dict::list_to_dict;
@@ -184,13 +185,9 @@ const DICT_SUBCOMMANDS: [Subcommand; 9] = [
     Subcommand("remove", cmd_dict_remove),
     Subcommand("set", cmd_dict_set),
     Subcommand("size", cmd_dict_size),
-    Subcommand("unset", cmd_dict_dummy),
+    Subcommand("unset", cmd_dict_unset),
     Subcommand("values", cmd_dict_values),
 ];
-
-fn cmd_dict_dummy(_: &mut Interp, _: ContextID, _: &[Value]) -> MoltResult {
-    molt_err!("not yet implemented")
-}
 
 /// # dict create ?key value ...?
 fn cmd_dict_new(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
@@ -302,6 +299,21 @@ fn cmd_dict_size(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     let dict = argv[2].as_dict()?;
     molt_ok!(dict.len() as MoltInt)
 }
+
+/// # dict unset *dictVarName* *key* ?*key* ...?
+fn cmd_dict_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 4, 0, "dictVarName key ?key ...?")?;
+
+    let keys = &argv[3..];
+
+    if let Ok(old_dict_val) = interp.var(&argv[2]) {
+        interp.set_var_return(&argv[2], dict_path_remove(&old_dict_val, keys)?)
+    } else {
+        let new_val = Value::from(dict_new());
+        interp.set_var_return(&argv[2], dict_path_remove(&new_val, keys)?)
+    }
+}
+
 
 /// # dict values *dictionary*
 /// TODO: Add filtering when we have glob matching.

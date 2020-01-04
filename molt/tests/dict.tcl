@@ -171,3 +171,38 @@ test dict-8.4 {dict remove: non-empty dictionary, no keys} {
 test dict-8.5 {dict remove: non-empty dictionary, keys} {
     dict remove {a 1 b 2 c 3 d 4} b c e
 } -ok {a 1 d 4}
+
+# dict unset
+test dict-9.1 {dict unset: signature} {
+    dict unset
+} -error {wrong # args: should be "dict unset dictVarName key ?key ...?"}
+
+test dict-9.2 {dict unset: outer key missing} {
+    set var {a 1 b 2}
+    dict unset var c
+} -ok {a 1 b 2}
+
+test dict-9.3 {dict unset: outer key present} {
+    set var {a 1 b 2}
+    dict unset var  b
+} -ok {a 1}
+
+test dict-9.4 {dict unset: inner key missing} {
+    set var {a 1 b {x 1 y 2}}
+    dict unset var b z
+} -ok {a 1 b {x 1 y 2}}
+
+test dict-9.5 {dict unset: inner key present} {
+    set var {a 1 b {x 1 y 2}}
+    dict unset var b y
+} -ok {a 1 b {x 1}}
+
+test dict-9.6 {dict unset: inner dict missing} {
+    set var {a 1 b {x 1 y 2}}
+    dict unset var c z
+} -error {key "c" not known in dictionary}
+
+test dict-9.6 {dict unset: inner dict not a dict} {
+    set var {a 1 b 2}
+    dict unset var b z
+} -error {missing value to go with key}

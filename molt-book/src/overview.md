@@ -62,6 +62,7 @@ following subcommands:
 *   dict remove
 *   dict set
 *   dict size
+*   dict unset
 *   dict values
 
 Other `dict` subcommands will be added over time.

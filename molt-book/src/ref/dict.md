@@ -11,6 +11,7 @@ from keys to values.  Keys are maintained in order of initial insertion.
 | [dict keys](#dict-keys-dictionary)               | Gets the keys from the dictionary            |
 | [dict remove](#dict-remove-dictionary-key-)      | Removes keys from the dictionary             |
 | [dict set](#dict-set-dictvarname-key-key--value) | Sets a value in a dictionary                 |
+| [dict unset](#dict-unset-dictvarname-key-)       | Unsets a value in a dictionary                |
 | [dict size](#dict-size-dictionary)               | The number of elements in the dictionary     |
 | [dict values](#dict-values-dictionary)           | Gets the values from the dictionary          |
 
@@ -118,6 +119,30 @@ Gets the number of entries in the *dictionary*.
 a 1 b 2 c 3
 % dict size $dict
 3
+```
+
+## dict unset *dictVarName* ?*key* ...?
+
+Given the name of a variable containing a dictionary, removes the *value* at the end of the path
+of keys through any number of nested dictionaries.  The last key need not exist in the inmost
+dictionary, but it is an error if any of the other dictionaries in the path are unknown.
+Returns the modified dictionary, which is also saved back into the variable.
+
+For example,
+
+```tcl
+% set var {a 1 b {x 2 z 3} c 4}
+a 1 b {x 2 y 3} c 4
+% dict unset c        ;# Remove "c" from the outermost dictionary
+a 1 b {x 2 y 3}
+% dict unset b y      ;# Remove "y" from an inner dictionary "b"
+a 1 b {x 2}
+% dict unset var c    ;# "c" is already not there
+a 1 b {x 2}
+% dict unset var b y  ;# "y" is already not in "b"
+a 1 b {x 2}
+% dict unset var c z  ;# Inner dictionary "c" is not present.
+key "c" is not known in dictionary
 ```
 
 ## dict values *dictionary*

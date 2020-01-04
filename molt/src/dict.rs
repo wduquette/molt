@@ -8,22 +8,17 @@
 
 use crate::list::list_to_string;
 use crate::molt_ok;
+use crate::molt_err;
 use crate::types::MoltDict;
 use crate::types::MoltList;
 use crate::types::MoltResult;
+use crate::types::ResultCode;
 use crate::value::Value;
 use indexmap::IndexMap;
 
 /// Create an empty dict.
 pub fn dict_new() -> MoltDict {
     IndexMap::new()
-}
-
-/// Inserts a key and value into a copy of the dictionary, returning the new dictionary.
-pub(crate) fn dict_insert(dict: &MoltDict, key: &Value, value: &Value) -> MoltDict {
-    let mut new_dict = dict.clone();
-    new_dict.insert(key.clone(), value.clone());
-    new_dict
 }
 
 /// Given a Value containing a dictionary, a list of keys, and a value,
@@ -50,6 +45,41 @@ pub(crate) fn dict_path_insert(dict_val: &Value, keys: &[Value], value: &Value) 
             &dict_path_insert(&dval, &keys[1..], value)?
         ))
     }
+}
+
+/// Inserts a key and value into a copy of the dictionary, returning the new dictionary.
+pub(crate) fn dict_insert(dict: &MoltDict, key: &Value, value: &Value) -> MoltDict {
+    let mut new_dict = dict.clone();
+    new_dict.insert(key.clone(), value.clone());
+    new_dict
+}
+
+/// Given a Value containing a dictionary and a list of keys, removes the entry
+/// at the end of the path of keys (if any).  All keys but the last must exist in
+/// the nested dictionaries.  Returns the modified dictionary value.
+pub(crate) fn dict_path_remove(dict_val: &Value, keys: &[Value]) -> MoltResult {
+    assert!(!keys.is_empty());
+
+    let dict = dict_val.as_dict()?;
+
+    if keys.len() == 1 {
+        molt_ok!(dict_remove(&*dict, &keys[0]))
+    } else if let Some(dval) = dict.get(&keys[0]) {
+        molt_ok!(dict_insert(
+            &*dict,
+            &keys[0],
+            &dict_path_remove(dval, &keys[1..])?
+        ))
+    } else {
+        molt_err!("key \"{}\" not known in dictionary", keys[0])
+    }
+}
+
+/// Clones a dictionary and returns a copy with the key removed.
+pub(crate) fn dict_remove(dict: &MoltDict, key: &Value) -> MoltDict {
+    let mut new_dict = dict.clone();
+    new_dict.shift_remove(key);
+    new_dict
 }
 
 /// Converts a dictionary into a string.

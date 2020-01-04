@@ -148,7 +148,9 @@ from keys to values.  Keys are maintained in order of initial insertion.</p>
 <tr><td> <a href="#dict-exists-dictionary-key-key-">dict exists</a>  </td><td> Is there a value with these keys?            </td></tr>
 <tr><td> <a href="#dict-get-dictionary-key-">dict get</a>            </td><td> Gets a value from the dictionary             </td></tr>
 <tr><td> <a href="#dict-keys-dictionary">dict keys</a>               </td><td> Gets the keys from the dictionary            </td></tr>
+<tr><td> <a href="#dict-remove-dictionary-key-">dict remove</a>      </td><td> Removes keys from the dictionary             </td></tr>
 <tr><td> <a href="#dict-set-dictvarname-key-key--value">dict set</a> </td><td> Sets a value in a dictionary                 </td></tr>
+<tr><td> <a href="#dict-unset-dictvarname-key-">dict unset</a>       </td><td> Unsets a value in a dictionary                </td></tr>
 <tr><td> <a href="#dict-size-dictionary">dict size</a>               </td><td> The number of elements in the dictionary     </td></tr>
 <tr><td> <a href="#dict-values-dictionary">dict values</a>           </td><td> Gets the values from the dictionary          </td></tr>
 </tbody></table>
@@ -198,6 +200,13 @@ through nested dictionaries.  If no keys are provided, the dictionary itself is 
 <pre><code class="language-tcl">% dict keys {a 1 b 2}
 a b
 </code></pre>
+<a class="header" href="#dict-remove-dictionary-key-" id="dict-remove-dictionary-key-"><h2>dict remove <em>dictionary</em> ?<em>key</em> ...?</h2></a>
+<p>Removes each of the keys from the dictionary, returning the modified dictionary.  The keys
+need not be present in the original dictionary value.  If no keys are given, returns the
+dictionary unchanged.</p>
+<pre><code class="language-tcl">% dict remove {a 1 b 2 c 3 d 4} b c
+a 1 d 4
+</code></pre>
 <a class="header" href="#dict-set-dictvarname-key-key--value" id="dict-set-dictvarname-key-key--value"><h2>dict set <em>dictVarName</em> <em>key</em> ?<em>key</em> ...? <em>value</em></h2></a>
 <p>Given the name of a variable containing a dictionary, sets the <em>value</em> of the given <em>key</em> in
 the dictionary. If multiple keys are given, the command indexes down the path of keys and sets
@@ -220,6 +229,25 @@ a 1 b 2 c {x 3 y {z 4}}
 a 1 b 2 c 3
 % dict size $dict
 3
+</code></pre>
+<a class="header" href="#dict-unset-dictvarname-key-" id="dict-unset-dictvarname-key-"><h2>dict unset <em>dictVarName</em> ?<em>key</em> ...?</h2></a>
+<p>Given the name of a variable containing a dictionary, removes the <em>value</em> at the end of the path
+of keys through any number of nested dictionaries.  The last key need not exist in the inmost
+dictionary, but it is an error if any of the other dictionaries in the path are unknown.
+Returns the modified dictionary, which is also saved back into the variable.</p>
+<p>For example,</p>
+<pre><code class="language-tcl">% set var {a 1 b {x 2 z 3} c 4}
+a 1 b {x 2 y 3} c 4
+% dict unset c        ;# Remove &quot;c&quot; from the outermost dictionary
+a 1 b {x 2 y 3}
+% dict unset b y      ;# Remove &quot;y&quot; from an inner dictionary &quot;b&quot;
+a 1 b {x 2}
+% dict unset var c    ;# &quot;c&quot; is already not there
+a 1 b {x 2}
+% dict unset var b y  ;# &quot;y&quot; is already not in &quot;b&quot;
+a 1 b {x 2}
+% dict unset var c z  ;# Inner dictionary &quot;c&quot; is not present.
+key &quot;c&quot; is not known in dictionary
 </code></pre>
 <a class="header" href="#dict-values-dictionary" id="dict-values-dictionary"><h2>dict values <em>dictionary</em></h2></a>
 <p>Returns a list of the values in the dictionary, in the order of initial insertion of

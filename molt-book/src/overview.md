@@ -52,10 +52,12 @@ skeleton.
 
 ### Dictionaries and the `dict` command
 
-Molt now supports TCL dictionary values.  The `dict` command supports the following
-subcommands:
+Molt now supports TCL dictionary values.  The [`dict`](ref/dict.md) command provides the
+following subcommands:
 
 *   dict create
+*   dict exists
+*   dict get
 *   dict size
 
 ## New in Molt 0.2
@@ -89,7 +91,7 @@ a b c
 
 ### More `info` Subcommands
 
-Molt now supports the following subcommands of the `info` command:
+Molt now supports the following subcommands of the [`info`](ref/info.md) command:
 
 * `info args`
 * `info body`

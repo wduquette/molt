@@ -177,11 +177,11 @@ pub fn cmd_dict(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> M
 
 const DICT_SUBCOMMANDS: [Subcommand; 9] = [
     Subcommand("create", cmd_dict_create),
-    Subcommand("exists", cmd_dict_dummy),
-    Subcommand("get", cmd_dict_dummy),
+    Subcommand("exists", cmd_dict_exists),
+    Subcommand("get", cmd_dict_get),
     Subcommand("keys", cmd_dict_dummy),
     Subcommand("remove", cmd_dict_dummy),
-    Subcommand("set", cmd_dict_dummy),
+    Subcommand("set", cmd_dict_set),
     Subcommand("size", cmd_dict_size),
     Subcommand("unset", cmd_dict_dummy),
     Subcommand("values", cmd_dict_dummy),
@@ -191,6 +191,7 @@ fn cmd_dict_dummy(_: &mut Interp, _: ContextID, _: &[Value]) -> MoltResult {
     molt_err!("not yet implemented")
 }
 
+/// # dict create ?key value ...?
 fn cmd_dict_create(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     // FIRST, we need an even number of arguments.
     if argv.len() % 2 != 0 {
@@ -209,6 +210,93 @@ fn cmd_dict_create(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     }
 }
 
+/// # dict exists *dictionary* key ?*key* ...?
+fn cmd_dict_exists(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 4, 0, "dictionary key ?key ...?")?;
+
+    let mut value: Value = argv[2].clone();
+    let indices = &argv[3..];
+
+    for index in indices {
+        if let Ok(dict) = value.as_dict() {
+            if let Some(val) = dict.get(index) {
+                value = val.clone();
+            } else {
+                return molt_ok!(false);
+            }
+        } else {
+            return molt_ok!(false);
+        }
+    }
+
+    molt_ok!(true)
+}
+
+/// # dict get *dictionary* ?*key* ...?
+fn cmd_dict_get(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 0, "dictionary ?key ...?")?;
+
+    let mut value: Value = argv[2].clone();
+    let indices = &argv[3..];
+
+    for index in indices {
+        let dict = value.as_dict()?;
+
+        if let Some(val) = dict.get(index) {
+            value = val.clone();
+        } else {
+            return molt_err!("key \"{}\" not known in dictionary", index);
+        }
+    }
+
+    molt_ok!(value)
+}
+
+/// # dict set *dictVarName* *key* ?*key* ...? *value*
+fn cmd_dict_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 5, 0, "dictVarName key ?key ...? value")?;
+
+    let value = &argv[argv.len() - 1];
+    let keys = &argv[3..(argv.len() - 1)];
+
+    if let Ok(old_dict_val) = interp.var(&argv[2]) {
+        interp.set_var_return(&argv[2], dict_insert_path(&old_dict_val, keys, value)?)
+    } else {
+        let new_val = Value::from(dict_create());
+        interp.set_var_return(&argv[2], dict_insert_path(&new_val, keys, value)?)
+    }
+}
+
+/// Given a Value containing a dictionary, a list of keys, and a value,
+/// inserts the value into the (possibly nested) dictionary, returning the new
+/// dictionary value.
+///
+/// TODO: Should go in dict.rs
+fn dict_insert_path(dict_val: &Value, keys: &[Value], value: &Value) -> MoltResult {
+    assert!(!keys.is_empty());
+
+    let dict = dict_val.as_dict()?;
+
+    if keys.len() == 1 {
+        molt_ok!(dict_insert(&*dict, &keys[0], &value))
+    } else if let Some(dval) = dict.get(&keys[0]) {
+        molt_ok!(dict_insert(&*dict, &keys[0], &dict_insert_path(dval, &keys[1..], value)?))
+    } else {
+        let dval = Value::from(dict_create());
+        molt_ok!(dict_insert(&*dict, &keys[0], &dict_insert_path(&dval, &keys[1..], value)?))
+    }
+}
+
+/// Inserts a key and value into a copy of the dictionary, returning the new dictionary.
+///
+/// TODO: Should go in dict.rs
+fn dict_insert(dict: &MoltDict, key: &Value, value: &Value) -> MoltDict {
+    let mut new_dict = dict.clone();
+    new_dict.insert(key.clone(), value.clone());
+    new_dict
+}
+
+/// # dict size *dictionary*
 fn cmd_dict_size(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "dictionary")?;
 

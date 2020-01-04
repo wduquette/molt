@@ -143,22 +143,52 @@
                         <a class="header" href="#dict-subcommand-arg-" id="dict-subcommand-arg-"><h1>dict <em>subcommand</em> ?<em>arg</em> ...?</h1></a>
 <p>This command manipulates TCL dictionaries.  A dictionary is a Molt value containing a hash map
 from keys to values.  As usual with hash maps, the order of keys is undefined.</p>
-<table><thead><tr><th> Subcommand                            </th><th> Description                                  </th></tr></thead><tbody>
-<tr><td> <a href="#dict-create-key-value">dict create</a> </td><td> Creates a dictionary                         </td></tr>
-<tr><td> <a href="#dict-size-dictionary">dict size</a>    </td><td> The number of elements in the dictionary     </td></tr>
+<table><thead><tr><th> Subcommand                                      </th><th> Description                                  </th></tr></thead><tbody>
+<tr><td> <a href="#dict-create-key-value-">dict create</a>          </td><td> Creates a dictionary                         </td></tr>
+<tr><td> <a href="#dict-exists-dictionary-key-key-">dict exists</a> </td><td> Is there a value with these keys?            </td></tr>
+<tr><td> <a href="#dict-get-dictionary-key-">dict get</a>           </td><td> Gets a value from the dictionary             </td></tr>
+<tr><td> <a href="#dict-size-dictionary">dict size</a>              </td><td> The number of elements in the dictionary     </td></tr>
 </tbody></table>
 <p><strong>TCL Liens</strong></p>
 <ul>
 <li>Not all of the standard TCL <code>dict</code> subcommands are implemented at this time.</li>
 <li><code>dict keys</code> and <code>dict values</code> do not support filtering using glob or regex matches
 at this time.  The plan is to support glob and regex matching as an optional feature.</li>
+<li><code>dict info</code> is not supported; it is intended for tuning the standard TCL hash table
+implementation.  Molt relies on <code>std::collections::HashMap</code>.</li>
 </ul>
-<a class="header" href="#dict-create-key-value" id="dict-create-key-value"><h2>dict create ?<em>key</em> <em>value</em>...?</h2></a>
+<a class="header" href="#dict-create-key-value-" id="dict-create-key-value-"><h2>dict create ?<em>key</em> <em>value</em> ...?</h2></a>
 <p>Creates a dictionary given any number of key/value pairs.</p>
 <pre><code class="language-tcl">% set dict [dict create a 1 b 2]
 a 1 b 2
 % dict get $dict a
 1
+</code></pre>
+<a class="header" href="#dict-exists-dictionary-key-key-" id="dict-exists-dictionary-key-key-"><h2>dict exists <em>dictionary</em> <em>key</em> ?<em>key</em> ...?</h2></a>
+<p>Returns 1 if the <em>key</em> (or the path of keys through nested dictionaries) is found in the
+given <em>dictionary</em> value, and 0 otherwise.  It returns 1 exactly when <code>dict get</code> will
+succeed for the same arguments.  It does not throw errors on invalid dictionary values, but
+simply returns 0.</p>
+<p>Looks up the <em>key</em> in the <em>dictionary</em> and returns its value.  It's an error if the <em>key</em> is
+not present in the dictionary.  If multiple keys are provided, the command looks up values
+through nested dictionaries.  If no keys are provided, the dictionary itself is returned.</p>
+<pre><code class="language-tcl">% dict exists {a 1 b 2} b
+1
+% dict exists {a {x 1 y2} b {p 3 q 4}} b p
+1
+% dict exists {a 1 b 2} c
+0
+% dict exists not-a-dict a
+0
+</code></pre>
+<a class="header" href="#dict-get-dictionary-key-" id="dict-get-dictionary-key-"><h2>dict get <em>dictionary</em> ?<em>key</em> ...?</h2></a>
+<p>Looks up the <em>key</em> in the <em>dictionary</em> and returns its value.  It's an error if the <em>key</em> is
+not present in the dictionary.  If multiple keys are provided, the command looks up values
+through nested dictionaries.  If no keys are provided, the dictionary itself is returned.</p>
+<pre><code class="language-tcl">% dict get {a 1 b 2} b
+2
+% dict get {a {x 1 y2} b {p 3 q 4}} b p
+3
 </code></pre>
 <a class="header" href="#dict-size-dictionary" id="dict-size-dictionary"><h2>dict size <em>dictionary</em></h2></a>
 <p>Gets the number of entries in the <em>dictionary</em>.</p>

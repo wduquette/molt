@@ -21,14 +21,73 @@ test dict-1.4 {dict create: multiple key/value pair} {
 } -ok {3}
 
 # dict size
-test dict-2.1 {dict size: not a dictionary} {
+test dict-2.1 {dict size: signature} {
+    dict size
+} -error {wrong # args: should be "dict size dictionary"}
+
+test dict-2.2 {dict size: not a dictionary} {
     dict size {a 1 b}
 } -error {missing value to go with key}
 
-test dict-2.2 {dict size: empty dict} {
+test dict-2.3 {dict size: empty dict} {
     dict size {}
 } -ok {0}
 
-test dict-2.3 {dict size: non-empty dict} {
+test dict-2.4 {dict size: non-empty dict} {
     dict size {a 1 b 2 c 3}
 } -ok {3}
+
+# dict get
+test dict-3.1 {dict get: signature} {
+    dict get
+} -error {wrong # args: should be "dict get dictionary ?key ...?"}
+
+test dict-3.2 {dict get: no indices} {
+    dict get {a 1}
+} -ok {a 1}
+
+test dict-3.3 {dict get: one index} {
+    dict get {a 1 b 2 c 3} b
+} -ok {2}
+
+test dict-3.4 {dict get: nested indices} {
+    dict get {a 1 b {x 2 y 3} c 4} b y
+} -ok {3}
+
+test dict-3.5 {dict get: index not found} {
+    dict get {a 1 b 2} c
+} -error {key "c" not known in dictionary}
+
+test dict-3.6 {dict get: non-dictionary} {
+    # Tries to look up "c" in the dictionary "2", which isn't a dictionary
+    dict get {a 1 b 2} b c
+} -error {missing value to go with key}
+
+# dict exists
+test dict-4.1 {dict exists: signature} {
+    dict exists
+} -error {wrong # args: should be "dict exists dictionary key ?key ...?"}
+
+test dict-4.2 {dict exists: one index, exists} {
+    dict exists {a 1 b 2 c 3} b
+} -ok {1}
+
+test dict-4.3 {dict exists: one index, no match} {
+    dict exists {a 1 b 2 c 3} d
+} -ok {0}
+
+test dict-4.4 {dict exists: nested indices, exists} {
+    dict exists {a 1 b {x 2 y 3} c 4} b y
+} -ok {1}
+
+test dict-4.5 {dict exists: nested indices, no match} {
+    dict exists {a 1 b {x 2 y 3} c 4} b z
+} -ok {0}
+
+test dict-4.6 {dict exists: non-dictionary} {
+    dict exists not-a-dict a
+} -ok {0}
+
+test dict-4.7 {dict exists: nested, non-dictionary} {
+    dict exists {a 1 b 2} b c
+} -ok {0}

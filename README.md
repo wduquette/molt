@@ -12,10 +12,11 @@ and user documentation.
 
 ### Dictionaries and the `dict` command
 
-Molt now supports TCL dictionary values.  The `dict` command supports the following
+Molt now supports TCL dictionary values.  The `dict` command provides the following
 subcommands:
 
 *   dict create
+*   dict get
 *   dict size
 
 ## New in Molt 0.2.0

@@ -17,9 +17,9 @@
 //! [`Value`]: ../value/index.html
 //! [`interp`]: interp/index.html
 
-use indexmap::IndexMap;
 use crate::interp::Interp;
 pub use crate::value::Value;
+use indexmap::IndexMap;
 
 // Molt Numeric Types
 

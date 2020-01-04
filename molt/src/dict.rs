@@ -7,14 +7,49 @@
 //!   preserves the order.  Using `IndexMap::remove` does not.
 
 use crate::list::list_to_string;
+use crate::molt_ok;
 use crate::types::MoltDict;
 use crate::types::MoltList;
+use crate::types::MoltResult;
 use crate::value::Value;
 use indexmap::IndexMap;
 
 /// Create an empty dict.
 pub fn dict_new() -> MoltDict {
     IndexMap::new()
+}
+
+/// Inserts a key and value into a copy of the dictionary, returning the new dictionary.
+pub(crate) fn dict_insert(dict: &MoltDict, key: &Value, value: &Value) -> MoltDict {
+    let mut new_dict = dict.clone();
+    new_dict.insert(key.clone(), value.clone());
+    new_dict
+}
+
+/// Given a Value containing a dictionary, a list of keys, and a value,
+/// inserts the value into the (possibly nested) dictionary, returning the new
+/// dictionary value.
+pub(crate) fn dict_path_insert(dict_val: &Value, keys: &[Value], value: &Value) -> MoltResult {
+    assert!(!keys.is_empty());
+
+    let dict = dict_val.as_dict()?;
+
+    if keys.len() == 1 {
+        molt_ok!(dict_insert(&*dict, &keys[0], &value))
+    } else if let Some(dval) = dict.get(&keys[0]) {
+        molt_ok!(dict_insert(
+            &*dict,
+            &keys[0],
+            &dict_path_insert(dval, &keys[1..], value)?
+        ))
+    } else {
+        let dval = Value::from(dict_new());
+        molt_ok!(dict_insert(
+            &*dict,
+            &keys[0],
+            &dict_path_insert(&dval, &keys[1..], value)?
+        ))
+    }
 }
 
 /// Converts a dictionary into a string.

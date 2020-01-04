@@ -3,6 +3,7 @@
 //! This module defines the standard Molt commands.
 
 use crate::dict::dict_new;
+use crate::dict::dict_path_insert;
 use crate::dict::list_to_dict;
 use crate::interp::Interp;
 use crate::types::*;
@@ -260,40 +261,11 @@ fn cmd_dict_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
     let keys = &argv[3..(argv.len() - 1)];
 
     if let Ok(old_dict_val) = interp.var(&argv[2]) {
-        interp.set_var_return(&argv[2], dict_insert_path(&old_dict_val, keys, value)?)
+        interp.set_var_return(&argv[2], dict_path_insert(&old_dict_val, keys, value)?)
     } else {
         let new_val = Value::from(dict_new());
-        interp.set_var_return(&argv[2], dict_insert_path(&new_val, keys, value)?)
+        interp.set_var_return(&argv[2], dict_path_insert(&new_val, keys, value)?)
     }
-}
-
-/// Given a Value containing a dictionary, a list of keys, and a value,
-/// inserts the value into the (possibly nested) dictionary, returning the new
-/// dictionary value.
-///
-/// TODO: Should go in dict.rs
-fn dict_insert_path(dict_val: &Value, keys: &[Value], value: &Value) -> MoltResult {
-    assert!(!keys.is_empty());
-
-    let dict = dict_val.as_dict()?;
-
-    if keys.len() == 1 {
-        molt_ok!(dict_insert(&*dict, &keys[0], &value))
-    } else if let Some(dval) = dict.get(&keys[0]) {
-        molt_ok!(dict_insert(&*dict, &keys[0], &dict_insert_path(dval, &keys[1..], value)?))
-    } else {
-        let dval = Value::from(dict_new());
-        molt_ok!(dict_insert(&*dict, &keys[0], &dict_insert_path(&dval, &keys[1..], value)?))
-    }
-}
-
-/// Inserts a key and value into a copy of the dictionary, returning the new dictionary.
-///
-/// TODO: Should go in dict.rs
-fn dict_insert(dict: &MoltDict, key: &Value, value: &Value) -> MoltDict {
-    let mut new_dict = dict.clone();
-    new_dict.insert(key.clone(), value.clone());
-    new_dict
 }
 
 /// # dict size *dictionary*

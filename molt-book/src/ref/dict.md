@@ -9,6 +9,7 @@ from keys to values.  Keys are maintained in order of initial insertion.
 | [dict exists](#dict-exists-dictionary-key-key-)  | Is there a value with these keys?            |
 | [dict get](#dict-get-dictionary-key-)            | Gets a value from the dictionary             |
 | [dict keys](#dict-keys-dictionary)               | Gets the keys from the dictionary            |
+| [dict remove](#dict-remove-dictionary-key-)      | Removes keys from the dictionary             |
 | [dict set](#dict-set-dictvarname-key-key--value) | Sets a value in a dictionary                 |
 | [dict size](#dict-size-dictionary)               | The number of elements in the dictionary     |
 | [dict values](#dict-values-dictionary)           | Gets the values from the dictionary          |
@@ -74,6 +75,17 @@ Returns a list of the keys in the dictionary, in the order of initial insertion.
 ```tcl
 % dict keys {a 1 b 2}
 a b
+```
+
+## dict remove *dictionary* ?*key* ...?
+
+Removes each of the keys from the dictionary, returning the modified dictionary.  The keys
+need not be present in the original dictionary value.  If no keys are given, returns the
+dictionary unchanged.
+
+```tcl
+% dict remove {a 1 b 2 c 3 d 4} b c
+a 1 d 4
 ```
 
 ## dict set *dictVarName* *key* ?*key* ...? *value*

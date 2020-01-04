@@ -181,7 +181,7 @@ const DICT_SUBCOMMANDS: [Subcommand; 9] = [
     Subcommand("exists", cmd_dict_exists),
     Subcommand("get", cmd_dict_get),
     Subcommand("keys", cmd_dict_keys),
-    Subcommand("remove", cmd_dict_dummy),
+    Subcommand("remove", cmd_dict_remove),
     Subcommand("set", cmd_dict_set),
     Subcommand("size", cmd_dict_size),
     Subcommand("unset", cmd_dict_dummy),
@@ -261,6 +261,23 @@ fn cmd_dict_keys(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     let dict = argv[2].as_dict()?;
     let keys: MoltList = dict.keys().cloned().collect();
     molt_ok!(keys)
+}
+
+/// # dict remove *dictionary* ?*key* ...?
+fn cmd_dict_remove(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 0, "dictionary ?key ...?")?;
+
+    // FIRST, get and clone the dictionary, so we can modify it.
+    let mut dict = (&*argv[2].as_dict()?).clone();
+
+    // NEXT, remove the given keys.
+    for key in &argv[3..] {
+        // shift_remove preserves the order of the keys.
+        dict.shift_remove(key);
+    }
+
+    // NEXT, return it as a new Value.
+    molt_ok!(dict)
 }
 
 /// # dict set *dictVarName* *key* ?*key* ...? *value*

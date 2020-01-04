@@ -59,9 +59,12 @@ following subcommands:
 *   dict exists
 *   dict keys
 *   dict get
+*   dict remove
 *   dict set
 *   dict size
 *   dict values
+
+Other `dict` subcommands will be added over time.
 
 ## New in Molt 0.2
 

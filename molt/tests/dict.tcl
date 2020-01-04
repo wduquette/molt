@@ -150,3 +150,24 @@ test dict-7.2 {dict values: empty} {
 test dict-7.3 {dict values: list of values} {
     dict values {a 1 b 2}
 } -ok {1 2}
+
+# dict remove
+test dict-8.1 {dict remove: signature} {
+    dict remove
+} -error {wrong # args: should be "dict remove dictionary ?key ...?"}
+
+test dict-8.2 {dict remove: empty dictionary, no keys} {
+    dict remove {}
+} -ok {}
+
+test dict-8.3 {dict remove: empty dictionary, keys} {
+    dict remove {} a b c
+} -ok {}
+
+test dict-8.4 {dict remove: non-empty dictionary, no keys} {
+    dict remove {a 1 b 2 c 3 d 4}
+} -ok {a 1 b 2 c 3 d 4}
+
+test dict-8.5 {dict remove: non-empty dictionary, keys} {
+    dict remove {a 1 b 2 c 3 d 4} b c e
+} -ok {a 1 d 4}

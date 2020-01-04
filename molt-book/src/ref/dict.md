@@ -8,8 +8,10 @@ from keys to values.  Keys are maintained in order of initial insertion.
 | [dict create](#dict-create-key-value-)           | Creates a dictionary                         |
 | [dict exists](#dict-exists-dictionary-key-key-)  | Is there a value with these keys?            |
 | [dict get](#dict-get-dictionary-key-)            | Gets a value from the dictionary             |
+| [dict keys](#dict-keys-dictionary)               | Gets the keys from the dictionary            |
 | [dict set](#dict-set-dictvarname-key-key--value) | Sets a value in a dictionary                 |
 | [dict size](#dict-size-dictionary)               | The number of elements in the dictionary     |
+| [dict values](#dict-values-dictionary)           | Gets the values from the dictionary          |
 
 **TCL Liens**
 
@@ -65,6 +67,15 @@ through nested dictionaries.  If no keys are provided, the dictionary itself is 
 3
 ```
 
+## dict keys *dictionary*
+
+Returns a list of the keys in the dictionary, in the order of initial insertion.
+
+```tcl
+% dict keys {a 1 b 2}
+a b
+```
+
 ## dict set *dictVarName* *key* ?*key* ...? *value*
 
 Given the name of a variable containing a dictionary, sets the *value* of the given *key* in
@@ -95,4 +106,14 @@ Gets the number of entries in the *dictionary*.
 a 1 b 2 c 3
 % dict size $dict
 3
+```
+
+## dict values *dictionary*
+
+Returns a list of the values in the dictionary, in the order of initial insertion of
+their keys.
+
+```tcl
+% dict values {a 1 b 2}
+1 2
 ```

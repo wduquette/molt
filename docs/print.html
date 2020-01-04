@@ -756,8 +756,10 @@ from keys to values.  Keys are maintained in order of initial insertion.</p>
 <tr><td> <a href="#dict-create-key-value-">dict create</a>           </td><td> Creates a dictionary                         </td></tr>
 <tr><td> <a href="#dict-exists-dictionary-key-key-">dict exists</a>  </td><td> Is there a value with these keys?            </td></tr>
 <tr><td> <a href="#dict-get-dictionary-key-">dict get</a>            </td><td> Gets a value from the dictionary             </td></tr>
+<tr><td> <a href="#dict-keys-dictionary">dict keys</a>               </td><td> Gets the keys from the dictionary            </td></tr>
 <tr><td> <a href="#dict-set-dictvarname-key-key--value">dict set</a> </td><td> Sets a value in a dictionary                 </td></tr>
 <tr><td> <a href="#dict-size-dictionary">dict size</a>               </td><td> The number of elements in the dictionary     </td></tr>
+<tr><td> <a href="#dict-values-dictionary">dict values</a>           </td><td> Gets the values from the dictionary          </td></tr>
 </tbody></table>
 <p><strong>TCL Liens</strong></p>
 <ul>
@@ -800,6 +802,11 @@ through nested dictionaries.  If no keys are provided, the dictionary itself is 
 % dict get {a {x 1 y2} b {p 3 q 4}} b p
 3
 </code></pre>
+<a class="header" href="#dict-keys-dictionary" id="dict-keys-dictionary"><h2>dict keys <em>dictionary</em></h2></a>
+<p>Returns a list of the keys in the dictionary, in the order of initial insertion.</p>
+<pre><code class="language-tcl">% dict keys {a 1 b 2}
+a b
+</code></pre>
 <a class="header" href="#dict-set-dictvarname-key-key--value" id="dict-set-dictvarname-key-key--value"><h2>dict set <em>dictVarName</em> <em>key</em> ?<em>key</em> ...? <em>value</em></h2></a>
 <p>Given the name of a variable containing a dictionary, sets the <em>value</em> of the given <em>key</em> in
 the dictionary. If multiple keys are given, the command indexes down the path of keys and sets
@@ -822,6 +829,12 @@ a 1 b 2 c {x 3 y {z 4}}
 a 1 b 2 c 3
 % dict size $dict
 3
+</code></pre>
+<a class="header" href="#dict-values-dictionary" id="dict-values-dictionary"><h2>dict values <em>dictionary</em></h2></a>
+<p>Returns a list of the values in the dictionary, in the order of initial insertion of
+their keys.</p>
+<pre><code class="language-tcl">% dict values {a 1 b 2}
+1 2
 </code></pre>
 <a class="header" href="#error-message" id="error-message"><h1>error <em>message</em></h1></a>
 <p>Returns an error with the given <em>message</em>.  The error may

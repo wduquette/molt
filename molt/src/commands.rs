@@ -180,12 +180,12 @@ const DICT_SUBCOMMANDS: [Subcommand; 9] = [
     Subcommand("create", cmd_dict_new),
     Subcommand("exists", cmd_dict_exists),
     Subcommand("get", cmd_dict_get),
-    Subcommand("keys", cmd_dict_dummy),
+    Subcommand("keys", cmd_dict_keys),
     Subcommand("remove", cmd_dict_dummy),
     Subcommand("set", cmd_dict_set),
     Subcommand("size", cmd_dict_size),
     Subcommand("unset", cmd_dict_dummy),
-    Subcommand("values", cmd_dict_dummy),
+    Subcommand("values", cmd_dict_values),
 ];
 
 fn cmd_dict_dummy(_: &mut Interp, _: ContextID, _: &[Value]) -> MoltResult {
@@ -253,6 +253,16 @@ fn cmd_dict_get(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     molt_ok!(value)
 }
 
+/// # dict keys *dictionary*
+/// TODO: Add filtering when we have glob matching.
+fn cmd_dict_keys(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "dictionary")?;
+
+    let dict = argv[2].as_dict()?;
+    let keys: MoltList = dict.keys().cloned().collect();
+    molt_ok!(keys)
+}
+
 /// # dict set *dictVarName* *key* ?*key* ...? *value*
 fn cmd_dict_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 5, 0, "dictVarName key ?key ...? value")?;
@@ -275,6 +285,17 @@ fn cmd_dict_size(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     let dict = argv[2].as_dict()?;
     molt_ok!(dict.len() as MoltInt)
 }
+
+/// # dict values *dictionary*
+/// TODO: Add filtering when we have glob matching.
+fn cmd_dict_values(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "dictionary")?;
+
+    let dict = argv[2].as_dict()?;
+    let values: MoltList = dict.values().cloned().collect();
+    molt_ok!(values)
+}
+
 
 /// error *message*
 ///

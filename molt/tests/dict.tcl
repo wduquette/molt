@@ -124,3 +124,29 @@ test dict-5.5 {dict set: assign into non-dict} {
     dict set var a {x y z}
     dict set var a x 2
 } -error {missing value to go with key}
+
+# dict keys
+test dict-6.1 {dict keys: signature} {
+    dict keys
+} -error {wrong # args: should be "dict keys dictionary"}
+
+test dict-6.2 {dict keys: empty} {
+    dict keys {}
+} -ok {}
+
+test dict-6.3 {dict keys: list of keys} {
+    dict keys {a 1 b 2}
+} -ok {a b}
+
+# dict values
+test dict-7.1 {dict values: signature} {
+    dict values
+} -error {wrong # args: should be "dict values dictionary"}
+
+test dict-7.2 {dict values: empty} {
+    dict values {}
+} -ok {}
+
+test dict-7.3 {dict values: list of values} {
+    dict values {a 1 b 2}
+} -ok {1 2}

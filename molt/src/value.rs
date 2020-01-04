@@ -339,9 +339,9 @@ impl From<MoltDict> for Value {
     /// ```
     /// use molt::types::Value;
     /// use molt::types::MoltDict;
-    /// use std::collections::HashMap;
+    /// use molt::dict::dict_new;
     ///
-    /// let mut dict: MoltDict = HashMap::new();
+    /// let mut dict: MoltDict = dict_new();
     /// dict.insert(Value::from("abc"), Value::from("123"));
     /// let value = Value::from(dict);
     /// assert_eq!(value.as_str(), "abc 123");
@@ -1180,7 +1180,7 @@ impl Display for DataRep {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::dict_create;
+    use crate::dict::dict_new;
     use std::fmt;
     use std::str::FromStr;
 
@@ -1296,7 +1296,7 @@ mod tests {
         // NOTE: we aren't testing dict formatting and parsing here.
         // We *are* testing that Value can convert dicts to and from strings.
         // and back again.
-        let mut dict = dict_create();
+        let mut dict = dict_new();
         dict.insert(Value::from("abc"), Value::from("def"));
         let dictval = Value::from(dict);
         assert_eq!(dictval.as_str(), "abc def");

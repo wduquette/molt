@@ -2,7 +2,7 @@
 //!
 //! This module defines the standard Molt commands.
 
-use crate::dict::dict_create;
+use crate::dict::dict_new;
 use crate::dict::list_to_dict;
 use crate::interp::Interp;
 use crate::types::*;
@@ -176,7 +176,7 @@ pub fn cmd_dict(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> M
 }
 
 const DICT_SUBCOMMANDS: [Subcommand; 9] = [
-    Subcommand("create", cmd_dict_create),
+    Subcommand("create", cmd_dict_new),
     Subcommand("exists", cmd_dict_exists),
     Subcommand("get", cmd_dict_get),
     Subcommand("keys", cmd_dict_dummy),
@@ -192,7 +192,7 @@ fn cmd_dict_dummy(_: &mut Interp, _: ContextID, _: &[Value]) -> MoltResult {
 }
 
 /// # dict create ?key value ...?
-fn cmd_dict_create(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+fn cmd_dict_new(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     // FIRST, we need an even number of arguments.
     if argv.len() % 2 != 0 {
         return molt_err!(
@@ -206,7 +206,7 @@ fn cmd_dict_create(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     if argv.len() > 2 {
         molt_ok!(Value::from(list_to_dict(&argv[2..])))
     } else {
-        molt_ok!(Value::from(dict_create()))
+        molt_ok!(Value::from(dict_new()))
     }
 }
 
@@ -262,7 +262,7 @@ fn cmd_dict_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
     if let Ok(old_dict_val) = interp.var(&argv[2]) {
         interp.set_var_return(&argv[2], dict_insert_path(&old_dict_val, keys, value)?)
     } else {
-        let new_val = Value::from(dict_create());
+        let new_val = Value::from(dict_new());
         interp.set_var_return(&argv[2], dict_insert_path(&new_val, keys, value)?)
     }
 }
@@ -282,7 +282,7 @@ fn dict_insert_path(dict_val: &Value, keys: &[Value], value: &Value) -> MoltResu
     } else if let Some(dval) = dict.get(&keys[0]) {
         molt_ok!(dict_insert(&*dict, &keys[0], &dict_insert_path(dval, &keys[1..], value)?))
     } else {
-        let dval = Value::from(dict_create());
+        let dval = Value::from(dict_new());
         molt_ok!(dict_insert(&*dict, &keys[0], &dict_insert_path(&dval, &keys[1..], value)?))
     }
 }

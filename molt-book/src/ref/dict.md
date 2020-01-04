@@ -1,15 +1,15 @@
 # dict *subcommand* ?*arg* ...?
 
 This command manipulates TCL dictionaries.  A dictionary is a Molt value containing a hash map
-from keys to values.  As usual with hash maps, the order of keys is undefined.
+from keys to values.  Keys are maintained in order of initial insertion.
 
-| Subcommand                                      | Description                                  |
-| ----------------------------------------------- | -------------------------------------------- |
-| [dict create](#dict-create-key-value-)          | Creates a dictionary                         |
-| [dict exists](#dict-exists-dictionary-key-key-) | Is there a value with these keys?            |
-| [dict get](#dict-get-dictionary-key-)           | Gets a value from the dictionary             |
-| [dict get](#dict-get-dictvarname-key-key-value) | Sets a value in a dictionary                 |
-| [dict size](#dict-size-dictionary)              | The number of elements in the dictionary     |
+| Subcommand                                       | Description                                  |
+| ------------------------------------------------ | -------------------------------------------- |
+| [dict create](#dict-create-key-value-)           | Creates a dictionary                         |
+| [dict exists](#dict-exists-dictionary-key-key-)  | Is there a value with these keys?            |
+| [dict get](#dict-get-dictionary-key-)            | Gets a value from the dictionary             |
+| [dict set](#dict-set-dictvarname-key-key--value) | Sets a value in a dictionary                 |
+| [dict size](#dict-size-dictionary)               | The number of elements in the dictionary     |
 
 **TCL Liens**
 
@@ -72,6 +72,8 @@ the dictionary. If multiple keys are given, the command indexes down the path of
 the value in the nested dictionary.  The variable is created if it does not exist, and the nested
 dictionaries are also created as needed.  Returns the modified dictionary, which is also saved
 back into the variable.
+
+For example,
 
 ```tcl
 % dict set var a 1

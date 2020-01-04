@@ -28,7 +28,7 @@ pub use crate::test_harness::test_harness;
 pub use crate::types::*;
 
 mod commands;
-mod dict;
+pub mod dict;
 mod eval_ptr;
 mod expr;
 pub mod interp;

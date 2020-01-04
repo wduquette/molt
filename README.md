@@ -16,7 +16,9 @@ Molt now supports TCL dictionary values.  The `dict` command provides the follow
 subcommands:
 
 *   dict create
+*   dict exists
 *   dict get
+*   dict set
 *   dict size
 
 ## New in Molt 0.2.0
@@ -178,6 +180,11 @@ $ cargo run test molt/tests/all.tcl
 
 As of Molt 0.2.0, the language tests are also run by `cargo test`; however, it's much easier to
 see the output of the individual tests using the above command.
+
+## Dependencies
+
+At present, the only dependency required by the Molt core is
+[indexmap](https://docs.rs/indexmap/1.3.0/indexmap/).
 
 ## Acknowledgements
 

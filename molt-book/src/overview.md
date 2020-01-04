@@ -58,6 +58,7 @@ following subcommands:
 *   dict create
 *   dict exists
 *   dict get
+*   dict set
 *   dict size
 
 ## New in Molt 0.2

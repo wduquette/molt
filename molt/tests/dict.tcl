@@ -14,11 +14,12 @@ test dict-1.3 {dict create: one key/value pair} {
 } -ok {a 1}
 
 test dict-1.4 {dict create: multiple key/value pair} {
-    set d [dict create a 1 b 2 c 3]
+    dict create a 1 b 2 c 3
+} -ok {a 1 b 2 c 3}
 
-    # TODO: also check that a, b, and c are there and have the right values.
-    dict size $d
-} -ok {3}
+test dict-1.5 {dict create: duplicated keys} {
+    dict create a 1 b 2 b 3 c 4
+} -ok {a 1 b 3 c 4}
 
 # dict size
 test dict-2.1 {dict size: signature} {
@@ -63,6 +64,10 @@ test dict-3.6 {dict get: non-dictionary} {
     dict get {a 1 b 2} b c
 } -error {missing value to go with key}
 
+test dict-3.7 {dict get: duplicate keys in string rep} {
+    dict get {a 1 b 2 b 3 c 4} b
+} -ok {3}
+
 # dict exists
 test dict-4.1 {dict exists: signature} {
     dict exists
@@ -91,3 +96,31 @@ test dict-4.6 {dict exists: non-dictionary} {
 test dict-4.7 {dict exists: nested, non-dictionary} {
     dict exists {a 1 b 2} b c
 } -ok {0}
+
+# dict set
+test dict-5.1 {dict set: signature} {
+    dict set
+} -error {wrong # args: should be "dict set dictVarName key ?key ...? value"}
+
+test dict-5.2 {dict set: one level} {
+    dict set var a 1
+    dict set var b 2
+    dict set var c 3
+    set var
+} -ok {a 1 b 2 c 3}
+
+test dict-5.3 {dict set: returns assigned value} {
+    dict set var a 1
+    dict set var b 2
+} -ok {a 1 b 2}
+
+test dict-5.4 {dict set: assign into nested dicts} {
+    dict set var a 1
+    dict set var b x 2
+    dict set var b y 3
+} -ok {a 1 b {x 2 y 3}}
+
+test dict-5.5 {dict set: assign into non-dict} {
+    dict set var a {x y z}
+    dict set var a x 2
+} -error {missing value to go with key}

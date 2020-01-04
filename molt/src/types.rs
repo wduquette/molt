@@ -17,9 +17,9 @@
 //! [`Value`]: ../value/index.html
 //! [`interp`]: interp/index.html
 
+use indexmap::IndexMap;
 use crate::interp::Interp;
 pub use crate::value::Value;
-use std::collections::HashMap;
 
 // Molt Numeric Types
 
@@ -47,7 +47,7 @@ pub type MoltList = Vec<Value>;
 /// The standard dictionary type for Molt code.
 ///
 /// A dictionary is a mapping from `Value` to `Value`.
-pub type MoltDict = HashMap<Value, Value>;
+pub type MoltDict = IndexMap<Value, Value>;
 
 /// The standard `Result<T,E>` type for Molt code.
 ///

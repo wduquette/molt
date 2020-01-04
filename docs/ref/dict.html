@@ -142,12 +142,13 @@
                     <main>
                         <a class="header" href="#dict-subcommand-arg-" id="dict-subcommand-arg-"><h1>dict <em>subcommand</em> ?<em>arg</em> ...?</h1></a>
 <p>This command manipulates TCL dictionaries.  A dictionary is a Molt value containing a hash map
-from keys to values.  As usual with hash maps, the order of keys is undefined.</p>
-<table><thead><tr><th> Subcommand                                      </th><th> Description                                  </th></tr></thead><tbody>
-<tr><td> <a href="#dict-create-key-value-">dict create</a>          </td><td> Creates a dictionary                         </td></tr>
-<tr><td> <a href="#dict-exists-dictionary-key-key-">dict exists</a> </td><td> Is there a value with these keys?            </td></tr>
-<tr><td> <a href="#dict-get-dictionary-key-">dict get</a>           </td><td> Gets a value from the dictionary             </td></tr>
-<tr><td> <a href="#dict-size-dictionary">dict size</a>              </td><td> The number of elements in the dictionary     </td></tr>
+from keys to values.  Keys are maintained in order of initial insertion.</p>
+<table><thead><tr><th> Subcommand                                       </th><th> Description                                  </th></tr></thead><tbody>
+<tr><td> <a href="#dict-create-key-value-">dict create</a>           </td><td> Creates a dictionary                         </td></tr>
+<tr><td> <a href="#dict-exists-dictionary-key-key-">dict exists</a>  </td><td> Is there a value with these keys?            </td></tr>
+<tr><td> <a href="#dict-get-dictionary-key-">dict get</a>            </td><td> Gets a value from the dictionary             </td></tr>
+<tr><td> <a href="#dict-set-dictvarname-key-key--value">dict set</a> </td><td> Sets a value in a dictionary                 </td></tr>
+<tr><td> <a href="#dict-size-dictionary">dict size</a>               </td><td> The number of elements in the dictionary     </td></tr>
 </tbody></table>
 <p><strong>TCL Liens</strong></p>
 <ul>
@@ -189,6 +190,22 @@ through nested dictionaries.  If no keys are provided, the dictionary itself is 
 2
 % dict get {a {x 1 y2} b {p 3 q 4}} b p
 3
+</code></pre>
+<a class="header" href="#dict-set-dictvarname-key-key--value" id="dict-set-dictvarname-key-key--value"><h2>dict set <em>dictVarName</em> <em>key</em> ?<em>key</em> ...? <em>value</em></h2></a>
+<p>Given the name of a variable containing a dictionary, sets the <em>value</em> of the given <em>key</em> in
+the dictionary. If multiple keys are given, the command indexes down the path of keys and sets
+the value in the nested dictionary.  The variable is created if it does not exist, and the nested
+dictionaries are also created as needed.  Returns the modified dictionary, which is also saved
+back into the variable.</p>
+<p>For example,</p>
+<pre><code class="language-tcl">% dict set var a 1
+a 1
+% dict set var b 2
+a 1 b 2
+% dict set var c x 3
+a 1 b 2 c {x 3}
+% dict set var c y z 4
+a 1 b 2 c {x 3 y {z 4}}
 </code></pre>
 <a class="header" href="#dict-size-dictionary" id="dict-size-dictionary"><h2>dict size <em>dictionary</em></h2></a>
 <p>Gets the number of entries in the <em>dictionary</em>.</p>

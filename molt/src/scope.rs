@@ -272,8 +272,8 @@ impl ScopeStack {
         self.stack[self.current()]
             .map
             .iter()
-            .filter(|(_,v)| !v.is_upvar())
-            .map(|(k,_)| Value::from(k))
+            .filter(|(_, v)| !v.is_upvar())
+            .map(|(k, _)| Value::from(k))
             .collect()
     }
 
@@ -708,7 +708,7 @@ mod tests {
 
         // Add a var to local scope. No change.
         ss.set("c", Value::from("1")).expect("ok");
-        
+
         assert!(ss.vars_in_global_scope().len() == 2);
         assert!(ss.vars_in_global_scope().contains(&Value::from("a")));
         assert!(ss.vars_in_global_scope().contains(&Value::from("b")));

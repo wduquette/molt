@@ -672,6 +672,7 @@ impl Interp {
         interp.add_command("break", commands::cmd_break);
         interp.add_command("catch", commands::cmd_catch);
         interp.add_command("continue", commands::cmd_continue);
+        interp.add_command("dict", commands::cmd_dict);
         interp.add_command("error", commands::cmd_error);
         interp.add_command("expr", commands::cmd_expr);
         interp.add_command("for", commands::cmd_for);

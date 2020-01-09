@@ -48,20 +48,24 @@ Using Molt, you can:
 See the [`molt-sample` repo](https://github.com/wduquette/molt-sample) for a sample Molt client
 skeleton.
 
-## New in Molt 0.2.1
+## New in Molt 0.2.2
 
-### More `info` Subcommands
+### Dictionaries and the `dict` command
 
-Molt now supports the following subcommands of the `info` command:
+Molt now supports TCL dictionary values.  The [`dict`](ref/dict.md) command provides the
+following subcommands:
 
-* `info args`
-* `info body`
-* `info cmdtype`
-* `info default`
-* `info exists`
-* `info globals` (no glob-filtering as yet)
-* `info locals` (no glob-filtering as yet)
-* `info procs`
+*   dict create
+*   dict exists
+*   dict keys
+*   dict get
+*   dict remove
+*   dict set
+*   dict size
+*   dict unset
+*   dict values
+
+Other `dict` subcommands will be added over time.
 
 ## New in Molt 0.2
 
@@ -91,6 +95,19 @@ a b c
 % list 1 2 {*}$a 3 4
 1 2 a b c 3 4
 ```
+
+### More `info` Subcommands
+
+Molt now supports the following subcommands of the [`info`](ref/info.md) command:
+
+* `info args`
+* `info body`
+* `info cmdtype`
+* `info default`
+* `info exists`
+* `info globals` (no glob-filtering as yet)
+* `info locals` (no glob-filtering as yet)
+* `info procs`
 
 ### Rust API Change: Test Harness
 

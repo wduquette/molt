@@ -8,6 +8,7 @@ source assert_eq.tcl
 source break.tcl
 source catch.tcl
 source continue.tcl
+source dict.tcl
 source error.tcl
 source exit.tcl
 source expr.tcl

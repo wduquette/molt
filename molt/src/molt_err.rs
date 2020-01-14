@@ -18,7 +18,7 @@ enum Code {
 
 #[derive(Debug)]
 struct MoltErr {
-    /// The current result code.  If `level` > 0, `next_code` will eventually replace it.
+    /// The desired result code.
     code: Code,
 
     /// The result value.
@@ -30,12 +30,9 @@ struct MoltErr {
     /// The error info
     error_info: Vec<String>,
 
-    /// The stack level at which the `next_code` replaces the `code`.
+    /// The stack level at which the `code` takes effect.  Each level lost decrements this,
+    /// until it's 0; then it's handled normally.
     level: usize,
-
-    /// A code that will replace the current code after `level` stack levels.
-    /// Or something like that.
-    next_code: Option<Code>,
 }
 
 type NewResult = Result<Value, MoltErr>;

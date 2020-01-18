@@ -1,6 +1,6 @@
 [package]
 name = "molt-app"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["Will Duquette <will@wjduquette.com>"]
 edition = "2018"
 description = "Molt Shell Application"
@@ -11,8 +11,8 @@ readme = "README.md"
 keywords = ["language", "script", "scripting", "tcl"]
 
 [dependencies]
-molt = { version = "0.2.1", path = "../molt" }
-molt-shell = { version = "0.2.1", path = "../molt-shell" }
+molt = { version = "0.3.0", path = "../molt" }
+molt-shell = { version = "0.3.0", path = "../molt-shell" }
 
 [[bin]]
 name = "moltsh"

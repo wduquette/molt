@@ -8,110 +8,10 @@ Molt is a minimal implementation of the TCL language for embedding in Rust apps 
 scripting Rust libraries.  See [The Molt Book](https://wduquette.github.io/molt) for details
 and user documentation.
 
-## New in Molt 0.2.2
+## New in Molt 0.3.0
 
-### Dictionaries and the `dict` command
+TODO
 
-Molt now supports TCL dictionary values.  The `dict` command provides the following
-subcommands:
-
-*   dict create
-*   dict exists
-*   dict get
-*   dict keys
-*   dict remove
-*   dict set
-*   dict size
-*   dict unset
-*   dict values
-
-Other `dict` subcommands will be added over time.
-
-## New in Molt 0.2.0
-
-### Associative Arrays
-
-Molt now includes TCL's associative array variables:
-
-```text
-% set a(1) "Howdy"
-Howdy
-% set a(foo.bar) 5
-5
-% puts [array get a]
-1 Howdy foo.bar 5
-```
-
-### The Expansion Operator
-
-Molt now supports TCL's `{*}` operator, which expands a single
-command argument into multiple arguments:
-
-```text
-% set a {a b c}
-a b c
-% list 1 2 $a 3 4
-1 2 {a b c} 3 4
-% list 1 2 {*}$a 3 4
-1 2 a b c 3 4
-```
-
-### More `info` Subcommands
-
-Molt now supports the following subcommands of the `info` command:
-
-* `info args`
-* `info cmdtype`
-* `info body`
-* `info default`
-* `info exists`
-* `info globals` (no glob-filtering as yet)
-* `info locals` (no glob-filtering as yet)
-* `info procs`
-
-### Rust API Change: Test Harness
-
-The Molt test harness code has moved from `molt_shell:test_harness` to `molt::test_harness`,
-so that it can be used in the `molt/tests/tcl_tests.rs` integration test.
-
-### Rust API Change: Variable Access
-
-The addition of array variables required changes to the `molt::Interp` struct's API for
-setting and retrieving variables.  In particular, the `molt::Interp::var`,
-`molt::Interp::set_var`, and `molt::Interp::set_and_return` methods now take the variable
-name as a `&Value` rather than a `&str`; this simplifies client code, and means that most
-commands implemented in Rust that work with variables don't need to care whether the
-variable in question is a scalar or an array element.
-
-### Rust API Change: Command Definition
-
-Defining Molt commands in Rust has been simplified.  
-
-First, the `Command` trait has been removed.  It was intended to provide a way to
-attach context data to a command; but it was not very good for mutable data, and had
-no way to share data among related commands (a common pattern).
-
-Second, the interpreter's context cache has been improved.  Multiple commands can share a
-context ID (and hence access to the shared context); and the cached data will be dropped
-automatically when the last such command is removed from the interpreter.
-
-Third, there is now only one command function signature:
-
-```
-fn my_command(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
-    ...
-}
-```
-
-Commands that don't use a cached context should be defined as follows:
-
-```
-fn my_command(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
-    ...
-}
-```
-
-See [The Molt Book](https://wduquette.github.io/molt) and the Rust doc for examples.
 
 ## Coming Attractions
 
@@ -119,6 +19,7 @@ At this point Molt is capable and robust enough for real work, though the Rust-l
 not yet completely stable.  Standard Rust `0.y.z` semantic versioning applies: ".y" changes
 can break the Rust-level API, ".z" changes will not.
 
+*   `MoltResult` changes to support generation of stack traces and advanced control structures
 *   Feature: Regex and Glob pattern matching by Molt commands
 *   Testing improvements
 *   Documentation improvements

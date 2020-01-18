@@ -141,12 +141,12 @@
 //!
 //! impl Flavor {
 //!     /// A convenience: retrieves the enumerated value, converting it from
-//!     /// `Option<Flavor>` into `Result<Flavor,ResultCode>`.
-//!     pub fn from_molt(value: &Value) -> Result<Self, ResultCode> {
+//!     /// `Option<Flavor>` into `Result<Flavor,Exception>`.
+//!     pub fn from_molt(value: &Value) -> Result<Self, Exception> {
 //!         if let Some(x) = value.as_copy::<Flavor>() {
 //!             Ok(x)
 //!         } else {
-//!             Err(ResultCode::Error(Value::from("Not a flavor string")))
+//!             Err(Exception::Error(Value::from("Not a flavor string")))
 //!         }
 //!     }
 //! }
@@ -165,6 +165,7 @@
 //!
 //! [`Value`]: struct.Value.html
 
+use crate::types::Exception;
 use crate::dict::dict_to_string;
 use crate::dict::list_to_dict;
 use crate::expr::Datum;
@@ -176,7 +177,6 @@ use crate::types::MoltDict;
 use crate::types::MoltFloat;
 use crate::types::MoltInt;
 use crate::types::MoltList;
-use crate::types::ResultCode;
 use crate::types::VarName;
 use std::any::Any;
 use std::any::TypeId;
@@ -487,8 +487,8 @@ impl Value {
     ///
     /// ```
     /// use molt::types::Value;
-    /// use molt::types::ResultCode;
-    /// # fn dummy() -> Result<bool,ResultCode> {
+    /// use molt::types::Exception;
+    /// # fn dummy() -> Result<bool,Exception> {
     /// // All of the following can be interpreted as booleans.
     /// let value = Value::from(true);
     /// let flag = value.as_bool()?;
@@ -520,7 +520,7 @@ impl Value {
     /// # Ok(true)
     /// # }
     /// ```
-    pub fn as_bool(&self) -> Result<bool, ResultCode> {
+    pub fn as_bool(&self) -> Result<bool, Exception> {
         // Extra block, so that the dref is dropped before we borrow mutably.
         {
             let data_ref = self.inner.data_rep.borrow();
@@ -563,14 +563,14 @@ impl Value {
     ///
     /// ```
     /// # use molt::types::*;
-    /// # fn dummy() -> Result<bool,ResultCode> {
+    /// # fn dummy() -> Result<bool,Exception> {
     /// let arg = "yes";
     /// let flag = Value::get_bool(arg)?;
     /// assert!(flag);
     /// # Ok(flag)
     /// # }
     /// ```
-    pub fn get_bool(arg: &str) -> Result<bool, ResultCode> {
+    pub fn get_bool(arg: &str) -> Result<bool, Exception> {
         let orig = arg;
         let value: &str = &arg.trim().to_lowercase();
         match value {
@@ -589,8 +589,8 @@ impl Value {
     /// use std::rc::Rc;
     /// use molt::types::Value;
     /// use molt::types::MoltDict;
-    /// use molt::types::ResultCode;
-    /// # fn dummy() -> Result<(),ResultCode> {
+    /// use molt::types::Exception;
+    /// # fn dummy() -> Result<(),Exception> {
     ///
     /// let value = Value::from("abc 1234");
     /// let dict: Rc<MoltDict> = value.as_dict()?;
@@ -601,7 +601,7 @@ impl Value {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn as_dict(&self) -> Result<Rc<MoltDict>, ResultCode> {
+    pub fn as_dict(&self) -> Result<Rc<MoltDict>, Exception> {
         // FIRST, if we have the desired type, return it.
         if let DataRep::Dict(dict) = &*self.inner.data_rep.borrow() {
             return Ok(dict.clone());
@@ -633,8 +633,8 @@ impl Value {
     /// ```
     /// use molt::types::Value;
     /// use molt::types::MoltDict;
-    /// use molt::types::ResultCode;
-    /// # fn dummy() -> Result<String,ResultCode> {
+    /// use molt::types::Exception;
+    /// # fn dummy() -> Result<String,Exception> {
     ///
     /// let value = Value::from("abc 1234");
     /// let dict: MoltDict = value.to_dict()?;
@@ -644,7 +644,7 @@ impl Value {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    pub fn to_dict(&self) -> Result<MoltDict, ResultCode> {
+    pub fn to_dict(&self) -> Result<MoltDict, Exception> {
         Ok((&*self.as_dict()?).to_owned())
     }
 
@@ -662,8 +662,8 @@ impl Value {
     /// ```
     /// use molt::types::Value;
     /// use molt::types::MoltInt;
-    /// use molt::types::ResultCode;
-    /// # fn dummy() -> Result<MoltInt,ResultCode> {
+    /// use molt::types::Exception;
+    /// # fn dummy() -> Result<MoltInt,Exception> {
     ///
     /// let value = Value::from(123);
     /// let int = value.as_int()?;
@@ -675,7 +675,7 @@ impl Value {
     /// # Ok(1)
     /// # }
     /// ```
-    pub fn as_int(&self) -> Result<MoltInt, ResultCode> {
+    pub fn as_int(&self) -> Result<MoltInt, Exception> {
         // FIRST, if we have an integer then just return it.
         if let DataRep::Int(int) = *self.inner.data_rep.borrow() {
             return Ok(int);
@@ -698,13 +698,13 @@ impl Value {
     ///
     /// ```
     /// # use molt::types::*;
-    /// # fn dummy() -> Result<MoltInt,ResultCode> {
+    /// # fn dummy() -> Result<MoltInt,Exception> {
     /// let arg = "1";
     /// let int = Value::get_int(arg)?;
     /// # Ok(int)
     /// # }
     /// ```
-    pub fn get_int(arg: &str) -> Result<MoltInt, ResultCode> {
+    pub fn get_int(arg: &str) -> Result<MoltInt, Exception> {
         let orig = arg;
         let mut arg = arg.trim();
         let mut minus = 1;
@@ -740,8 +740,8 @@ impl Value {
     /// ```
     /// use molt::types::Value;
     /// use molt::types::MoltFloat;
-    /// use molt::types::ResultCode;
-    /// # fn dummy() -> Result<MoltFloat,ResultCode> {
+    /// use molt::types::Exception;
+    /// # fn dummy() -> Result<MoltFloat,Exception> {
     ///
     /// let value = Value::from(12.34);
     /// let flt = value.as_float()?;
@@ -753,7 +753,7 @@ impl Value {
     /// # Ok(1.0)
     /// # }
     /// ```
-    pub fn as_float(&self) -> Result<MoltFloat, ResultCode> {
+    pub fn as_float(&self) -> Result<MoltFloat, Exception> {
         // FIRST, if we have a float then just return it.
         if let DataRep::Flt(flt) = *self.inner.data_rep.borrow() {
             return Ok(flt);
@@ -776,13 +776,13 @@ impl Value {
     ///
     /// ```
     /// # use molt::types::*;
-    /// # fn dummy() -> Result<MoltFloat,ResultCode> {
+    /// # fn dummy() -> Result<MoltFloat,Exception> {
     /// let arg = "1e2";
     /// let val = Value::get_float(arg)?;
     /// # Ok(val)
     /// # }
     /// ```
-    pub fn get_float(arg: &str) -> Result<MoltFloat, ResultCode> {
+    pub fn get_float(arg: &str) -> Result<MoltFloat, Exception> {
         let arg_trim = arg.trim().to_lowercase();
 
         match arg_trim.parse::<MoltFloat>() {
@@ -817,8 +817,8 @@ impl Value {
     /// use std::rc::Rc;
     /// use molt::types::Value;
     /// use molt::types::MoltList;
-    /// use molt::types::ResultCode;
-    /// # fn dummy() -> Result<String,ResultCode> {
+    /// use molt::types::Exception;
+    /// # fn dummy() -> Result<String,Exception> {
     ///
     /// let value = Value::from("1234 abc");
     /// let list: Rc<MoltList> = value.as_list()?;
@@ -830,7 +830,7 @@ impl Value {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    pub fn as_list(&self) -> Result<Rc<MoltList>, ResultCode> {
+    pub fn as_list(&self) -> Result<Rc<MoltList>, Exception> {
         // FIRST, if we have the desired type, return it.
         if let DataRep::List(list) = &*self.inner.data_rep.borrow() {
             return Ok(list.clone());
@@ -855,8 +855,8 @@ impl Value {
     /// ```
     /// use molt::types::Value;
     /// use molt::types::MoltList;
-    /// use molt::types::ResultCode;
-    /// # fn dummy() -> Result<String,ResultCode> {
+    /// use molt::types::Exception;
+    /// # fn dummy() -> Result<String,Exception> {
     ///
     /// let value = Value::from("1234 abc");
     /// let list: MoltList = value.to_list()?;
@@ -868,7 +868,7 @@ impl Value {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    pub fn to_list(&self) -> Result<MoltList, ResultCode> {
+    pub fn to_list(&self) -> Result<MoltList, Exception> {
         Ok((&*self.as_list()?).to_owned())
     }
 
@@ -878,7 +878,7 @@ impl Value {
     /// For internal use only.  Note: this is the normal way to convert a script string
     /// into a Script object.  Converting the Script back into a Tcl string is not
     /// currently supported.
-    pub(crate) fn as_script(&self) -> Result<Rc<Script>, ResultCode> {
+    pub(crate) fn as_script(&self) -> Result<Rc<Script>, Exception> {
         // FIRST, if we have the desired type, return it.
         if let DataRep::Script(script) = &*self.inner.data_rep.borrow() {
             return Ok(script.clone());
@@ -966,7 +966,7 @@ impl Value {
     /// The value is returned as an `Rc<T>`, as this allows the client to
     /// use the value freely and clone it efficiently if needed.
     ///
-    /// This method returns `Option<Rc<T>>` rather than `Result<Rc<T>,ResultCode>`
+    /// This method returns `Option<Rc<T>>` rather than `Result<Rc<T>,Exception>`
     /// because it is up to the caller to provide a meaningful error message.
     /// It is normal for externally defined types to wrap this function in a function
     /// that does so; see the [module level documentation](index.html) for an example.

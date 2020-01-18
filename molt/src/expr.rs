@@ -13,7 +13,7 @@ use crate::*;
 //------------------------------------------------------------------------------------------------
 // Datum Representation
 
-type DatumResult = Result<Datum, ResultCode>;
+type DatumResult = Result<Datum, Exception>;
 
 /// The value type.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -266,21 +266,24 @@ fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> DatumResult {
 
     let result = expr_get_value(interp, info, -1);
 
-    if let Ok(value) = result {
-        if info.token != END {
-            return molt_err!("syntax error in expression \"{}\"", string);
-        }
+    match result {
+        Ok(value) => {
+            if info.token != END {
+                return molt_err!("syntax error in expression \"{}\"", string);
+            }
 
-        if value.vtype == Type::Float {
-            // TODO: check for NaN, INF, and throw IEEE floating point error.
-        }
+            if value.vtype == Type::Float {
+                // TODO: check for NaN, INF, and throw IEEE floating point error.
+            }
 
-        Ok(value)
-    } else {
-        match result {
-            Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
-            Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
-            _ => result,
+            Ok(value)
+        }
+        Err(exception) => {
+            match exception.code() {
+                ReturnCode::Break => molt_err!("invoked \"break\" outside of a loop"),
+                ReturnCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
+                _ => Err(exception)
+            }
         }
     }
 }
@@ -1256,7 +1259,7 @@ fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> 
 
 // Find the function in the table.
 // TODO: Really, functions should be registered with the interpreter.
-fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc, ResultCode> {
+fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc, Exception> {
     for bfunc in &FUNC_TABLE {
         if bfunc.name == func_name {
             return Ok(bfunc);

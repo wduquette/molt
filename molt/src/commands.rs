@@ -135,7 +135,7 @@ pub fn cmd_assert_eq(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Molt
 pub fn cmd_break(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 1, 1, "")?;
 
-    Err(ResultCode::Break)
+    Err(Exception::molt_break())
 }
 
 /// catch script ?resultVarName?
@@ -150,10 +150,16 @@ pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
 
     let (code, value) = match result {
         Ok(val) => (0, val),
-        Err(ResultCode::Error(val)) => (1, val),
-        Err(ResultCode::Return(val)) => (2, val),
-        Err(ResultCode::Break) => (3, Value::empty()),
-        Err(ResultCode::Continue) => (4, Value::empty()),
+        Err(exception) => {
+            match exception.code() {
+                ReturnCode::Okay => unreachable!(),
+                ReturnCode::Error => (1, exception.result()),
+                ReturnCode::Return => (2, exception.result()),
+                ReturnCode::Break => (3, exception.result()),
+                ReturnCode::Continue => (4, exception.result()),
+                ReturnCode::Other(c) => (c, exception.result()),
+            }
+        }
     };
 
     if argv.len() == 3 {
@@ -169,7 +175,7 @@ pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
 pub fn cmd_continue(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 1, 1, "")?;
 
-    Err(ResultCode::Continue)
+    Err(Exception::molt_continue())
 }
 
 /// # dict *subcommand* ?*arg*...?
@@ -388,23 +394,25 @@ pub fn cmd_for(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult 
     while interp.expr_bool(test)? {
         let result = interp.eval_body(command);
 
-        match result {
-            Ok(_) => (),
-            Err(ResultCode::Break) => break,
-            Err(ResultCode::Continue) => (),
-            _ => return result,
+        if let Err(exception) = result {
+            match exception.code() {
+                ReturnCode::Break => break,
+                ReturnCode::Continue => (),
+                _ => return Err(exception),
+            }
         }
 
         // Execute next script.  Break is allowed, but continue is not.
         let result = interp.eval_body(next);
 
-        match result {
-            Ok(_) => (),
-            Err(ResultCode::Break) => break,
-            Err(ResultCode::Continue) => {
-                return molt_err!("invoked \"continue\" outside of a loop");
+        if let Err(exception) = result {
+            match exception.code() {
+                ReturnCode::Break => break,
+                ReturnCode::Continue => {
+                    return molt_err!("invoked \"continue\" outside of a loop");
+                }
+                _ => return Err(exception),
             }
-            _ => return result,
         }
     }
 
@@ -442,11 +450,12 @@ pub fn cmd_foreach(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
 
         let result = interp.eval_body(body);
 
-        match result {
-            Ok(_) => (),
-            Err(ResultCode::Break) => break,
-            Err(ResultCode::Continue) => (),
-            _ => return result,
+        if let Err(exception) = result {
+            match exception.code() {
+                ReturnCode::Break => break,
+                ReturnCode::Continue => (),
+                _ => return Err(exception),
+            }
         }
     }
 
@@ -882,7 +891,7 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
         argv[1].clone()
     };
 
-    Err(ResultCode::Return(value))
+    Err(Exception::molt_return(value))
 }
 
 /// # set *varName* ?*newValue*?
@@ -987,11 +996,12 @@ pub fn cmd_while(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
     while interp.expr_bool(&argv[1])? {
         let result = interp.eval_body(&argv[2]);
 
-        match result {
-            Ok(_) => (),
-            Err(ResultCode::Break) => break,
-            Err(ResultCode::Continue) => (),
-            _ => return result,
+        if let Err(exception) = result {
+            match exception.code() {
+                ReturnCode::Break => break,
+                ReturnCode::Continue => (),
+                _ => return Err(exception),
+            }
         }
     }
 

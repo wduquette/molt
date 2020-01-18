@@ -79,11 +79,11 @@
 //! All of these methods return [`MoltResult`]:
 //!
 //! ```ignore
-//! pub type MoltResult = Result<Value, ResultCode>;
+//! pub type MoltResult = Result<Value, Exception>;
 //! ```
 //!
 //! [`Value`] is the type of all Molt values (i.e., values that can be passed as parameters and
-//! stored in variables).  [`ResultCode`] is an enum that encompasses all of the kinds of
+//! stored in variables).  [`Exception`] is an enum that encompasses all of the kinds of
 //! exceptional return from Molt code, including errors, `return`, `break`, and `continue`.
 //!
 //! # Evaluating Expressions
@@ -431,7 +431,7 @@
 //!
 //! [The Molt Book]: https://wduquette.github.io/molt/
 //! [`MoltResult`]: ../types/type.MoltResult.html
-//! [`ResultCode`]: ../types/enum.ResultCode.html
+//! [`Exception`]: ../types/enum.Exception.html
 //! [`CommandFunc`]: ../types/type.CommandFunc.html
 //! [`Value`]: ../value/index.html
 //! [`Interp`]: struct.Interp.html
@@ -717,7 +717,7 @@ impl Interp {
     /// Evaluates a script one command at a time.  Returns the [`Value`](../value/index.html)
     /// of the last command in the script, or the value of any explicit `return` call in the
     /// script, or any error thrown by the script.  Other
-    /// [`ResultCode`](../types/enum.ResultCode.html) values are converted to normal errors.
+    /// [`Exception`](../types/enum.Exception.html) values are converted to normal errors.
     ///
     /// Use this method (or [`eval_value`](#method.eval_value)) to evaluate arbitrary scripts.
     /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
@@ -740,7 +740,7 @@ impl Interp {
     ///        // Computed a Value
     ///        println!("Value: {}", val);
     ///    }
-    ///    Err(ResultCode::Error(msg)) => {
+    ///    Err(Exception::molt_err(msg)) => {
     ///        // Got an error; print it out.
     ///        println!("Error: {}", msg);
     ///    }
@@ -756,7 +756,7 @@ impl Interp {
     /// Evaluates the string value of a [`Value`] as a script.  Returns the `Value`
     /// of the last command in the script, or the value of any explicit `return` call in the
     /// script, or any error thrown by the script.  Other
-    /// [`ResultCode`](../types/enum.ResultCode.html) values are converted to normal errors.
+    /// [`Exception`](../types/enum.Exception.html) values are converted to normal errors.
     ///
     /// This method is equivalent to [`eval`](#method.eval), but works on a `Value` rather
     /// than on a string slice.  Use it or `eval` to evaluate arbitrary scripts.
@@ -784,11 +784,17 @@ impl Interp {
         self.num_levels -= 1;
 
         // NEXT, translate and return the result.
-        match result {
-            Err(ResultCode::Return(val)) => Ok(val),
-            Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
-            Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
-            _ => result,
+        if let Err(exception) = result {
+            match exception.code() {
+                ReturnCode::Okay => unreachable!(),
+                ReturnCode::Error => Err(exception),
+                ReturnCode::Return => Ok(exception.result()),
+                ReturnCode::Break => molt_err!("invoked \"break\" outside of a loop"),
+                ReturnCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
+                ReturnCode::Other(_) => unimplemented!(),
+            }
+        } else {
+            result
         }
     }
 
@@ -803,9 +809,9 @@ impl Interp {
     ///
     /// The following code could be used to process the body of one of the Molt looping
     /// commands, e.g., `while` or
-    /// `foreach`.  [`ResultCode`](../types/enum.ResultCode.html)`::Return` and `ResultCode::Error`
+    /// `foreach`.  [`Exception`](../types/enum.Exception.html)`::Return` and `Exception::molt_err`
     /// return out of the looping command altogether, returning control to the caller.
-    /// `ResultCode::Break` breaks out of the loop.  `Ok` and `ResultCode::Continue`
+    /// `Exception::Break` breaks out of the loop.  `Ok` and `Exception::Continue`
     /// continue with the next iteration.
     ///
     /// ```ignore
@@ -815,10 +821,10 @@ impl Interp {
     ///
     ///     match result {
     ///         Ok(_) => (),
-    ///         Err(ResultCode::Return(_)) => return result,
-    ///         Err(ResultCode::Error(_)) => return result,
-    ///         Err(ResultCode::Break) => break,
-    ///         Err(ResultCode::Continue) => (),
+    ///         Err(Exception::Return(_)) => return result,
+    ///         Err(Exception::molt_err(_)) => return result,
+    ///         Err(Exception::Break) => break,
+    ///         Err(Exception::Continue) => (),
     ///     }
     /// }
     ///
@@ -861,7 +867,7 @@ impl Interp {
 
     /// Evaluates a WordVec, producing a list of Values.  The expansion operator is handled
     /// as a special case.
-    fn eval_word_vec(&mut self, words: &[Word]) -> Result<MoltList, ResultCode> {
+    fn eval_word_vec(&mut self, words: &[Word]) -> Result<MoltList, Exception> {
         let mut list: MoltList = Vec::new();
 
         for word in words {
@@ -926,7 +932,7 @@ impl Interp {
     /// ```
     /// use molt::Interp;
     /// use molt::types::*;
-    /// # fn dummy() -> Result<String,ResultCode> {
+    /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     /// let expr = Value::from("2 + 2");
     /// let sum = interp.expr(&expr)?.as_int()?;
@@ -947,7 +953,7 @@ impl Interp {
     /// ```
     /// use molt::Interp;
     /// use molt::types::*;
-    /// # fn dummy() -> Result<String,ResultCode> {
+    /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     ///
     /// let expr = Value::from("1 < 2");
@@ -957,7 +963,7 @@ impl Interp {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    pub fn expr_bool(&mut self, expr: &Value) -> Result<bool, ResultCode> {
+    pub fn expr_bool(&mut self, expr: &Value) -> Result<bool, Exception> {
         expr::expr(self, expr)?.as_bool()
     }
 
@@ -970,7 +976,7 @@ impl Interp {
     /// ```
     /// use molt::Interp;
     /// use molt::types::*;
-    /// # fn dummy() -> Result<String,ResultCode> {
+    /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     ///
     /// let expr = Value::from("1 + 2");
@@ -980,7 +986,7 @@ impl Interp {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    pub fn expr_int(&mut self, expr: &Value) -> Result<MoltInt, ResultCode> {
+    pub fn expr_int(&mut self, expr: &Value) -> Result<MoltInt, Exception> {
         expr::expr(self, expr)?.as_int()
     }
 
@@ -993,7 +999,7 @@ impl Interp {
     /// ```
     /// use molt::Interp;
     /// use molt::types::*;
-    /// # fn dummy() -> Result<String,ResultCode> {
+    /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     ///
     /// let expr = Value::from("1.1 + 2.2");
@@ -1003,7 +1009,7 @@ impl Interp {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    pub fn expr_float(&mut self, expr: &Value) -> Result<MoltFloat, ResultCode> {
+    pub fn expr_float(&mut self, expr: &Value) -> Result<MoltFloat, Exception> {
         expr::expr(self, expr)?.as_float()
     }
 
@@ -1087,7 +1093,7 @@ impl Interp {
     /// # molt_ok!()
     /// # }
     /// ```
-    pub fn set_var(&mut self, var_name: &Value, value: Value) -> Result<(), ResultCode> {
+    pub fn set_var(&mut self, var_name: &Value, value: Value) -> Result<(), Exception> {
         let var_name = &*var_name.as_var_name();
         match var_name.index() {
             Some(index) => self.set_element(var_name.name(), index, value),
@@ -1178,7 +1184,7 @@ impl Interp {
     /// # molt_ok!()
     /// # }
     /// ```
-    pub fn set_scalar(&mut self, name: &str, value: Value) -> Result<(), ResultCode> {
+    pub fn set_scalar(&mut self, name: &str, value: Value) -> Result<(), Exception> {
         self.scopes.set(name, value)
     }
 
@@ -1253,7 +1259,7 @@ impl Interp {
     /// # molt_ok!()
     /// # }
     /// ```
-    pub fn set_element(&mut self, name: &str, index: &str, value: Value) -> Result<(), ResultCode> {
+    pub fn set_element(&mut self, name: &str, index: &str, value: Value) -> Result<(), Exception> {
         self.scopes.set_elem(name, index, value)
     }
 
@@ -1810,7 +1816,7 @@ impl Interp {
     /// Returns the default value of the named argument of the named procedure, if it has one.
     /// Returns an error if the procedure has no such argument, or the `procname` doesn't name
     /// a procedure.
-    pub fn proc_default(&self, procname: &str, arg: &str) -> Result<Option<Value>, ResultCode> {
+    pub fn proc_default(&self, procname: &str, arg: &str) -> Result<Option<Value>, Exception> {
         if let Some(cmd) = self.commands.get(procname) {
             if let Command::Proc(proc) = &**cmd {
                 for argvec in &proc.parms {
@@ -2183,18 +2189,18 @@ mod tests {
         assert_eq!(interp.eval("set a 1"), Ok(Value::from("1")));
         assert_eq!(
             interp.eval("error 2"),
-            Err(ResultCode::Error(Value::from("2")))
+            Err(Exception::molt_err(Value::from("2")))
         );
         assert_eq!(interp.eval("return 3"), Ok(Value::from("3")));
         assert_eq!(
             interp.eval("break"),
-            Err(ResultCode::Error(Value::from(
+            Err(Exception::molt_err(Value::from(
                 "invoked \"break\" outside of a loop"
             )))
         );
         assert_eq!(
             interp.eval("continue"),
-            Err(ResultCode::Error(Value::from(
+            Err(Exception::molt_err(Value::from(
                 "invoked \"continue\" outside of a loop"
             )))
         );
@@ -2210,7 +2216,7 @@ mod tests {
         );
         assert_eq!(
             interp.eval_value(&Value::from("error 2")),
-            Err(ResultCode::Error(Value::from("2")))
+            Err(Exception::molt_err(Value::from("2")))
         );
         assert_eq!(
             interp.eval_value(&Value::from("return 3")),
@@ -2218,13 +2224,13 @@ mod tests {
         );
         assert_eq!(
             interp.eval_value(&Value::from("break")),
-            Err(ResultCode::Error(Value::from(
+            Err(Exception::molt_err(Value::from(
                 "invoked \"break\" outside of a loop"
             )))
         );
         assert_eq!(
             interp.eval_value(&Value::from("continue")),
-            Err(ResultCode::Error(Value::from(
+            Err(Exception::molt_err(Value::from(
                 "invoked \"continue\" outside of a loop"
             )))
         );
@@ -2244,19 +2250,19 @@ mod tests {
         );
         assert_eq!(
             interp.eval_body(&Value::from("error 2; set a whoops")),
-            Err(ResultCode::Error(Value::from("2")))
+            Err(Exception::molt_err(Value::from("2")))
         );
         assert_eq!(
             interp.eval_body(&Value::from("return 3; set a whoops")),
-            Err(ResultCode::Return(Value::from("3")))
+            Err(Exception::molt_return(Value::from("3")))
         );
         assert_eq!(
             interp.eval_body(&Value::from("break; set a whoops")),
-            Err(ResultCode::Break)
+            Err(Exception::molt_break())
         );
         assert_eq!(
             interp.eval_body(&Value::from("continue; set a whoops")),
-            Err(ResultCode::Continue)
+            Err(Exception::molt_continue())
         );
     }
 
@@ -2278,7 +2284,7 @@ mod tests {
         assert_eq!(interp.expr(&Value::from("1 + 2")), Ok(Value::from(3)));
         assert_eq!(
             interp.expr(&Value::from("a + b")),
-            Err(ResultCode::Error(Value::from(
+            Err(Exception::molt_err(Value::from(
                 "unknown math function \"a\""
             )))
         );
@@ -2291,7 +2297,7 @@ mod tests {
         assert_eq!(interp.expr_bool(&Value::from("0")), Ok(false));
         assert_eq!(
             interp.expr_bool(&Value::from("a")),
-            Err(ResultCode::Error(Value::from(
+            Err(Exception::molt_err(Value::from(
                 "unknown math function \"a\""
             )))
         );
@@ -2303,7 +2309,7 @@ mod tests {
         assert_eq!(interp.expr_int(&Value::from("1 + 2")), Ok(3));
         assert_eq!(
             interp.expr_int(&Value::from("a")),
-            Err(ResultCode::Error(Value::from(
+            Err(Exception::molt_err(Value::from(
                 "unknown math function \"a\""
             )))
         );
@@ -2320,7 +2326,7 @@ mod tests {
 
         assert_eq!(
             interp.expr_float(&Value::from("a")),
-            Err(ResultCode::Error(Value::from(
+            Err(Exception::molt_err(Value::from(
                 "unknown math function \"a\""
             )))
         );

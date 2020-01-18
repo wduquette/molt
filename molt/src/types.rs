@@ -56,30 +56,24 @@ pub type MoltDict = IndexMap<Value, Value>;
 /// if the command has no explicit return value, it returns the empty `Value`, a `Value`
 /// whose string representation is the empty string.
 ///
-/// A Molt command returns a [`ResultCode`] whenever the calling Molt script should
+/// A Molt command returns an [`Exception`] whenever the calling Molt script should
 /// return early: on error, when returning an explicit result via the `return` command,
 /// or when breaking out of a loop via the `break` or `continue` commands.
 ///
 /// Many of the functions in Molt's Rust API also return `MoltResult`, for easy use within
 /// Molt command definitions.
 ///
-/// [`ResultCode`]: enum.ResultCode.html
+/// [`Exception`]: struct.Exception.html
 /// [`Value`]: ../value/index.html
-pub type MoltResult = Result<Value, ResultCode>;
+pub type MoltResult = Result<Value, Exception>;
 
-/// This enum represents the possible exceptional results of evaluating a Molt script, as
-/// used in [`MoltResult`].  It is often used in the `Result<_,ResultCode>` type of other
-/// functions in the Molt API, so that these functions can easily return errors when used
-/// in the definition of Molt commands.
+/// This enum represents the different kinds of [`Exception`] that result from
+/// evaluating a Molt script.
 ///
-/// A Molt script can return a normal result, as indicated by [`MoltResult`]'s `Ok`
-/// variant, or it can return one of a number of exceptional results, which
-/// will bubble up the call stack in the usual way until caught.
+/// * `Error`: A Molt error; the `Exception::result()` is the error message
+///   for display to the user.
 ///
-/// * `Error(Value)`: This code indicates a Molt error; the `Value` is the error message
-///   for display to the user. (But see "Future Work", below.)
-///
-/// * `Return(Value)`: This code indicates that a Molt procedure called the
+/// * `Return`: This code indicates that a Molt procedure called the
 ///   `return` command.  The `Value` is the returned value, or the empty value if
 ///   `return` was called without a return value.  This result will bubble up until it
 ///   reaches the top-level of the procedure, which will then return the value as a
@@ -114,33 +108,9 @@ pub type MoltResult = Result<Value, ResultCode>;
 ///   in over two decades of TCL programming I've never seen the need to use generic result
 ///   codes.)
 ///
+/// [`Exception`]: struct.Exception.html
 /// [`MoltResult`]: type.MoltResult.html
-#[derive(Eq, PartialEq, Clone, Debug)]
-pub enum ResultCode {
-    Error(Value),
-    Return(Value),
-    Break,
-    Continue,
-}
 
-impl ResultCode {
-    /// Indicates whether the result code is an `Error`.
-    pub fn is_error(&self) -> bool {
-        match self {
-            ResultCode::Error(_) => true,
-            _ => false,
-        }
-    }
-}
-
-/// The new molt result type
-///
-/// Docs: TODO
-pub type MoltResult2 = Result<Value, Exception>;
-
-/// The new Molt return code: a simple enum that can be compared and copied.
-///
-/// Docs: TODO
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ReturnCode {
     /// Used only with `return -code`
@@ -152,9 +122,20 @@ pub enum ReturnCode {
     Other(MoltInt)
 }
 
-/// An exceptional return value.
+/// This enum represents the exceptional results of evaluating a Molt script, as
+/// used in [`MoltResult`].  It is often used in the `Result<_,Exception>` type of other
+/// functions in the Molt API, so that these functions can easily return errors when used
+/// in the definition of Molt commands.
 ///
-/// Docs: TODO
+/// A Molt script can return a normal result, as indicated by [`MoltResult`]'s `Ok`
+/// variant, or it can return one of a number of exceptional results, which
+/// will bubble up the call stack in the usual way until caught.  The different kinds of
+/// exceptional result are defined by the [`ResultCode`] enum.
+///
+/// [`ResultCode`]: enum.ResultCode.html
+/// [`MoltResult`]: type.MoltResult.html
+
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Exception {
     code: ReturnCode,
 
@@ -254,7 +235,7 @@ impl Subcommand {
     pub fn find<'a>(
         ensemble: &'a [Subcommand],
         sub_name: &str,
-    ) -> Result<&'a Subcommand, ResultCode> {
+    ) -> Result<&'a Subcommand, Exception> {
         for subcmd in ensemble {
             if subcmd.0 == sub_name {
                 return Ok(subcmd);

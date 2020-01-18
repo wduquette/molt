@@ -26,21 +26,9 @@ macro_rules! molt_ok {
 #[macro_export]
 macro_rules! molt_err {
     ($arg:expr) => (
-        Err(ResultCode::Error(Value::from($arg)))
+        Err(Exception::molt_err(Value::from($arg)))
     );
     ($($arg:tt)*) => (
-        Err(ResultCode::Error(Value::from(format!($($arg)*))))
-    )
-}
-
-/// Returns an `Error` `MoltResult`.  The error message is formatted
-/// as with `format!()`.
-#[macro_export]
-macro_rules! molt_err2 {
-    ($arg:expr) => (
-        Err(Exception::error(Value::from($arg)))
-    );
-    ($($arg:tt)*) => (
-        Err(Exception::error(Value::from(format!($($arg)*))))
+        Err(Exception::molt_err(Value::from(format!($($arg)*))))
     )
 }

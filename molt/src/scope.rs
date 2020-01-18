@@ -13,7 +13,7 @@
 //! `Interp` (or the Molt language itself).
 
 use crate::types::MoltList;
-use crate::types::ResultCode;
+use crate::types::Exception;
 use crate::value::Value;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -100,7 +100,7 @@ impl ScopeStack {
     }
 
     /// Requires the value of the named scalar variable in the current scope.
-    pub fn get(&self, name: &str) -> Result<Value, ResultCode> {
+    pub fn get(&self, name: &str) -> Result<Value, Exception> {
         match self.var(self.current(), name) {
             Some(Var::Scalar(value)) => Ok(value.clone()),
             Some(Var::Array(_)) => molt_err!("can't read \"{}\": variable is array", name),
@@ -110,7 +110,7 @@ impl ScopeStack {
     }
 
     /// Requires the value of an array element given its variable name and index.
-    pub fn get_elem(&self, name: &str, index: &str) -> Result<Value, ResultCode> {
+    pub fn get_elem(&self, name: &str, index: &str) -> Result<Value, Exception> {
         match self.var(self.current(), name) {
             Some(Var::Scalar(_)) => {
                 molt_err!("can't read \"{}({})\": variable isn't array", name, index)
@@ -134,7 +134,7 @@ impl ScopeStack {
     /// Sets the value of the named scalar in the current scope, creating the variable
     /// if it doesn't already exist.  It's an error if the variable exists but is an array
     /// variable.
-    pub fn set(&mut self, name: &str, val: Value) -> Result<(), ResultCode> {
+    pub fn set(&mut self, name: &str, val: Value) -> Result<(), Exception> {
         match self.var_mut(self.current(), name) {
             Some(Var::Upvar(_)) => unreachable!(),
             Some(Var::Array(_)) => molt_err!("can't set \"{}\": variable is array", name),
@@ -151,7 +151,7 @@ impl ScopeStack {
     /// Sets the value of the indexed array element in the current scope, creating the
     /// and/or the element if they don't already exist. It's an error if the variable exists
     /// but is a scalar variable.
-    pub fn set_elem(&mut self, name: &str, index: &str, val: Value) -> Result<(), ResultCode> {
+    pub fn set_elem(&mut self, name: &str, index: &str, val: Value) -> Result<(), Exception> {
         let top = self.current();
 
         match self.var_mut(top, name) {
@@ -340,7 +340,7 @@ impl ScopeStack {
 
     /// Merges a flat list of keys and values into the array variable, creating the variable
     /// if it doesn't exist. It's an error if the variable exists but is a scalar variable.
-    pub fn array_set(&mut self, name: &str, kvlist: &[Value]) -> Result<(), ResultCode> {
+    pub fn array_set(&mut self, name: &str, kvlist: &[Value]) -> Result<(), Exception> {
         // List must be even.
         assert!(kvlist.len() % 2 == 0);
 

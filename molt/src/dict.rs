@@ -12,7 +12,7 @@ use crate::molt_err;
 use crate::types::MoltDict;
 use crate::types::MoltList;
 use crate::types::MoltResult;
-use crate::types::ResultCode;
+use crate::types::Exception;
 use crate::value::Value;
 use indexmap::IndexMap;
 

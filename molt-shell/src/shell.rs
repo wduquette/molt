@@ -1,6 +1,5 @@
 use molt::Interp;
 use molt::MoltList;
-use molt::ResultCode;
 use molt::Value;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -39,7 +38,7 @@ pub fn repl(interp: &mut Interp, prompt: &str) {
                 let line = line.trim();
                 if !line.is_empty() {
                     match interp.eval(line) {
-                        Ok(value) | Err(ResultCode::Return(value)) => {
+                        Ok(value) => {
                             rl.add_history_entry(line);
 
                             // Don't output empty values.
@@ -47,14 +46,8 @@ pub fn repl(interp: &mut Interp, prompt: &str) {
                                 println!("{}", value);
                             }
                         }
-                        Err(ResultCode::Error(msg)) => {
-                            println!("{}", msg);
-                        }
-                        result => {
-                            // Must be Break or Continue, which should have been caught
-                            // by eval(), so this should never happen.  But panicking would
-                            // be rude.
-                            println!("Unexpected eval return: {:?}", result);
+                        Err(exception) => {
+                            println!("{}", exception.result());
                         }
                     }
                 }
@@ -143,15 +136,9 @@ fn execute_script(interp: &mut Interp, script: String, arg0: &str, argv: &[Strin
 
     match interp.eval(&script) {
         Ok(_) => (),
-        Err(ResultCode::Return(_)) => (),
-        Err(ResultCode::Error(msg)) => {
-            eprintln!("{}", msg);
+        Err(exception) => {
+            eprintln!("{}", exception.result());
             std::process::exit(1);
-        }
-        result => {
-            // Break or Continue; should never happen, since eval() is supposed to convert
-            // these to errors.
-            panic!("Unexpected eval return: {:?}", result)
         }
     }
 }

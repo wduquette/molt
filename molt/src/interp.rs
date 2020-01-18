@@ -740,9 +740,9 @@ impl Interp {
     ///        // Computed a Value
     ///        println!("Value: {}", val);
     ///    }
-    ///    Err(Exception::molt_err(msg)) => {
+    ///    Err(exception) => {
     ///        // Got an error; print it out.
-    ///        println!("Error: {}", msg);
+    ///        println!("Error: {}", exception.result());
     ///    }
     ///    _ => unreachable!(),
     /// }

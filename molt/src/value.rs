@@ -146,7 +146,7 @@
 //!         if let Some(x) = value.as_copy::<Flavor>() {
 //!             Ok(x)
 //!         } else {
-//!             Err(Exception::Error(Value::from("Not a flavor string")))
+//!             Err(Exception::molt_err(Value::from("Not a flavor string")))
 //!         }
 //!     }
 //! }

@@ -32,3 +32,15 @@ macro_rules! molt_err {
         Err(ResultCode::Error(Value::from(format!($($arg)*))))
     )
 }
+
+/// Returns an `Error` `MoltResult`.  The error message is formatted
+/// as with `format!()`.
+#[macro_export]
+macro_rules! molt_err2 {
+    ($arg:expr) => (
+        Err(Exception::error(Value::from($arg)))
+    );
+    ($($arg:tt)*) => (
+        Err(Exception::error(Value::from(format!($($arg)*))))
+    )
+}

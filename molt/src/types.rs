@@ -133,6 +133,76 @@ impl ResultCode {
     }
 }
 
+/// The new molt result type
+///
+/// Docs: TODO
+pub type MoltResult2 = Result<Value, Exception>;
+
+/// The new Molt return code: a simple enum that can be compared and copied.
+///
+/// Docs: TODO
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ReturnCode {
+    /// Used only with `return -code`
+    Okay,
+    Error,
+    Return,
+    Break,
+    Continue,
+    Other(MoltInt)
+}
+
+/// An exceptional return value.
+///
+/// Docs: TODO
+pub struct Exception {
+    code: ReturnCode,
+
+    result: Value,
+}
+
+impl Exception {
+    /// Creates an error exception
+    pub fn molt_err(msg: Value) -> Self {
+        Self {
+            code: ReturnCode::Error,
+            result: msg,
+        }
+    }
+
+    pub fn molt_return(msg: Value) -> Self {
+        Self {
+            code: ReturnCode::Return,
+            result: msg,
+        }
+    }
+
+    pub fn molt_break() -> Self {
+        Self {
+            code: ReturnCode::Break,
+            result: Value::empty(),
+        }
+    }
+
+    pub fn molt_continue() -> Self {
+        Self {
+            code: ReturnCode::Continue,
+            result: Value::empty(),
+        }
+    }
+
+    /// Gets the return code
+    pub fn code(&self) -> ReturnCode {
+        self.code
+    }
+
+    /// Gets the result (e.g., the error message)
+    pub fn result(&self) -> Value {
+        self.result.clone()
+    }
+}
+
+
 /// A unique identifier, used to identify cached context data within a given
 /// interpreter.  For more information see the discussion of command definition
 /// and the context cache in [The Molt Book] and the [`interp`] module.

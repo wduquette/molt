@@ -58,46 +58,47 @@ impl MoltErr {
 pub type NewResult = Result<Value, MoltErr>;
 
 #[cfg(test)]
+#[allow(dead_code)]
 mod tests {
-    use super::*;
-    use crate::molt_err2;
+    // use super::*;
+    // use crate::molt_err2;
 
-    #[test]
-    fn test_foo() {
-        // Hah!  MoltErr doesn't need to be immutable; it's reasonable to allow callers to
-        // add stack levels as it propagates.  Woohoo!
-        if let Err(mut err) = throw("Foobar!") {
-            err.error_info.push("Baz!".into());
-        }
-    }
+    // #[test]
+    // fn test_foo() {
+    //     // Hah!  MoltErr doesn't need to be immutable; it's reasonable to allow callers to
+    //     // add stack levels as it propagates.  Woohoo!
+    //     if let Err(mut err) = throw("Foobar!") {
+    //         err.error_info.push("Baz!".into());
+    //     }
+    // }
 
-    fn test_bar() {
-        let res: NewResult = molt_err2!("Foobar!");
-
-        if let Err(err) = res {
-            match err.code() {
-                Code::Error => {
-                    println!("Got an error: {}", err.result());
-                },
-                Code::Break => {
-                    println!("Got a break!");
-                }
-                _ => ()
-            }
-        }
-    }
-
-    fn throw(msg: &str) -> NewResult {
-        let mut me = MoltErr {
-            code: Code::Error,
-            result: Value::empty(),
-            error_code: Value::empty(),
-            error_info: Vec::new(),
-            level: 1,
-        };
-
-        me.error_info.push(msg.into());
-
-        Err(me)
-    }
+    // fn test_bar() {
+    //     let res: NewResult = molt_err2!("Foobar!");
+    //
+    //     if let Err(err) = res {
+    //         match err.code() {
+    //             Code::Error => {
+    //                 println!("Got an error: {}", err.result());
+    //             },
+    //             Code::Break => {
+    //                 println!("Got a break!");
+    //             }
+    //             _ => ()
+    //         }
+    //     }
+    // }
+    //
+    // fn throw(msg: &str) -> NewResult {
+    //     let mut me = MoltErr {
+    //         code: Code::Error,
+    //         result: Value::empty(),
+    //         error_code: Value::empty(),
+    //         error_info: Vec::new(),
+    //         level: 1,
+    //     };
+    //
+    //     me.error_info.push(msg.into());
+    //
+    //     Err(me)
+    // }
 }

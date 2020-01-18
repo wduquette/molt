@@ -742,7 +742,7 @@ impl Interp {
     ///    }
     ///    Err(exception) => {
     ///        // Got an error; print it out.
-    ///        println!("Error: {}", exception.result());
+    ///        println!("Error: {}", exception.value());
     ///    }
     ///    _ => unreachable!(),
     /// }
@@ -786,12 +786,12 @@ impl Interp {
         // NEXT, translate and return the result.
         if let Err(exception) = result {
             match exception.code() {
-                ReturnCode::Okay => unreachable!(),
-                ReturnCode::Error => Err(exception),
-                ReturnCode::Return => Ok(exception.result()),
-                ReturnCode::Break => molt_err!("invoked \"break\" outside of a loop"),
-                ReturnCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
-                ReturnCode::Other(_) => unimplemented!(),
+                ResultCode::Okay => unreachable!(),
+                ResultCode::Error => Err(exception),
+                ResultCode::Return => Ok(exception.value()),
+                ResultCode::Break => molt_err!("invoked \"break\" outside of a loop"),
+                ResultCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
+                ResultCode::Other(_) => unimplemented!(),
             }
         } else {
             result

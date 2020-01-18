@@ -152,12 +152,12 @@ pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
         Ok(val) => (0, val),
         Err(exception) => {
             match exception.code() {
-                ReturnCode::Okay => unreachable!(),
-                ReturnCode::Error => (1, exception.result()),
-                ReturnCode::Return => (2, exception.result()),
-                ReturnCode::Break => (3, exception.result()),
-                ReturnCode::Continue => (4, exception.result()),
-                ReturnCode::Other(c) => (c, exception.result()),
+                ResultCode::Okay => unreachable!(),
+                ResultCode::Error => (1, exception.value()),
+                ResultCode::Return => (2, exception.value()),
+                ResultCode::Break => (3, exception.value()),
+                ResultCode::Continue => (4, exception.value()),
+                ResultCode::Other(c) => (c, exception.value()),
             }
         }
     };
@@ -396,8 +396,8 @@ pub fn cmd_for(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult 
 
         if let Err(exception) = result {
             match exception.code() {
-                ReturnCode::Break => break,
-                ReturnCode::Continue => (),
+                ResultCode::Break => break,
+                ResultCode::Continue => (),
                 _ => return Err(exception),
             }
         }
@@ -407,8 +407,8 @@ pub fn cmd_for(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult 
 
         if let Err(exception) = result {
             match exception.code() {
-                ReturnCode::Break => break,
-                ReturnCode::Continue => {
+                ResultCode::Break => break,
+                ResultCode::Continue => {
                     return molt_err!("invoked \"continue\" outside of a loop");
                 }
                 _ => return Err(exception),
@@ -452,8 +452,8 @@ pub fn cmd_foreach(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
 
         if let Err(exception) = result {
             match exception.code() {
-                ReturnCode::Break => break,
-                ReturnCode::Continue => (),
+                ResultCode::Break => break,
+                ResultCode::Continue => (),
                 _ => return Err(exception),
             }
         }
@@ -998,8 +998,8 @@ pub fn cmd_while(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
 
         if let Err(exception) = result {
             match exception.code() {
-                ReturnCode::Break => break,
-                ReturnCode::Continue => (),
+                ResultCode::Break => break,
+                ResultCode::Continue => (),
                 _ => return Err(exception),
             }
         }

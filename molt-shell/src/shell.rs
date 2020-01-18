@@ -47,7 +47,7 @@ pub fn repl(interp: &mut Interp, prompt: &str) {
                             }
                         }
                         Err(exception) => {
-                            println!("{}", exception.result());
+                            println!("{}", exception.value());
                         }
                     }
                 }
@@ -137,7 +137,7 @@ fn execute_script(interp: &mut Interp, script: String, arg0: &str, argv: &[Strin
     match interp.eval(&script) {
         Ok(_) => (),
         Err(exception) => {
-            eprintln!("{}", exception.result());
+            eprintln!("{}", exception.value());
             std::process::exit(1);
         }
     }

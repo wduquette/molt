@@ -27,7 +27,7 @@ use crate::molt_ok;
 use crate::types::ContextID;
 use crate::Interp;
 use crate::MoltResult;
-use crate::ReturnCode;
+use crate::ResultCode;
 use crate::Value;
 use std::env;
 use std::fs;
@@ -92,8 +92,8 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) -> Result<(), ()> {
             }
 
             if let Err(exception) = interp.eval(&script) {
-                if exception.code() == ReturnCode::Error {
-                     eprintln!("{}", exception.result());
+                if exception.code() == ResultCode::Error {
+                     eprintln!("{}", exception.value());
                      return Err(());
                 } else {
                     eprintln!("Unexpected eval return: {:?}", exception);
@@ -193,10 +193,10 @@ impl TestInfo {
             Ok(val) => println!("Received -ok <{}>", val),
             Err(exception) => {
                 match exception.code() {
-                    ReturnCode::Error => println!("Received -error <{}>", exception.result()),
-                    ReturnCode::Return => println!("Received -return <{}>", exception.result()),
-                    ReturnCode::Break => println!("Received -break <>"),
-                    ReturnCode::Continue => println!("Received -continue <>"),
+                    ResultCode::Error => println!("Received -error <{}>", exception.value()),
+                    ResultCode::Return => println!("Received -return <{}>", exception.value()),
+                    ResultCode::Break => println!("Received -break <>"),
+                    ResultCode::Continue => println!("Received -continue <>"),
                     _ => unimplemented!()
                 }
             }
@@ -322,8 +322,8 @@ fn run_test(interp: &mut Interp, context_id: ContextID, info: &TestInfo) {
 
     // Setup
     if let Err(exception) = interp.eval(&info.setup) {
-        if exception.code() == ReturnCode::Error {
-            info.print_helper_error("-setup", exception.result().as_str());
+        if exception.code() == ResultCode::Error {
+            info.print_helper_error("-setup", exception.value().as_str());
         }
     }
     // if let Err(ResultCode::Error(msg)) = interp.eval(&info.setup) {
@@ -336,8 +336,8 @@ fn run_test(interp: &mut Interp, context_id: ContextID, info: &TestInfo) {
 
     // Cleanup
     if let Err(exception) = interp.eval(&info.cleanup) {
-        if exception.code() == ReturnCode::Error {
-            info.print_helper_error("-cleanup", exception.result().as_str());
+        if exception.code() == ResultCode::Error {
+            info.print_helper_error("-cleanup", exception.value().as_str());
         }
     }
     // if let Err(ResultCode::Error(msg)) = interp.eval(&info.cleanup) {
@@ -365,11 +365,11 @@ fn run_test(interp: &mut Interp, context_id: ContextID, info: &TestInfo) {
         }
         Err(exception) => {
             if info.code == Code::Error {
-                if exception.result() == Value::from(&info.expect) {
+                if exception.value() == Value::from(&info.expect) {
                     ctx.num_passed += 1;
                 } else {
                     ctx.num_failed += 1;
-                    info.print_failure("-error", exception.result().as_str());
+                    info.print_failure("-error", exception.value().as_str());
                 }
                 return;
             }

@@ -280,8 +280,8 @@ fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> DatumResult {
         }
         Err(exception) => {
             match exception.code() {
-                ReturnCode::Break => molt_err!("invoked \"break\" outside of a loop"),
-                ReturnCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
+                ResultCode::Break => molt_err!("invoked \"break\" outside of a loop"),
+                ResultCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
                 _ => Err(exception)
             }
         }

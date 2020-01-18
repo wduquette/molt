@@ -4,15 +4,21 @@
 //!
 //! The most important types are [`Value`], the type of data values in the Molt
 //! language, and [`MoltResult`], Molt's standard `Result<T,E>` type.  `MoltResult`
-//! is an alias for `Result<Value,ResultCode>`, where [`ResultCode`] represents all
-//! of the ways a Molt script might return early: errors, explicit returns, breaks,
-//! and continues.  [`MoltInt`], [`MoltFloat`], and [`MoltList`] are simple type aliases
-//! defining Molt's internal representation for integers, floats, and TCL lists.
+//! is an alias for `Result<Value,Exception>`, where [`Exception`] contains the data
+//! relating to an exceptional return from a script.  The heart of `Exception` is the
+//! [`ResultCode`], which represents all of the ways a Molt script might return early:
+//! errors, explicit returns, breaks, and continues.
+//!
+//! [`MoltInt`], [`MoltFloat`], [`MoltList`], and [`MoltDict`] are simple type aliases
+//! defining Molt's internal representation for integers, floats, and TCL lists and
+//! dictionaries.
 //!
 //! [`MoltResult`]: type.MoltResult.html
+//! [`Exception`]: type.Exception.html
 //! [`MoltInt`]: type.MoltInt.html
 //! [`MoltFloat`]: type.MoltFloat.html
 //! [`MoltList`]: type.MoltList.html
+//! [`MoltDict`]: type.MoltDict.html
 //! [`ResultCode`]: enum.ResultCode.html
 //! [`Value`]: ../value/index.html
 //! [`interp`]: interp/index.html
@@ -46,7 +52,8 @@ pub type MoltList = Vec<Value>;
 
 /// The standard dictionary type for Molt code.
 ///
-/// A dictionary is a mapping from `Value` to `Value`.
+/// A dictionary is a mapping from `Value` to `Value` that preserves the key insertion
+/// order.
 pub type MoltDict = IndexMap<Value, Value>;
 
 /// The standard `Result<T,E>` type for Molt code.
@@ -58,38 +65,19 @@ pub type MoltDict = IndexMap<Value, Value>;
 ///
 /// A Molt command returns an [`Exception`] whenever the calling Molt script should
 /// return early: on error, when returning an explicit result via the `return` command,
-/// or when breaking out of a loop via the `break` or `continue` commands.
+/// or when breaking out of a loop via the `break` or `continue` commands.  The precise
+/// nature of the return is indicated by the [`Exception`]'s [`ResultCode`].
 ///
 /// Many of the functions in Molt's Rust API also return `MoltResult`, for easy use within
 /// Molt command definitions.
 ///
 /// [`Exception`]: struct.Exception.html
+/// [`ResultCode`]: enum.ResultCode.html
 /// [`Value`]: ../value/index.html
 pub type MoltResult = Result<Value, Exception>;
 
 /// This enum represents the different kinds of [`Exception`] that result from
 /// evaluating a Molt script.
-///
-/// * `Error`: A Molt error; the `Exception::result()` is the error message
-///   for display to the user.
-///
-/// * `Return`: This code indicates that a Molt procedure called the
-///   `return` command.  The `Value` is the returned value, or the empty value if
-///   `return` was called without a return value.  This result will bubble up until it
-///   reaches the top-level of the procedure, which will then return the value as a
-///   normal `Ok` result.  If it is received when evaluating an arbitrary script, i.e.,
-///   if `return` is called outside of any procedure, the interpreter will convert it into
-///   a normal `Ok` result.
-///
-/// * `Break`: This code indicates a script called the Molt `break` command.  It will
-///   break out of the inmost enclosing loop in the usual way.  If it is returned outside a
-///   loop (or some user-defined control structure that supports `break`), the interpreter
-///   will convert it into an error.
-///
-/// * `Continue`: This code indicates that a script called the Molt `continue` command.  It
-///   will continue with the next iteration of the inmost enclosing loop in the usual
-///   way. If it is returned outside a loop (or some user-defined control structure that
-///   supports `continue`), the interpreter will convert it into an error.
 ///
 /// Client code will usually see only the `Error` code; the others will most often be caught
 /// and handled within the interpreter.  However, client code may explicitly catch and handle
@@ -98,32 +86,46 @@ pub type MoltResult = Result<Value, Exception>;
 ///
 /// # Future Work
 ///
-/// * Standard TCL includes more information with non-`Ok` results, especially for error
-///   cases. Ultimately, this type will be need to be extended to support that.
-///
 /// * Standard TCL allows for an arbitrary number of result codes, which in turn allows the
 ///   application to define an arbitrary number of new kinds of control structures that are
-///   distinct from the standard ones.  At some point we might wish to add one or more
-///   generic result codes, parallel to `Break` and `Continue`, for this purpose.  (However,
-///   in over two decades of TCL programming I've never seen the need to use generic result
-///   codes.)
+///   distinct from the standard ones.  This type provides the `Other` code for this
+///   purpose; however, there is as yet no support for it in either the Rust or TCL APIs.
 ///
 /// [`Exception`]: struct.Exception.html
-/// [`MoltResult`]: type.MoltResult.html
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum ReturnCode {
-    /// Used only with `return -code`
+pub enum ResultCode {
+    /// Experimental; not in use yet.
     Okay,
+
+    /// A Molt error.  The `Exception::value` is the error message for display to the user.
     Error,
+
+    /// An explicit return from a Molt procedure.  The `Exception::value` is the returned
+    /// value, or the empty value if `return` was called without a return value.  This result
+    /// will bubble up until it reaches the top-level of the enclosing procedure, which will
+    /// then return the value as a normal `Ok` result.  If it is received when evaluating an
+    /// arbitrary script, i.e., if `return` is called outside of any procedure, the
+    /// interpreter will convert it into a normal `Ok` result.
     Return,
+
+    /// A `break` in a Molt loop.  It will break out of the inmost enclosing loop in the usual
+    /// way.  If it is returned outside a loop (or some user-defined control structure that
+    /// supports `break`), the interpreter will convert it into an error.
     Break,
+
+    /// A `continue` in a Molt loop.  Execution will continue with the next iteration of
+    /// the inmost enclosing loop in the usual way.  If it is returned outside a loop (or
+    /// some user-defined control structure that supports `break`), the interpreter will
+    /// convert it into an error.
     Continue,
+
+    /// Experimental; not in use yet.
     Other(MoltInt)
 }
 
 /// This enum represents the exceptional results of evaluating a Molt script, as
-/// used in [`MoltResult`].  It is often used in the `Result<_,Exception>` type of other
+/// used in [`MoltResult`].  It is often used as the `Err` type for other
 /// functions in the Molt API, so that these functions can easily return errors when used
 /// in the definition of Molt commands.
 ///
@@ -137,49 +139,55 @@ pub enum ReturnCode {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Exception {
-    code: ReturnCode,
+    /// The kind of exception
+    code: ResultCode,
 
-    result: Value,
+    /// The result value
+    value: Value,
 }
 
 impl Exception {
-    /// Creates an error exception
+    /// Creates an `Error` exception with the given error message.
     pub fn molt_err(msg: Value) -> Self {
         Self {
-            code: ReturnCode::Error,
-            result: msg,
+            code: ResultCode::Error,
+            value: msg,
         }
     }
 
+    /// Creates a `Return` exception, with the given return value.  Return `Value::empty()`
+    /// if there is no specific result.
     pub fn molt_return(msg: Value) -> Self {
         Self {
-            code: ReturnCode::Return,
-            result: msg,
+            code: ResultCode::Return,
+            value: msg,
         }
     }
 
+    /// Creates a `Break` exception.
     pub fn molt_break() -> Self {
         Self {
-            code: ReturnCode::Break,
-            result: Value::empty(),
+            code: ResultCode::Break,
+            value: Value::empty(),
         }
     }
 
+    /// Creates a `Continue` exception.
     pub fn molt_continue() -> Self {
         Self {
-            code: ReturnCode::Continue,
-            result: Value::empty(),
+            code: ResultCode::Continue,
+            value: Value::empty(),
         }
     }
 
-    /// Gets the return code
-    pub fn code(&self) -> ReturnCode {
+    /// Gets the exception's result code.
+    pub fn code(&self) -> ResultCode {
         self.code
     }
 
-    /// Gets the result (e.g., the error message)
-    pub fn result(&self) -> Value {
-        self.result.clone()
+    /// Gets the exception's value, i.e., the explicit return value or the error message.
+    pub fn value(&self) -> Value {
+        self.value.clone()
     }
 }
 

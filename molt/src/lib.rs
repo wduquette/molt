@@ -20,7 +20,7 @@
 //! [`types`]: types/index.html
 //! [`test_harness`]: test_harness/index.html
 
-#![doc(html_root_url = "https://docs.rs/molt/0.2.2")]
+#![doc(html_root_url = "https://docs.rs/molt/0.3.0")]
 #![doc(html_logo_url = "https://github.com/wduquette/molt/raw/master/MoltLogo.png")]
 
 pub use crate::interp::Interp;

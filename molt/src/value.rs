@@ -165,7 +165,6 @@
 //!
 //! [`Value`]: struct.Value.html
 
-use crate::types::Exception;
 use crate::dict::dict_to_string;
 use crate::dict::list_to_dict;
 use crate::expr::Datum;
@@ -173,6 +172,7 @@ use crate::list::get_list;
 use crate::list::list_to_string;
 use crate::parser;
 use crate::parser::Script;
+use crate::types::Exception;
 use crate::types::MoltDict;
 use crate::types::MoltFloat;
 use crate::types::MoltInt;

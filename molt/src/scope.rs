@@ -12,8 +12,8 @@
 //! Molt clients do not interact with this mechanism directly, but via the
 //! `Interp` (or the Molt language itself).
 
-use crate::types::MoltList;
 use crate::types::Exception;
+use crate::types::MoltList;
 use crate::value::Value;
 use std::collections::HashMap;
 use std::fmt::Debug;

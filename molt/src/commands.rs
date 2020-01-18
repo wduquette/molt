@@ -2,9 +2,9 @@
 //!
 //! This module defines the standard Molt commands.
 
-use crate::dict::dict_path_remove;
 use crate::dict::dict_new;
 use crate::dict::dict_path_insert;
+use crate::dict::dict_path_remove;
 use crate::dict::list_to_dict;
 use crate::interp::Interp;
 use crate::types::*;
@@ -150,16 +150,14 @@ pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
 
     let (code, value) = match result {
         Ok(val) => (0, val),
-        Err(exception) => {
-            match exception.code() {
-                ResultCode::Okay => unreachable!(),
-                ResultCode::Error => (1, exception.value()),
-                ResultCode::Return => (2, exception.value()),
-                ResultCode::Break => (3, exception.value()),
-                ResultCode::Continue => (4, exception.value()),
-                ResultCode::Other(c) => (c, exception.value()),
-            }
-        }
+        Err(exception) => match exception.code() {
+            ResultCode::Okay => unreachable!(),
+            ResultCode::Error => (1, exception.value()),
+            ResultCode::Return => (2, exception.value()),
+            ResultCode::Break => (3, exception.value()),
+            ResultCode::Continue => (4, exception.value()),
+            ResultCode::Other(c) => (c, exception.value()),
+        },
     };
 
     if argv.len() == 3 {
@@ -320,7 +318,6 @@ fn cmd_dict_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
     }
 }
 
-
 /// # dict values *dictionary*
 /// TODO: Add filtering when we have glob matching.
 fn cmd_dict_values(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
@@ -330,7 +327,6 @@ fn cmd_dict_values(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     let values: MoltList = dict.values().cloned().collect();
     molt_ok!(values)
 }
-
 
 /// error *message*
 ///

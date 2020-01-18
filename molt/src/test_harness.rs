@@ -93,12 +93,11 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) -> Result<(), ()> {
 
             if let Err(exception) = interp.eval(&script) {
                 if exception.code() == ResultCode::Error {
-                     eprintln!("{}", exception.value());
-                     return Err(());
+                    eprintln!("{}", exception.value());
+                    return Err(());
                 } else {
                     eprintln!("Unexpected eval return: {:?}", exception);
                     return Err(());
-
                 }
             }
         }
@@ -191,15 +190,13 @@ impl TestInfo {
 
         match result {
             Ok(val) => println!("Received -ok <{}>", val),
-            Err(exception) => {
-                match exception.code() {
-                    ResultCode::Error => println!("Received -error <{}>", exception.value()),
-                    ResultCode::Return => println!("Received -return <{}>", exception.value()),
-                    ResultCode::Break => println!("Received -break <>"),
-                    ResultCode::Continue => println!("Received -continue <>"),
-                    _ => unimplemented!()
-                }
-            }
+            Err(exception) => match exception.code() {
+                ResultCode::Error => println!("Received -error <{}>", exception.value()),
+                ResultCode::Return => println!("Received -return <{}>", exception.value()),
+                ResultCode::Break => println!("Received -break <>"),
+                ResultCode::Continue => println!("Received -continue <>"),
+                _ => unimplemented!(),
+            },
         }
     }
 

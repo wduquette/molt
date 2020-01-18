@@ -83,7 +83,7 @@
 //! ```
 //!
 //! [`Value`] is the type of all Molt values (i.e., values that can be passed as parameters and
-//! stored in variables).  [`Exception`] is an enum that encompasses all of the kinds of
+//! stored in variables).  [`Exception`] is a struct that encompasses all of the kinds of
 //! exceptional return from Molt code, including errors, `return`, `break`, and `continue`.
 //!
 //! # Evaluating Expressions
@@ -808,28 +808,9 @@ impl Interp {
     /// # Example
     ///
     /// The following code could be used to process the body of one of the Molt looping
-    /// commands, e.g., `while` or
-    /// `foreach`.  [`Exception`](../types/enum.Exception.html)`::Return` and `Exception::molt_err`
-    /// return out of the looping command altogether, returning control to the caller.
-    /// `Exception::Break` breaks out of the loop.  `Ok` and `Exception::Continue`
-    /// continue with the next iteration.
+    /// commands, e.g., `while` or `foreach`.
     ///
-    /// ```ignore
-    /// ...
-    /// while (...) {
-    ///     let result = interp.eval_body(&body);
-    ///
-    ///     match result {
-    ///         Ok(_) => (),
-    ///         Err(Exception::Return(_)) => return result,
-    ///         Err(Exception::molt_err(_)) => return result,
-    ///         Err(Exception::Break) => break,
-    ///         Err(Exception::Continue) => (),
-    ///     }
-    /// }
-    ///
-    /// molt_ok!()
-    /// ```
+    /// TODO
     pub fn eval_body(&mut self, body: &Value) -> MoltResult {
         self.eval_script(&*body.as_script()?)
     }

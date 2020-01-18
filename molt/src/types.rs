@@ -121,7 +121,7 @@ pub enum ResultCode {
     Continue,
 
     /// Experimental; not in use yet.
-    Other(MoltInt)
+    Other(MoltInt),
 }
 
 /// This enum represents the exceptional results of evaluating a Molt script, as
@@ -133,6 +133,13 @@ pub enum ResultCode {
 /// variant, or it can return one of a number of exceptional results, which
 /// will bubble up the call stack in the usual way until caught.  The different kinds of
 /// exceptional result are defined by the [`ResultCode`] enum.
+///
+/// # Future Work
+///
+/// * Accumulate the error stack trace (the `errorInfo`) as error exceptions bubble up.
+/// * Accept and retain the error code (the `errorCode`)
+/// * Support the `return` command's options
+/// * Support the `catch` command's `optionVarName`.
 ///
 /// [`ResultCode`]: enum.ResultCode.html
 /// [`MoltResult`]: type.MoltResult.html
@@ -190,7 +197,6 @@ impl Exception {
         self.value.clone()
     }
 }
-
 
 /// A unique identifier, used to identify cached context data within a given
 /// interpreter.  For more information see the discussion of command definition

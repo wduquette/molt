@@ -3,8 +3,8 @@
 //! Experimental; might eventually replace ResultCode.  The goal of this module is to work
 //! out the ergonomics of the new solution.
 
-use crate::value::Value;
 use crate::types::MoltInt;
+use crate::value::Value;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Code {
@@ -14,7 +14,7 @@ pub enum Code {
     Return,
     Break,
     Continue,
-    Other(MoltInt)
+    Other(MoltInt),
 }
 
 #[derive(Debug)]

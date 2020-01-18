@@ -11,8 +11,8 @@ readme = "README.md"
 keywords = ["language", "script", "scripting", "tcl"]
 
 [dependencies]
-molt = { version = "0.2.1", path = "../molt" }
-molt-shell = { version = "0.2.1", path = "../molt-shell" }
+molt = { version = "0.2.2", path = "../molt" }
+molt-shell = { version = "0.2.2", path = "../molt-shell" }
 
 [[bin]]
 name = "moltsh"

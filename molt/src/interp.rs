@@ -490,7 +490,6 @@ pub struct Interp {
     last_context_id: u64,
 
     // Context Map
-    // TODO: Remove: context_map: HashMap<ContextID, Box<dyn Any>>,
     context_map: HashMap<ContextID, ContextBox>,
 
     // Defines the recursion limit for Interp::eval().
@@ -587,7 +586,6 @@ impl ContextBox {
     /// and false otherwise.
     ///
     /// Panics if the count is already 0.
-    #[allow(dead_code)] // TODO: Remove once the design is complete.
     fn decrement(&mut self) -> bool {
         assert!(
             self.ref_count != 0,
@@ -628,7 +626,7 @@ impl Interp {
     /// ```
 
     pub fn empty() -> Self {
-        Self {
+        let mut interp = Self {
             recursion_limit: 1000,
             commands: HashMap::new(),
             last_context_id: 0,
@@ -636,7 +634,10 @@ impl Interp {
             scopes: ScopeStack::new(),
             num_levels: 0,
             profile_map: HashMap::new(),
-        }
+        };
+
+        interp.set_scalar("errorInfo", Value::empty()).unwrap();
+        interp
     }
 
     /// Creates a new Molt interpreter that is pre-populated with the standard Molt commands.
@@ -812,7 +813,25 @@ impl Interp {
     ///
     /// TODO
     pub fn eval_body(&mut self, body: &Value) -> MoltResult {
-        self.eval_script(&*body.as_script()?)
+        let result = self.eval_script(&*body.as_script()?);
+
+        if let Err(exception) = &result {
+            self.set_global_error_data(exception.error_data())?;
+        }
+
+        result
+    }
+
+    /// Saves the error exception data
+    fn set_global_error_data(&mut self, error_data: Option<&ErrorData>) -> Result<(),Exception> {
+        if let Some(data) = error_data {
+            // TODO: Might want a public method for this.  Or, if I implement namespaces, that's
+            // sufficient.
+            self.scopes.set_global("errorInfo", data.error_info())?;
+            self.scopes.set_global("errorCode", data.error_code())?;
+        }
+
+        Ok(())
     }
 
     /// Evaluates a parsed Script, producing a normal MoltResult.
@@ -923,7 +942,14 @@ impl Interp {
     /// # }
     /// ```
     pub fn expr(&mut self, expr: &Value) -> MoltResult {
-        expr::expr(self, expr)
+        // Evaluate the expression and set the errorInfo/errorCode.
+        let result = expr::expr(self, expr);
+
+        if let Err(exception) = &result {
+            self.set_global_error_data(exception.error_data())?;
+        }
+
+        result
     }
 
     /// Evaluates a boolean [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
@@ -945,7 +971,7 @@ impl Interp {
     /// # }
     /// ```
     pub fn expr_bool(&mut self, expr: &Value) -> Result<bool, Exception> {
-        expr::expr(self, expr)?.as_bool()
+        self.expr(expr)?.as_bool()
     }
 
     /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
@@ -968,7 +994,7 @@ impl Interp {
     /// # }
     /// ```
     pub fn expr_int(&mut self, expr: &Value) -> Result<MoltInt, Exception> {
-        expr::expr(self, expr)?.as_int()
+        self.expr(expr)?.as_int()
     }
 
     /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
@@ -991,7 +1017,7 @@ impl Interp {
     /// # }
     /// ```
     pub fn expr_float(&mut self, expr: &Value) -> Result<MoltFloat, Exception> {
-        expr::expr(self, expr)?.as_float()
+        self.expr(expr)?.as_float()
     }
 
     //--------------------------------------------------------------------------------------------

@@ -151,14 +151,31 @@ pub struct Exception {
 
     /// The result value
     value: Value,
+
+    /// The error info, if any.
+    error_data: Option<ErrorData>,
 }
 
 impl Exception {
     /// Creates an `Error` exception with the given error message.
     pub fn molt_err(msg: Value) -> Self {
+        let data = ErrorData::new(Value::from("NONE"), msg.as_str());
+
         Self {
             code: ResultCode::Error,
             value: msg,
+            error_data: Some(data),
+        }
+    }
+
+    /// Creates an `Error` exception with the given code and error message.
+    pub fn molt_err2(error_code: Value, msg: Value) -> Self {
+        let data = ErrorData::new(error_code, msg.as_str());
+
+        Self {
+            code: ResultCode::Error,
+            value: msg,
+            error_data: Some(data),
         }
     }
 
@@ -168,6 +185,7 @@ impl Exception {
         Self {
             code: ResultCode::Return,
             value: msg,
+            error_data: None,
         }
     }
 
@@ -176,6 +194,7 @@ impl Exception {
         Self {
             code: ResultCode::Break,
             value: Value::empty(),
+            error_data: None,
         }
     }
 
@@ -184,7 +203,13 @@ impl Exception {
         Self {
             code: ResultCode::Continue,
             value: Value::empty(),
+            error_data: None,
         }
+    }
+
+    /// Returns true if the exception is an error exception, and false otherwise.
+    pub fn is_error(&self) -> bool {
+        self.code == ResultCode::Error
     }
 
     /// Gets the exception's result code.
@@ -195,6 +220,58 @@ impl Exception {
     /// Gets the exception's value, i.e., the explicit return value or the error message.
     pub fn value(&self) -> Value {
         self.value.clone()
+    }
+
+    /// Gets the exception's error data, if any.
+    pub fn error_data(&self) -> Option<&ErrorData> {
+        self.error_data.as_ref()
+    }
+
+    /// Adds a line to the exception's error info.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the exception is not an error exception.
+    pub fn add_error_info(&mut self, line: &str) {
+        if let Some(data) = &mut self.error_data {
+            data.add_info(line);
+        } else {
+            panic!("add_error_info called for non-Error Exception");
+        }
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ErrorData {
+    /// The error code; defaults to "NONE"
+    error_code: Value,
+
+    /// The TCL stack trace.
+    stack_trace: Vec<String>,
+}
+
+impl ErrorData {
+    // Creates a new ErrorData given the error code and error message.
+    fn new(error_code: Value, error_msg: &str) -> Self {
+        Self {
+            error_code,
+            stack_trace: vec![error_msg.into()],
+        }
+    }
+
+    /// Returns the error code.
+    pub fn error_code(&self) -> Value {
+        self.error_code.clone()
+    }
+
+    /// Returns the stack trace.
+    pub fn error_info(&self) -> Value {
+        Value::from(self.stack_trace.join("\n"))
+    }
+
+    /// Adds to the stack trace.
+    fn add_info(&mut self, info: &str) {
+        self.stack_trace.push(info.into());
     }
 }
 
@@ -321,5 +398,95 @@ impl VarName {
     /// Returns the parsed array index, if any.
     pub fn index(&self) -> Option<&str> {
         self.index.as_ref().map(|x| &**x)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_error_data() {
+        let mut data = ErrorData::new("CODE".into(), "error message");
+
+        assert_eq!(data.error_code(), "CODE".into());
+        assert_eq!(data.error_info(), "error message".into());
+
+        data.add_info("from unit test");
+        assert_eq!(data.error_info(), "error message\nfrom unit test".into());
+    }
+
+    #[test]
+    fn test_exception_molt_err() {
+        let mut exception = Exception::molt_err("error message".into());
+
+        assert_eq!(exception.code(), ResultCode::Error);
+        assert_eq!(exception.value(), "error message".into());
+        assert!(exception.is_error());
+        assert!(exception.error_data().is_some());
+
+        if let Some(data) = exception.error_data() {
+            assert_eq!(data.error_code(), "NONE".into());
+            assert_eq!(data.error_info(), "error message".into());
+        }
+
+        exception.add_error_info("from unit test");
+
+        if let Some(data) = exception.error_data() {
+            assert_eq!(data.error_info(), "error message\nfrom unit test".into());
+        }
+    }
+
+    #[test]
+    fn test_exception_molt_err2() {
+        let exception = Exception::molt_err2("CODE".into(), "error message".into());
+
+        assert_eq!(exception.code(), ResultCode::Error);
+        assert_eq!(exception.value(), "error message".into());
+        assert!(exception.is_error());
+        assert!(exception.error_data().is_some());
+
+        if let Some(data) = exception.error_data() {
+            assert_eq!(data.error_code(), "CODE".into());
+            assert_eq!(data.error_info(), "error message".into());
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn text_exception_add_error_info() {
+        let mut exception = Exception::molt_break();
+
+        exception.add_error_info("should panic; not an error exception");
+    }
+
+    #[test]
+    fn test_exception_molt_return() {
+        let exception = Exception::molt_return("result".into());
+
+        assert_eq!(exception.code(), ResultCode::Return);
+        assert_eq!(exception.value(), "result".into());
+        assert!(!exception.is_error());
+        assert!(!exception.error_data().is_some());
+    }
+
+    #[test]
+    fn test_exception_molt_break() {
+        let exception = Exception::molt_break();
+
+        assert_eq!(exception.code(), ResultCode::Break);
+        assert_eq!(exception.value(), "".into());
+        assert!(!exception.is_error());
+        assert!(!exception.error_data().is_some());
+    }
+
+    #[test]
+    fn test_exception_molt_continue() {
+        let exception = Exception::molt_continue();
+
+        assert_eq!(exception.code(), ResultCode::Continue);
+        assert_eq!(exception.value(), "".into());
+        assert!(!exception.is_error());
+        assert!(!exception.error_data().is_some());
     }
 }

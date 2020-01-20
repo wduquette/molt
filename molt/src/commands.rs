@@ -925,6 +925,15 @@ pub fn cmd_source(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
     }
 }
 
+/// throw *type* *message*
+///
+/// Throws an error with the error code and message.
+pub fn cmd_throw(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 3, 3, "type message")?;
+
+    Err(Exception::molt_err2(argv[1].clone(), argv[2].clone()))
+}
+
 /// # time *command* ?*count*?
 ///
 /// Executes the command the given number of times, and returns the average

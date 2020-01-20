@@ -436,9 +436,9 @@
 //! [`Value`]: ../value/index.html
 //! [`Interp`]: struct.Interp.html
 
-use crate::dict::dict_new;
 use crate::check_args;
 use crate::commands;
+use crate::dict::dict_new;
 use crate::expr;
 use crate::molt_err;
 use crate::molt_ok;
@@ -459,7 +459,6 @@ const OPT_LEVEL: &str = "-level";
 const OPT_ERRORCODE: &str = "-errorcode";
 const OPT_ERRORINFO: &str = "-errorinfo";
 const ZERO: &str = "0";
-
 
 /// The Molt Interpreter.
 ///
@@ -701,6 +700,7 @@ impl Interp {
         interp.add_command("rename", commands::cmd_rename);
         interp.add_command("return", commands::cmd_return);
         interp.add_command("set", commands::cmd_set);
+        interp.add_command("throw", commands::cmd_throw);
         interp.add_command("time", commands::cmd_time);
         interp.add_command("unset", commands::cmd_unset);
         interp.add_command("while", commands::cmd_while);
@@ -832,7 +832,7 @@ impl Interp {
     }
 
     /// Saves the error exception data
-    fn set_global_error_data(&mut self, error_data: Option<&ErrorData>) -> Result<(),Exception> {
+    fn set_global_error_data(&mut self, error_data: Option<&ErrorData>) -> Result<(), Exception> {
         if let Some(data) = error_data {
             // TODO: Might want a public method for this.  Or, if I implement namespaces, that's
             // sufficient.
@@ -947,7 +947,7 @@ impl Interp {
                     opts.insert(OPT_LEVEL.into(), ZERO.into());
                 }
                 ResultCode::Other(_) => unimplemented!(), // TODO: Not in use yet
-            }
+            },
         }
 
         Value::from(opts)

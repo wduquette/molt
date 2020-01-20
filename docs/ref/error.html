@@ -141,7 +141,7 @@
                 <div id="content" class="content">
                     <main>
                         <a class="header" href="#error-message" id="error-message"><h1>error <em>message</em></h1></a>
-<p>Returns an error with the given <em>message</em>.  The error may
+<p>Returns an error with the given <em>message</em> and an error code of <code>NONE</code>.  The error may
 be caught using the <a href="./catch.html"><strong>catch</strong></a> command.</p>
 <a class="header" href="#example" id="example"><h2>Example</h2></a>
 <pre><code class="language-tcl">proc myproc {x} {
@@ -151,9 +151,12 @@ be caught using the <a href="./catch.html"><strong>catch</strong></a> command.</
     ...
 }
 </code></pre>
-<a class="header" href="#tcl-notes" id="tcl-notes"><h2>TCL Notes</h2></a>
-<p>In standard TCL, the <code>error</code> command may also return a stack trace and an
-error code.  In time Molt will likely implement the full error return protocol.</p>
+<a class="header" href="#tcl-liens" id="tcl-liens"><h2>TCL Liens</h2></a>
+<p>In standard TCL, the <code>error</code> also has optional <code>errorInfo</code> and <code>errorCode</code> arguments.  These
+are used in older TCL code to rethrow errors without polluting the stack trace.  Modern TCL code
+uses the <a href="./throw.html"><strong>throw</strong></a> command to throw an error with an error code and the
+<a href="./return.html"><strong>return</strong></a> command to rethrow an error (see the reference page for an
+example).  Consequently, Molt doesn't implement these arguments.</p>
 
                     </main>
 

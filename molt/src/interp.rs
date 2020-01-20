@@ -436,6 +436,7 @@
 //! [`Value`]: ../value/index.html
 //! [`Interp`]: struct.Interp.html
 
+use crate::dict::dict_new;
 use crate::check_args;
 use crate::commands;
 use crate::expr;
@@ -451,6 +452,14 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::time::Instant;
+
+// Constants
+const OPT_CODE: &str = "-code";
+const OPT_LEVEL: &str = "-level";
+const OPT_ERRORCODE: &str = "-errorcode";
+const OPT_ERRORINFO: &str = "-errorinfo";
+const ZERO: &str = "0";
+
 
 /// The Molt Interpreter.
 ///
@@ -902,6 +911,46 @@ impl Interp {
             Word::Expand(_) => panic!("recursive Expand!"),
             Word::String(str) => Ok(Value::from(str)),
         }
+    }
+
+    /// Returns the `return` option dictionary for the given result as a dictionary value.
+    pub fn return_options(&self, result: &MoltResult) -> Value {
+        let mut opts = dict_new();
+
+        match result {
+            Ok(_) => {
+                opts.insert(OPT_CODE.into(), ZERO.into());
+                opts.insert(OPT_LEVEL.into(), ZERO.into());
+            }
+            Err(exception) => match exception.code() {
+                ResultCode::Okay => unreachable!(), // TODO: Not in use yet
+                ResultCode::Error => {
+                    let data = exception.error_data().expect("Error has no error data");
+                    opts.insert(OPT_CODE.into(), "1".into());
+                    opts.insert(OPT_LEVEL.into(), ZERO.into());
+                    opts.insert(OPT_ERRORCODE.into(), data.error_code());
+                    opts.insert(OPT_ERRORINFO.into(), data.error_info());
+                    // TODO: Standard TCL also sets -errorstack, -errorline.
+                }
+                ResultCode::Return => {
+                    // TODO: Once the -level code is implemented this should set the
+                    // opts to -code 0 -level 1.
+                    opts.insert(OPT_CODE.into(), "2".into());
+                    opts.insert(OPT_LEVEL.into(), ZERO.into());
+                }
+                ResultCode::Break => {
+                    opts.insert(OPT_CODE.into(), "3".into());
+                    opts.insert(OPT_LEVEL.into(), ZERO.into());
+                }
+                ResultCode::Continue => {
+                    opts.insert(OPT_CODE.into(), "4".into());
+                    opts.insert(OPT_LEVEL.into(), ZERO.into());
+                }
+                ResultCode::Other(_) => unimplemented!(), // TODO: Not in use yet
+            }
+        }
+
+        Value::from(opts)
     }
 
     /// Determines whether or not the script is syntactically complete,

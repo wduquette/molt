@@ -1,8 +1,9 @@
-# catch *script* ?*resultVarName*?
+# catch *script* ?*resultVarName*? ?*optionsVarName*?
 
 Executes the script, catching the result, including any errors.  The return value of `catch`
-is an integer code that indicates why the script returned.  If given, the variable called
-*resultVarName* in the caller's scope is set to the actual return value.
+is an integer code that indicates why the script returned.  If *resultVarName* is given, the
+named variable is set to the actual return value in the caller's scope.  If *optionsVarName* is
+given, the named variable is set to the [**return**](./return.md) options dictionary.
 
 There are five return codes:
 
@@ -10,7 +11,7 @@ There are five return codes:
 | ------------ | ------ |
 | 0 (normal)   | Normal. The result variable is set to the script's result. |
 | 1 (error)    | A command in the script threw an error. The result variable is set to the error message. |
-| 2 (return)   | The script called [**return**](./return.md) The result variable is set to the returned value. |
+| 2 (return)   | The script called [**return**](./return.md). The result variable is set to the returned value. |
 | 3 (break)    | The script called [**break**](./break.md). |
 | 4 (continue) | The script called [**continue**](./continue.md). |
 
@@ -26,8 +27,13 @@ if {[catch {do_something} result]} {
 }
 ```
 
-## TCL Liens
+The [**return**](./return.md) options can be used to rethrow the error:
 
-In Standard TCL, the `catch` command has an additional argument, a variable that receives a
-dictionary with full details about the context of the returned value.  Molt doesn't yet
-implement this mechanism.
+```tcl
+if {[catch {do_something} errMsg opts]} {
+    puts "Error result: $errMsg"
+    return -options $opts $errMsg
+} else {
+    puts "Good result: $result"
+}
+```

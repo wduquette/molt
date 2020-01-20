@@ -96,6 +96,7 @@ pub type MoltResult = Result<Value, Exception>;
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ResultCode {
     /// Experimental; not in use yet.
+    /// TODO: Should be NORMAL
     Okay,
 
     /// A Molt error.  The `Exception::value` is the error message for display to the user.

@@ -204,6 +204,7 @@ following subcommands:</p>
 <li>dict remove</li>
 <li>dict set</li>
 <li>dict size</li>
+<li>dict unset</li>
 <li>dict values</li>
 </ul>
 <p>Other <code>dict</code> subcommands will be added over time.</p>
@@ -715,15 +716,16 @@ continuing execution after the loop.</p>
 
 # Execution continues here after the break
 </code></pre>
-<a class="header" href="#catch-script-resultvarname" id="catch-script-resultvarname"><h1>catch <em>script</em> ?<em>resultVarName</em>?</h1></a>
+<a class="header" href="#catch-script-resultvarname-optionsvarname" id="catch-script-resultvarname-optionsvarname"><h1>catch <em>script</em> ?<em>resultVarName</em>? ?<em>optionsVarName</em>?</h1></a>
 <p>Executes the script, catching the result, including any errors.  The return value of <code>catch</code>
-is an integer code that indicates why the script returned.  If given, the variable called
-<em>resultVarName</em> in the caller's scope is set to the actual return value.</p>
+is an integer code that indicates why the script returned.  If <em>resultVarName</em> is given, the
+named variable is set to the actual return value in the caller's scope.  If <em>optionsVarName</em> is
+given, the named variable is set to the <a href="ref/./return.html"><strong>return</strong></a> options dictionary.</p>
 <p>There are five return codes:</p>
 <table><thead><tr><th> Return Code  </th><th> Effect </th></tr></thead><tbody>
 <tr><td> 0 (normal)   </td><td> Normal. The result variable is set to the script's result. </td></tr>
 <tr><td> 1 (error)    </td><td> A command in the script threw an error. The result variable is set to the error message. </td></tr>
-<tr><td> 2 (return)   </td><td> The script called <a href="ref/./return.html"><strong>return</strong></a> The result variable is set to the returned value. </td></tr>
+<tr><td> 2 (return)   </td><td> The script called <a href="ref/./return.html"><strong>return</strong></a>. The result variable is set to the returned value. </td></tr>
 <tr><td> 3 (break)    </td><td> The script called <a href="ref/./break.html"><strong>break</strong></a>. </td></tr>
 <tr><td> 4 (continue) </td><td> The script called <a href="ref/./continue.html"><strong>continue</strong></a>. </td></tr>
 </tbody></table>
@@ -735,10 +737,14 @@ is an integer code that indicates why the script returned.  If given, the variab
     puts &quot;Good result: $result&quot;
 }
 </code></pre>
-<a class="header" href="#tcl-liens" id="tcl-liens"><h2>TCL Liens</h2></a>
-<p>In Standard TCL, the <code>catch</code> command has an additional argument, a variable that receives a
-dictionary with full details about the context of the returned value.  Molt doesn't yet
-implement this mechanism.</p>
+<p>The <a href="ref/./return.html"><strong>return</strong></a> options can be used to rethrow the error:</p>
+<pre><code class="language-tcl">if {[catch {do_something} errMsg opts]} {
+    puts &quot;Error result: $errMsg&quot;
+    return -options $opts $errMsg
+} else {
+    puts &quot;Good result: $result&quot;
+}
+</code></pre>
 <a class="header" href="#continue" id="continue"><h1>continue</h1></a>
 <p>Continues execution with the next iteration of the inmost loop containing
 the <code>continue</code> command.</p>
@@ -869,7 +875,7 @@ their keys.</p>
 1 2
 </code></pre>
 <a class="header" href="#error-message" id="error-message"><h1>error <em>message</em></h1></a>
-<p>Returns an error with the given <em>message</em>.  The error may
+<p>Returns an error with the given <em>message</em> and an error code of <code>NONE</code>.  The error may
 be caught using the <a href="ref/./catch.html"><strong>catch</strong></a> command.</p>
 <a class="header" href="#example-6" id="example-6"><h2>Example</h2></a>
 <pre><code class="language-tcl">proc myproc {x} {
@@ -879,9 +885,12 @@ be caught using the <a href="ref/./catch.html"><strong>catch</strong></a> comman
     ...
 }
 </code></pre>
-<a class="header" href="#tcl-notes-2" id="tcl-notes-2"><h2>TCL Notes</h2></a>
-<p>In standard TCL, the <code>error</code> command may also return a stack trace and an
-error code.  In time Molt will likely implement the full error return protocol.</p>
+<a class="header" href="#tcl-liens" id="tcl-liens"><h2>TCL Liens</h2></a>
+<p>In standard TCL, the <code>error</code> also has optional <code>errorInfo</code> and <code>errorCode</code> arguments.  These
+are used in older TCL code to rethrow errors without polluting the stack trace.  Modern TCL code
+uses the <a href="ref/./throw.html"><strong>throw</strong></a> command to throw an error with an error code and the
+<a href="ref/./return.html"><strong>return</strong></a> command to rethrow an error (see the reference page for an
+example).  Consequently, Molt doesn't implement these arguments.</p>
 <a class="header" href="#exit-returncode" id="exit-returncode"><h1>exit ?<em>returnCode</em>?</h1></a>
 <p>Terminates the application by calling
 <a href="https://doc.rust-lang.org/std/process/fn.exit.html"><code>std::process:exit()</code></a>

@@ -138,30 +138,36 @@ pub fn cmd_break(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
     Err(Exception::molt_break())
 }
 
-/// catch script ?resultVarName?
+/// catch script ?resultVarName? ?optionsVarName?
 ///
 /// Executes a script, returning the result code.  If the resultVarName is given, the result
 /// of executing the script is returned in it.  The result code is returned as an integer,
 /// 0=Ok, 1=Error, 2=Return, 3=Break, 4=Continue.
+///
+///
 pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 2, 3, "script ?resultVarName?")?;
+    check_args(1, argv, 2, 4, "script ?resultVarName? ?optionsVarName?")?;
 
     let result = interp.eval_body(&argv[1]);
 
-    let (code, value) = match result {
-        Ok(val) => (0, val),
+    let (code, value) = match &result {
+        Ok(val) => (0, val.clone()),
         Err(exception) => match exception.code() {
-            ResultCode::Okay => unreachable!(),
+            ResultCode::Okay => unreachable!(), // TODO: Not in use yet
             ResultCode::Error => (1, exception.value()),
             ResultCode::Return => (2, exception.value()),
             ResultCode::Break => (3, exception.value()),
             ResultCode::Continue => (4, exception.value()),
-            ResultCode::Other(c) => (c, exception.value()),
+            ResultCode::Other(_) => unimplemented!(), // TODO: Not in use yet
         },
     };
 
-    if argv.len() == 3 {
+    if argv.len() >= 3 {
         interp.set_var(&argv[2], value)?;
+    }
+
+    if argv.len() == 4 {
+        interp.set_var(&argv[3], interp.return_options(&result))?;
     }
 
     Ok(Value::from(code))

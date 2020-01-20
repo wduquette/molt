@@ -33,8 +33,6 @@ mod eval_ptr;
 mod expr;
 pub mod interp;
 mod list;
-#[allow(dead_code)] // TEMP; EXPERIMENTAL
-mod molt_err;
 mod tokenizer;
 #[macro_use]
 mod macros;

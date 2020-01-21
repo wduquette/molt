@@ -24,3 +24,9 @@ test error-2.2 {error exits proc} -setup {
     global x
     unset x
 } -ok {before 1 {simulated error}}
+
+test error-3.1 {error sets return options} {
+    set a [catch { error "Message" } result opts]
+    list $a $result $opts
+    # TODO: This will change once the stack trace code is fully implemented.
+} -ok {1 Message {-code 1 -level 0 -errorcode NONE -errorinfo Message}}

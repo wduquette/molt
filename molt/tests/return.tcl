@@ -4,12 +4,12 @@
 
 # Test syntax.  Note: TCL doesn't work this way, but until I implement
 # the full return syntax, it doesn't matter.
-test return-1.1 {result errors} {
+test return-1.1 {return errors} {
     return foo bar
 } -error {wrong # args: should be "return ?value?"}
 
 # return the empty string
-test return-2.1 {result command} -setup {
+test return-2.1 {return command} -setup {
     proc a {} {
         return
     }
@@ -20,7 +20,7 @@ test return-2.1 {result command} -setup {
 } -ok {}
 
 # return something else.
-test return-2.2 {result command} -setup {
+test return-2.2 {return command} -setup {
     proc a {} {
         return "howdy"
     }
@@ -29,3 +29,9 @@ test return-2.2 {result command} -setup {
 } -cleanup {
     rename a ""
 } -ok {howdy}
+
+test return-3.1 {return command: catch} {
+    set code [catch {return x} result opts]
+    list $code $result $opts
+    # TODO: This will change when result -level is implemented.
+} -ok {2 x {-code 2 -level 0}}

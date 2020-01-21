@@ -37,6 +37,7 @@
   - [rename](./ref/rename.md)
   - [return](./ref/return.md)
   - [set](./ref/set.md)
+  - [throw](./ref/throw.md)
   - [time](./ref/time.md)
   - [unset](./ref/unset.md)
   - [while](./ref/while.md)

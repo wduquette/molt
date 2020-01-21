@@ -2,7 +2,7 @@
 
 test catch-1.1 {catch no args} {
     catch
-} -error {wrong # args: should be "catch script ?resultVarName?"}
+} -error {wrong # args: should be "catch script ?resultVarName? ?optionsVarName?"}
 
 test catch-2.1 {catch ok} {
     catch {set a 1}
@@ -48,3 +48,9 @@ test catch-4.5 {catch continue} {
     catch {continue} myvar
     set myvar
 } -ok {}
+
+test catch-5.1 {catch options} {
+    set a [catch { throw CODE "Message" } result opts]
+    list $a $result $opts
+    # TODO: This will change once the stack trace code is fully implemented.
+} -ok {1 Message {-code 1 -level 0 -errorcode CODE -errorinfo Message}}

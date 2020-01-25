@@ -228,6 +228,14 @@ impl Exception {
         self.error_data.as_ref()
     }
 
+    pub fn is_new_error(&self) -> bool {
+        if let Some(data) = &self.error_data {
+            data.is_new()
+        } else {
+            false
+        }
+    }
+
     /// Adds a line to the exception's error info.
     ///
     /// # Panics
@@ -265,13 +273,17 @@ impl ErrorData {
         self.error_code.clone()
     }
 
+    pub fn is_new(&self) -> bool {
+        self.stack_trace.len() == 1
+    }
+
     /// Returns the stack trace.
     pub fn error_info(&self) -> Value {
         Value::from(self.stack_trace.join("\n"))
     }
 
     /// Adds to the stack trace.
-    fn add_info(&mut self, info: &str) {
+    pub(crate) fn add_info(&mut self, info: &str) {
         self.stack_trace.push(info.into());
     }
 }

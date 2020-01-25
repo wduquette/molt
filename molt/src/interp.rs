@@ -436,6 +436,7 @@
 //! [`Value`]: ../value/index.html
 //! [`Interp`]: struct.Interp.html
 
+use crate::list::list_to_string;
 use crate::check_args;
 use crate::commands;
 use crate::dict::dict_new;
@@ -864,7 +865,23 @@ impl Interp {
                 // self.profile_save(&format!("cmd.execute({})", name), start);
                 match result {
                     Ok(v) => result_value = v,
-                    _ => return result,
+                    Err(mut exception) => {
+                        // NOTE: Standard TCL appears only to add commands that are procs, and
+                        // the command that initiated the error, e.g., "error".
+                        if exception.is_new_error() {
+                            exception.add_error_info("    while executing");
+                        } else if cmd.is_proc() {
+                            exception.add_error_info("    invoked from within");
+                        } else {
+                            return Err(exception);
+                        }
+
+                        // TODO: Add command.  In standard TCL, this is the text of the command
+                        // before interpolation; at present, we don't have that info in a
+                        // convenient form.
+                        exception.add_error_info(&format!("\"{}\"", &list_to_string(&words)));
+                        return Err(exception);
+                    }
                 }
             } else {
                 return molt_err!("invalid command name \"{}\"", name);

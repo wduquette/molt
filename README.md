@@ -1,5 +1,6 @@
 # Molt -- More Or Less TCL
 
+![Rust](https://github.com/wduquette/molt/workflows/Rust/badge.svg)
 [![Crates.io](https://img.shields.io/crates/v/molt.svg)](https://crates.io/crates/molt)
 
 ![MoltLogo.png](MoltLogo.png)

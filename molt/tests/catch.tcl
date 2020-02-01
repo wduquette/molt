@@ -51,6 +51,5 @@ test catch-4.5 {catch continue} {
 
 test catch-5.1 {catch options} {
     set a [catch { throw CODE "Message" } result opts]
-    list $a $result $opts
-    # TODO: This will change once the stack trace code is fully implemented.
-} -ok {1 Message {-code 1 -level 0 -errorcode CODE -errorinfo Message}}
+    list $a $result [dict get $opts -code] [dict get $opts -level] [dict get $opts -errorcode]
+} -ok {1 Message 1 0 CODE}

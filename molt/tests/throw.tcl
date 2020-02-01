@@ -27,6 +27,5 @@ test throw-2.2 {throw exits proc} -setup {
 
 test throw-3.1 {throw sets return options} {
     set a [catch { throw CODE "Message" } result opts]
-    list $a $result $opts
-    # TODO: This will change once the stack trace code is fully implemented.
-} -ok {1 Message {-code 1 -level 0 -errorcode CODE -errorinfo Message}}
+    list $a $result [dict get $opts -code] [dict get $opts -level] [dict get $opts -errorcode]
+} -ok {1 Message 1 0 CODE}

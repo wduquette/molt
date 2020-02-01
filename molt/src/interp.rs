@@ -436,11 +436,11 @@
 //! [`Value`]: ../value/index.html
 //! [`Interp`]: struct.Interp.html
 
-use crate::list::list_to_string;
 use crate::check_args;
 use crate::commands;
 use crate::dict::dict_new;
 use crate::expr;
+use crate::list::list_to_string;
 use crate::molt_err;
 use crate::molt_ok;
 use crate::parser;
@@ -872,8 +872,8 @@ impl Interp {
                             exception.add_error_info("    while executing");
                         } else if cmd.is_proc() {
                             exception.add_error_info("    invoked from within");
-                            exception.add_error_info(
-                                &format!("    (procedure \"{}\" line TODO)", name));
+                            exception
+                                .add_error_info(&format!("    (procedure \"{}\" line TODO)", name));
                         } else {
                             return Err(exception);
                         }
@@ -2262,23 +2262,30 @@ mod tests {
         let mut interp = Interp::new();
 
         assert_eq!(interp.eval("set a 1"), Ok(Value::from("1")));
-        assert_eq!(
-            interp.eval("error 2"),
-            Err(Exception::molt_err(Value::from("2")))
-        );
+        assert!(ex_match(
+            &interp.eval("error 2"),
+            Exception::molt_err(Value::from("2"))
+        ));
         assert_eq!(interp.eval("return 3"), Ok(Value::from("3")));
-        assert_eq!(
-            interp.eval("break"),
-            Err(Exception::molt_err(Value::from(
-                "invoked \"break\" outside of a loop"
-            )))
-        );
-        assert_eq!(
-            interp.eval("continue"),
-            Err(Exception::molt_err(Value::from(
-                "invoked \"continue\" outside of a loop"
-            )))
-        );
+        assert!(ex_match(
+            &interp.eval("break"),
+            Exception::molt_err(Value::from("invoked \"break\" outside of a loop"))
+        ));
+        assert!(ex_match(
+            &interp.eval("continue"),
+            Exception::molt_err(Value::from("invoked \"continue\" outside of a loop"))
+        ));
+    }
+
+    // Shows that the result is matches the given exception.  Ignores the exception's
+    // ErrorData, if any.
+    fn ex_match(r: &MoltResult, expected: Exception) -> bool {
+        // FIRST, if the results are of different types, there's no match.
+        if let Err(e) = r {
+            e.code() == expected.code() && e.value() == expected.value()
+        } else {
+            false
+        }
     }
 
     #[test]
@@ -2289,26 +2296,22 @@ mod tests {
             interp.eval_value(&Value::from("set a 1")),
             Ok(Value::from("1"))
         );
-        assert_eq!(
-            interp.eval_value(&Value::from("error 2")),
-            Err(Exception::molt_err(Value::from("2")))
-        );
+        assert!(ex_match(
+            &interp.eval_value(&Value::from("error 2")),
+            Exception::molt_err(Value::from("2"))
+        ));
         assert_eq!(
             interp.eval_value(&Value::from("return 3")),
             Ok(Value::from("3"))
         );
-        assert_eq!(
-            interp.eval_value(&Value::from("break")),
-            Err(Exception::molt_err(Value::from(
-                "invoked \"break\" outside of a loop"
-            )))
-        );
-        assert_eq!(
-            interp.eval_value(&Value::from("continue")),
-            Err(Exception::molt_err(Value::from(
-                "invoked \"continue\" outside of a loop"
-            )))
-        );
+        assert!(ex_match(
+            &interp.eval_value(&Value::from("break")),
+            Exception::molt_err(Value::from("invoked \"break\" outside of a loop"))
+        ));
+        assert!(ex_match(
+            &interp.eval_value(&Value::from("continue")),
+            Exception::molt_err(Value::from("invoked \"continue\" outside of a loop"))
+        ));
     }
 
     #[test]
@@ -2323,21 +2326,21 @@ mod tests {
             interp.eval_body(&Value::from("set a 1; set b 2")),
             Ok(Value::from("2"))
         );
-        assert_eq!(
-            interp.eval_body(&Value::from("error 2; set a whoops")),
-            Err(Exception::molt_err(Value::from("2")))
+        assert!(ex_match(
+            &interp.eval_body(&Value::from("error 2; set a whoops")),
+            Exception::molt_err(Value::from("2")))
         );
-        assert_eq!(
-            interp.eval_body(&Value::from("return 3; set a whoops")),
-            Err(Exception::molt_return(Value::from("3")))
+        assert!(ex_match(
+            &interp.eval_body(&Value::from("return 3; set a whoops")),
+            Exception::molt_return(Value::from("3")))
         );
-        assert_eq!(
-            interp.eval_body(&Value::from("break; set a whoops")),
-            Err(Exception::molt_break())
+        assert!(ex_match(
+            &interp.eval_body(&Value::from("break; set a whoops")),
+            Exception::molt_break())
         );
-        assert_eq!(
-            interp.eval_body(&Value::from("continue; set a whoops")),
-            Err(Exception::molt_continue())
+        assert!(ex_match(
+            &interp.eval_body(&Value::from("continue; set a whoops")),
+            Exception::molt_continue())
         );
     }
 
@@ -2416,9 +2419,9 @@ mod tests {
         assert_eq!(interp.recursion_limit(), 100);
 
         assert!(dbg!(interp.eval("proc myproc {} { myproc }")).is_ok());
-        assert_eq!(
-            interp.eval("myproc"),
-            molt_err!("too many nested calls to Interp::eval (infinite loop?)")
+        assert!(ex_match(
+            &interp.eval("myproc"),
+            Exception::molt_err(Value::from("too many nested calls to Interp::eval (infinite loop?)")))
         );
     }
 

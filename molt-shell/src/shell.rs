@@ -33,7 +33,18 @@ pub fn repl(interp: &mut Interp, prompt: &str) {
     let mut rl = Editor::<()>::new();
 
     loop {
-        let readline = rl.readline(prompt);
+        let readline = {
+            if interp.var_exists(&Value::from("tcl_prompt1")) {
+                let prompt_val = interp
+                    .var(&Value::from("tcl_prompt1"))
+                    .and_then(|val| interp.eval(val.as_str()))
+                    .or_else::<ResultCode, _>(|_| Ok(Value::from(prompt)))
+                    .unwrap();
+                rl.readline(prompt_val.as_str())
+            } else {
+                rl.readline(prompt)
+            }
+        };
         match readline {
             Ok(line) => {
                 let line = line.trim();

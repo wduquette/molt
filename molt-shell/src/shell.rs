@@ -8,8 +8,8 @@ use std::fs;
 
 /// Invokes an interactive REPL for the given interpreter, using `rustyline` line editing.
 ///
-/// The REPL will display the given prompt to the user.  Press `^C` to terminate
-/// the REPL, returning control to the caller.  Entering `exit` will also normallycause the
+/// The REPL will display a default prompt to the user.  Press `^C` to terminate
+/// the REPL, returning control to the caller.  Entering `exit` will also normally cause the
 /// application to terminate (but the `exit` command can be removed or redefined by the
 /// application).
 ///
@@ -27,24 +27,25 @@ use std::fs;
 /// // NOTE: commands can be added to the interpreter here.
 ///
 /// // NEXT, invoke the REPL.
-/// molt_shell::repl(&mut interp, "% ");
+/// molt_shell::repl(&mut interp);
 /// ```
-pub fn repl(interp: &mut Interp, prompt: &str) {
+pub fn repl(interp: &mut Interp) {
     let mut rl = Editor::<()>::new();
 
     loop {
-        let readline = {
-            if interp.var_exists(&Value::from("tcl_prompt1")) {
-                let prompt_val = interp
-                    .var(&Value::from("tcl_prompt1"))
-                    .and_then(|val| interp.eval(val.as_str()))
-                    .or_else::<ResultCode, _>(|_| Ok(Value::from(prompt)))
-                    .unwrap();
-                rl.readline(prompt_val.as_str())
-            } else {
-                rl.readline(prompt)
+        let readline = if let Ok(pscript) = interp.scalar("tcl_prompt1") {
+            match interp.eval(pscript.as_str()) {
+                Ok(prompt) => rl.readline(prompt.as_str()),
+                Err(ResultCode::Error(msg)) => {
+                    println!("{}", msg);
+                    rl.readline("% ")
+                }
+                _ => unreachable!(),
             }
+        } else {
+            rl.readline("% ")
         };
+
         match readline {
             Ok(line) => {
                 let line = line.trim();

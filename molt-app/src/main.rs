@@ -21,7 +21,7 @@ fn main() {
             "shell" => {
                 if args.len() == 2 {
                     println!("Molt {}", env!("CARGO_PKG_VERSION"));
-                    molt_shell::repl(&mut interp, "% ");
+                    molt_shell::repl(&mut interp);
                 } else {
                     molt_shell::script(&mut interp, &args[2..]);
                 }

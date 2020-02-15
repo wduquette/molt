@@ -35,11 +35,10 @@ pub fn repl(interp: &mut Interp) {
         let readline = if let Ok(pscript) = interp.scalar("tcl_prompt1") {
             match interp.eval(pscript.as_str()) {
                 Ok(prompt) => rl.readline(prompt.as_str()),
-                Err(ResultCode::Error(msg)) => {
-                    println!("{}", msg);
+                Err(exception) => {
+                    println!("{}", exception.value());
                     rl.readline("% ")
                 }
-                _ => unreachable!(),
             }
         } else {
             rl.readline("% ")

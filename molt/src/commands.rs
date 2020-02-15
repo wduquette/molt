@@ -148,12 +148,13 @@ pub fn cmd_break(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
 pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 4, "script ?resultVarName? ?optionsVarName?")?;
 
+    // If the script called `return x`, should get Return, -level 1, -code Okay here
     let result = interp.eval_body(&argv[1]);
 
     let (code, value) = match &result {
         Ok(val) => (0, val.clone()),
         Err(exception) => match exception.code() {
-            ResultCode::Okay => unreachable!(), // TODO: Not in use yet
+            ResultCode::Okay => unreachable!(), // Should not be reachable here.
             ResultCode::Error => (1, exception.value()),
             ResultCode::Return => (2, exception.value()),
             ResultCode::Break => (3, exception.value()),

@@ -795,11 +795,16 @@ impl Interp {
         self.num_levels -= 1;
 
         // NEXT, translate and return the result.
-        if let Err(exception) = result {
+        if let Err(mut exception) = result {
+            // FIRST, handle the return -code, -level protocol
+            if exception.code() == ResultCode::Return {
+                exception.decrement_level();
+            }
+
             match exception.code() {
-                ResultCode::Okay => unreachable!(),
+                ResultCode::Okay => Ok(exception.value()),
                 ResultCode::Error => Err(exception),
-                ResultCode::Return => Ok(exception.value()),
+                ResultCode::Return => Err(exception), // -level > 0
                 ResultCode::Break => molt_err!("invoked \"break\" outside of a loop"),
                 ResultCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
                 ResultCode::Other(_) => unimplemented!(),
@@ -826,7 +831,9 @@ impl Interp {
         let result = self.eval_script(&*body.as_script()?);
 
         if let Err(exception) = &result {
-            self.set_global_error_data(exception.error_data())?;
+            if exception.is_error() {
+                self.set_global_error_data(exception.error_data())?;
+            }
         }
 
         result
@@ -863,27 +870,41 @@ impl Interp {
                 let cmd = Rc::clone(cmd);
                 let result = cmd.execute(self, words.as_slice());
                 // self.profile_save(&format!("cmd.execute({})", name), start);
-                match result {
-                    Ok(v) => result_value = v,
-                    Err(mut exception) => {
-                        // FIRST, new error, an error from within a proc, or an error from
-                        // within some other body (ignored).
-                        if exception.is_new_error() {
-                            exception.add_error_info("    while executing");
-                        } else if cmd.is_proc() {
-                            exception.add_error_info("    invoked from within");
-                            exception
-                                .add_error_info(&format!("    (procedure \"{}\" line TODO)", name));
-                        } else {
+
+                if let Ok(v) = result {
+                    result_value = v;
+                } else if let Err(mut exception) = result {
+                    // TODO: I think this needs to be done up above.
+                    // // Handle the return -code, -level protocol
+                    // if exception.code() == ResultCode::Return {
+                    //     exception.decrement_level();
+                    // }
+
+                    match exception.code() {
+                        // ResultCode::Okay => result_value = exception.value(),
+                        ResultCode::Error => {
+                            // FIRST, new error, an error from within a proc, or an error from
+                            // within some other body (ignored).
+                            if exception.is_new_error() {
+                                exception.add_error_info("    while executing");
+                            } else if cmd.is_proc() {
+                                exception.add_error_info("    invoked from within");
+                                exception
+                                    .add_error_info(&format!("    (procedure \"{}\" line TODO)", name));
+                            } else {
+                                return Err(exception);
+                            }
+
+                            // TODO: Add command.  In standard TCL, this is the text of the command
+                            // before interpolation; at present, we don't have that info in a
+                            // convenient form.  For now, just convert the final words to a string.
+                            exception.add_error_info(&format!("\"{}\"", &list_to_string(&words)));
                             return Err(exception);
                         }
-
-                        // TODO: Add command.  In standard TCL, this is the text of the command
-                        // before interpolation; at present, we don't have that info in a
-                        // convenient form.  For now, just convert the final words to a string.
-                        exception.add_error_info(&format!("\"{}\"", &list_to_string(&words)));
-                        return Err(exception);
+                        _ => return Err(exception),
                     }
+                } else {
+                    unreachable!();
                 }
             } else {
                 return molt_err!("invalid command name \"{}\"", name);
@@ -2331,8 +2352,8 @@ mod tests {
             Exception::molt_err(Value::from("2")))
         );
         assert!(ex_match(
-            &interp.eval_body(&Value::from("return 3; set a whoops")),
-            Exception::molt_return(Value::from("3")))
+            dbg!(&interp.eval_body(&Value::from("return 3; set a whoops"))),
+            dbg!(Exception::molt_return(Value::from("3"))))
         );
         assert!(ex_match(
             &interp.eval_body(&Value::from("break; set a whoops")),

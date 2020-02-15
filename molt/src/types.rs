@@ -95,8 +95,7 @@ pub type MoltResult = Result<Value, Exception>;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ResultCode {
-    /// Experimental; not in use yet.
-    /// TODO: Should be NORMAL
+    /// Value for `return -code` to indicate returning `Ok(value)` higher up the stack.
     Okay,
 
     /// A Molt error.  The `Exception::value` is the error message for display to the user.
@@ -153,6 +152,12 @@ pub struct Exception {
     /// The result value
     value: Value,
 
+    /// The return -level value.  Should be non-zero only for `Return`.
+    level: usize,
+
+    /// The return -code value.  Should be equal to `code`, except for `code == Return`.
+    next_code: ResultCode,
+
     /// The error info, if any.
     error_data: Option<ErrorData>,
 }
@@ -165,6 +170,8 @@ impl Exception {
         Self {
             code: ResultCode::Error,
             value: msg,
+            level: 0,
+            next_code: ResultCode::Error,
             error_data: Some(data),
         }
     }
@@ -176,6 +183,8 @@ impl Exception {
         Self {
             code: ResultCode::Error,
             value: msg,
+            level: 0,
+            next_code: ResultCode::Error,
             error_data: Some(data),
         }
     }
@@ -183,9 +192,26 @@ impl Exception {
     /// Creates a `Return` exception, with the given return value.  Return `Value::empty()`
     /// if there is no specific result.
     pub fn molt_return(msg: Value) -> Self {
+
         Self {
             code: ResultCode::Return,
             value: msg,
+            level: 1,
+            next_code: ResultCode::Okay,
+            error_data: None,
+        }
+    }
+
+    /// Creates an extended `Return` exception with the given return value and parameters.
+    /// Return `Value::empty()` if there is no specific result.
+    pub fn molt_return_ext(msg: Value, level: usize, next_code: ResultCode) -> Self {
+
+        Self {
+            // TODO: Not sure if this is right.
+            code: if level > 0 { ResultCode::Return } else { next_code },
+            value: msg,
+            level,
+            next_code,
             error_data: None,
         }
     }
@@ -195,6 +221,8 @@ impl Exception {
         Self {
             code: ResultCode::Break,
             value: Value::empty(),
+            level: 0,
+            next_code: ResultCode::Break,
             error_data: None,
         }
     }
@@ -204,7 +232,24 @@ impl Exception {
         Self {
             code: ResultCode::Continue,
             value: Value::empty(),
+            level: 0,
+            next_code: ResultCode::Continue,
             error_data: None,
+        }
+    }
+
+    /// Only when the ResultCode is Return:
+    ///
+    /// * Decrements the -level.
+    /// * If it's 0, sets code to -code.
+    ///
+    /// This is used in `Interp::eval_script` to implement the `return` command's
+    /// `-code` and  `-level` protocol.
+    pub(crate) fn decrement_level(&mut self) {
+        assert!(self.code == ResultCode::Return && self.level > 0);
+        self.level -= 1;
+        if self.level == 0 {
+            self.code = self.next_code;
         }
     }
 

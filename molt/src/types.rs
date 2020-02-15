@@ -191,34 +191,47 @@ impl Exception {
 
     /// Creates a `Return` exception, with the given return value.  Return `Value::empty()`
     /// if there is no specific result.
-    pub fn molt_return(msg: Value) -> Self {
+    pub fn molt_return(value: Value) -> Self {
 
         Self {
             code: ResultCode::Return,
-            value: msg,
+            value,
             level: 1,
             next_code: ResultCode::Okay,
             error_data: None,
         }
     }
 
-    /// Creates an extended `Return` exception with the given return value and parameters.
-    /// Return `Value::empty()` if there is no specific result.  level > 0.
+    /// Creates an extended `Return` exception with the given return value, `-level`,
+    /// and `-code`. Return `Value::empty()` if there is no specific result.
     ///
-    /// Note: level = 0 means to just return the next_code immediately.  If that's
-    /// ResultCode::Okay, then you need `Ok(msg)`, not any kind of Exception.  So that's
-    /// handled by the `return` command.
-    pub fn molt_return_ext(msg: Value, level: usize, next_code: ResultCode) -> Self {
-        assert!(level > 0);
-        // TODO: check whether this is allowed in standard TCL, and what happens.
-        assert!(next_code != ResultCode::Return);
+    /// This function is primarily intended for use by the `return` command.
+    ///
+    /// ## Notes
+    ///
+    /// * If `level == 0`, this returns an exception with the given `next_code`, i.e.,
+    ///   `molt_return_ext(value, 0, ResultCode::Continue)` is equivalent to
+    ///   `molt_continue()` and `molt_return_ext(value, 0, ResultCode::Return)` is equivalent
+    ///   to `molt_return(value)`.
+    ///
+    /// * `molt_return_ext(value, 0, ResultCode::Okay)` is not allowed, as that's semantically
+    ///    equivalent to a `MoltResult` of `Ok(value)`, which this method cannot return.
+    ///
+    /// * At present, this method is public only within this crate; we can consider making it
+    ///   fully public if there's need.
+    pub(crate) fn molt_return_ext(value: Value, level: usize, next_code: ResultCode) -> Self {
+        assert!(level > 0 || next_code != ResultCode::Okay);
 
-        Self {
-            code: ResultCode::Return,
-            value: msg,
-            level,
-            next_code,
-            error_data: None,
+        if level == 0 && next_code == ResultCode::Return {
+            Exception::molt_return(value)
+        } else {
+            Self {
+                code: if level > 0 { ResultCode::Return } else { next_code },
+                value,
+                level,
+                next_code,
+                error_data: None,
+            }
         }
     }
 

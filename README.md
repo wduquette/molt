@@ -103,6 +103,7 @@ I've gotten help from many people in this endeavor; here's a (necessarily partia
 * Kevin Kenny, for help with TCL numerics and general encouragement
 * Don Porter, for help with TCL parsing
 * rfdonnelly, for the crates.io badge, etc.
+* Coleman McFarland, for improvements to `molt_shell::repl`.
 * Various folks from users.rust-lang.org who have answered my questions:
     * Krishna Sannasi, for help getting `Value` to work with arbitrary user data types
     * Yandros, for pointing me at `OnceCell` and `UnsafeCell`.

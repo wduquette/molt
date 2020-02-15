@@ -219,6 +219,7 @@ impl Exception {
     ///
     /// * At present, this method is public only within this crate; we can consider making it
     ///   fully public if there's need.
+    #[allow(dead_code)]  // TEMP: the logic is right, but the implementation will change.
     pub(crate) fn molt_return_ext(value: Value, level: usize, next_code: ResultCode) -> Self {
         assert!(level > 0 || next_code != ResultCode::Okay);
 

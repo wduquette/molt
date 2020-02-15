@@ -203,12 +203,18 @@ impl Exception {
     }
 
     /// Creates an extended `Return` exception with the given return value and parameters.
-    /// Return `Value::empty()` if there is no specific result.
+    /// Return `Value::empty()` if there is no specific result.  level > 0.
+    ///
+    /// Note: level = 0 means to just return the next_code immediately.  If that's
+    /// ResultCode::Okay, then you need `Ok(msg)`, not any kind of Exception.  So that's
+    /// handled by the `return` command.
     pub fn molt_return_ext(msg: Value, level: usize, next_code: ResultCode) -> Self {
+        assert!(level > 0);
+        // TODO: check whether this is allowed in standard TCL, and what happens.
+        assert!(next_code != ResultCode::Return);
 
         Self {
-            // TODO: Not sure if this is right.
-            code: if level > 0 { ResultCode::Return } else { next_code },
+            code: ResultCode::Return,
             value: msg,
             level,
             next_code,

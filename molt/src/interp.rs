@@ -795,23 +795,26 @@ impl Interp {
         self.num_levels -= 1;
 
         // NEXT, translate and return the result.
-        if let Err(mut exception) = result {
-            // FIRST, handle the return -code, -level protocol
-            if exception.code() == ResultCode::Return {
-                exception.decrement_level();
-            }
+        if self.num_levels == 0 {
+            if let Err(mut exception) = result {
+                // FIRST, handle the return -code, -level protocol
+                if exception.code() == ResultCode::Return {
+                    exception.decrement_level();
+                }
 
-            match exception.code() {
-                ResultCode::Okay => Ok(exception.value()),
-                ResultCode::Error => Err(exception),
-                ResultCode::Return => Err(exception), // -level > 0
-                ResultCode::Break => molt_err!("invoked \"break\" outside of a loop"),
-                ResultCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
-                ResultCode::Other(_) => unimplemented!(),
+                return match exception.code() {
+                    ResultCode::Okay => Ok(exception.value()),
+                    ResultCode::Error => Err(exception),
+                    ResultCode::Return => Err(exception), // -level > 0
+                    ResultCode::Break => molt_err!("invoked \"break\" outside of a loop"),
+                    ResultCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
+                    // TODO: Better error message
+                    ResultCode::Other(_) => molt_err!("unexpected result code."),
+                }
             }
-        } else {
-            result
         }
+
+        result
     }
 
     /// Evaluates a script one command at a time, returning whatever
@@ -830,6 +833,7 @@ impl Interp {
     pub fn eval_body(&mut self, body: &Value) -> MoltResult {
         let result = self.eval_script(&*body.as_script()?);
 
+        // TODO: This can get moved up into eval_value.
         if let Err(exception) = &result {
             if exception.is_error() {
                 self.set_global_error_data(exception.error_data())?;
@@ -2215,8 +2219,26 @@ impl Procedure {
         // NEXT, evaluate the proc's body, getting the result.
         let result = interp.eval_value(&self.body);
 
+
         // NEXT, pop the scope off of the stack; we're done with it.
         interp.pop_scope();
+
+        if let Err(mut exception) = result {
+            // FIRST, handle the return -code, -level protocol
+            if exception.code() == ResultCode::Return {
+                exception.decrement_level();
+            }
+
+            return match exception.code() {
+                ResultCode::Okay => Ok(exception.value()),
+                ResultCode::Error => Err(exception),
+                ResultCode::Return => Err(exception), // -level > 0
+                ResultCode::Break => molt_err!("invoked \"break\" outside of a loop"),
+                ResultCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
+                // TODO: Better error message
+                ResultCode::Other(_) => molt_err!("unexpected result code."),
+            }
+        }
 
         // NEXT, return the computed result.
         // Note: no need for special handling for return, break, continue;

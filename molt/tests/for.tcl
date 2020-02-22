@@ -77,8 +77,10 @@ test for-2.5 {for loop result} {
 } -ok {}
 
 test for-3.1 {break in for start} {
-    for {break} {1} {} {}
-} -error {invoked "break" outside of a loop}
+    catch {
+        for {break} {1} {} {}
+    }
+} -ok {3}
 
 test for-3.2 {break in for test} {
     for {} {[break]} {} {}
@@ -91,8 +93,10 @@ test for-3.3 {break in for next} {
 return
 
 test for-3.4 {continue in for start} {
-    for {continue} {1} {} {}
-} -error {invoked "continue" outside of a loop}
+    catch {
+        for {continue} {1} {} {}
+    }
+} -ok {4}
 
 test for-3.5 {continue in for test} {
     for {} {[continue]} {} {}

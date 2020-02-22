@@ -124,6 +124,41 @@ pub enum ResultCode {
     Other(MoltInt),
 }
 
+impl ResultCode {
+    pub fn as_value(&self) -> Value {
+        match self {
+            ResultCode::Okay => "ok".into(),
+            ResultCode::Error => "error".into(),
+            ResultCode::Return => "return".into(),
+            ResultCode::Break => "break".into(),
+            ResultCode::Continue => "continue".into(),
+            ResultCode::Other(code) => (*code).into(),
+        }
+    }
+
+    pub fn from_value(value: &Value) -> Result<ResultCode,Exception> {
+        match value.as_str() {
+            "ok" => return Ok(ResultCode::Okay),
+            "error" => return Ok(ResultCode::Error),
+            "return" => return Ok(ResultCode::Return),
+            "break" => return Ok(ResultCode::Break),
+            "continue" => return Ok(ResultCode::Continue),
+            _ => (),
+        }
+
+        let num = value.as_int()?;
+
+        match num {
+            0 => Ok(ResultCode::Okay),
+            1 => Ok(ResultCode::Error),
+            2 => Ok(ResultCode::Return),
+            3 => Ok(ResultCode::Break),
+            4 => Ok(ResultCode::Continue),
+            _ => Ok(ResultCode::Other(num)),
+        }
+    }
+}
+
 /// This enum represents the exceptional results of evaluating a Molt script, as
 /// used in [`MoltResult`].  It is often used as the `Err` type for other
 /// functions in the Molt API, so that these functions can easily return errors when used
@@ -482,6 +517,27 @@ impl VarName {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_result_code_as_value() {
+        assert_eq!(ResultCode::Okay.as_value(), "ok".into());
+        assert_eq!(ResultCode::Error.as_value(), "error".into());
+        assert_eq!(ResultCode::Return.as_value(), "return".into());
+        assert_eq!(ResultCode::Break.as_value(), "break".into());
+        assert_eq!(ResultCode::Continue.as_value(), "continue".into());
+        assert_eq!(ResultCode::Other(5).as_value(), "5".into());
+    }
+
+    #[test]
+    fn test_result_code_from_value() {
+        assert_eq!(ResultCode::from_value(&"ok".into()), Ok(ResultCode::Okay));
+        assert_eq!(ResultCode::from_value(&"error".into()), Ok(ResultCode::Error));
+        assert_eq!(ResultCode::from_value(&"return".into()), Ok(ResultCode::Return));
+        assert_eq!(ResultCode::from_value(&"break".into()), Ok(ResultCode::Break));
+        assert_eq!(ResultCode::from_value(&"continue".into()), Ok(ResultCode::Continue));
+        assert_eq!(ResultCode::from_value(&"5".into()), Ok(ResultCode::Other(5)));
+        assert!(ResultCode::from_value(&"nonesuch".into()).is_err());
+    }
 
     #[test]
     fn test_error_data() {

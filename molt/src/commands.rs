@@ -149,7 +149,7 @@ pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
     check_args(1, argv, 2, 4, "script ?resultVarName? ?optionsVarName?")?;
 
     // If the script called `return x`, should get Return, -level 1, -code Okay here
-    let result = interp.eval_body(&argv[1]);
+    let result = interp.eval_value(&argv[1]);
 
     let (code, value) = match &result {
         Ok(val) => (0, val.clone()),
@@ -395,7 +395,7 @@ pub fn cmd_for(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult 
     interp.eval_value(start)?;
 
     while interp.expr_bool(test)? {
-        let result = interp.eval_body(command);
+        let result = interp.eval_value(command);
 
         if let Err(exception) = result {
             match exception.code() {
@@ -406,7 +406,7 @@ pub fn cmd_for(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult 
         }
 
         // Execute next script.  Break is allowed, but continue is not.
-        let result = interp.eval_body(next);
+        let result = interp.eval_value(next);
 
         if let Err(exception) = result {
             match exception.code() {
@@ -451,7 +451,7 @@ pub fn cmd_foreach(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
             }
         }
 
-        let result = interp.eval_body(body);
+        let result = interp.eval_value(body);
 
         if let Err(exception) = result {
             match exception.code() {
@@ -519,7 +519,7 @@ pub fn cmd_if(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
                 }
 
                 if argi < argv.len() {
-                    return interp.eval_body(&argv[argi]);
+                    return interp.eval_value(&argv[argi]);
                 } else {
                     break;
                 }
@@ -557,7 +557,7 @@ pub fn cmd_if(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
                 }
 
                 if argi < argv.len() {
-                    return interp.eval_body(&argv[argi]);
+                    return interp.eval_value(&argv[argi]);
                 } else {
                     break;
                 }
@@ -1006,7 +1006,7 @@ pub fn cmd_while(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
     check_args(1, argv, 3, 3, "test command")?;
 
     while interp.expr_bool(&argv[1])? {
-        let result = interp.eval_body(&argv[2]);
+        let result = interp.eval_value(&argv[2]);
 
         if let Err(exception) = result {
             match exception.code() {

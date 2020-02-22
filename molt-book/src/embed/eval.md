@@ -5,9 +5,6 @@ An application can evaluate Molt code in several ways:
 * Use one of the `molt::Interp::eval` or `molt::Interp::eval_value` to evaluate an
   individual Molt command or script.
 
-* Use the `molt::Interp::eval_body` method to evaluate a Molt script that is the body
-  of a control structure.
-
 * Use the `molt::expr` function to evaluate a Molt expression, returning a Molt `Value`,
   or `molt::expr_bool`, `molt::expr_int`, and `molt::expr_float` for results of specific
   types.
@@ -19,9 +16,9 @@ An application can evaluate Molt code in several ways:
 
 ## Evaluating Scripts with `eval`
 
-The `molt::Interp::eval` method evaluates a string as a Molt script and returns the result,
-which will always be either `Ok(Value)` or `Err(ResultCode:Error(Value))`. (Other result
-codes are translated into `Ok` or `Err` as appropriate.  See
+The `molt::Interp::eval` method evaluates a string as a Molt script and returns the
+result.  When executed at the top level, `ResultCode::Break`, `ResultCode::Continue`,
+and `ResultCode::Other` are converted to errors, just as they are in `proc` bodies. See
 [The `MoltResult` Type](./molt_result.md) for details.)
 
 ```rust
@@ -41,10 +38,9 @@ The `molt::Interp::eval_value` method has identical semantics, but evaluates the
 representation of a molt `Value`. In this case, the `Value` will cache the parsed internal
 form of the script to speed up subsequent evaluations.
 
-## Evaluating Scripts with `eval_body`
+## Evaluating Control Structure Bodies with `eval_value`
 
-The `molt::Interp::eval_body` method is used when implementing control structures, as it
-gives access to the entire set of `MoltResult` return codes.  
+The `molt::Interp::eval_value` method is used when implementing control structures.
 
 ```rust
 use molt::Interp;
@@ -61,7 +57,7 @@ fn my_cmd(interp: &mut Interp, argv: &[Value]) -> MoltResult {
         ...
 
         // Evaluate the loop body
-        let result = interp.eval_body(body.as_str());
+        let result = interp.eval_value(body);
 
         match result {
             Ok(value) => {

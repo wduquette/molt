@@ -70,11 +70,11 @@
 //! # }
 //! ```
 //!
-//! [`Interp::eval_value`](struct.Interp.html#method.eval_value) evaluates the string
-//! representation of a `Value` as a script.
-//! [`Interp::eval_body`](struct.Interp.html#method.eval_body) is used to evaluate the body
-//! of loops and other control structures.  Unlike `Interp::eval` and `Interp::eval_value`, it
-//! passes the `return`, `break`, and `continue` result codes back to the caller for handling.
+//! [`Interp::eval_value`](struct.Interp.html#method.eval_value) is equivalent to
+//! `Interp::eval` but takes the script as a `Value` instead of as a `&str`.  When
+//! called at the top level, both methods convert the `break` and `continue` return codes
+//! (and any user-defined return codes) to errors; otherwise they are propagated to the caller
+//! for handling.
 //!
 //! All of these methods return [`MoltResult`]:
 //!
@@ -730,8 +730,8 @@ impl Interp {
     /// script, or any error thrown by the script.  Other
     /// [`Exception`](../types/enum.Exception.html) values are converted to normal errors.
     ///
-    /// Use this method (or [`eval_value`](#method.eval_value)) to evaluate arbitrary scripts.
-    /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
+    /// Use this method (or [`eval_value`](#method.eval_value)) to evaluate arbitrary scripts,
+    /// control structure bodies, and so forth.
     ///
     /// # Example
     ///
@@ -770,8 +770,8 @@ impl Interp {
     /// [`Exception`](../types/enum.Exception.html) values are converted to normal errors.
     ///
     /// This method is equivalent to [`eval`](#method.eval), but works on a `Value` rather
-    /// than on a string slice.  Use it or `eval` to evaluate arbitrary scripts.
-    /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
+    /// than on a string slice.  Use it or `eval` to evaluate arbitrary scripts,
+    /// control structure bodies, and so forth.
     ///
     /// [`Value`]: ../value/index.html
     pub fn eval_value(&mut self, value: &Value) -> MoltResult {
@@ -789,8 +789,8 @@ impl Interp {
         }
 
         // NEXT, evaluate the script and translate the result to Ok or Error
-        let result = self.eval_body(value);
-
+        let mut result = self.eval_script(&*value.as_script()?);
+        
         // NEXT, decrement the number of nesting levels.
         self.num_levels -= 1;
 
@@ -802,7 +802,7 @@ impl Interp {
                     exception.decrement_level();
                 }
 
-                return match exception.code() {
+                result = match exception.code() {
                     ResultCode::Okay => Ok(exception.value()),
                     ResultCode::Error => Err(exception),
                     ResultCode::Return => Err(exception), // -level > 0
@@ -810,30 +810,10 @@ impl Interp {
                     ResultCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
                     // TODO: Better error message
                     ResultCode::Other(_) => molt_err!("unexpected result code."),
-                }
+                };
             }
         }
 
-        result
-    }
-
-    /// Evaluates a script one command at a time, returning whatever
-    /// [`MoltResult`](../types/type.MoltResult.html) arises.
-    ///
-    /// This is the method to use when evaluating a control structure's
-    /// script body; the control structure must handle the special
-    /// result codes appropriately.
-    ///
-    /// # Example
-    ///
-    /// The following code could be used to process the body of one of the Molt looping
-    /// commands, e.g., `while` or `foreach`.
-    ///
-    /// TODO
-    pub fn eval_body(&mut self, body: &Value) -> MoltResult {
-        let result = self.eval_script(&*body.as_script()?);
-
-        // TODO: This can get moved up into eval_value.
         if let Err(exception) = &result {
             if exception.is_error() {
                 self.set_global_error_data(exception.error_data())?;
@@ -1973,8 +1953,7 @@ impl Interp {
     /// Gets the interpreter's recursion limit: how deep the stack of script evaluations may be.
     ///
     /// A script stack level is added by each nested script evaluation (i.e., by each call)
-    /// to [`eval`](#method.eval), [`eval_value`](#method.eval_value), or
-    /// [`eval_body`](#method.eval_body).
+    /// to [`eval`](#method.eval) or [`eval_value`](#method.eval_value).
     ///
     /// # Example
     /// ```
@@ -1991,8 +1970,7 @@ impl Interp {
     /// be.  The default is 1000.
     ///
     /// A script stack level is added by each nested script evaluation (i.e., by each call)
-    /// to [`eval`](#method.eval), [`eval_value`](#method.eval_value), or
-    /// [`eval_body`](#method.eval_body).
+    /// to [`eval`](#method.eval) or [`eval_value`](#method.eval_value).
     ///
     /// # Example
     /// ```
@@ -2355,36 +2333,6 @@ mod tests {
             &interp.eval_value(&Value::from("continue")),
             Exception::molt_err(Value::from("invoked \"continue\" outside of a loop"))
         ));
-    }
-
-    #[test]
-    fn test_eval_body() {
-        let mut interp = Interp::new();
-
-        assert_eq!(
-            interp.eval_body(&Value::from("set a 1")),
-            Ok(Value::from("1"))
-        );
-        assert_eq!(
-            interp.eval_body(&Value::from("set a 1; set b 2")),
-            Ok(Value::from("2"))
-        );
-        assert!(ex_match(
-            &interp.eval_body(&Value::from("error 2; set a whoops")),
-            Exception::molt_err(Value::from("2")))
-        );
-        assert!(ex_match(
-            dbg!(&interp.eval_body(&Value::from("return 3; set a whoops"))),
-            dbg!(Exception::molt_return(Value::from("3"))))
-        );
-        assert!(ex_match(
-            &interp.eval_body(&Value::from("break; set a whoops")),
-            Exception::molt_break())
-        );
-        assert!(ex_match(
-            &interp.eval_body(&Value::from("continue; set a whoops")),
-            Exception::molt_continue())
-        );
     }
 
     #[test]

@@ -329,7 +329,7 @@ fn run_test(interp: &mut Interp, context_id: ContextID, info: &TestInfo) {
 
     // Body
     let body = Value::from(&info.body);
-    let result = interp.eval_body(&body);
+    let result = interp.eval_value(&body);
 
     // Cleanup
     if let Err(exception) = interp.eval(&info.cleanup) {

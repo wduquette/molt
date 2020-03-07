@@ -790,7 +790,7 @@ impl Interp {
 
         // NEXT, evaluate the script and translate the result to Ok or Error
         let mut result = self.eval_script(&*value.as_script()?);
-        
+
         // NEXT, decrement the number of nesting levels.
         self.num_levels -= 1;
 
@@ -946,32 +946,34 @@ impl Interp {
                 opts.insert(OPT_CODE.into(), ZERO.into());
                 opts.insert(OPT_LEVEL.into(), ZERO.into());
             }
-            Err(exception) => match exception.code() {
-                ResultCode::Okay => unreachable!(), // TODO: Not in use yet
-                ResultCode::Error => {
-                    let data = exception.error_data().expect("Error has no error data");
-                    opts.insert(OPT_CODE.into(), "1".into());
-                    opts.insert(OPT_LEVEL.into(), ZERO.into());
-                    opts.insert(OPT_ERRORCODE.into(), data.error_code());
-                    opts.insert(OPT_ERRORINFO.into(), data.error_info());
-                    // TODO: Standard TCL also sets -errorstack, -errorline.
+            Err(exception) => {
+                // FIRST, set the -code
+                match exception.code() {
+                    ResultCode::Okay => unreachable!(), // TODO: Not in use yet
+                    ResultCode::Error => {
+                        let data = exception.error_data().expect("Error has no error data");
+                        opts.insert(OPT_CODE.into(), "1".into());
+                        opts.insert(OPT_ERRORCODE.into(), data.error_code());
+                        opts.insert(OPT_ERRORINFO.into(), data.error_info());
+                        // TODO: Standard TCL also sets -errorstack, -errorline.
+                    }
+                    ResultCode::Return => {
+                        opts.insert(OPT_CODE.into(), "2".into());
+                    }
+                    ResultCode::Break => {
+                        opts.insert(OPT_CODE.into(), "3".into());
+                    }
+                    ResultCode::Continue => {
+                        opts.insert(OPT_CODE.into(), "4".into());
+                    }
+                    ResultCode::Other(num) => {
+                        opts.insert(OPT_CODE.into(), num.into());
+                    }
                 }
-                ResultCode::Return => {
-                    // TODO: Once the -level code is implemented this should set the
-                    // opts to -code 0 -level 1.
-                    opts.insert(OPT_CODE.into(), "2".into());
-                    opts.insert(OPT_LEVEL.into(), ZERO.into());
-                }
-                ResultCode::Break => {
-                    opts.insert(OPT_CODE.into(), "3".into());
-                    opts.insert(OPT_LEVEL.into(), ZERO.into());
-                }
-                ResultCode::Continue => {
-                    opts.insert(OPT_CODE.into(), "4".into());
-                    opts.insert(OPT_LEVEL.into(), ZERO.into());
-                }
-                ResultCode::Other(_) => unimplemented!(), // TODO: Not in use yet
-            },
+
+                // NEXT, set the -level
+                opts.insert(OPT_LEVEL.into(), Value::from(exception.level() as MoltInt));
+            }
         }
 
         Value::from(opts)

@@ -263,32 +263,17 @@ impl Exception {
     ///
     /// This function is primarily intended for use by the `return` command.
     ///
-    /// ## Notes
-    ///
-    /// * If `level == 0`, this returns an exception with the given `next_code`, i.e.,
-    ///   `molt_return_ext(value, 0, ResultCode::Continue)` is equivalent to
-    ///   `molt_continue()` and `molt_return_ext(value, 0, ResultCode::Return)` is equivalent
-    ///   to `molt_return(value)`.
-    ///
-    /// * `molt_return_ext(value, 0, ResultCode::Okay)` is not allowed, as that's semantically
-    ///    equivalent to a `MoltResult` of `Ok(value)`, which this method cannot return.
-    ///
-    /// * At present, this method is public only within this crate; we can consider making it
-    ///   fully public if there's need.
-    #[allow(dead_code)]  // TEMP: the logic is right, but the implementation will change.
+    /// It's an error if level == 0 and next_code == Okay; that's
+    /// `Ok(value)` rather than an exception.
     pub(crate) fn molt_return_ext(value: Value, level: usize, next_code: ResultCode) -> Self {
         assert!(level > 0 || next_code != ResultCode::Okay);
 
-        if level == 0 && next_code == ResultCode::Return {
-            Exception::molt_return(value)
-        } else {
-            Self {
-                code: if level > 0 { ResultCode::Return } else { next_code },
-                value,
-                level,
-                next_code,
-                error_data: None,
-            }
+        Self {
+            code: ResultCode::Return,
+            value,
+            level,
+            next_code,
+            error_data: None,
         }
     }
 
@@ -337,6 +322,11 @@ impl Exception {
     /// Gets the exception's result code.
     pub fn code(&self) -> ResultCode {
         self.code
+    }
+
+    /// Gets the exception's level.
+    pub fn level(&self) -> usize {
+        self.level
     }
 
     /// Gets the exception's value, i.e., the explicit return value or the error message.

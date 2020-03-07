@@ -877,24 +877,60 @@ pub fn cmd_rename(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
     molt_ok!()
 }
 
-/// # return ?value?
+/// # return ?-code code? ?-level level? ?value?
 ///
-/// Returns from a proc.  The proc will return the given value, or ""
-/// if no value is specified.
+/// Returns from a proc with the given *value*, which defaults to the empty result.
+/// See the documentation for **return** in The Molt Book for the option semantics.
 ///
 /// ## TCL Liens
 ///
 /// * Doesn't support all of TCL's fancy return machinery. Someday it will.
 pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 1, 2, "?value?")?;
+    check_args(1, argv, 1, 0, "?options...? ?value?")?;
 
+    // FIRST, set the defaults
+    let mut code = ResultCode::Okay;
+    let mut level: MoltInt = 1;
+
+    // NEXT, parse the arguments
     let value = if argv.len() == 1 {
+        // No arguments; return value is empty.
         Value::empty()
     } else {
-        argv[1].clone()
+        // Get any options
+        let mut queue = argv[1..argv.len() - 1].iter();
+
+        while let Some(opt) = queue.next() {
+            let val = queue.next();
+
+            if val.is_none() {
+                // TODO: See what TCL outputs in this case
+                return molt_err!("missing value for option \"{}\"", opt);
+            }
+
+            let val = val.unwrap();
+            match opt.as_str() {
+                "-code" => {
+                    code = ResultCode::from_value(val)?;
+                }
+                "-level" => {
+                    // TODO: See what TCL does if level is negative.
+                    level = val.as_int()?;
+                }
+                _ => return molt_err!("invalid option: \"{}\"", opt),
+            }
+        }
+
+        // Return code is final argument.
+        argv[argv.len() - 1].clone()
     };
 
-    Err(Exception::molt_return(value))
+    // NEXT, return the result: normally a Return exception, but could be "Ok".
+    if level > 0 || code != ResultCode::Okay {
+        Err(Exception::molt_return_ext(value, level as usize, code))
+    } else {
+        Ok(value)
+    }
 }
 
 /// # set *varName* ?*newValue*?

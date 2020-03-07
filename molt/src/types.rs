@@ -9,7 +9,7 @@
 //! [`ResultCode`], which represents all of the ways a Molt script might return early:
 //! errors, explicit returns, breaks, and continues.
 //!
-//! [`MoltInt`], [`MoltFloat`], [`MoltList`], and [`MoltDict`] are simple type aliases
+//! [`MoltInt`], [`MoltFloat`], [`MoltList`], and [`MoltDict`] a/Displayre simple type aliases
 //! defining Molt's internal representation for integers, floats, and TCL lists and
 //! dictionaries.
 //!
@@ -23,9 +23,11 @@
 //! [`Value`]: ../value/index.html
 //! [`interp`]: interp/index.html
 
+use std::str::FromStr;
 use crate::interp::Interp;
 pub use crate::value::Value;
 use indexmap::IndexMap;
+use std::fmt;
 
 // Molt Numeric Types
 
@@ -124,20 +126,24 @@ pub enum ResultCode {
     Other(MoltInt),
 }
 
-impl ResultCode {
-    pub fn as_value(&self) -> Value {
+impl fmt::Display for ResultCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ResultCode::Okay => "ok".into(),
-            ResultCode::Error => "error".into(),
-            ResultCode::Return => "return".into(),
-            ResultCode::Break => "break".into(),
-            ResultCode::Continue => "continue".into(),
-            ResultCode::Other(code) => (*code).into(),
+            ResultCode::Okay => write!(f, "ok"),
+            ResultCode::Error => write!(f, "error"),
+            ResultCode::Return => write!(f, "return"),
+            ResultCode::Break => write!(f, "break"),
+            ResultCode::Continue => write!(f, "continue"),
+            ResultCode::Other(code) => write!(f, "{}", *code),
         }
     }
+}
 
-    pub fn from_value(value: &Value) -> Result<ResultCode,Exception> {
-        match value.as_str() {
+impl FromStr for ResultCode {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
             "ok" => return Ok(ResultCode::Okay),
             "error" => return Ok(ResultCode::Error),
             "return" => return Ok(ResultCode::Return),
@@ -146,15 +152,30 @@ impl ResultCode {
             _ => (),
         }
 
-        let num = value.as_int()?;
+        match Value::get_int(value) {
+            Ok(num) => {
+                match num {
+                    0 => Ok(ResultCode::Okay),
+                    1 => Ok(ResultCode::Error),
+                    2 => Ok(ResultCode::Return),
+                    3 => Ok(ResultCode::Break),
+                    4 => Ok(ResultCode::Continue),
+                    _ => Ok(ResultCode::Other(num)),
+                }
+            }
+            Err(exception) => Err(exception.value().as_str().into()),
+        }
+    }
+}
 
-        match num {
-            0 => Ok(ResultCode::Okay),
-            1 => Ok(ResultCode::Error),
-            2 => Ok(ResultCode::Return),
-            3 => Ok(ResultCode::Break),
-            4 => Ok(ResultCode::Continue),
-            _ => Ok(ResultCode::Other(num)),
+impl ResultCode {
+    /// A convenience: retrieves the enumerated value, converting it from
+    /// `Option<ResultCode>` into `Result<ResultCode,Exception>`.
+    pub fn from_value(value: &Value) -> Result<Self, Exception> {
+        if let Some(x) = value.as_copy::<ResultCode>() {
+            Ok(x)
+        } else {
+            molt_err!("invalid result code: \"{}\"", value)
         }
     }
 }
@@ -519,13 +540,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_result_code_as_value() {
-        assert_eq!(ResultCode::Okay.as_value(), "ok".into());
-        assert_eq!(ResultCode::Error.as_value(), "error".into());
-        assert_eq!(ResultCode::Return.as_value(), "return".into());
-        assert_eq!(ResultCode::Break.as_value(), "break".into());
-        assert_eq!(ResultCode::Continue.as_value(), "continue".into());
-        assert_eq!(ResultCode::Other(5).as_value(), "5".into());
+    fn test_result_code_as_string() {
+        assert_eq!(Value::from_other(ResultCode::Okay).as_str(), "ok");
+        assert_eq!(Value::from_other(ResultCode::Error).as_str(), "error");
+        assert_eq!(Value::from_other(ResultCode::Return).as_str(), "return");
+        assert_eq!(Value::from_other(ResultCode::Break).as_str(), "break");
+        assert_eq!(Value::from_other(ResultCode::Continue).as_str(), "continue");
+        assert_eq!(Value::from_other(ResultCode::Other(5)).as_str(), "5");
+
     }
 
     #[test]

@@ -1270,13 +1270,104 @@ rename myproc yourproc
 # Remove the proc from the interpreter
 rename yourproc &quot;&quot;
 </code></pre>
-<a class="header" href="#return-value" id="return-value"><h1>return ?<em>value</em>?</h1></a>
-<p>Returns the given <em>value</em>, or the empty string if <em>value</em> is omitted.</p>
+<a class="header" href="#return--code-code--level-level-value" id="return--code-code--level-level-value"><h1>return ?-code code? ?-level level? ?<em>value</em>?</h1></a>
+<p>Returns from a TCL procedure or script, optionally including a value.  By default, the
+command simply returns the given
+<em>value</em>, or the empty string if <em>value</em> is omitted.  The options allow the caller to return
+any TCL return code and to return through multiple procedures at once.</p>
+<p>If given, the <em>code</em> must be one of <code>ok</code>, <code>error</code>, <code>return</code>, <code>break</code>, <code>continue</code>, or
+an integer. Integer codes 0, 1, 2, 3, and 4 correspond to the
+symbolic constants just given.  Other integers can be used to implement application-specific
+control structures.</p>
+<p>If given, the <em>level</em> must be an integer greater than or equal to zero; it represents the number
+of stack levels to return through, and defaults to <code>1</code>.</p>
+<p>The precise semantics are difficult to explain without reference to the internals; but see the
+examples for the most useful cases.</p>
+<a class="header" href="#examples-8" id="examples-8"><h2>Examples</h2></a>
+<pre><code class="language-tcl">proc simple_return {} {
+    return &quot;Hello world&quot;    
+}
+</code></pre>
+<p>Procedure <code>simple_return</code> returns the string <code>Hello world</code> in the usual way.</p>
+<pre><code class="language-tcl">proc complex_return {} {
+    return -code ok -level 1 &quot;Hello world&quot;
+}
+</code></pre>
+<p>Procedure <code>complex_return</code> is equivalent to <code>simple_return</code>: it returns to the calling procedure
+or script, one level up the call stack, with the value &quot;Hello world&quot;.  The code <code>ok</code> indicates
+that this is a normal value, to be returned to the caller.</p>
+<pre><code class="language-tcl">proc returnOnX {value} {
+    if {$value eq &quot;X&quot;} {
+        return -code ok -level 2 &quot;early&quot;
+    }
+}
+
+proc myproc {a b} {
+    returnOnX $a
+    returnOnX $b
+    ...
+}
+</code></pre>
+<p>Procedure <code>returnOnX</code> causes a return from its caller if it is passed the value <code>X</code>.  You can see
+this in use in <code>myproc</code>, which uses it to verify that neither variable <code>a</code> nor <code>b</code> has the value
+<code>X</code> before going on about its business.</p>
+<pre><code class="language-tcl">proc pointless_returns {} {
+    return -code ok -level 0 &quot;Hello world&quot;
+    set greeting [return -code ok -level 0 &quot;Howdy&quot;]
+    return &quot;Goodbye&quot;
+}
+</code></pre>
+<p>In procedure <code>pointless_returns</code>, the first <code>return</code> command returns <code>Hello world</code> to its
+immediate caller without exiting the current procedure, and its return value is ignored.  The
+second is similar, but its return value of <code>Howdy</code> is saved in the variable
+<code>greeting</code>.  Finally, the procedure returns <code>Goodbye</code> to its caller.  In practice,
+<code>return -level 0</code> isn't very useful.</p>
+<pre><code class="language-tcl">proc verbose_error {value} {
+    if {$value eq &quot;bad value&quot;} {
+        error &quot;Got a bad value&quot;
+    }
+}
+
+proc immediate_error {value} {
+    if {$value eq &quot;bad value&quot;} {
+        return -code error &quot;Got a bad value&quot;
+    }
+}
+</code></pre>
+<p>Both <code>verbose_error</code> and <code>immediate_error</code> return an error to the caller.  The primary difference
+between the two is that <code>verbose_error</code> includes the call to <code>error</code> in the <code>errorInfo</code> stack
+trace.  Using <code>return -code error</code> is considered better style in library code, but both
+patterns are commonly used in practice.</p>
+<pre><code class="language-tcl">proc complex_break {} {
+    foreach value $list {
+        if {$value eq &quot;stop&quot;} {
+            # Just the same as an explicit break
+            return -code break -level 0
+        }
+    }
+}
+</code></pre>
+<p>Procedure <code>complex_break</code> uses <code>return</code> to reproduce the behavior of the normal <code>break</code>
+command.</p>
+<pre><code class="language-tcl">proc tested_break {value} {
+    if {$value eq &quot;stop&quot;} {
+        return -code break -level 1    
+    }
+}
+
+foreach value $list {
+    # Break from the list if $value is &quot;stop&quot;
+    tested_break $value
+}
+</code></pre>
+<p>Procedure <code>tested_break</code> can be used like <code>break</code> but only breaks if it is passed the value
+&quot;stop&quot;.  Note that <code>tested_break</code> can't simply call <code>break</code>; the <code>break</code> command tries
+to take effect <em>within</em> the calling procedure.</p>
+<p>The <code>return -code continue</code> command emulates <code>continue</code> in just the same way as for break.</p>
 <a class="header" href="#tcl-liens-6" id="tcl-liens-6"><h2>TCL Liens</h2></a>
 <ul>
-<li>In TCL, <code>return</code> allows the caller to generate any valid TCL result code
-(e.g., <code>break</code>) with complete and detailed control.  In Molt it only
-provides the basic <code>return</code> semantics.</li>
+<li>In Standard TCL, <code>return</code> is still more complicated than shown here.  See the man page for
+TCL 8.6 for details.</li>
 </ul>
 <a class="header" href="#set-varname-newvalue" id="set-varname-newvalue"><h1>set <em>varName</em> ?<em>newValue</em>?</h1></a>
 <p>Sets variable <em>varName</em> to the <em>newValue</em>, returning the <em>newValue</em>.  If
@@ -1696,10 +1787,6 @@ match interp.eval(include_str!(&quot;commands.tcl&quot;)) {
 individual Molt command or script.</p>
 </li>
 <li>
-<p>Use the <code>molt::Interp::eval_body</code> method to evaluate a Molt script that is the body
-of a control structure.</p>
-</li>
-<li>
 <p>Use the <code>molt::expr</code> function to evaluate a Molt expression, returning a Molt <code>Value</code>,
 or <code>molt::expr_bool</code>, <code>molt::expr_int</code>, and <code>molt::expr_float</code> for results of specific
 types.</p>
@@ -1713,9 +1800,9 @@ content and pass it to <code>molt::Interp::eval</code>).</p>
 </li>
 </ul>
 <a class="header" href="#evaluating-scripts-with-eval" id="evaluating-scripts-with-eval"><h2>Evaluating Scripts with <code>eval</code></h2></a>
-<p>The <code>molt::Interp::eval</code> method evaluates a string as a Molt script and returns the result,
-which will always be either <code>Ok(Value)</code> or <code>Err(ResultCode:Error(Value))</code>. (Other result
-codes are translated into <code>Ok</code> or <code>Err</code> as appropriate.  See
+<p>The <code>molt::Interp::eval</code> method evaluates a string as a Molt script and returns the
+result.  When executed at the top level, <code>ResultCode::Break</code>, <code>ResultCode::Continue</code>,
+and <code>ResultCode::Other</code> are converted to errors, just as they are in <code>proc</code> bodies. See
 <a href="embed/./molt_result.html">The <code>MoltResult</code> Type</a> for details.)</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
@@ -1733,9 +1820,8 @@ let value: Value = interp.eval(&quot;...some Molt code...&quot;)?;
 <p>The <code>molt::Interp::eval_value</code> method has identical semantics, but evaluates the string
 representation of a molt <code>Value</code>. In this case, the <code>Value</code> will cache the parsed internal
 form of the script to speed up subsequent evaluations.</p>
-<a class="header" href="#evaluating-scripts-with-eval_body" id="evaluating-scripts-with-eval_body"><h2>Evaluating Scripts with <code>eval_body</code></h2></a>
-<p>The <code>molt::Interp::eval_body</code> method is used when implementing control structures, as it
-gives access to the entire set of <code>MoltResult</code> return codes.</p>
+<a class="header" href="#evaluating-control-structure-bodies-with-eval_value" id="evaluating-control-structure-bodies-with-eval_value"><h2>Evaluating Control Structure Bodies with <code>eval_value</code></h2></a>
+<p>The <code>molt::Interp::eval_value</code> method is used when implementing control structures.</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
@@ -1753,7 +1839,7 @@ fn my_cmd(interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
         ...
 
         // Evaluate the loop body
-        let result = interp.eval_body(body.as_str());
+        let result = interp.eval_value(body);
 
         match result {
             Ok(value) =&gt; {

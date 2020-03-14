@@ -148,10 +148,6 @@
 individual Molt command or script.</p>
 </li>
 <li>
-<p>Use the <code>molt::Interp::eval_body</code> method to evaluate a Molt script that is the body
-of a control structure.</p>
-</li>
-<li>
 <p>Use the <code>molt::expr</code> function to evaluate a Molt expression, returning a Molt <code>Value</code>,
 or <code>molt::expr_bool</code>, <code>molt::expr_int</code>, and <code>molt::expr_float</code> for results of specific
 types.</p>
@@ -165,9 +161,9 @@ content and pass it to <code>molt::Interp::eval</code>).</p>
 </li>
 </ul>
 <a class="header" href="#evaluating-scripts-with-eval" id="evaluating-scripts-with-eval"><h2>Evaluating Scripts with <code>eval</code></h2></a>
-<p>The <code>molt::Interp::eval</code> method evaluates a string as a Molt script and returns the result,
-which will always be either <code>Ok(Value)</code> or <code>Err(ResultCode:Error(Value))</code>. (Other result
-codes are translated into <code>Ok</code> or <code>Err</code> as appropriate.  See
+<p>The <code>molt::Interp::eval</code> method evaluates a string as a Molt script and returns the
+result.  When executed at the top level, <code>ResultCode::Break</code>, <code>ResultCode::Continue</code>,
+and <code>ResultCode::Other</code> are converted to errors, just as they are in <code>proc</code> bodies. See
 <a href="./molt_result.html">The <code>MoltResult</code> Type</a> for details.)</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
@@ -185,9 +181,8 @@ let value: Value = interp.eval(&quot;...some Molt code...&quot;)?;
 <p>The <code>molt::Interp::eval_value</code> method has identical semantics, but evaluates the string
 representation of a molt <code>Value</code>. In this case, the <code>Value</code> will cache the parsed internal
 form of the script to speed up subsequent evaluations.</p>
-<a class="header" href="#evaluating-scripts-with-eval_body" id="evaluating-scripts-with-eval_body"><h2>Evaluating Scripts with <code>eval_body</code></h2></a>
-<p>The <code>molt::Interp::eval_body</code> method is used when implementing control structures, as it
-gives access to the entire set of <code>MoltResult</code> return codes.</p>
+<a class="header" href="#evaluating-control-structure-bodies-with-eval_value" id="evaluating-control-structure-bodies-with-eval_value"><h2>Evaluating Control Structure Bodies with <code>eval_value</code></h2></a>
+<p>The <code>molt::Interp::eval_value</code> method is used when implementing control structures.</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
@@ -205,7 +200,7 @@ fn my_cmd(interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
         ...
 
         // Evaluate the loop body
-        let result = interp.eval_body(body.as_str());
+        let result = interp.eval_value(body);
 
         match result {
             Ok(value) =&gt; {

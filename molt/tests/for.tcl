@@ -90,8 +90,6 @@ test for-3.3 {break in for next} {
     for {} {1} {break} {}
 } -ok {}
 
-return
-
 test for-3.4 {continue in for start} {
     catch {
         for {continue} {1} {} {}

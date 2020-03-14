@@ -147,7 +147,7 @@ named variable is set to the actual return value in the caller's scope.  If <em>
 given, the named variable is set to the <a href="./return.html"><strong>return</strong></a> options dictionary.</p>
 <p>There are five return codes:</p>
 <table><thead><tr><th> Return Code  </th><th> Effect </th></tr></thead><tbody>
-<tr><td> 0 (normal)   </td><td> Normal. The result variable is set to the script's result. </td></tr>
+<tr><td> 0 (ok)       </td><td> Normal. The result variable is set to the script's result. </td></tr>
 <tr><td> 1 (error)    </td><td> A command in the script threw an error. The result variable is set to the error message. </td></tr>
 <tr><td> 2 (return)   </td><td> The script called <a href="./return.html"><strong>return</strong></a>. The result variable is set to the returned value. </td></tr>
 <tr><td> 3 (break)    </td><td> The script called <a href="./break.html"><strong>break</strong></a>. </td></tr>
@@ -161,10 +161,20 @@ given, the named variable is set to the <a href="./return.html"><strong>return</
     puts &quot;Good result: $result&quot;
 }
 </code></pre>
-<p>The <a href="./return.html"><strong>return</strong></a> options can be used to rethrow the error:</p>
+<p>The <code>optionsVarName</code> can be used to capture the <a href="./return.html"><strong>return</strong></a> command's options:</p>
+<pre><code>% catch { return &quot;Howdy&quot; } result opts
+2
+% set result
+Howdy
+% set opts
+-code 0 -level 1
+</code></pre>
+<a class="header" href="#tcl-liens" id="tcl-liens"><h2>TCL Liens</h2></a>
+<p>This will be implemented soon:</p>
+<p>The <a href="./return.html"><strong>return</strong></a> <code>-options</code> option can be used to rethrow the error:</p>
 <pre><code class="language-tcl">if {[catch {do_something} errMsg opts]} {
     puts &quot;Error result: $errMsg&quot;
-    return -options $opts $errMsg
+    return -options $opts
 } else {
     puts &quot;Good result: $result&quot;
 }

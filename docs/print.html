@@ -723,7 +723,7 @@ named variable is set to the actual return value in the caller's scope.  If <em>
 given, the named variable is set to the <a href="ref/./return.html"><strong>return</strong></a> options dictionary.</p>
 <p>There are five return codes:</p>
 <table><thead><tr><th> Return Code  </th><th> Effect </th></tr></thead><tbody>
-<tr><td> 0 (normal)   </td><td> Normal. The result variable is set to the script's result. </td></tr>
+<tr><td> 0 (ok)       </td><td> Normal. The result variable is set to the script's result. </td></tr>
 <tr><td> 1 (error)    </td><td> A command in the script threw an error. The result variable is set to the error message. </td></tr>
 <tr><td> 2 (return)   </td><td> The script called <a href="ref/./return.html"><strong>return</strong></a>. The result variable is set to the returned value. </td></tr>
 <tr><td> 3 (break)    </td><td> The script called <a href="ref/./break.html"><strong>break</strong></a>. </td></tr>
@@ -737,10 +737,20 @@ given, the named variable is set to the <a href="ref/./return.html"><strong>retu
     puts &quot;Good result: $result&quot;
 }
 </code></pre>
-<p>The <a href="ref/./return.html"><strong>return</strong></a> options can be used to rethrow the error:</p>
+<p>The <code>optionsVarName</code> can be used to capture the <a href="ref/./return.html"><strong>return</strong></a> command's options:</p>
+<pre><code>% catch { return &quot;Howdy&quot; } result opts
+2
+% set result
+Howdy
+% set opts
+-code 0 -level 1
+</code></pre>
+<a class="header" href="#tcl-liens" id="tcl-liens"><h2>TCL Liens</h2></a>
+<p>This will be implemented soon:</p>
+<p>The <a href="ref/./return.html"><strong>return</strong></a> <code>-options</code> option can be used to rethrow the error:</p>
 <pre><code class="language-tcl">if {[catch {do_something} errMsg opts]} {
     puts &quot;Error result: $errMsg&quot;
-    return -options $opts $errMsg
+    return -options $opts
 } else {
     puts &quot;Good result: $result&quot;
 }
@@ -885,7 +895,7 @@ be caught using the <a href="ref/./catch.html"><strong>catch</strong></a> comman
     ...
 }
 </code></pre>
-<a class="header" href="#tcl-liens" id="tcl-liens"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-1" id="tcl-liens-1"><h2>TCL Liens</h2></a>
 <p>In standard TCL, the <code>error</code> also has optional <code>errorInfo</code> and <code>errorCode</code> arguments.  These
 are used in older TCL code to rethrow errors without polluting the stack trace.  Modern TCL code
 uses the <a href="ref/./throw.html"><strong>throw</strong></a> command to throw an error with an error code and the
@@ -954,7 +964,7 @@ expression.</p>
 <p><strong>int(<em>x</em>)</strong> — Truncates floating-point value <em>x</em> and returns it as an integer.</p>
 <p><strong>round(<em>x</em>)</strong> — Rounds floating-point value <em>x</em> to the nearest integer and returns it as
 an integer.</p>
-<a class="header" href="#tcl-liens-1" id="tcl-liens-1"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-2" id="tcl-liens-2"><h2>TCL Liens</h2></a>
 <p><strong>Expr Command Syntax:</strong> In standard TCL <code>expr</code> takes any number of arguments, which it
 concatenates into a single expression for evaluation.  This means that variable and command
 interpolation is done twice, once by the TCL parser and once by <code>expr</code>, which hurts
@@ -1018,7 +1028,7 @@ is only value left, so <code>b</code> is assigned the empty string.</p>
 #  3,4
 #  5,
 </code></pre>
-<a class="header" href="#tcl-liens-2" id="tcl-liens-2"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-3" id="tcl-liens-3"><h2>TCL Liens</h2></a>
 <p>In standard TCL, <code>foreach</code> can iterate over multiple lists at the
 same time, e.g., the following script will output the pairs &quot;a,1&quot;,
 &quot;b,2&quot;, and &quot;c,3&quot;.  Molt doesn't currently support this extended syntax.</p>
@@ -1221,7 +1231,7 @@ lindex {a {b c d} e} 1 1    ;# &quot;c&quot;
 lindex {a {b c d} e} {}     ;# &quot;a {b c d} e&quot;
 lindex {a {b c d} e} {1 1}  ;# &quot;c&quot;
 </code></pre>
-<a class="header" href="#tcl-liens-3" id="tcl-liens-3"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-4" id="tcl-liens-4"><h2>TCL Liens</h2></a>
 <p>Indices in standard TCL may take several additional forms.  For example,
 <code>end</code> indexes the last entry in the list; <code>end-1</code> indexes the next to last
 entry, and so forth.  Molt doesn't yet support this.</p>
@@ -1246,11 +1256,11 @@ appear last.</p>
 <p>When called, the procedure returns the result of the last command in the
 body script, or the result of calling <a href="ref/./return.html"><code>return</code></a>, or an
 error.</p>
-<a class="header" href="#tcl-liens-4" id="tcl-liens-4"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-5" id="tcl-liens-5"><h2>TCL Liens</h2></a>
 <p>Molt does not support namespaces or namespace syntax in procedure names.</p>
 <a class="header" href="#puts-string" id="puts-string"><h1>puts <em>string</em></h1></a>
 <p>Outputs the <em>string</em> to standard output.</p>
-<a class="header" href="#tcl-liens-5" id="tcl-liens-5"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-6" id="tcl-liens-6"><h2>TCL Liens</h2></a>
 <ul>
 <li>Does not support <code>-nonewline</code></li>
 <li>Does not support <code>?channelId?</code></li>
@@ -1364,7 +1374,7 @@ foreach value $list {
 &quot;stop&quot;.  Note that <code>tested_break</code> can't simply call <code>break</code>; the <code>break</code> command tries
 to take effect <em>within</em> the calling procedure.</p>
 <p>The <code>return -code continue</code> command emulates <code>continue</code> in just the same way as for break.</p>
-<a class="header" href="#tcl-liens-6" id="tcl-liens-6"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-7" id="tcl-liens-7"><h2>TCL Liens</h2></a>
 <ul>
 <li>In Standard TCL, <code>return</code> is still more complicated than shown here.  See the man page for
 TCL 8.6 for details.</li>
@@ -1376,7 +1386,7 @@ returns an error if there is no existing value.</p>
 <p>The <code>set</code> command operates in the current scope, e.g., in
 <a href="ref/./proc.html"><code>proc</code></a> bodies it operates on the set of local variables.</p>
 <p>See also: <a href="ref/./global.html"><code>global</code></a></p>
-<a class="header" href="#tcl-liens-7" id="tcl-liens-7"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-8" id="tcl-liens-8"><h2>TCL Liens</h2></a>
 <ul>
 <li>Molt does not support namespaces or namespace notation.</li>
 </ul>

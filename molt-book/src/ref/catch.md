@@ -9,7 +9,7 @@ There are five return codes:
 
 | Return Code  | Effect |
 | ------------ | ------ |
-| 0 (normal)   | Normal. The result variable is set to the script's result. |
+| 0 (ok)       | Normal. The result variable is set to the script's result. |
 | 1 (error)    | A command in the script threw an error. The result variable is set to the error message. |
 | 2 (return)   | The script called [**return**](./return.md). The result variable is set to the returned value. |
 | 3 (break)    | The script called [**break**](./break.md). |
@@ -27,12 +27,27 @@ if {[catch {do_something} result]} {
 }
 ```
 
-The [**return**](./return.md) options can be used to rethrow the error:
+The `optionsVarName` can be used to capture the [**return**](./return.md) command's options:
+
+```
+% catch { return "Howdy" } result opts
+2
+% set result
+Howdy
+% set opts
+-code 0 -level 1
+```
+
+## TCL Liens
+
+This will be implemented soon:
+
+The [**return**](./return.md) `-options` option can be used to rethrow the error:
 
 ```tcl
 if {[catch {do_something} errMsg opts]} {
     puts "Error result: $errMsg"
-    return -options $opts $errMsg
+    return -options $opts
 } else {
     puts "Good result: $result"
 }

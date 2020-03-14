@@ -33,5 +33,4 @@ test return-2.2 {return command} -setup {
 test return-3.1 {return command: catch} {
     set code [catch {return x} result opts]
     list $code $result $opts
-    # TODO: This will change when result -level is implemented.
-} -ok {2 x {-code 2 -level 0}}
+} -ok {2 x {-code 0 -level 1}}

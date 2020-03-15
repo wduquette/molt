@@ -958,7 +958,7 @@ impl Interp {
                         // TODO: Standard TCL also sets -errorstack, -errorline.
                     }
                     ResultCode::Return => {
-                        opts.insert(OPT_CODE.into(), "2".into());
+                        opts.insert(OPT_CODE.into(), exception.next_code().as_int().into());
                     }
                     ResultCode::Break => {
                         opts.insert(OPT_CODE.into(), "3".into());

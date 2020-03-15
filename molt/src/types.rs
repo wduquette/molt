@@ -178,6 +178,18 @@ impl ResultCode {
             molt_err!("invalid result code: \"{}\"", value)
         }
     }
+
+    /// Return the result code as an integer.
+    pub fn as_int(&self) -> MoltInt {
+        match self {
+            ResultCode::Okay => 0,
+            ResultCode::Error => 1,
+            ResultCode::Return => 2,
+            ResultCode::Break => 3,
+            ResultCode::Continue => 4,
+            ResultCode::Other(num) => *num,
+        }
+    }
 }
 
 /// This enum represents the exceptional results of evaluating a Molt script, as
@@ -322,6 +334,11 @@ impl Exception {
     /// Gets the exception's result code.
     pub fn code(&self) -> ResultCode {
         self.code
+    }
+
+    /// Gets the exception's next code (when `code == ResultCode::Return` only)
+    pub fn next_code(&self) -> ResultCode {
+        self.next_code
     }
 
     /// Gets the exception's level.

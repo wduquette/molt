@@ -888,48 +888,57 @@ pub fn cmd_rename(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
 pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 1, 0, "?options...? ?value?")?;
 
+
     // FIRST, set the defaults
     let mut code = ResultCode::Okay;
     let mut level: MoltInt = 1;
 
-    // NEXT, parse the arguments
-    let value = if argv.len() == 1 {
-        // No arguments; return value is empty.
-        Value::empty()
+    // NEXT, with no arguments just return.
+    if argv.len() == 1 {
+        return Err(Exception::molt_return_ext(Value::empty(), level as usize, code))
+    }
+
+    // NEXT, get the return value: the last argument, if there's an odd number of arguments
+    // after the command name.
+    let return_value: Value;
+
+    let opt_args: &[Value] = if argv.len() % 2 == 0 {
+        // odd number of args following the command name
+        return_value = argv[argv.len() - 1].clone();
+        &argv[1..argv.len() - 1]
     } else {
-        // Get any options
-        let mut queue = argv[1..argv.len() - 1].iter();
+        // even number of args following the command name
+        return_value = Value::empty();
+        &argv[1..argv.len()]
+    };
 
-        while let Some(opt) = queue.next() {
-            let val = queue.next();
+    // NEXT, Get any options
+    let mut queue = opt_args.iter();
 
-            if val.is_none() {
-                // TODO: See what TCL outputs in this case
-                return molt_err!("missing value for option \"{}\"", opt);
+    while let Some(opt) = queue.next() {
+        // We built the queue to have an even number of arguments, and every option requires
+        // a value; so there can't be a missing option value.
+        let val = queue.next().expect("missing option value: coding error in cmd_return");
+
+        match opt.as_str() {
+            "-code" => {
+                code = ResultCode::from_value(val)?;
             }
-
-            let val = val.unwrap();
-            match opt.as_str() {
-                "-code" => {
-                    code = ResultCode::from_value(val)?;
-                }
-                "-level" => {
-                    // TODO: See what TCL does if level is negative.
-                    level = val.as_int()?;
-                }
-                _ => return molt_err!("invalid option: \"{}\"", opt),
+            "-level" => {
+                // TODO: return better error:
+                // bad -level value: expected non-negative integer but got "{}"
+                level = val.as_int()?;
             }
+            // TODO: In standard TCL there are no invalid options; all options are retained.
+            _ => return molt_err!("invalid return option: \"{}\"", opt),
         }
-
-        // Return code is final argument.
-        argv[argv.len() - 1].clone()
     };
 
     // NEXT, return the result: normally a Return exception, but could be "Ok".
     if level > 0 || code != ResultCode::Okay {
-        Err(Exception::molt_return_ext(value, level as usize, code))
+        Err(Exception::molt_return_ext(return_value, level as usize, code))
     } else {
-        Ok(value)
+        Ok(return_value)
     }
 }
 

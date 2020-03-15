@@ -6,7 +6,7 @@
 # the full return syntax, it doesn't matter.
 test return-1.1 {return errors} {
     return foo bar
-} -error {wrong # args: should be "return ?value?"}
+} -error {invalid return option: "foo"} 
 
 # return the empty string
 test return-2.1 {return command} -setup {

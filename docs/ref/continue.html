@@ -143,7 +143,6 @@
                         <a class="header" href="#continue" id="continue"><h1>continue</h1></a>
 <p>Continues execution with the next iteration of the inmost loop containing
 the <code>continue</code> command.</p>
-<a class="header" href="#example" id="example"><h2>Example</h2></a>
 <pre><code class="language-Tcl">foreach item $list {
     ...
     if {[someCondition]} {
@@ -154,6 +153,14 @@ the <code>continue</code> command.</p>
     ...
 }
 </code></pre>
+<a class="header" href="#continue-and-return" id="continue-and-return"><h2><code>continue</code> and <code>return</code></h2></a>
+<p>The <code>continue</code> command is semantically equivalent to <code>return -code continue -level 0</code>, as is
+the following procedure:</p>
+<pre><code class="language-tcl">proc my_continue {} {
+    return -code continue -level 1
+}
+</code></pre>
+<p>See the <a href="return.html"><strong>return</strong></a> reference page for more information.</p>
 
                     </main>
 

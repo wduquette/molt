@@ -143,7 +143,6 @@
                         <a class="header" href="#break" id="break"><h1>break</h1></a>
 <p>Breaks execution of the inmost loop containing the <code>break</code> command,
 continuing execution after the loop.</p>
-<a class="header" href="#example" id="example"><h2>Example</h2></a>
 <pre><code class="language-Tcl">foreach item $list {
     ...
     if {[someCondition]} {
@@ -154,6 +153,14 @@ continuing execution after the loop.</p>
 
 # Execution continues here after the break
 </code></pre>
+<a class="header" href="#break-and-return" id="break-and-return"><h2><code>break</code> and <code>return</code></h2></a>
+<p>The <code>break</code> command is semantically equivalent to <code>return -code break -level 0</code>, as is
+the following procedure:</p>
+<pre><code class="language-tcl">proc my_break {} {
+    return -code break -level 1
+}
+</code></pre>
+<p>See the <a href="return.html"><strong>return</strong></a> reference page for more information.</p>
 
                     </main>
 

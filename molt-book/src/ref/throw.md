@@ -17,12 +17,14 @@ proc myproc {x} {
 }
 ```
 
-Note that the [**error**](./error.md) command is equivalent to `throw NONE`, e.g.,
+Note that the [**error**](./error.md) command is equivalent to `throw NONE`; also, the `return`
+command can also throw an error with an error code.  The three following
+commands are semantically identical:
 
 ```tcl
-# this:
 error "My error message"
 
-# is equivalent to this:
 throw NONE "My error message"
+
+return -code error -level 0 -errorcode NONE "My error message"
 ```

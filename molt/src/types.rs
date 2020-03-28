@@ -257,6 +257,22 @@ impl Exception {
         }
     }
 
+    /// Creates an `Error` exception with the given data
+    pub fn molt_err3(msg: Value, level: usize, error_code: Option<Value>, error_info: Option<Value>) -> Self {
+        let error_code = error_code.unwrap_or_else(|| Value::from("NONE"));
+        let error_info = error_info.unwrap_or_else(Value::empty);
+
+        let data = ErrorData::new(error_code, error_info.as_str());
+
+        Self {
+            code: if level == 0 { ResultCode::Error } else { ResultCode::Return },
+            value: msg,
+            level,
+            next_code: ResultCode::Error,
+            error_data: Some(data),
+        }
+    }
+
     /// Creates a `Return` exception, with the given return value.  Return `Value::empty()`
     /// if there is no specific result.
     pub fn molt_return(value: Value) -> Self {

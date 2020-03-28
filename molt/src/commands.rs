@@ -892,6 +892,8 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
     // FIRST, set the defaults
     let mut code = ResultCode::Okay;
     let mut level: MoltInt = 1;
+    let mut error_code: Option<Value> = None;
+    let mut error_info: Option<Value> = None;
 
     // NEXT, with no arguments just return.
     if argv.len() == 1 {
@@ -924,6 +926,12 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
             "-code" => {
                 code = ResultCode::from_value(val)?;
             }
+            "-errorcode" => {
+                error_code = Some(val.clone());
+            }
+            "-errorinfo" => {
+                error_info = Some(val.clone());
+            }
             "-level" => {
                 // TODO: return better error:
                 // bad -level value: expected non-negative integer but got "{}"
@@ -935,7 +943,9 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
     };
 
     // NEXT, return the result: normally a Return exception, but could be "Ok".
-    if level > 0 || code != ResultCode::Okay {
+    if code == ResultCode::Error {
+        Err(Exception::molt_err3(return_value, level as usize, error_code, error_info))
+    } else if level > 0 || code != ResultCode::Okay {
         Err(Exception::molt_return_ext(return_value, level as usize, code))
     } else {
         Ok(return_value)

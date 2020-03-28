@@ -1,127 +1,140 @@
-# return ?-code code? ?-level level? ?*value*?
+# return ?*options*? ?*value*?
 
 Returns from a TCL procedure or script, optionally including a value.  By default, the
-command simply returns the given
-*value*, or the empty string if *value* is omitted.  The options allow the caller to return
-any TCL return code and to return through multiple procedures at once.
-
-If given, the *code* must be one of `ok`, `error`, `return`, `break`, `continue`, or
-an integer. Integer codes 0, 1, 2, 3, and 4 correspond to the
-symbolic constants just given.  Other integers can be used to implement application-specific
-control structures.
-
-If given, the *level* must be an integer greater than or equal to zero; it represents the number
-of stack levels to return through, and defaults to `1`.
-
-The precise semantics are difficult to explain without reference to the internals; but see the
-examples for the most useful cases.
-
-## Examples
+command simply returns the given *value*, or the empty string if *value* is omitted.  
 
 ```tcl
-proc simple_return {} {
-    return "Hello world"    
-}
-```
-
-Procedure `simple_return` returns the string `Hello world` in the usual way.
-
-```tcl
-proc complex_return {} {
-    return -code ok -level 1 "Hello world"
-}
-```
-
-Procedure `complex_return` is equivalent to `simple_return`: it returns to the calling procedure
-or script, one level up the call stack, with the value "Hello world".  The code `ok` indicates
-that this is a normal value, to be returned to the caller.
-
-
-```tcl
-proc returnOnX {value} {
-    if {$value eq "X"} {
-        return -code ok -level 2 "early"
+proc just_return {} {
+    ...
+    if {$a eq "all done"} {
+        # Just return.  The return value will be the empty string, ""
+        return
     }
-}
-
-proc myproc {a b} {
-    returnOnX $a
-    returnOnX $b
     ...
 }
+
+proc identity {x} {
+    # Return the argument
+    return $x
+}
 ```
 
-Procedure `returnOnX` causes a return from its caller if it is passed the value `X`.  You can see
-this in use in `myproc`, which uses it to verify that neither variable `a` nor `b` has the value
-`X` before going on about its business.
+The options allow the caller to return any TCL return code and to return through multiple
+procedures at once.  The options are as follows:
+
+| Option                 | Description                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| -code *code*           | The TCL result code; defaults to `ok`.                       |
+| -level *level*         | Number of stack levels to return through; defaults to 1.     |
+| -errorcode *errorCode* | The error code, when `-code` is `error`. Defaults to `NONE`. |
+| -errorinfo *errorInfo* | The initial error stack trace. Defaults to the empty string. |
+
+## The `-code` and `-level` Options
+
+The `-code` and `-level` options work together.  The semantics are tricky to understand; a good
+aid is to try things and use [**catch**](catch.md) to review the result value and options.
+
+If `-code` is given, the *code* must be one of `ok` (the default), `error`, `return`, `break`,
+`continue`, or an integer. Integer codes 0, 1, 2, 3, and 4 correspond to the symbolic constants
+just given.  Other integers can be used to implement application-specific control structures.
+
+If `-level` is given, the *level* must be an integer greater than or equal to zero; it represents
+the number of stack levels to return through, and defaults to `1`.
+
+Because of the defaults, a bare `return` is equivalent to `return -code ok -level 1`:
 
 ```tcl
-proc pointless_returns {} {
-    return -code ok -level 0 "Hello world"
-    set greeting [return -code ok -level 0 "Howdy"]
-    return "Goodbye"
-}
+# These are the same:
+proc simple {}  { return "Hello world" }
+proc complex {} { return -code ok -level 1 "Hello world" }
 ```
 
-In procedure `pointless_returns`, the first `return` command returns `Hello world` to its
-immediate caller without exiting the current procedure, and its return value is ignored.  The
-second is similar, but its return value of `Howdy` is saved in the variable
-`greeting`.  Finally, the procedure returns `Goodbye` to its caller.  In practice,
-`return -level 0` isn't very useful.
+Both tell the interpreter to return "Hello world" to caller the caller of the current procedure
+as a normal (`ok`) return value.  
+
+By selecting a different `-code`, one can return some other error code.  For example,
+`break` and `return -code break -level 0` are equivalent.  This can be useful in several ways. For
+example, suppose you want to extend the language to support `break` and `continue` with labels,
+to be used with some new control structure.  You could do the following; note the `-level 1`.  The
+`return` command returns from your `labeled_break` procedure to its caller, where it is understood
+as a `break` result.
 
 ```tcl
-proc verbose_error {value} {
-    if {$value eq "bad value"} {
-        error "Got a bad value"
-    }
-}
-
-proc immediate_error {value} {
-    if {$value eq "bad value"} {
-        return -code error "Got a bad value"
-    }
+proc labeled_break {{label ""}} {
+    return -code break -level 1 $label
 }
 ```
 
-Both `verbose_error` and `immediate_error` return an error to the caller.  The primary difference
-between the two is that `verbose_error` includes the call to `error` in the `errorInfo` stack
-trace.  Using `return -code error` is considered better style in library code, but both
-patterns are commonly used in practice.
+Your new control structure would [**catch**] the result, see that it's a `break`, and jump to
+the indicated label.
+
+Similarly, suppose you want to write a command that works like `return` but does some additional
+processing. You could do the following; note the `-level 2`.  The `2` is because the command needs
+to return from your `list_return` method, and *then* from the calling procedure: two stack levels.
 
 ```tcl
-proc complex_break {} {
-    foreach value $list {
-        if {$value eq "stop"} {
-            # Just the same as an explicit break
-            return -code break -level 0
-        }
-    }
+# Return arguments as a list
+proc list_return {a b c} {
+    return -level 2 -code ok [list a b c]
 }
 ```
 
-Procedure `complex_break` uses `return` to reproduce the behavior of the normal `break`
-command.
+## Returning Errors Cleanly
+
+The normal way to throw an error in TCL is to use either the [**error**](error.md) or
+[**throw**](throw.md) command; the latter is used in more modern code when there's an explicit
+error code.  However, both of these commands will appear in the error stack trace.
+
+Some TCL programmers consider it good style in library code to throw errors using `return`, as
+follows (with or without the `-errorcode`):
 
 ```tcl
-proc tested_break {value} {
-    if {$value eq "stop"} {
-        return -code break -level 1    
-    }
-}
-
-foreach value $list {
-    # Break from the list if $value is "stop"
-    tested_break $value
+proc my_library_proc {} {
+   ...
+   return -code error -level 1 -errorcode {MYLIB MYERROR} "My Error Message"
 }
 ```
 
-Procedure `tested_break` can be used like `break` but only breaks if it is passed the value
-"stop".  Note that `tested_break` can't simply call `break`; the `break` command tries
-to take effect *within* the calling procedure.
+The advantage of this approach is that the stack trace will show `my_library_proc` as the source
+of the error, rather than `error` or `catch`.  
 
-The `return -code continue` command emulates `continue` in just the same way as for break.
+## The `-errorinfo` Option and Re-throwing Errors
+
+Sometimes it's desirable to catch an error, take some action (e.g., log it), and then rethrow
+it.  The `return` command is used to do this:
+
+```
+set code [catch {
+    # Some command or script that can throw an error
+} result opts]
+
+if {$code == 1} {
+    # Log the error message
+    puts "Got an error: $result"
+
+    # Rethrow the error by returning with exactly the options and return
+    # result that we received.
+    return {*}$opts $result
+}
+```
 
 ## TCL Liens
 
-* In Standard TCL, `return` is still more complicated than shown here.  See the man page for
-  TCL 8.6 for details.  
+The standard TCL `return` command is more complicated than shown here; however, the Molt
+implementation provides all of the useful patterns the author has ever seen in use.  Some of the
+specific differences are as follows:
+
+* Molt rejects any options other than the ones listed above, and ignores `-errorcode` and
+  `-errorinfo` if the `-code` is anything other than `error`.  Standard TCL's `return` retains all
+  option/value pairs it is given, to be included in the `catch` options.
+
+* Standard TCL's `return` takes an `-options` option; in Standard TCL, `return -options $opts`
+  is equivalent to `return {*}$ops`.  Molt doesn't support `-options`, as it doesn't add any
+  value and is confusing.
+
+* Standard TCL provides two versions of the stack trace: the "error info", meant to be human
+  readable, and the "error stack", for programmatic use.  The `-errorstack` is used to
+  initialize the error stack when rethrowing errors, as `-errorinfo` is used to initialize the
+  error info string.  Molt does not support the error stack at this time.
+
+Some of these liens may be reconsidered over time.

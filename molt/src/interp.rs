@@ -959,6 +959,10 @@ impl Interp {
                     }
                     ResultCode::Return => {
                         opts.insert(OPT_CODE.into(), exception.next_code().as_int().into());
+                        if let Some(data) = exception.error_data() {
+                            opts.insert(OPT_ERRORCODE.into(), data.error_code());
+                            opts.insert(OPT_ERRORINFO.into(), data.error_info());
+                        }
                     }
                     ResultCode::Break => {
                         opts.insert(OPT_CODE.into(), "3".into());

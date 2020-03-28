@@ -1280,104 +1280,116 @@ rename myproc yourproc
 # Remove the proc from the interpreter
 rename yourproc &quot;&quot;
 </code></pre>
-<a class="header" href="#return--code-code--level-level-value" id="return--code-code--level-level-value"><h1>return ?-code code? ?-level level? ?<em>value</em>?</h1></a>
+<a class="header" href="#return-options-value" id="return-options-value"><h1>return ?<em>options</em>? ?<em>value</em>?</h1></a>
 <p>Returns from a TCL procedure or script, optionally including a value.  By default, the
-command simply returns the given
-<em>value</em>, or the empty string if <em>value</em> is omitted.  The options allow the caller to return
-any TCL return code and to return through multiple procedures at once.</p>
-<p>If given, the <em>code</em> must be one of <code>ok</code>, <code>error</code>, <code>return</code>, <code>break</code>, <code>continue</code>, or
-an integer. Integer codes 0, 1, 2, 3, and 4 correspond to the
-symbolic constants just given.  Other integers can be used to implement application-specific
-control structures.</p>
-<p>If given, the <em>level</em> must be an integer greater than or equal to zero; it represents the number
-of stack levels to return through, and defaults to <code>1</code>.</p>
-<p>The precise semantics are difficult to explain without reference to the internals; but see the
-examples for the most useful cases.</p>
-<a class="header" href="#examples-8" id="examples-8"><h2>Examples</h2></a>
-<pre><code class="language-tcl">proc simple_return {} {
-    return &quot;Hello world&quot;    
-}
-</code></pre>
-<p>Procedure <code>simple_return</code> returns the string <code>Hello world</code> in the usual way.</p>
-<pre><code class="language-tcl">proc complex_return {} {
-    return -code ok -level 1 &quot;Hello world&quot;
-}
-</code></pre>
-<p>Procedure <code>complex_return</code> is equivalent to <code>simple_return</code>: it returns to the calling procedure
-or script, one level up the call stack, with the value &quot;Hello world&quot;.  The code <code>ok</code> indicates
-that this is a normal value, to be returned to the caller.</p>
-<pre><code class="language-tcl">proc returnOnX {value} {
-    if {$value eq &quot;X&quot;} {
-        return -code ok -level 2 &quot;early&quot;
+command simply returns the given <em>value</em>, or the empty string if <em>value</em> is omitted.</p>
+<pre><code class="language-tcl">proc just_return {} {
+    ...
+    if {$a eq &quot;all done&quot;} {
+        # Just return.  The return value will be the empty string, &quot;&quot;
+        return
     }
-}
-
-proc myproc {a b} {
-    returnOnX $a
-    returnOnX $b
     ...
 }
-</code></pre>
-<p>Procedure <code>returnOnX</code> causes a return from its caller if it is passed the value <code>X</code>.  You can see
-this in use in <code>myproc</code>, which uses it to verify that neither variable <code>a</code> nor <code>b</code> has the value
-<code>X</code> before going on about its business.</p>
-<pre><code class="language-tcl">proc pointless_returns {} {
-    return -code ok -level 0 &quot;Hello world&quot;
-    set greeting [return -code ok -level 0 &quot;Howdy&quot;]
-    return &quot;Goodbye&quot;
-}
-</code></pre>
-<p>In procedure <code>pointless_returns</code>, the first <code>return</code> command returns <code>Hello world</code> to its
-immediate caller without exiting the current procedure, and its return value is ignored.  The
-second is similar, but its return value of <code>Howdy</code> is saved in the variable
-<code>greeting</code>.  Finally, the procedure returns <code>Goodbye</code> to its caller.  In practice,
-<code>return -level 0</code> isn't very useful.</p>
-<pre><code class="language-tcl">proc verbose_error {value} {
-    if {$value eq &quot;bad value&quot;} {
-        error &quot;Got a bad value&quot;
-    }
-}
 
-proc immediate_error {value} {
-    if {$value eq &quot;bad value&quot;} {
-        return -code error &quot;Got a bad value&quot;
-    }
+proc identity {x} {
+    # Return the argument
+    return $x
 }
 </code></pre>
-<p>Both <code>verbose_error</code> and <code>immediate_error</code> return an error to the caller.  The primary difference
-between the two is that <code>verbose_error</code> includes the call to <code>error</code> in the <code>errorInfo</code> stack
-trace.  Using <code>return -code error</code> is considered better style in library code, but both
-patterns are commonly used in practice.</p>
-<pre><code class="language-tcl">proc complex_break {} {
-    foreach value $list {
-        if {$value eq &quot;stop&quot;} {
-            # Just the same as an explicit break
-            return -code break -level 0
-        }
-    }
+<p>The options allow the caller to return any TCL return code and to return through multiple
+procedures at once.  The options are as follows:</p>
+<table><thead><tr><th> Option                 </th><th> Description                                                  </th></tr></thead><tbody>
+<tr><td> -code <em>code</em>           </td><td> The TCL result code; defaults to <code>ok</code>.                       </td></tr>
+<tr><td> -level <em>level</em>         </td><td> Number of stack levels to return through; defaults to 1.     </td></tr>
+<tr><td> -errorcode <em>errorCode</em> </td><td> The error code, when <code>-code</code> is <code>error</code>. Defaults to <code>NONE</code>. </td></tr>
+<tr><td> -errorinfo <em>errorInfo</em> </td><td> The initial error stack trace. Defaults to the empty string. </td></tr>
+</tbody></table>
+<a class="header" href="#the--code-and--level-options" id="the--code-and--level-options"><h2>The <code>-code</code> and <code>-level</code> Options</h2></a>
+<p>The <code>-code</code> and <code>-level</code> options work together.  The semantics are tricky to understand; a good
+aid is to try things and use <a href="ref/catch.html"><strong>catch</strong></a> to review the result value and options.</p>
+<p>If <code>-code</code> is given, the <em>code</em> must be one of <code>ok</code> (the default), <code>error</code>, <code>return</code>, <code>break</code>,
+<code>continue</code>, or an integer. Integer codes 0, 1, 2, 3, and 4 correspond to the symbolic constants
+just given.  Other integers can be used to implement application-specific control structures.</p>
+<p>If <code>-level</code> is given, the <em>level</em> must be an integer greater than or equal to zero; it represents
+the number of stack levels to return through, and defaults to <code>1</code>.</p>
+<p>Because of the defaults, a bare <code>return</code> is equivalent to <code>return -code ok -level 1</code>:</p>
+<pre><code class="language-tcl"># These are the same:
+proc simple {}  { return &quot;Hello world&quot; }
+proc complex {} { return -code ok -level 1 &quot;Hello world&quot; }
+</code></pre>
+<p>Both tell the interpreter to return &quot;Hello world&quot; to caller the caller of the current procedure
+as a normal (<code>ok</code>) return value.</p>
+<p>By selecting a different <code>-code</code>, one can return some other error code.  For example,
+<code>break</code> and <code>return -code break -level 0</code> are equivalent.  This can be useful in several ways. For
+example, suppose you want to extend the language to support <code>break</code> and <code>continue</code> with labels,
+to be used with some new control structure.  You could do the following; note the <code>-level 1</code>.  The
+<code>return</code> command returns from your <code>labeled_break</code> procedure to its caller, where it is understood
+as a <code>break</code> result.</p>
+<pre><code class="language-tcl">proc labeled_break {{label &quot;&quot;}} {
+    return -code break -level 1 $label
 }
 </code></pre>
-<p>Procedure <code>complex_break</code> uses <code>return</code> to reproduce the behavior of the normal <code>break</code>
-command.</p>
-<pre><code class="language-tcl">proc tested_break {value} {
-    if {$value eq &quot;stop&quot;} {
-        return -code break -level 1    
-    }
+<p>Your new control structure would [<strong>catch</strong>] the result, see that it's a <code>break</code>, and jump to
+the indicated label.</p>
+<p>Similarly, suppose you want to write a command that works like <code>return</code> but does some additional
+processing. You could do the following; note the <code>-level 2</code>.  The <code>2</code> is because the command needs
+to return from your <code>list_return</code> method, and <em>then</em> from the calling procedure: two stack levels.</p>
+<pre><code class="language-tcl"># Return arguments as a list
+proc list_return {a b c} {
+    return -level 2 -code ok [list a b c]
 }
+</code></pre>
+<a class="header" href="#returning-errors-cleanly" id="returning-errors-cleanly"><h2>Returning Errors Cleanly</h2></a>
+<p>The normal way to throw an error in TCL is to use either the <a href="ref/error.html"><strong>error</strong></a> or
+<a href="ref/throw.html"><strong>throw</strong></a> command; the latter is used in more modern code when there's an explicit
+error code.  However, both of these commands will appear in the error stack trace.</p>
+<p>Some TCL programmers consider it good style in library code to throw errors using <code>return</code>, as
+follows (with or without the <code>-errorcode</code>):</p>
+<pre><code class="language-tcl">proc my_library_proc {} {
+   ...
+   return -code error -level 1 -errorcode {MYLIB MYERROR} &quot;My Error Message&quot;
+}
+</code></pre>
+<p>The advantage of this approach is that the stack trace will show <code>my_library_proc</code> as the source
+of the error, rather than <code>error</code> or <code>catch</code>.</p>
+<a class="header" href="#the--errorinfo-option-and-re-throwing-errors" id="the--errorinfo-option-and-re-throwing-errors"><h2>The <code>-errorinfo</code> Option and Re-throwing Errors</h2></a>
+<p>Sometimes it's desirable to catch an error, take some action (e.g., log it), and then rethrow
+it.  The <code>return</code> command is used to do this:</p>
+<pre><code>set code [catch {
+    # Some command or script that can throw an error
+} result opts]
 
-foreach value $list {
-    # Break from the list if $value is &quot;stop&quot;
-    tested_break $value
+if {$code == 1} {
+    # Log the error message
+    puts &quot;Got an error: $result&quot;
+
+    # Rethrow the error by returning with exactly the options and return
+    # result that we received.
+    return {*}$opts $result
 }
 </code></pre>
-<p>Procedure <code>tested_break</code> can be used like <code>break</code> but only breaks if it is passed the value
-&quot;stop&quot;.  Note that <code>tested_break</code> can't simply call <code>break</code>; the <code>break</code> command tries
-to take effect <em>within</em> the calling procedure.</p>
-<p>The <code>return -code continue</code> command emulates <code>continue</code> in just the same way as for break.</p>
 <a class="header" href="#tcl-liens-7" id="tcl-liens-7"><h2>TCL Liens</h2></a>
+<p>The standard TCL <code>return</code> command is more complicated than shown here; however, the Molt
+implementation provides all of the useful patterns the author has ever seen in use.  Some of the
+specific differences are as follows:</p>
 <ul>
-<li>In Standard TCL, <code>return</code> is still more complicated than shown here.  See the man page for
-TCL 8.6 for details.</li>
+<li>
+<p>Molt rejects any options other than the ones listed above, and ignores <code>-errorcode</code> and
+<code>-errorinfo</code> if the <code>-code</code> is anything other than <code>error</code>.  Standard TCL's <code>return</code> retains all
+option/value pairs it is given, to be included in the <code>catch</code> options.</p>
+</li>
+<li>
+<p>Standard TCL's <code>return</code> takes an <code>-options</code> option; in Standard TCL, <code>return -options $opts</code>
+is equivalent to <code>return {*}$ops</code>.  Molt doesn't support <code>-options</code>, as it doesn't add any
+value and is confusing.</p>
+</li>
+<li>
+<p>Standard TCL provides two versions of the stack trace: the &quot;error info&quot;, meant to be human
+readable, and the &quot;error stack&quot;, for programmatic use.  The <code>-errorstack</code> is used to
+initialize the error stack when rethrowing errors, as <code>-errorinfo</code> is used to initialize the
+error info string.  Molt does not support the error stack at this time.</p>
+</li>
 </ul>
 <a class="header" href="#set-varname-newvalue" id="set-varname-newvalue"><h1>set <em>varName</em> ?<em>newValue</em>?</h1></a>
 <p>Sets variable <em>varName</em> to the <em>newValue</em>, returning the <em>newValue</em>.  If

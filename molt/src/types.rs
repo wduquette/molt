@@ -297,7 +297,7 @@ impl Exception {
         assert!(level > 0 || next_code != ResultCode::Okay);
 
         Self {
-            code: ResultCode::Return,
+            code: if level > 0 { ResultCode::Return } else { next_code },
             value,
             level,
             next_code,

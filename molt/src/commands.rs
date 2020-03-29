@@ -945,10 +945,11 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
     // NEXT, return the result: normally a Return exception, but could be "Ok".
     if code == ResultCode::Error {
         Err(Exception::molt_err3(return_value, level as usize, error_code, error_info))
-    } else if level > 0 || code != ResultCode::Okay {
-        Err(Exception::molt_return_ext(return_value, level as usize, code))
-    } else {
+    } else if level == 0 && code == ResultCode::Okay {
+        // Not an exception!j
         Ok(return_value)
+    } else {
+        Err(Exception::molt_return_ext(return_value, level as usize, code))
     }
 }
 

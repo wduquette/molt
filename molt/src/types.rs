@@ -297,7 +297,7 @@ impl Exception {
         }
     }
 
-    /// Creates an `Error` exception with the given data.
+    /// Creates an `Error` exception with the given data, rethrowing an existing error.
     ///
     /// This method is primarily for use by the `return` command, and should rarely if
     /// ever be needed in client code.  If you fully understand the semantics of the `return` and
@@ -307,7 +307,7 @@ impl Exception {
         let error_code = error_code.unwrap_or_else(|| Value::from("NONE"));
         let error_info = error_info.unwrap_or_else(Value::empty);
 
-        let data = ErrorData::new(error_code, error_info.as_str());
+        let data = ErrorData::rethrow(error_code, error_info.as_str());
 
         Self {
             code: if level == 0 { ResultCode::Error } else { ResultCode::Return },
@@ -490,6 +490,9 @@ pub struct ErrorData {
 
     /// The TCL stack trace.
     stack_trace: Vec<String>,
+
+    /// Is this a new error?
+    is_new: bool,
 }
 
 impl ErrorData {
@@ -498,6 +501,16 @@ impl ErrorData {
         Self {
             error_code,
             stack_trace: vec![error_msg.into()],
+            is_new: true,
+        }
+    }
+
+    // Creates a rethrown ErrorData given the error code and error info.
+    fn rethrow(error_code: Value, error_info: &str) -> Self {
+        Self {
+            error_code,
+            stack_trace: vec![error_info.into()],
+            is_new: false,
         }
     }
 
@@ -509,7 +522,7 @@ impl ErrorData {
     /// Whether this has just been created, or the stack trace has been extended.
     /// TODO: On rethrow, this should be false!
     pub(crate) fn is_new(&self) -> bool {
-        self.stack_trace.len() == 1
+        self.is_new
     }
 
     /// Returns the human-readable stack trace as a string.

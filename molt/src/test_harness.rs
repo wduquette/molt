@@ -91,14 +91,12 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) -> Result<(), ()> {
                 let _ = env::set_current_dir(parent);
             }
 
-            match interp.eval(&script) {
-                Ok(_) => (),
-                Err(ResultCode::Error(msg)) => {
-                    eprintln!("{}", msg);
+            if let Err(exception) = interp.eval(&script) {
+                if exception.code() == ResultCode::Error {
+                    eprintln!("{}", exception.value());
                     return Err(());
-                }
-                Err(result) => {
-                    eprintln!("Unexpected eval return: {:?}", result);
+                } else {
+                    eprintln!("Unexpected eval return: {:?}", exception);
                     return Err(());
                 }
             }
@@ -189,12 +187,16 @@ impl TestInfo {
     fn print_error(&self, result: &MoltResult) {
         println!("\n*** ERROR {} {}", self.name, self.description);
         println!("Expected {} <{}>", self.code.to_string(), self.expect);
+
         match result {
             Ok(val) => println!("Received -ok <{}>", val),
-            Err(ResultCode::Error(msg)) => println!("Received -error <{}>", msg),
-            Err(ResultCode::Return(val)) => println!("Received -return <{}>", val),
-            Err(ResultCode::Break) => println!("Received -break <>"),
-            Err(ResultCode::Continue) => println!("Received -continue <>"),
+            Err(exception) => match exception.code() {
+                ResultCode::Error => println!("Received -error <{}>", exception.value()),
+                ResultCode::Return => println!("Received -return <{}>", exception.value()),
+                ResultCode::Break => println!("Received -break <>"),
+                ResultCode::Continue => println!("Received -continue <>"),
+                _ => unimplemented!(),
+            },
         }
     }
 
@@ -316,18 +318,28 @@ fn run_test(interp: &mut Interp, context_id: ContextID, info: &TestInfo) {
     // NEXT, execute the parts of the test.
 
     // Setup
-    if let Err(ResultCode::Error(msg)) = interp.eval(&info.setup) {
-        info.print_helper_error("-setup", &msg.to_string());
+    if let Err(exception) = interp.eval(&info.setup) {
+        if exception.code() == ResultCode::Error {
+            info.print_helper_error("-setup", exception.value().as_str());
+        }
     }
+    // if let Err(ResultCode::Error(msg)) = interp.eval(&info.setup) {
+    //     info.print_helper_error("-setup", &msg.to_string());
+    // }
 
     // Body
     let body = Value::from(&info.body);
-    let result = interp.eval_body(&body);
+    let result = interp.eval_value(&body);
 
     // Cleanup
-    if let Err(ResultCode::Error(msg)) = interp.eval(&info.cleanup) {
-        info.print_helper_error("-cleanup", &msg.to_string());
+    if let Err(exception) = interp.eval(&info.cleanup) {
+        if exception.code() == ResultCode::Error {
+            info.print_helper_error("-cleanup", exception.value().as_str());
+        }
     }
+    // if let Err(ResultCode::Error(msg)) = interp.eval(&info.cleanup) {
+    //     info.print_helper_error("-cleanup", &msg.to_string());
+    // }
 
     // NEXT, pop the scope.
     interp.pop_scope();
@@ -348,18 +360,17 @@ fn run_test(interp: &mut Interp, context_id: ContextID, info: &TestInfo) {
                 return;
             }
         }
-        Err(ResultCode::Error(out)) => {
+        Err(exception) => {
             if info.code == Code::Error {
-                if *out == Value::from(&info.expect) {
+                if exception.value() == Value::from(&info.expect) {
                     ctx.num_passed += 1;
                 } else {
                     ctx.num_failed += 1;
-                    info.print_failure("-error", &out.to_string());
+                    info.print_failure("-error", exception.value().as_str());
                 }
                 return;
             }
         }
-        _ => (),
     }
     ctx.num_errors += 1;
     info.print_error(&result);

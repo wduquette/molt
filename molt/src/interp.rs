@@ -29,7 +29,7 @@
 //! Alternatively, [`Interp::empty`](struct.Interp.html#method.empty) creates an interpreter
 //! with no built-in commands, allowing the application to define only those commands it needs.
 //! Such an empty interpreter can be configured as the parser for data and configuration files,
-//! or as the basis for a simple, non-scriptable console command set.
+//! or as the basis for a simple console command set.
 //!
 //! **TODO**: Define a way to add various subsets of the standard commands to an initially
 //! empty interpreter.
@@ -57,33 +57,37 @@
 //! use molt::molt_ok;
 //! use molt::types::*;
 //!
-//! # let _ = dummy();
-//! # fn dummy() -> MoltResult {
+//! let _ = my_func();
+//!
+//! fn my_func() -> MoltResult {
 //! // FIRST, create the interpreter and add the needed command.
 //! let mut interp = Interp::new();
 //!
-//! // NEXT, evaluate a script containing an expression
+//! // NEXT, evaluate a script containing an expression,
+//! // propagating errors back to the caller
 //! let val = interp.eval("expr {2 + 2}")?;
 //! assert_eq!(val.as_str(), "4");
 //! assert_eq!(val.as_int()?, 4);
-//! # molt_ok!()
-//! # }
+//!
+//! molt_ok!()
+//! }
 //! ```
 //!
-//! [`Interp::eval_value`](struct.Interp.html#method.eval_value) evaluates the string
-//! representation of a `Value` as a script.
-//! [`Interp::eval_body`](struct.Interp.html#method.eval_body) is used to evaluate the body
-//! of loops and other control structures.  Unlike `Interp::eval` and `Interp::eval_value`, it
-//! passes the `return`, `break`, and `continue` result codes back to the caller for handling.
+//! [`Interp::eval_value`](struct.Interp.html#method.eval_value) is equivalent to
+//! `Interp::eval` but takes the script as a `Value` instead of as a `&str`.  When
+//! called at the top level, both methods convert the `break` and `continue` return codes
+//! (and any user-defined return codes) to errors; otherwise they are propagated to the caller
+//! for handling.  It is preferred to use `Interp::eval_value` when possible, as `Interp::eval`
+//! will reparse its argument each time if called multiple times on the same input.
 //!
 //! All of these methods return [`MoltResult`]:
 //!
 //! ```ignore
-//! pub type MoltResult = Result<Value, ResultCode>;
+//! pub type MoltResult = Result<Value, Exception>;
 //! ```
 //!
 //! [`Value`] is the type of all Molt values (i.e., values that can be passed as parameters and
-//! stored in variables).  [`ResultCode`] is an enum that encompasses all of the kinds of
+//! stored in variables).  [`Exception`] is a struct that encompasses all of the kinds of
 //! exceptional return from Molt code, including errors, `return`, `break`, and `continue`.
 //!
 //! # Evaluating Expressions
@@ -431,14 +435,16 @@
 //!
 //! [The Molt Book]: https://wduquette.github.io/molt/
 //! [`MoltResult`]: ../types/type.MoltResult.html
-//! [`ResultCode`]: ../types/enum.ResultCode.html
+//! [`Exception`]: ../types/enum.Exception.html
 //! [`CommandFunc`]: ../types/type.CommandFunc.html
 //! [`Value`]: ../value/index.html
 //! [`Interp`]: struct.Interp.html
 
 use crate::check_args;
 use crate::commands;
+use crate::dict::dict_new;
 use crate::expr;
+use crate::list::list_to_string;
 use crate::molt_err;
 use crate::molt_ok;
 use crate::parser;
@@ -451,6 +457,13 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::time::Instant;
+
+// Constants
+const OPT_CODE: &str = "-code";
+const OPT_LEVEL: &str = "-level";
+const OPT_ERRORCODE: &str = "-errorcode";
+const OPT_ERRORINFO: &str = "-errorinfo";
+const ZERO: &str = "0";
 
 /// The Molt Interpreter.
 ///
@@ -490,7 +503,6 @@ pub struct Interp {
     last_context_id: u64,
 
     // Context Map
-    // TODO: Remove: context_map: HashMap<ContextID, Box<dyn Any>>,
     context_map: HashMap<ContextID, ContextBox>,
 
     // Defines the recursion limit for Interp::eval().
@@ -587,7 +599,6 @@ impl ContextBox {
     /// and false otherwise.
     ///
     /// Panics if the count is already 0.
-    #[allow(dead_code)] // TODO: Remove once the design is complete.
     fn decrement(&mut self) -> bool {
         assert!(
             self.ref_count != 0,
@@ -628,7 +639,7 @@ impl Interp {
     /// ```
 
     pub fn empty() -> Self {
-        Self {
+        let mut interp = Self {
             recursion_limit: 1000,
             commands: HashMap::new(),
             last_context_id: 0,
@@ -636,7 +647,10 @@ impl Interp {
             scopes: ScopeStack::new(),
             num_levels: 0,
             profile_map: HashMap::new(),
-        }
+        };
+
+        interp.set_scalar("errorInfo", Value::empty()).unwrap();
+        interp
     }
 
     /// Creates a new Molt interpreter that is pre-populated with the standard Molt commands.
@@ -691,6 +705,7 @@ impl Interp {
         interp.add_command("rename", commands::cmd_rename);
         interp.add_command("return", commands::cmd_return);
         interp.add_command("set", commands::cmd_set);
+        interp.add_command("throw", commands::cmd_throw);
         interp.add_command("time", commands::cmd_time);
         interp.add_command("unset", commands::cmd_unset);
         interp.add_command("while", commands::cmd_while);
@@ -717,10 +732,12 @@ impl Interp {
     /// Evaluates a script one command at a time.  Returns the [`Value`](../value/index.html)
     /// of the last command in the script, or the value of any explicit `return` call in the
     /// script, or any error thrown by the script.  Other
-    /// [`ResultCode`](../types/enum.ResultCode.html) values are converted to normal errors.
+    /// [`Exception`](../types/enum.Exception.html) values are converted to normal errors.
     ///
-    /// Use this method (or [`eval_value`](#method.eval_value)) to evaluate arbitrary scripts.
-    /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
+    /// Use this method (or [`eval_value`](#method.eval_value)) to evaluate arbitrary scripts,
+    /// control structure bodies, and so forth.  Prefer `eval_value` if the script is already
+    /// stored in a `Value`, as it will be more efficient if the script is evaluated multiple
+    /// times.
     ///
     /// # Example
     ///
@@ -740,11 +757,15 @@ impl Interp {
     ///        // Computed a Value
     ///        println!("Value: {}", val);
     ///    }
-    ///    Err(ResultCode::Error(msg)) => {
-    ///        // Got an error; print it out.
-    ///        println!("Error: {}", msg);
+    ///    Err(exception) => {
+    ///        if exception.is_error() {
+    ///            // Got an error; print it out.
+    ///            println!("Error: {}", exception.value());
+    ///        } else {
+    ///            // It's a Return.
+    ///            println!("Value: {}", exception.value());
+    ///        }
     ///    }
-    ///    _ => unreachable!(),
     /// }
     /// ```
 
@@ -756,11 +777,13 @@ impl Interp {
     /// Evaluates the string value of a [`Value`] as a script.  Returns the `Value`
     /// of the last command in the script, or the value of any explicit `return` call in the
     /// script, or any error thrown by the script.  Other
-    /// [`ResultCode`](../types/enum.ResultCode.html) values are converted to normal errors.
+    /// [`Exception`](../types/enum.Exception.html) values are converted to normal errors.
     ///
     /// This method is equivalent to [`eval`](#method.eval), but works on a `Value` rather
-    /// than on a string slice.  Use it or `eval` to evaluate arbitrary scripts.
-    /// Use [`eval_body`](#method.eval_body) to evaluate the body of control structures.
+    /// than on a string slice.  Use it or `eval` to evaluate arbitrary scripts,
+    /// control structure bodies, and so forth.  Prefer this to `eval` if the script is already
+    /// stored in a `Value`, as it will be more efficient if the script is evaluated multiple
+    /// times.
     ///
     /// [`Value`]: ../value/index.html
     pub fn eval_value(&mut self, value: &Value) -> MoltResult {
@@ -778,54 +801,50 @@ impl Interp {
         }
 
         // NEXT, evaluate the script and translate the result to Ok or Error
-        let result = self.eval_body(value);
+        let mut result = self.eval_script(&*value.as_script()?);
 
         // NEXT, decrement the number of nesting levels.
         self.num_levels -= 1;
 
         // NEXT, translate and return the result.
-        match result {
-            Err(ResultCode::Return(val)) => Ok(val),
-            Err(ResultCode::Break) => molt_err!("invoked \"break\" outside of a loop"),
-            Err(ResultCode::Continue) => molt_err!("invoked \"continue\" outside of a loop"),
-            _ => result,
+        if self.num_levels == 0 {
+            if let Err(mut exception) = result {
+                // FIRST, handle the return -code, -level protocol
+                if exception.code() == ResultCode::Return {
+                    exception.decrement_level();
+                }
+
+                result = match exception.code() {
+                    ResultCode::Okay => Ok(exception.value()),
+                    ResultCode::Error => Err(exception),
+                    ResultCode::Return => Err(exception), // -level > 0
+                    ResultCode::Break => molt_err!("invoked \"break\" outside of a loop"),
+                    ResultCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
+                    // TODO: Better error message
+                    ResultCode::Other(_) => molt_err!("unexpected result code."),
+                };
+            }
         }
+
+        if let Err(exception) = &result {
+            if exception.is_error() {
+                self.set_global_error_data(exception.error_data())?;
+            }
+        }
+
+        result
     }
 
-    /// Evaluates a script one command at a time, returning whatever
-    /// [`MoltResult`](../types/type.MoltResult.html) arises.
-    ///
-    /// This is the method to use when evaluating a control structure's
-    /// script body; the control structure must handle the special
-    /// result codes appropriately.
-    ///
-    /// # Example
-    ///
-    /// The following code could be used to process the body of one of the Molt looping
-    /// commands, e.g., `while` or
-    /// `foreach`.  [`ResultCode`](../types/enum.ResultCode.html)`::Return` and `ResultCode::Error`
-    /// return out of the looping command altogether, returning control to the caller.
-    /// `ResultCode::Break` breaks out of the loop.  `Ok` and `ResultCode::Continue`
-    /// continue with the next iteration.
-    ///
-    /// ```ignore
-    /// ...
-    /// while (...) {
-    ///     let result = interp.eval_body(&body);
-    ///
-    ///     match result {
-    ///         Ok(_) => (),
-    ///         Err(ResultCode::Return(_)) => return result,
-    ///         Err(ResultCode::Error(_)) => return result,
-    ///         Err(ResultCode::Break) => break,
-    ///         Err(ResultCode::Continue) => (),
-    ///     }
-    /// }
-    ///
-    /// molt_ok!()
-    /// ```
-    pub fn eval_body(&mut self, body: &Value) -> MoltResult {
-        self.eval_script(&*body.as_script()?)
+    /// Saves the error exception data
+    fn set_global_error_data(&mut self, error_data: Option<&ErrorData>) -> Result<(), Exception> {
+        if let Some(data) = error_data {
+            // TODO: Might want a public method for this.  Or, if I implement namespaces, that's
+            // sufficient.
+            self.scopes.set_global("errorInfo", data.error_info())?;
+            self.scopes.set_global("errorCode", data.error_code())?;
+        }
+
+        Ok(())
     }
 
     /// Evaluates a parsed Script, producing a normal MoltResult.
@@ -847,9 +866,43 @@ impl Interp {
                 let cmd = Rc::clone(cmd);
                 let result = cmd.execute(self, words.as_slice());
                 // self.profile_save(&format!("cmd.execute({})", name), start);
-                match result {
-                    Ok(v) => result_value = v,
-                    _ => return result,
+
+                if let Ok(v) = result {
+                    result_value = v;
+                } else if let Err(mut exception) = result {
+                    // TODO: I think this needs to be done up above.
+                    // // Handle the return -code, -level protocol
+                    // if exception.code() == ResultCode::Return {
+                    //     exception.decrement_level();
+                    // }
+
+                    match exception.code() {
+                        // ResultCode::Okay => result_value = exception.value(),
+                        ResultCode::Error => {
+                            // FIRST, new error, an error from within a proc, or an error from
+                            // within some other body (ignored).
+                            if exception.is_new_error() {
+                                exception.add_error_info("    while executing");
+                            } else if cmd.is_proc() {
+                                exception.add_error_info("    invoked from within");
+                                exception.add_error_info(&format!(
+                                    "    (procedure \"{}\" line TODO)",
+                                    name
+                                ));
+                            } else {
+                                return Err(exception);
+                            }
+
+                            // TODO: Add command.  In standard TCL, this is the text of the command
+                            // before interpolation; at present, we don't have that info in a
+                            // convenient form.  For now, just convert the final words to a string.
+                            exception.add_error_info(&format!("\"{}\"", &list_to_string(&words)));
+                            return Err(exception);
+                        }
+                        _ => return Err(exception),
+                    }
+                } else {
+                    unreachable!();
                 }
             } else {
                 return molt_err!("invalid command name \"{}\"", name);
@@ -861,7 +914,7 @@ impl Interp {
 
     /// Evaluates a WordVec, producing a list of Values.  The expansion operator is handled
     /// as a special case.
-    fn eval_word_vec(&mut self, words: &[Word]) -> Result<MoltList, ResultCode> {
+    fn eval_word_vec(&mut self, words: &[Word]) -> Result<MoltList, Exception> {
         let mut list: MoltList = Vec::new();
 
         for word in words {
@@ -898,6 +951,53 @@ impl Interp {
         }
     }
 
+    /// Returns the `return` option dictionary for the given result as a dictionary value.
+    /// Used by the `catch` command.
+    pub(crate) fn return_options(&self, result: &MoltResult) -> Value {
+        let mut opts = dict_new();
+
+        match result {
+            Ok(_) => {
+                opts.insert(OPT_CODE.into(), ZERO.into());
+                opts.insert(OPT_LEVEL.into(), ZERO.into());
+            }
+            Err(exception) => {
+                // FIRST, set the -code
+                match exception.code() {
+                    ResultCode::Okay => unreachable!(), // TODO: Not in use yet
+                    ResultCode::Error => {
+                        let data = exception.error_data().expect("Error has no error data");
+                        opts.insert(OPT_CODE.into(), "1".into());
+                        opts.insert(OPT_ERRORCODE.into(), data.error_code());
+                        opts.insert(OPT_ERRORINFO.into(), data.error_info());
+                        // TODO: Standard TCL also sets -errorstack, -errorline.
+                    }
+                    ResultCode::Return => {
+                        opts.insert(OPT_CODE.into(), exception.next_code().as_int().into());
+                        if let Some(data) = exception.error_data() {
+                            opts.insert(OPT_ERRORCODE.into(), data.error_code());
+                            opts.insert(OPT_ERRORINFO.into(), data.error_info());
+                        }
+                    }
+                    ResultCode::Break => {
+                        opts.insert(OPT_CODE.into(), "3".into());
+                    }
+                    ResultCode::Continue => {
+                        opts.insert(OPT_CODE.into(), "4".into());
+                    }
+                    ResultCode::Other(num) => {
+                        opts.insert(OPT_CODE.into(), num.into());
+                    }
+                }
+
+                // NEXT, set the -level
+                opts.insert(OPT_LEVEL.into(), Value::from(exception.level() as MoltInt));
+            }
+        }
+
+        Value::from(opts)
+    }
+
     /// Determines whether or not the script is syntactically complete,
     /// e.g., has no unmatched quotes, brackets, or braces.
     ///
@@ -926,7 +1026,7 @@ impl Interp {
     /// ```
     /// use molt::Interp;
     /// use molt::types::*;
-    /// # fn dummy() -> Result<String,ResultCode> {
+    /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     /// let expr = Value::from("2 + 2");
     /// let sum = interp.expr(&expr)?.as_int()?;
@@ -936,7 +1036,14 @@ impl Interp {
     /// # }
     /// ```
     pub fn expr(&mut self, expr: &Value) -> MoltResult {
-        expr::expr(self, expr)
+        // Evaluate the expression and set the errorInfo/errorCode.
+        let result = expr::expr(self, expr);
+
+        if let Err(exception) = &result {
+            self.set_global_error_data(exception.error_data())?;
+        }
+
+        result
     }
 
     /// Evaluates a boolean [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
@@ -947,7 +1054,7 @@ impl Interp {
     /// ```
     /// use molt::Interp;
     /// use molt::types::*;
-    /// # fn dummy() -> Result<String,ResultCode> {
+    /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     ///
     /// let expr = Value::from("1 < 2");
@@ -957,8 +1064,8 @@ impl Interp {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    pub fn expr_bool(&mut self, expr: &Value) -> Result<bool, ResultCode> {
-        expr::expr(self, expr)?.as_bool()
+    pub fn expr_bool(&mut self, expr: &Value) -> Result<bool, Exception> {
+        self.expr(expr)?.as_bool()
     }
 
     /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
@@ -970,7 +1077,7 @@ impl Interp {
     /// ```
     /// use molt::Interp;
     /// use molt::types::*;
-    /// # fn dummy() -> Result<String,ResultCode> {
+    /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     ///
     /// let expr = Value::from("1 + 2");
@@ -980,8 +1087,8 @@ impl Interp {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    pub fn expr_int(&mut self, expr: &Value) -> Result<MoltInt, ResultCode> {
-        expr::expr(self, expr)?.as_int()
+    pub fn expr_int(&mut self, expr: &Value) -> Result<MoltInt, Exception> {
+        self.expr(expr)?.as_int()
     }
 
     /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
@@ -993,7 +1100,7 @@ impl Interp {
     /// ```
     /// use molt::Interp;
     /// use molt::types::*;
-    /// # fn dummy() -> Result<String,ResultCode> {
+    /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     ///
     /// let expr = Value::from("1.1 + 2.2");
@@ -1003,8 +1110,8 @@ impl Interp {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    pub fn expr_float(&mut self, expr: &Value) -> Result<MoltFloat, ResultCode> {
-        expr::expr(self, expr)?.as_float()
+    pub fn expr_float(&mut self, expr: &Value) -> Result<MoltFloat, Exception> {
+        self.expr(expr)?.as_float()
     }
 
     //--------------------------------------------------------------------------------------------
@@ -1087,7 +1194,7 @@ impl Interp {
     /// # molt_ok!()
     /// # }
     /// ```
-    pub fn set_var(&mut self, var_name: &Value, value: Value) -> Result<(), ResultCode> {
+    pub fn set_var(&mut self, var_name: &Value, value: Value) -> Result<(), Exception> {
         let var_name = &*var_name.as_var_name();
         match var_name.index() {
             Some(index) => self.set_element(var_name.name(), index, value),
@@ -1178,7 +1285,7 @@ impl Interp {
     /// # molt_ok!()
     /// # }
     /// ```
-    pub fn set_scalar(&mut self, name: &str, value: Value) -> Result<(), ResultCode> {
+    pub fn set_scalar(&mut self, name: &str, value: Value) -> Result<(), Exception> {
         self.scopes.set(name, value)
     }
 
@@ -1253,7 +1360,7 @@ impl Interp {
     /// # molt_ok!()
     /// # }
     /// ```
-    pub fn set_element(&mut self, name: &str, index: &str, value: Value) -> Result<(), ResultCode> {
+    pub fn set_element(&mut self, name: &str, index: &str, value: Value) -> Result<(), Exception> {
         self.scopes.set_elem(name, index, value)
     }
 
@@ -1810,7 +1917,7 @@ impl Interp {
     /// Returns the default value of the named argument of the named procedure, if it has one.
     /// Returns an error if the procedure has no such argument, or the `procname` doesn't name
     /// a procedure.
-    pub fn proc_default(&self, procname: &str, arg: &str) -> Result<Option<Value>, ResultCode> {
+    pub fn proc_default(&self, procname: &str, arg: &str) -> Result<Option<Value>, Exception> {
         if let Some(cmd) = self.commands.get(procname) {
             if let Command::Proc(proc) = &**cmd {
                 for argvec in &proc.parms {
@@ -1867,8 +1974,7 @@ impl Interp {
     /// Gets the interpreter's recursion limit: how deep the stack of script evaluations may be.
     ///
     /// A script stack level is added by each nested script evaluation (i.e., by each call)
-    /// to [`eval`](#method.eval), [`eval_value`](#method.eval_value), or
-    /// [`eval_body`](#method.eval_body).
+    /// to [`eval`](#method.eval) or [`eval_value`](#method.eval_value).
     ///
     /// # Example
     /// ```
@@ -1885,8 +1991,7 @@ impl Interp {
     /// be.  The default is 1000.
     ///
     /// A script stack level is added by each nested script evaluation (i.e., by each call)
-    /// to [`eval`](#method.eval), [`eval_value`](#method.eval_value), or
-    /// [`eval_body`](#method.eval_body).
+    /// to [`eval`](#method.eval) or [`eval_value`](#method.eval_value).
     ///
     /// # Example
     /// ```
@@ -2116,6 +2221,23 @@ impl Procedure {
         // NEXT, pop the scope off of the stack; we're done with it.
         interp.pop_scope();
 
+        if let Err(mut exception) = result {
+            // FIRST, handle the return -code, -level protocol
+            if exception.code() == ResultCode::Return {
+                exception.decrement_level();
+            }
+
+            return match exception.code() {
+                ResultCode::Okay => Ok(exception.value()),
+                ResultCode::Error => Err(exception),
+                ResultCode::Return => Err(exception), // -level > 0
+                ResultCode::Break => molt_err!("invoked \"break\" outside of a loop"),
+                ResultCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
+                // TODO: Better error message
+                ResultCode::Other(_) => molt_err!("unexpected result code."),
+            };
+        }
+
         // NEXT, return the computed result.
         // Note: no need for special handling for return, break, continue;
         // interp.eval() returns only Ok or a real error.
@@ -2181,23 +2303,30 @@ mod tests {
         let mut interp = Interp::new();
 
         assert_eq!(interp.eval("set a 1"), Ok(Value::from("1")));
-        assert_eq!(
-            interp.eval("error 2"),
-            Err(ResultCode::Error(Value::from("2")))
-        );
+        assert!(ex_match(
+            &interp.eval("error 2"),
+            Exception::molt_err(Value::from("2"))
+        ));
         assert_eq!(interp.eval("return 3"), Ok(Value::from("3")));
-        assert_eq!(
-            interp.eval("break"),
-            Err(ResultCode::Error(Value::from(
-                "invoked \"break\" outside of a loop"
-            )))
-        );
-        assert_eq!(
-            interp.eval("continue"),
-            Err(ResultCode::Error(Value::from(
-                "invoked \"continue\" outside of a loop"
-            )))
-        );
+        assert!(ex_match(
+            &interp.eval("break"),
+            Exception::molt_err(Value::from("invoked \"break\" outside of a loop"))
+        ));
+        assert!(ex_match(
+            &interp.eval("continue"),
+            Exception::molt_err(Value::from("invoked \"continue\" outside of a loop"))
+        ));
+    }
+
+    // Shows that the result is matches the given exception.  Ignores the exception's
+    // ErrorData, if any.
+    fn ex_match(r: &MoltResult, expected: Exception) -> bool {
+        // FIRST, if the results are of different types, there's no match.
+        if let Err(e) = r {
+            e.code() == expected.code() && e.value() == expected.value()
+        } else {
+            false
+        }
     }
 
     #[test]
@@ -2208,56 +2337,22 @@ mod tests {
             interp.eval_value(&Value::from("set a 1")),
             Ok(Value::from("1"))
         );
-        assert_eq!(
-            interp.eval_value(&Value::from("error 2")),
-            Err(ResultCode::Error(Value::from("2")))
-        );
+        assert!(ex_match(
+            &interp.eval_value(&Value::from("error 2")),
+            Exception::molt_err(Value::from("2"))
+        ));
         assert_eq!(
             interp.eval_value(&Value::from("return 3")),
             Ok(Value::from("3"))
         );
-        assert_eq!(
-            interp.eval_value(&Value::from("break")),
-            Err(ResultCode::Error(Value::from(
-                "invoked \"break\" outside of a loop"
-            )))
-        );
-        assert_eq!(
-            interp.eval_value(&Value::from("continue")),
-            Err(ResultCode::Error(Value::from(
-                "invoked \"continue\" outside of a loop"
-            )))
-        );
-    }
-
-    #[test]
-    fn test_eval_body() {
-        let mut interp = Interp::new();
-
-        assert_eq!(
-            interp.eval_body(&Value::from("set a 1")),
-            Ok(Value::from("1"))
-        );
-        assert_eq!(
-            interp.eval_body(&Value::from("set a 1; set b 2")),
-            Ok(Value::from("2"))
-        );
-        assert_eq!(
-            interp.eval_body(&Value::from("error 2; set a whoops")),
-            Err(ResultCode::Error(Value::from("2")))
-        );
-        assert_eq!(
-            interp.eval_body(&Value::from("return 3; set a whoops")),
-            Err(ResultCode::Return(Value::from("3")))
-        );
-        assert_eq!(
-            interp.eval_body(&Value::from("break; set a whoops")),
-            Err(ResultCode::Break)
-        );
-        assert_eq!(
-            interp.eval_body(&Value::from("continue; set a whoops")),
-            Err(ResultCode::Continue)
-        );
+        assert!(ex_match(
+            &interp.eval_value(&Value::from("break")),
+            Exception::molt_err(Value::from("invoked \"break\" outside of a loop"))
+        ));
+        assert!(ex_match(
+            &interp.eval_value(&Value::from("continue")),
+            Exception::molt_err(Value::from("invoked \"continue\" outside of a loop"))
+        ));
     }
 
     #[test]
@@ -2278,7 +2373,7 @@ mod tests {
         assert_eq!(interp.expr(&Value::from("1 + 2")), Ok(Value::from(3)));
         assert_eq!(
             interp.expr(&Value::from("a + b")),
-            Err(ResultCode::Error(Value::from(
+            Err(Exception::molt_err(Value::from(
                 "unknown math function \"a\""
             )))
         );
@@ -2291,7 +2386,7 @@ mod tests {
         assert_eq!(interp.expr_bool(&Value::from("0")), Ok(false));
         assert_eq!(
             interp.expr_bool(&Value::from("a")),
-            Err(ResultCode::Error(Value::from(
+            Err(Exception::molt_err(Value::from(
                 "unknown math function \"a\""
             )))
         );
@@ -2303,7 +2398,7 @@ mod tests {
         assert_eq!(interp.expr_int(&Value::from("1 + 2")), Ok(3));
         assert_eq!(
             interp.expr_int(&Value::from("a")),
-            Err(ResultCode::Error(Value::from(
+            Err(Exception::molt_err(Value::from(
                 "unknown math function \"a\""
             )))
         );
@@ -2320,7 +2415,7 @@ mod tests {
 
         assert_eq!(
             interp.expr_float(&Value::from("a")),
-            Err(ResultCode::Error(Value::from(
+            Err(Exception::molt_err(Value::from(
                 "unknown math function \"a\""
             )))
         );
@@ -2335,10 +2430,12 @@ mod tests {
         assert_eq!(interp.recursion_limit(), 100);
 
         assert!(dbg!(interp.eval("proc myproc {} { myproc }")).is_ok());
-        assert_eq!(
-            interp.eval("myproc"),
-            molt_err!("too many nested calls to Interp::eval (infinite loop?)")
-        );
+        assert!(ex_match(
+            &interp.eval("myproc"),
+            Exception::molt_err(Value::from(
+                "too many nested calls to Interp::eval (infinite loop?)"
+            ))
+        ));
     }
 
     //-----------------------------------------------------------------------

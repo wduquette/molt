@@ -52,8 +52,8 @@ use crate::check_args;
 use crate::eval_ptr::EvalPtr;
 use crate::interp::Interp;
 use crate::types::ContextID;
+use crate::types::Exception;
 use crate::types::MoltResult;
-use crate::types::ResultCode;
 use crate::types::VarName;
 use crate::util::is_varname_char;
 use crate::value::Value;
@@ -127,14 +127,14 @@ pub(crate) enum Word {
 }
 
 /// Parses a script, given as a string slice.  Returns a parsed `Script` (or an error).
-pub(crate) fn parse(input: &str) -> Result<Script, ResultCode> {
+pub(crate) fn parse(input: &str) -> Result<Script, Exception> {
     // FIRST, create an EvalPtr as a parsing aid; then parse the script.
     let mut ctx = EvalPtr::new(input);
     parse_script(&mut ctx)
 }
 
 /// Parses a script represented by an `EvalPtr`.  This form is also used by `expr`.
-pub(crate) fn parse_script(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
+pub(crate) fn parse_script(ctx: &mut EvalPtr) -> Result<Script, Exception> {
     let mut script = Script::new();
 
     // Parse commands from the input until we've reach the end.
@@ -146,7 +146,7 @@ pub(crate) fn parse_script(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
 }
 
 /// Parses a single command from the input, returning it as a `WordVec`.
-fn parse_command(ctx: &mut EvalPtr) -> Result<WordVec, ResultCode> {
+fn parse_command(ctx: &mut EvalPtr) -> Result<WordVec, Exception> {
     let mut cmd: WordVec = WordVec::new();
 
     // FIRST, deal with whitespace and comments between "here" and the next command.
@@ -181,7 +181,7 @@ fn parse_command(ctx: &mut EvalPtr) -> Result<WordVec, ResultCode> {
 }
 
 /// Parse and return the next word from the input.
-fn parse_next_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+fn parse_next_word(ctx: &mut EvalPtr) -> Result<Word, Exception> {
     if ctx.next_is('{') {
         // FIRST, look for "{*}" operator
         if ctx.tok().as_str().starts_with("{*}") {
@@ -210,7 +210,7 @@ fn parse_next_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
 
 /// Parses a braced word from the input.  It's an error if the there are any non-whitespace
 /// characters following the close brace, or if the close brace is missing.
-pub(crate) fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+pub(crate) fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, Exception> {
     // FIRST, skip the opening brace, and count it; non-escaped braces need to
     // balance.
     ctx.skip_char('{');
@@ -270,7 +270,7 @@ pub(crate) fn parse_braced_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
 /// Parses a quoted word, handling backslash, variable, and command substitution. It's
 /// an error if the there are any non-whitespace characters following the close quote, or
 /// if the close quote is missing.
-pub(crate) fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+pub(crate) fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, Exception> {
     // FIRST, consume the the opening quote.
     ctx.next();
 
@@ -317,7 +317,7 @@ pub(crate) fn parse_quoted_word(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
 }
 
 /// Parses a bare word, handling backslash, variable, and command substitution.
-fn parse_bare_word(ctx: &mut EvalPtr, index_flag: bool) -> Result<Word, ResultCode> {
+fn parse_bare_word(ctx: &mut EvalPtr, index_flag: bool) -> Result<Word, Exception> {
     let mut tokens = Tokens::new();
     let mut start = ctx.mark();
 
@@ -358,7 +358,7 @@ fn parse_bare_word(ctx: &mut EvalPtr, index_flag: bool) -> Result<Word, ResultCo
 
 /// Parses an embedded script in a bare or quoted word, returning the result as a
 /// Script.  It's an error if the close-bracket is missing.
-fn parse_brackets(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
+fn parse_brackets(ctx: &mut EvalPtr) -> Result<Script, Exception> {
     // FIRST, skip the '['
     ctx.skip_char('[');
 
@@ -382,7 +382,7 @@ fn parse_brackets(ctx: &mut EvalPtr) -> Result<Script, ResultCode> {
 
 /// Parses a "$" in the input, and pushes the result into a list of tokens.  Usually this
 /// will be a variable reference, but it may simply be a bare "$".
-fn parse_dollar(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCode> {
+fn parse_dollar(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), Exception> {
     // FIRST, skip the '$'
     ctx.skip_char('$');
 
@@ -401,7 +401,7 @@ fn parse_dollar(ctx: &mut EvalPtr, tokens: &mut Tokens) -> Result<(), ResultCode
 /// and non-braced variable names, including array names.
 ///
 /// Also used by expr.rs.
-pub(crate) fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, ResultCode> {
+pub(crate) fn parse_varname(ctx: &mut EvalPtr) -> Result<Word, Exception> {
     // FIRST, is this a braced variable name?
     if ctx.next_is('{') {
         ctx.skip_char('{');
@@ -692,7 +692,7 @@ mod tests {
         );
     }
 
-    fn pword(input: &str) -> Result<(Word, String), ResultCode> {
+    fn pword(input: &str) -> Result<(Word, String), Exception> {
         let mut ctx = EvalPtr::new(input);
         let word = parse_next_word(&mut ctx)?;
         Ok((word, ctx.tok().as_str().to_string()))
@@ -753,7 +753,7 @@ mod tests {
         assert_eq!(pbrace("{a{b}c"), molt_err!("missing close-brace"));
     }
 
-    fn pbrace(input: &str) -> Result<(Word, String), ResultCode> {
+    fn pbrace(input: &str) -> Result<(Word, String), Exception> {
         let mut ctx = EvalPtr::new(input);
         let word = parse_braced_word(&mut ctx)?;
         Ok((word, ctx.tok().as_str().to_string()))
@@ -843,7 +843,7 @@ mod tests {
         );
     }
 
-    fn pqw(input: &str) -> Result<(Word, String), ResultCode> {
+    fn pqw(input: &str) -> Result<(Word, String), Exception> {
         let mut ctx = EvalPtr::new(input);
         let word = parse_quoted_word(&mut ctx)?;
         Ok((word, ctx.tok().as_str().to_string()))
@@ -931,7 +931,7 @@ mod tests {
         );
     }
 
-    fn pbare(input: &str, index_flag: bool) -> Result<(Word, String), ResultCode> {
+    fn pbare(input: &str, index_flag: bool) -> Result<(Word, String), Exception> {
         let mut ctx = EvalPtr::new(input);
         let word = parse_bare_word(&mut ctx, index_flag)?;
         Ok((word, ctx.tok().as_str().to_string()))
@@ -954,7 +954,7 @@ mod tests {
         assert_eq!(pbrack("[incomplete"), molt_err!("missing close-bracket"));
     }
 
-    fn pbrack(input: &str) -> Result<Script, ResultCode> {
+    fn pbrack(input: &str) -> Result<Script, Exception> {
         let mut ctx = EvalPtr::new(input);
         parse_brackets(&mut ctx)
     }
@@ -1001,7 +1001,7 @@ mod tests {
         assert_eq!(pvar("$."), Ok((Word::Value(Value::from("$")), ".".into())));
     }
 
-    fn pvar(input: &str) -> Result<(Word, String), ResultCode> {
+    fn pvar(input: &str) -> Result<(Word, String), Exception> {
         let mut ctx = EvalPtr::new(input);
         let mut tokens = Tokens::new();
         parse_dollar(&mut ctx, &mut tokens)?;

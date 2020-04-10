@@ -12,8 +12,8 @@
 //! Molt clients do not interact with this mechanism directly, but via the
 //! `Interp` (or the Molt language itself).
 
+use crate::types::Exception;
 use crate::types::MoltList;
-use crate::types::ResultCode;
 use crate::value::Value;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -100,7 +100,7 @@ impl ScopeStack {
     }
 
     /// Requires the value of the named scalar variable in the current scope.
-    pub fn get(&self, name: &str) -> Result<Value, ResultCode> {
+    pub fn get(&self, name: &str) -> Result<Value, Exception> {
         match self.var(self.current(), name) {
             Some(Var::Scalar(value)) => Ok(value.clone()),
             Some(Var::Array(_)) => molt_err!("can't read \"{}\": variable is array", name),
@@ -110,7 +110,7 @@ impl ScopeStack {
     }
 
     /// Requires the value of an array element given its variable name and index.
-    pub fn get_elem(&self, name: &str, index: &str) -> Result<Value, ResultCode> {
+    pub fn get_elem(&self, name: &str, index: &str) -> Result<Value, Exception> {
         match self.var(self.current(), name) {
             Some(Var::Scalar(_)) => {
                 molt_err!("can't read \"{}({})\": variable isn't array", name, index)
@@ -131,10 +131,27 @@ impl ScopeStack {
         }
     }
 
+    /// Sets the value of the named scalar in the global scope, creating the variable
+    /// if it doesn't already exist.  It's an error if the variable exists but is an array
+    /// variable.
+    pub fn set_global(&mut self, name: &str, val: Value) -> Result<(), Exception> {
+        match self.var_mut(0, name) {
+            Some(Var::Upvar(_)) => unreachable!(),
+            Some(Var::Array(_)) => molt_err!("can't set \"{}\": variable is array", name),
+            Some(var) => {
+                // It was either Var::Scalar or Var::New; either way, replace it with a new
+                // Var::Scalar.
+                *var = Var::Scalar(val);
+                Ok(())
+            }
+            None => unreachable!(),
+        }
+    }
+
     /// Sets the value of the named scalar in the current scope, creating the variable
     /// if it doesn't already exist.  It's an error if the variable exists but is an array
     /// variable.
-    pub fn set(&mut self, name: &str, val: Value) -> Result<(), ResultCode> {
+    pub fn set(&mut self, name: &str, val: Value) -> Result<(), Exception> {
         match self.var_mut(self.current(), name) {
             Some(Var::Upvar(_)) => unreachable!(),
             Some(Var::Array(_)) => molt_err!("can't set \"{}\": variable is array", name),
@@ -151,7 +168,7 @@ impl ScopeStack {
     /// Sets the value of the indexed array element in the current scope, creating the
     /// and/or the element if they don't already exist. It's an error if the variable exists
     /// but is a scalar variable.
-    pub fn set_elem(&mut self, name: &str, index: &str, val: Value) -> Result<(), ResultCode> {
+    pub fn set_elem(&mut self, name: &str, index: &str, val: Value) -> Result<(), Exception> {
         let top = self.current();
 
         match self.var_mut(top, name) {
@@ -340,7 +357,7 @@ impl ScopeStack {
 
     /// Merges a flat list of keys and values into the array variable, creating the variable
     /// if it doesn't exist. It's an error if the variable exists but is a scalar variable.
-    pub fn array_set(&mut self, name: &str, kvlist: &[Value]) -> Result<(), ResultCode> {
+    pub fn array_set(&mut self, name: &str, kvlist: &[Value]) -> Result<(), Exception> {
         // List must be even.
         assert!(kvlist.len() % 2 == 0);
 
@@ -450,6 +467,22 @@ mod tests {
             ss.get("c"),
             molt_err!("can't read \"c\": variable is array")
         );
+    }
+
+    #[test]
+    fn test_set_get_global() {
+        let mut ss = ScopeStack::new();
+
+        let _ = ss.set_global("a", Value::from("1"));
+        let out = ss.get("a");
+        assert_eq!(out.unwrap().as_str(), "1");
+
+        ss.push();
+        let _ = ss.set_global("a", Value::from("2"));
+        ss.pop();
+
+        let out = ss.get("a");
+        assert_eq!(out.unwrap().as_str(), "2");
     }
 
     #[test]

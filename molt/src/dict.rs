@@ -7,12 +7,12 @@
 //!   preserves the order.  Using `IndexMap::remove` does not.
 
 use crate::list::list_to_string;
-use crate::molt_ok;
 use crate::molt_err;
+use crate::molt_ok;
+use crate::types::Exception;
 use crate::types::MoltDict;
 use crate::types::MoltList;
 use crate::types::MoltResult;
-use crate::types::ResultCode;
 use crate::value::Value;
 use indexmap::IndexMap;
 

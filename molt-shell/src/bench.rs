@@ -18,7 +18,6 @@ use molt::ContextID;
 use molt::Interp;
 use molt::MoltInt;
 use molt::MoltResult;
-use molt::ResultCode;
 use molt::Value;
 use std::env;
 use std::fs;
@@ -101,8 +100,11 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     interp.add_command("ok", cmd_ok);
 
     // NEXT, load the benchmark Tcl library
-    if let Err(ResultCode::Error(value)) = interp.eval(include_str!("bench.tcl")) {
-        panic!("Error in benchmark Tcl library: {}", value.as_str());
+    if let Err(exception) = interp.eval(include_str!("bench.tcl")) {
+        panic!(
+            "Error in benchmark Tcl library: {}",
+            exception.value().as_str()
+        );
     }
 
     // NEXT, execute the script.
@@ -114,12 +116,8 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
 
             match interp.eval(&script) {
                 Ok(_) => (),
-                Err(ResultCode::Error(msg)) => {
-                    eprintln!("{}", msg);
-                    std::process::exit(1);
-                }
-                Err(result) => {
-                    eprintln!("Unexpected eval return: {:?}", result);
+                Err(exception) => {
+                    eprintln!("{}", exception.value());
                     std::process::exit(1);
                 }
             }

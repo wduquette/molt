@@ -36,8 +36,9 @@ At the TCL Level:
 *   Script execution
 *   Procedure definition
 *   Standard control structures (except the `switch` command)
-*   Local and global variables, including associate arrays
+*   Local and global variables, including associative arrays
 *   Boolean and numeric expressions
+*   Dictionaries
 *   Many standard TCL commands
 *   A modicum of introspection
 
@@ -65,9 +66,7 @@ See the [overview](overview.md) and the Molt README.
 ## Features to be added eventually
 
 *   Globs and Regexes
-*   Some way to create ensembles commands and simple objects
-*   Dictionaries
-*   Byte Compilation
+*   Some way to create ensemble commands and simple objects
 
 ## Features that might someday be added (depending on demand)
 
@@ -75,6 +74,7 @@ See the [overview](overview.md) and the Molt README.
 *   Slave interpreters
 *   File I/O
 *   Event loop
+*   Byte Compilation
 *   Communication between `Interps` in different threads
 *   Traces
 *   Some kind of TCL-level module architecture

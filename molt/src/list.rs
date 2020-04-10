@@ -10,7 +10,7 @@ use crate::value::Value;
 
 /// Parses a list-formatted string into a vector, throwing
 /// a Molt error if the list cannot be parsed as a list.
-pub(crate) fn get_list(str: &str) -> Result<MoltList, ResultCode> {
+pub(crate) fn get_list(str: &str) -> Result<MoltList, Exception> {
     let mut ctx = Tokenizer::new(str);
 
     parse_list(&mut ctx)
@@ -29,7 +29,7 @@ fn is_list_white(ch: char) -> bool {
     }
 }
 
-fn parse_list(ctx: &mut Tokenizer) -> Result<MoltList, ResultCode> {
+fn parse_list(ctx: &mut Tokenizer) -> Result<MoltList, Exception> {
     // FIRST, skip any list whitespace.
     ctx.skip_while(|ch| is_list_white(*ch));
 

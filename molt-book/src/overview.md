@@ -1,6 +1,6 @@
 # Molt: More Or Less Tcl
 
-**Molt 0.2.0** is a minimal implementation of the TCL language for embedding in Rust apps
+**Molt 0.3.0** is a minimal implementation of the TCL language for embedding in Rust apps
 and for scripting Rust libraries.  Molt is intended to be:
 
 *   **Small in size.** Embedding Molt shouldn't greatly increase the size of the
@@ -48,7 +48,59 @@ Using Molt, you can:
 See the [`molt-sample` repo](https://github.com/wduquette/molt-sample) for a sample Molt client
 skeleton.
 
-## New in Molt 0.2.2
+## New in Molt 0.3.0
+
+The changes in Molt 0.3.0 break the existing API in two ways:
+
+* The syntax for `molt_shell::repl` has changed slightly.
+* The `MoltResult` type has changed significantly.
+
+Keep reading for the full details.
+
+### Molt Shell: User-Definable Prompts
+
+Thanks to Coleman McFarland, `molt_shell::repl` now supports programmable prompts via the
+`tcl_prompt1` variable.  See the rustdocs and the [`molt_shell`](cmdline/molt_shell.md)
+discussion in this book for more information.
+
+### Error Stack Traces
+
+Molt now provides error stack traces in more-or-less the same form as standard TCL.  Stack
+traces are accessible to Rust clients, are printed by the Molt shell, and can be
+accessed in scripts via the [`catch`](ref/catch.md) command and the `errorInfo` variable
+in the usual TCL way.
+
+### Error Codes
+
+Molt scripts and Rust code can now throw errors with an explicit error code, as in Standard
+TCL; see the [`throw`](ref/throw.md) and [`catch`](ref/catch.md) commands.
+
+### Return Protocol
+
+Molt now supports the full [`return`](ref/return.md)/[`catch`](ref/catch.md) protocol for
+building application-specific control structures in script code.  The mechanism as implemented
+is slightly simpler than in Standard TCL, but should be sufficient for all practical
+purposes.  See the referenced commands for specifics.
+
+### `MoltResult` and the `Exception` Struct
+
+In order to support the above changes, the definition of the
+`MoltResult` type has changed.  Instead of
+
+```rust
+pub type MoltResult = Result<Value, ResultCode>;
+```
+
+it is now
+
+```rust
+pub type MoltResult = Result<Value, Exception>;
+```
+
+where `Exception` is a struct containing the `ResultCode` and other necessary data.  The
+`ResultCode` enum still exists, but has been simplified.  See the rust doc for details.
+
+## New in Molt 0.2
 
 ### Dictionaries and the `dict` command
 
@@ -67,7 +119,6 @@ following subcommands:
 
 Other `dict` subcommands will be added over time.
 
-## New in Molt 0.2
 
 ### Associative Arrays
 
@@ -157,6 +208,7 @@ At this point Molt is capable and robust enough for real work, though the Rust-l
 not yet completely stable.  Standard Rust `0.y.z` semantic versioning applies: ".y" changes
 can break the Rust-level API, ".z" changes will not.
 
-*   Feature: Regex and Glob pattern matching by Molt commands
+*   More TCL Commands
 *   Testing improvements
 *   Documentation improvements
+*   Feature: Regex and Glob pattern matching by Molt commands

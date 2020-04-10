@@ -2,9 +2,9 @@
 //!
 //! This module defines the standard Molt commands.
 
-use crate::dict::dict_path_remove;
 use crate::dict::dict_new;
 use crate::dict::dict_path_insert;
+use crate::dict::dict_path_remove;
 use crate::dict::list_to_dict;
 use crate::interp::Interp;
 use crate::types::*;
@@ -135,29 +135,38 @@ pub fn cmd_assert_eq(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Molt
 pub fn cmd_break(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 1, 1, "")?;
 
-    Err(ResultCode::Break)
+    Err(Exception::molt_break())
 }
 
-/// catch script ?resultVarName?
+/// catch script ?resultVarName? ?optionsVarName?
 ///
 /// Executes a script, returning the result code.  If the resultVarName is given, the result
 /// of executing the script is returned in it.  The result code is returned as an integer,
 /// 0=Ok, 1=Error, 2=Return, 3=Break, 4=Continue.
 pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 2, 3, "script ?resultVarName?")?;
+    check_args(1, argv, 2, 4, "script ?resultVarName? ?optionsVarName?")?;
 
-    let result = interp.eval_body(&argv[1]);
+    // If the script called `return x`, should get Return, -level 1, -code Okay here
+    let result = interp.eval_value(&argv[1]);
 
-    let (code, value) = match result {
-        Ok(val) => (0, val),
-        Err(ResultCode::Error(val)) => (1, val),
-        Err(ResultCode::Return(val)) => (2, val),
-        Err(ResultCode::Break) => (3, Value::empty()),
-        Err(ResultCode::Continue) => (4, Value::empty()),
+    let (code, value) = match &result {
+        Ok(val) => (0, val.clone()),
+        Err(exception) => match exception.code() {
+            ResultCode::Okay => unreachable!(), // Should not be reachable here.
+            ResultCode::Error => (1, exception.value()),
+            ResultCode::Return => (2, exception.value()),
+            ResultCode::Break => (3, exception.value()),
+            ResultCode::Continue => (4, exception.value()),
+            ResultCode::Other(_) => unimplemented!(), // TODO: Not in use yet
+        },
     };
 
-    if argv.len() == 3 {
+    if argv.len() >= 3 {
         interp.set_var(&argv[2], value)?;
+    }
+
+    if argv.len() == 4 {
+        interp.set_var(&argv[3], interp.return_options(&result))?;
     }
 
     Ok(Value::from(code))
@@ -169,7 +178,7 @@ pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
 pub fn cmd_continue(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 1, 1, "")?;
 
-    Err(ResultCode::Continue)
+    Err(Exception::molt_continue())
 }
 
 /// # dict *subcommand* ?*arg*...?
@@ -314,7 +323,6 @@ fn cmd_dict_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
     }
 }
 
-
 /// # dict values *dictionary*
 /// TODO: Add filtering when we have glob matching.
 fn cmd_dict_values(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
@@ -324,7 +332,6 @@ fn cmd_dict_values(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     let values: MoltList = dict.values().cloned().collect();
     molt_ok!(values)
 }
-
 
 /// error *message*
 ///
@@ -386,25 +393,27 @@ pub fn cmd_for(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult 
     interp.eval_value(start)?;
 
     while interp.expr_bool(test)? {
-        let result = interp.eval_body(command);
+        let result = interp.eval_value(command);
 
-        match result {
-            Ok(_) => (),
-            Err(ResultCode::Break) => break,
-            Err(ResultCode::Continue) => (),
-            _ => return result,
+        if let Err(exception) = result {
+            match exception.code() {
+                ResultCode::Break => break,
+                ResultCode::Continue => (),
+                _ => return Err(exception),
+            }
         }
 
         // Execute next script.  Break is allowed, but continue is not.
-        let result = interp.eval_body(next);
+        let result = interp.eval_value(next);
 
-        match result {
-            Ok(_) => (),
-            Err(ResultCode::Break) => break,
-            Err(ResultCode::Continue) => {
-                return molt_err!("invoked \"continue\" outside of a loop");
+        if let Err(exception) = result {
+            match exception.code() {
+                ResultCode::Break => break,
+                ResultCode::Continue => {
+                    return molt_err!("invoked \"continue\" outside of a loop");
+                }
+                _ => return Err(exception),
             }
-            _ => return result,
         }
     }
 
@@ -440,13 +449,14 @@ pub fn cmd_foreach(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
             }
         }
 
-        let result = interp.eval_body(body);
+        let result = interp.eval_value(body);
 
-        match result {
-            Ok(_) => (),
-            Err(ResultCode::Break) => break,
-            Err(ResultCode::Continue) => (),
-            _ => return result,
+        if let Err(exception) = result {
+            match exception.code() {
+                ResultCode::Break => break,
+                ResultCode::Continue => (),
+                _ => return Err(exception),
+            }
         }
     }
 
@@ -507,7 +517,7 @@ pub fn cmd_if(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
                 }
 
                 if argi < argv.len() {
-                    return interp.eval_body(&argv[argi]);
+                    return interp.eval_value(&argv[argi]);
                 } else {
                     break;
                 }
@@ -545,7 +555,7 @@ pub fn cmd_if(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
                 }
 
                 if argi < argv.len() {
-                    return interp.eval_body(&argv[argi]);
+                    return interp.eval_value(&argv[argi]);
                 } else {
                     break;
                 }
@@ -865,24 +875,94 @@ pub fn cmd_rename(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
     molt_ok!()
 }
 
-/// # return ?value?
+/// # return ?-code code? ?-level level? ?value?
 ///
-/// Returns from a proc.  The proc will return the given value, or ""
-/// if no value is specified.
+/// Returns from a proc with the given *value*, which defaults to the empty result.
+/// See the documentation for **return** in The Molt Book for the option semantics.
 ///
 /// ## TCL Liens
 ///
 /// * Doesn't support all of TCL's fancy return machinery. Someday it will.
 pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 1, 2, "?value?")?;
+    check_args(1, argv, 1, 0, "?options...? ?value?")?;
 
-    let value = if argv.len() == 1 {
-        Value::empty()
+    // FIRST, set the defaults
+    let mut code = ResultCode::Okay;
+    let mut level: MoltInt = 1;
+    let mut error_code: Option<Value> = None;
+    let mut error_info: Option<Value> = None;
+
+    // NEXT, with no arguments just return.
+    if argv.len() == 1 {
+        return Err(Exception::molt_return_ext(
+            Value::empty(),
+            level as usize,
+            code,
+        ));
+    }
+
+    // NEXT, get the return value: the last argument, if there's an odd number of arguments
+    // after the command name.
+    let return_value: Value;
+
+    let opt_args: &[Value] = if argv.len() % 2 == 0 {
+        // odd number of args following the command name
+        return_value = argv[argv.len() - 1].clone();
+        &argv[1..argv.len() - 1]
     } else {
-        argv[1].clone()
+        // even number of args following the command name
+        return_value = Value::empty();
+        &argv[1..argv.len()]
     };
 
-    Err(ResultCode::Return(value))
+    // NEXT, Get any options
+    let mut queue = opt_args.iter();
+
+    while let Some(opt) = queue.next() {
+        // We built the queue to have an even number of arguments, and every option requires
+        // a value; so there can't be a missing option value.
+        let val = queue
+            .next()
+            .expect("missing option value: coding error in cmd_return");
+
+        match opt.as_str() {
+            "-code" => {
+                code = ResultCode::from_value(val)?;
+            }
+            "-errorcode" => {
+                error_code = Some(val.clone());
+            }
+            "-errorinfo" => {
+                error_info = Some(val.clone());
+            }
+            "-level" => {
+                // TODO: return better error:
+                // bad -level value: expected non-negative integer but got "{}"
+                level = val.as_int()?;
+            }
+            // TODO: In standard TCL there are no invalid options; all options are retained.
+            _ => return molt_err!("invalid return option: \"{}\"", opt),
+        }
+    }
+
+    // NEXT, return the result: normally a Return exception, but could be "Ok".
+    if code == ResultCode::Error {
+        Err(Exception::molt_return_err(
+            return_value,
+            level as usize,
+            error_code,
+            error_info,
+        ))
+    } else if level == 0 && code == ResultCode::Okay {
+        // Not an exception!j
+        Ok(return_value)
+    } else {
+        Err(Exception::molt_return_ext(
+            return_value,
+            level as usize,
+            code,
+        ))
+    }
 }
 
 /// # set *varName* ?*newValue*?
@@ -912,6 +992,15 @@ pub fn cmd_source(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
         Ok(script) => interp.eval(&script),
         Err(e) => molt_err!("couldn't read file \"{}\": {}", filename, e),
     }
+}
+
+/// throw *type* *message*
+///
+/// Throws an error with the error code and message.
+pub fn cmd_throw(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 3, 3, "type message")?;
+
+    Err(Exception::molt_err2(argv[1].clone(), argv[2].clone()))
 }
 
 /// # time *command* ?*count*?
@@ -985,13 +1074,14 @@ pub fn cmd_while(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
     check_args(1, argv, 3, 3, "test command")?;
 
     while interp.expr_bool(&argv[1])? {
-        let result = interp.eval_body(&argv[2]);
+        let result = interp.eval_value(&argv[2]);
 
-        match result {
-            Ok(_) => (),
-            Err(ResultCode::Break) => break,
-            Err(ResultCode::Continue) => (),
-            _ => return result,
+        if let Err(exception) = result {
+            match exception.code() {
+                ResultCode::Break => break,
+                ResultCode::Continue => (),
+                _ => return Err(exception),
+            }
         }
     }
 

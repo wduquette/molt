@@ -5,9 +5,6 @@ An application can evaluate Molt code in several ways:
 * Use one of the `molt::Interp::eval` or `molt::Interp::eval_value` to evaluate an
   individual Molt command or script.
 
-* Use the `molt::Interp::eval_body` method to evaluate a Molt script that is the body
-  of a control structure.
-
 * Use the `molt::expr` function to evaluate a Molt expression, returning a Molt `Value`,
   or `molt::expr_bool`, `molt::expr_int`, and `molt::expr_float` for results of specific
   types.
@@ -19,10 +16,13 @@ An application can evaluate Molt code in several ways:
 
 ## Evaluating Scripts with `eval`
 
-The `molt::Interp::eval` method evaluates a string as a Molt script and returns the result,
-which will always be either `Ok(Value)` or `Err(ResultCode:Error(Value))`. (Other result
-codes are translated into `Ok` or `Err` as appropriate.  See
+The `molt::Interp::eval` method evaluates a string as a Molt script and returns the
+result.  When executed at the top level, `ResultCode::Break`, `ResultCode::Continue`,
+and `ResultCode::Other` are converted to errors, just as they are in `proc` bodies. See
 [The `MoltResult` Type](./molt_result.md) for details.)
+
+Thus, the following code will execute a script, returning its value and propagating
+any exceptions to the caller.
 
 ```rust
 use molt::Interp;
@@ -35,81 +35,44 @@ let mut interp = Interp::new();
 let value: Value = interp.eval("...some Molt code...")?;
 ```
 
-The explicit `Value` type declaration is included for clarity.
-
 The `molt::Interp::eval_value` method has identical semantics, but evaluates the string
 representation of a molt `Value`. In this case, the `Value` will cache the parsed internal
 form of the script to speed up subsequent evaluations.
 
-## Evaluating Scripts with `eval_body`
+## Evaluating Control Structure Bodies
 
-The `molt::Interp::eval_body` method is used when implementing control structures, as it
-gives access to the entire set of `MoltResult` return codes.  
+The `molt::Interp::eval_value` method is used when implementing control structures.  For
+example, this is an annotated version of of Molt's [**while**](./ref/while.md) command.
 
 ```rust
-use molt::Interp;
-use molt::types::*;
+pub fn cmd_while(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(1, argv, 3, 3, "test command")?;
 
-fn my_cmd(interp: &mut Interp, argv: &[Value]) -> MoltResult {
-    // Get a Molt script to evaluate, e.g., a loop body:
-    let body = argv[1];
+    // Here we evaluate the test expression as a boolean.  Any errors are propagated.
+    while interp.expr_bool(&argv[1])? {
+        // Here we evaluate the loop's body.
+        let result = interp.eval_value(&argv[2]);
 
-    ...
+        if let Err(exception) = result {
+            match exception.code() {
+                // They want to break; so break out of the rust loop.
+                ResultCode::Break => break,
 
-    // Assume we're implementing some kind of loop.
-    loop {
-        ...
+                // They want to continue; so continue with the next iteration.
+                ResultCode::Continue => (),
 
-        // Evaluate the loop body
-        let result = interp.eval_body(body.as_str());
-
-        match result {
-            Ok(value) => {
-                // normal OK result.  What you do with it depends on the
-                // control structure. There's probably nothing special to do
-                // here; we'll just go on with the next iteration of the loop.
-                continue;
-            }
-            Err(ResultCode::Err(msg)) => {
-                // An error.  Control structures should usually let this
-                // propagate.
-                return result;
-            }
-            Err(ResultCode::Return(value)) => {
-                // The code called the `return` command.  Let this propagate to
-                // return from the enclosing `proc`.
-                return result;
-            }
-            Err(ResultCode::Break) => {
-                // The code called the `break` command.  If this function is
-                // implementing a loop, it should return `Ok` to break out of
-                // the loop; otherwise, let the `Break` propagate to break out
-                // of the enclosing loop. Since this is a loop,  
-                // break and return `Ok'
-                break;
-            }
-            Err(ResultCode::Continue) => {
-                // The code called the `continue` command.  If this function is
-                // implementing a loop, this should continue on to the next
-                // iteration of the loop after doing any necessary clean-up.  
-                // Otherwise, let it propagate to continue in the enclosing loop.
-                // Here, we're implementing a loop.
-                continue;
+                // It's some other exception; just propagate it.
+                _ => return Err(exception),
             }
         }
-
-        ...
     }
 
-    ...
-    // It's a loop, which normally returns an empty result.
+    // All is good, so return Ok!
     molt_ok!()
 }
 ```
 
 See [The `MoltResult` Type](./molt_result.md) for more information.
-
-The explicit `Value` type declaration is included for clarity.
 
 ## Evaluating Expressions with `expr` and `expr_bool`.
 
@@ -152,8 +115,11 @@ let mut interp = Interp::new();
 // NOTE: commands can be added to the interpreter here.
 
 // NEXT, invoke the REPL.
-molt_shell::repl(&mut interp, "% ");
+molt_shell::repl(&mut interp);
 ```
+
+The REPL's prompt can be set using the `tcl_prompt1` variable to a script; see the
+[**molt shell**](../cmdline/molt_shell.md) documentation for an example.
 
 ## Evaluating Script Files
 

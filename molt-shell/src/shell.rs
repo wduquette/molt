@@ -1,6 +1,5 @@
 use molt::Interp;
 use molt::MoltList;
-use molt::ResultCode;
 use molt::Value;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -12,6 +11,9 @@ use std::fs;
 /// the REPL, returning control to the caller.  Entering `exit` will also normally cause the
 /// application to terminate (but the `exit` command can be removed or redefined by the
 /// application).
+///
+/// To change the prompt, set the `tcl_prompt1` TCL variable to a script that returns
+/// the desired prompt.
 ///
 /// See [`molt::interp`](../molt/interp/index.html) for details on how to configure and
 /// add commands to a Molt interpreter.
@@ -36,11 +38,10 @@ pub fn repl(interp: &mut Interp) {
         let readline = if let Ok(pscript) = interp.scalar("tcl_prompt1") {
             match interp.eval(pscript.as_str()) {
                 Ok(prompt) => rl.readline(prompt.as_str()),
-                Err(ResultCode::Error(msg)) => {
-                    println!("{}", msg);
+                Err(exception) => {
+                    println!("{}", exception.value());
                     rl.readline("% ")
                 }
-                _ => unreachable!(),
             }
         } else {
             rl.readline("% ")
@@ -51,7 +52,7 @@ pub fn repl(interp: &mut Interp) {
                 let line = line.trim();
                 if !line.is_empty() {
                     match interp.eval(line) {
-                        Ok(value) | Err(ResultCode::Return(value)) => {
+                        Ok(value) => {
                             rl.add_history_entry(line);
 
                             // Don't output empty values.
@@ -59,14 +60,8 @@ pub fn repl(interp: &mut Interp) {
                                 println!("{}", value);
                             }
                         }
-                        Err(ResultCode::Error(msg)) => {
-                            println!("{}", msg);
-                        }
-                        result => {
-                            // Must be Break or Continue, which should have been caught
-                            // by eval(), so this should never happen.  But panicking would
-                            // be rude.
-                            println!("Unexpected eval return: {:?}", result);
+                        Err(exception) => {
+                            println!("{}", exception.value());
                         }
                     }
                 }
@@ -155,15 +150,9 @@ fn execute_script(interp: &mut Interp, script: String, arg0: &str, argv: &[Strin
 
     match interp.eval(&script) {
         Ok(_) => (),
-        Err(ResultCode::Return(_)) => (),
-        Err(ResultCode::Error(msg)) => {
-            eprintln!("{}", msg);
+        Err(exception) => {
+            eprintln!("{}", exception.value());
             std::process::exit(1);
-        }
-        result => {
-            // Break or Continue; should never happen, since eval() is supposed to convert
-            // these to errors.
-            panic!("Unexpected eval return: {:?}", result)
         }
     }
 }

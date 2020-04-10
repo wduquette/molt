@@ -2,6 +2,7 @@
 
 - [Molt: More Or Less Tcl](./overview.md)
   - [Tcl Compatibility](./tcl_comp.md)
+  - [Annotated Change Log](./changes.md)
 - [Molt Command Line Tool](./cmdline/cmdline.md)
   - [molt shell](./cmdline/molt_shell.md)
   - [molt test](./cmdline/molt_test.md)

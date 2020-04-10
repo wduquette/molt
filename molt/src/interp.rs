@@ -29,7 +29,7 @@
 //! Alternatively, [`Interp::empty`](struct.Interp.html#method.empty) creates an interpreter
 //! with no built-in commands, allowing the application to define only those commands it needs.
 //! Such an empty interpreter can be configured as the parser for data and configuration files,
-//! or as the basis for a simple, non-scriptable console command set.
+//! or as the basis for a simple console command set.
 //!
 //! **TODO**: Define a way to add various subsets of the standard commands to an initially
 //! empty interpreter.
@@ -57,24 +57,28 @@
 //! use molt::molt_ok;
 //! use molt::types::*;
 //!
-//! # let _ = dummy();
-//! # fn dummy() -> MoltResult {
+//! let _ = my_func();
+//!
+//! fn my_func() -> MoltResult {
 //! // FIRST, create the interpreter and add the needed command.
 //! let mut interp = Interp::new();
 //!
-//! // NEXT, evaluate a script containing an expression
+//! // NEXT, evaluate a script containing an expression,
+//! // propagating errors back to the caller
 //! let val = interp.eval("expr {2 + 2}")?;
 //! assert_eq!(val.as_str(), "4");
 //! assert_eq!(val.as_int()?, 4);
-//! # molt_ok!()
-//! # }
+//!
+//! molt_ok!()
+//! }
 //! ```
 //!
 //! [`Interp::eval_value`](struct.Interp.html#method.eval_value) is equivalent to
 //! `Interp::eval` but takes the script as a `Value` instead of as a `&str`.  When
 //! called at the top level, both methods convert the `break` and `continue` return codes
 //! (and any user-defined return codes) to errors; otherwise they are propagated to the caller
-//! for handling.
+//! for handling.  It is preferred to use `Interp::eval_value` when possible, as `Interp::eval`
+//! will reparse its argument each time if called multiple times on the same input.
 //!
 //! All of these methods return [`MoltResult`]:
 //!
@@ -731,7 +735,9 @@ impl Interp {
     /// [`Exception`](../types/enum.Exception.html) values are converted to normal errors.
     ///
     /// Use this method (or [`eval_value`](#method.eval_value)) to evaluate arbitrary scripts,
-    /// control structure bodies, and so forth.
+    /// control structure bodies, and so forth.  Prefer `eval_value` if the script is already
+    /// stored in a `Value`, as it will be more efficient if the script is evaluated multiple
+    /// times.
     ///
     /// # Example
     ///
@@ -752,10 +758,14 @@ impl Interp {
     ///        println!("Value: {}", val);
     ///    }
     ///    Err(exception) => {
-    ///        // Got an error; print it out.
-    ///        println!("Error: {}", exception.value());
+    ///        if exception.is_error() {
+    ///            // Got an error; print it out.
+    ///            println!("Error: {}", exception.value());
+    ///        } else {
+    ///            // It's a Return.
+    ///            println!("Value: {}", exception.value());
+    ///        }
     ///    }
-    ///    _ => unreachable!(),
     /// }
     /// ```
 
@@ -771,7 +781,9 @@ impl Interp {
     ///
     /// This method is equivalent to [`eval`](#method.eval), but works on a `Value` rather
     /// than on a string slice.  Use it or `eval` to evaluate arbitrary scripts,
-    /// control structure bodies, and so forth.
+    /// control structure bodies, and so forth.  Prefer this to `eval` if the script is already
+    /// stored in a `Value`, as it will be more efficient if the script is evaluated multiple
+    /// times.
     ///
     /// [`Value`]: ../value/index.html
     pub fn eval_value(&mut self, value: &Value) -> MoltResult {
@@ -940,7 +952,8 @@ impl Interp {
     }
 
     /// Returns the `return` option dictionary for the given result as a dictionary value.
-    pub fn return_options(&self, result: &MoltResult) -> Value {
+    /// Used by the `catch` command.
+    pub(crate) fn return_options(&self, result: &MoltResult) -> Value {
         let mut opts = dict_new();
 
         match result {

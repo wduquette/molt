@@ -497,6 +497,8 @@ pub struct ErrorData {
 
 impl ErrorData {
     // Creates a new ErrorData given the error code and error message.
+    // The error data is marked as "new", meaning that the stack_trace is know to contain
+    // a single error message.
     fn new(error_code: Value, error_msg: &str) -> Self {
         Self {
             error_code,
@@ -506,6 +508,8 @@ impl ErrorData {
     }
 
     // Creates a rethrown ErrorData given the error code and error info.
+    // The error data is marked as not-new, meaning that the stack_trace has
+    // been initialized with a partial stack trace, not just the first error message.
     fn rethrow(error_code: Value, error_info: &str) -> Self {
         Self {
             error_code,
@@ -520,7 +524,6 @@ impl ErrorData {
     }
 
     /// Whether this has just been created, or the stack trace has been extended.
-    /// TODO: On rethrow, this should be false!
     pub(crate) fn is_new(&self) -> bool {
         self.is_new
     }
@@ -530,9 +533,10 @@ impl ErrorData {
         Value::from(self.stack_trace.join("\n"))
     }
 
-    /// Adds to the stack trace.
+    /// Adds to the stack trace, which, having been extended, is no longer new.
     pub(crate) fn add_info(&mut self, info: &str) {
         self.stack_trace.push(info.into());
+        self.is_new = false;
     }
 }
 
@@ -668,6 +672,7 @@ mod tests {
 
     #[test]
     fn test_result_code_as_string() {
+        // Tests Display for ResultCode
         assert_eq!(Value::from_other(ResultCode::Okay).as_str(), "ok");
         assert_eq!(Value::from_other(ResultCode::Error).as_str(), "error");
         assert_eq!(Value::from_other(ResultCode::Return).as_str(), "return");
@@ -679,6 +684,7 @@ mod tests {
 
     #[test]
     fn test_result_code_from_value() {
+        // Tests FromStr for ResultCode, from_value
         assert_eq!(ResultCode::from_value(&"ok".into()), Ok(ResultCode::Okay));
         assert_eq!(ResultCode::from_value(&"error".into()), Ok(ResultCode::Error));
         assert_eq!(ResultCode::from_value(&"return".into()), Ok(ResultCode::Return));
@@ -689,14 +695,43 @@ mod tests {
     }
 
     #[test]
-    fn test_error_data() {
-        let mut data = ErrorData::new("CODE".into(), "error message");
+    fn test_result_code_as_int() {
+        assert_eq!(ResultCode::Okay.as_int(), 0);
+        assert_eq!(ResultCode::Error.as_int(), 1);
+        assert_eq!(ResultCode::Return.as_int(), 2);
+        assert_eq!(ResultCode::Break.as_int(), 3);
+        assert_eq!(ResultCode::Continue.as_int(), 4);
+        assert_eq!(ResultCode::Other(5).as_int(), 5);
+    }
+
+    #[test]
+    fn test_error_data_new() {
+        let data = ErrorData::new("CODE".into(), "error message");
 
         assert_eq!(data.error_code(), "CODE".into());
         assert_eq!(data.error_info(), "error message".into());
+        assert!(data.is_new());
+    }
 
-        data.add_info("from unit test");
-        assert_eq!(data.error_info(), "error message\nfrom unit test".into());
+    #[test]
+    fn test_error_data_rethrow() {
+        let data = ErrorData::rethrow("CODE".into(), "stack trace");
+
+        assert_eq!(data.error_code(), "CODE".into());
+        assert_eq!(data.error_info(), "stack trace".into());
+        assert!(!data.is_new());
+    }
+
+    #[test]
+    fn test_error_data_add_info() {
+        let mut data = ErrorData::new("CODE".into(), "error message");
+
+        assert_eq!(data.error_info(), "error message".into());
+        assert!(data.is_new());
+
+        data.add_info("next line");
+        assert_eq!(data.error_info(), "error message\nnext line".into());
+        assert!(!data.is_new());
     }
 
     #[test]

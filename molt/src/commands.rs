@@ -143,8 +143,6 @@ pub fn cmd_break(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
 /// Executes a script, returning the result code.  If the resultVarName is given, the result
 /// of executing the script is returned in it.  The result code is returned as an integer,
 /// 0=Ok, 1=Error, 2=Return, 3=Break, 4=Continue.
-///
-///
 pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 4, "script ?resultVarName? ?optionsVarName?")?;
 
@@ -888,7 +886,6 @@ pub fn cmd_rename(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
 pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 1, 0, "?options...? ?value?")?;
 
-
     // FIRST, set the defaults
     let mut code = ResultCode::Okay;
     let mut level: MoltInt = 1;
@@ -897,7 +894,11 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
 
     // NEXT, with no arguments just return.
     if argv.len() == 1 {
-        return Err(Exception::molt_return_ext(Value::empty(), level as usize, code))
+        return Err(Exception::molt_return_ext(
+            Value::empty(),
+            level as usize,
+            code,
+        ));
     }
 
     // NEXT, get the return value: the last argument, if there's an odd number of arguments
@@ -920,7 +921,9 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
     while let Some(opt) = queue.next() {
         // We built the queue to have an even number of arguments, and every option requires
         // a value; so there can't be a missing option value.
-        let val = queue.next().expect("missing option value: coding error in cmd_return");
+        let val = queue
+            .next()
+            .expect("missing option value: coding error in cmd_return");
 
         match opt.as_str() {
             "-code" => {
@@ -940,16 +943,25 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
             // TODO: In standard TCL there are no invalid options; all options are retained.
             _ => return molt_err!("invalid return option: \"{}\"", opt),
         }
-    };
+    }
 
     // NEXT, return the result: normally a Return exception, but could be "Ok".
     if code == ResultCode::Error {
-        Err(Exception::molt_err3(return_value, level as usize, error_code, error_info))
+        Err(Exception::molt_return_err(
+            return_value,
+            level as usize,
+            error_code,
+            error_info,
+        ))
     } else if level == 0 && code == ResultCode::Okay {
         // Not an exception!j
         Ok(return_value)
     } else {
-        Err(Exception::molt_return_ext(return_value, level as usize, code))
+        Err(Exception::molt_return_ext(
+            return_value,
+            level as usize,
+            code,
+        ))
     }
 }
 

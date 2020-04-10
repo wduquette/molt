@@ -23,11 +23,11 @@
 //! [`Value`]: ../value/index.html
 //! [`interp`]: interp/index.html
 
-use std::str::FromStr;
 use crate::interp::Interp;
 pub use crate::value::Value;
 use indexmap::IndexMap;
 use std::fmt;
+use std::str::FromStr;
 
 // Molt Numeric Types
 
@@ -177,16 +177,14 @@ impl FromStr for ResultCode {
         }
 
         match Value::get_int(value) {
-            Ok(num) => {
-                match num {
-                    0 => Ok(ResultCode::Okay),
-                    1 => Ok(ResultCode::Error),
-                    2 => Ok(ResultCode::Return),
-                    3 => Ok(ResultCode::Break),
-                    4 => Ok(ResultCode::Continue),
-                    _ => Ok(ResultCode::Other(num)),
-                }
-            }
+            Ok(num) => match num {
+                0 => Ok(ResultCode::Okay),
+                1 => Ok(ResultCode::Error),
+                2 => Ok(ResultCode::Return),
+                3 => Ok(ResultCode::Break),
+                4 => Ok(ResultCode::Continue),
+                _ => Ok(ResultCode::Other(num)),
+            },
             Err(exception) => Err(exception.value().as_str().into()),
         }
     }
@@ -260,10 +258,187 @@ pub struct Exception {
 }
 
 impl Exception {
+    /// Returns true if the exception is an error exception, and false otherwise.  In client
+    /// code, an Exception almost always will be an error; and unless you're implementing an
+    /// application-specific control structure can usually be treated as an error in any event.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let input = "throw MYERR \"Error Message\"";
+    ///
+    /// match interp.eval(input) {
+    ///    Ok(val) => (),
+    ///    Err(exception) => {
+    ///        assert!(exception.is_error());
+    ///    }
+    /// }
+    /// ```
+    pub fn is_error(&self) -> bool {
+        self.code == ResultCode::Error
+    }
+
+    /// Gets the exception's [`ErrorData`], only when the `code()` is `ResultCode::Error`.  The
+    /// error data contains the error's error code and stack trace information.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let input = "throw MYERR \"Error Message\"";
+    ///
+    /// match interp.eval(input) {
+    ///    Ok(val) => (),
+    ///    Err(exception) => {
+    ///        if let Some(error_data) = exception.error_data() {
+    ///            assert_eq!(error_data.error_code(), "MYERR".into());
+    ///        }
+    ///    }
+    /// }
+    /// ```
+    ///
+    /// [`ErrorData`]: struct.ErrorData.html
+    pub fn error_data(&self) -> Option<&ErrorData> {
+        self.error_data.as_ref()
+    }
+
+    /// Gets the exception's result code.
+    ///
+    /// # Example
+    ///
+    /// This example shows catching all of the possible result codes.  Except in control
+    /// structure code, all of these but `ResultCode::Return` can usually be treated as
+    /// an error; and the caller of `Interp::eval` will only see them if the script being
+    /// called used the `return` command's `-level` option (or the Rust equivalent).
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let input = "throw MYERR \"Error Message\"";
+    ///
+    /// match interp.eval(input) {
+    ///    Ok(val) => (),
+    ///    Err(exception) => {
+    ///        match exception.code() {
+    ///            ResultCode::Okay => { println!("Got an okay!") }
+    ///            ResultCode::Error => { println!("Got an error!") }
+    ///            ResultCode::Return => { println!("Got a return!") }
+    ///            ResultCode::Break => { println!("Got a break!")  }
+    ///            ResultCode::Continue => { println!("Got a continue!")  }
+    ///            ResultCode::Other(n) => { println!("Got an other {}", n)  }
+    ///        }
+    ///    }
+    /// }
+    /// ```
+    ///
+    /// [`ErrorData`]: struct.ErrorData.html
+    pub fn code(&self) -> ResultCode {
+        self.code
+    }
+
+    /// Gets the exception's value, i.e., the explicit return value or the error message.  In
+    /// client code, this will almost always be an error message.
+    ///
+    /// # Example
+    ///
+    /// This example shows catching all of the possible result codes.  Except in control
+    /// structure code, all of these but `ResultCode::Return` can usually be treated as
+    /// an error; and the caller of `Interp::eval` will only see them if the script being
+    /// called used the `return` command's `-level` option (or the Rust equivalent).
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let input = "throw MYERR \"Error Message\"";
+    ///
+    /// match interp.eval(input) {
+    ///    Ok(val) => (),
+    ///    Err(exception) => {
+    ///        assert_eq!(exception.value(), "Error Message".into());
+    ///    }
+    /// }
+    /// ```
+    pub fn value(&self) -> Value {
+        self.value.clone()
+    }
+
+    /// Gets the exception's level.  The "level" code is set by the `return` command's
+    /// `-level` option.  See The Molt Book's `return` page for the semantics.  Client code
+    /// should rarely if ever need to refer to this.
+    pub fn level(&self) -> usize {
+        self.level
+    }
+
+    /// Gets the exception's "next" code (when `code == ResultCode::Return` only).  The
+    /// "next" code is set by the `return` command's `-code` option.  See The Molt Book's
+    /// `return` page for the semantics.  Client code should rarely if ever need to refer
+    /// to this.
+    pub fn next_code(&self) -> ResultCode {
+        self.next_code
+    }
+
+    /// Adds a line to the exception's error info, i.e., to its human readable stack trace.
+    /// This is for use by command definitions that execute a TCL script and wish to
+    /// add to the stack trace on error as an aid to debugging.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::types::*;
+    /// # use molt::Interp;
+    ///
+    /// let mut interp = Interp::new();
+    /// let input = "throw MYERR \"Error Message\"";
+    /// assert!(my_func(&mut interp, &input).is_err());
+    ///
+    /// fn my_func(interp: &mut Interp, input: &str) -> MoltResult {
+    ///     // Evaluates the input; on error, adds some error info and rethrows.
+    ///     match interp.eval(input) {
+    ///        Ok(val) => Ok(val),
+    ///        Err(mut exception) => {
+    ///            if exception.is_error() {
+    ///                exception.add_error_info("in rustdoc example");
+    ///            }
+    ///            Err(exception)
+    ///        }
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the exception is not an error exception.
+    pub fn add_error_info(&mut self, line: &str) {
+        if let Some(data) = &mut self.error_data {
+            data.add_info(line);
+        } else {
+            panic!("add_error_info called for non-Error Exception");
+        }
+    }
+
     /// Creates an `Error` exception with the given error message.  This is primarily
     /// intended for use by the [`molt_err!`] macro, but it can also be used directly.
     ///
-    /// TODO: add example.
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::types::*;
+    ///
+    /// let ex = Exception::molt_err("error message".into());
+    /// assert!(ex.is_error());
+    /// assert_eq!(ex.value(), "error message".into());
+    /// ```
     ///
     /// [`molt_err`]: ../macro.molt_err.html
     pub fn molt_err(msg: Value) -> Self {
@@ -282,9 +457,21 @@ impl Exception {
     /// error code is a `MoltList` that indicates the nature of the error.  Standard TCL
     /// uses the error code to flag specific arithmetic and I/O errors; most other
     /// errors have the code `NONE`.  At present Molt doesn't define any error codes
-    /// other than `NONE`, so this method is primarily for use by the `throw` command
+    /// other than `NONE`, so this method is primarily for use by the `throw` command;
+    /// but use it if your code needs to provide an error code.
     ///
-    /// TODO: add example.
+    /// # Example
+    ///
+    /// ```
+    /// # use molt::types::*;
+    ///
+    /// let ex = Exception::molt_err2("MYERR".into(), "error message".into());
+    /// assert!(ex.is_error());
+    /// assert_eq!(ex.error_data().unwrap().error_code(), "MYERR".into());
+    /// assert_eq!(ex.value(), "error message".into());
+    /// ```
+    ///
+    /// [`molt_err`]: ../macro.molt_err.html
     pub fn molt_err2(error_code: Value, msg: Value) -> Self {
         let data = ErrorData::new(error_code, msg.as_str());
 
@@ -292,27 +479,6 @@ impl Exception {
             code: ResultCode::Error,
             value: msg,
             level: 0,
-            next_code: ResultCode::Error,
-            error_data: Some(data),
-        }
-    }
-
-    /// Creates an `Error` exception with the given data, rethrowing an existing error.
-    ///
-    /// This method is primarily for use by the `return` command, and should rarely if
-    /// ever be needed in client code.  If you fully understand the semantics of the `return` and
-    /// `catch` commands, you'll understand what this does and when you would want
-    /// to use it.  If you don't, you almost certainly don't need it.
-    pub fn molt_err3(msg: Value, level: usize, error_code: Option<Value>, error_info: Option<Value>) -> Self {
-        let error_code = error_code.unwrap_or_else(|| Value::from("NONE"));
-        let error_info = error_info.unwrap_or_else(Value::empty);
-
-        let data = ErrorData::rethrow(error_code, error_info.as_str());
-
-        Self {
-            code: if level == 0 { ResultCode::Error } else { ResultCode::Return },
-            value: msg,
-            level,
             next_code: ResultCode::Error,
             error_data: Some(data),
         }
@@ -345,15 +511,51 @@ impl Exception {
     /// ever be needed in client code.  If you fully understand the semantics of the `return` and
     /// `catch` commands, you'll understand what this does and when you would want
     /// to use it.  If you don't, you almost certainly don't need it.
-    pub(crate) fn molt_return_ext(value: Value, level: usize, next_code: ResultCode) -> Self {
+    pub fn molt_return_ext(value: Value, level: usize, next_code: ResultCode) -> Self {
         assert!(level > 0 || next_code != ResultCode::Okay);
 
         Self {
-            code: if level > 0 { ResultCode::Return } else { next_code },
+            code: if level > 0 {
+                ResultCode::Return
+            } else {
+                next_code
+            },
             value,
             level,
             next_code,
             error_data: None,
+        }
+    }
+
+    /// Creates an exception that will produce an `Error` exception with the given data,
+    /// either immediately or some levels up the call chain.  This is usually used to
+    /// rethrow an existing error.
+    ///
+    /// This method is primarily for use by the `return` command, and should rarely if
+    /// ever be needed in client code.  If you fully understand the semantics of the `return` and
+    /// `catch` commands, you'll understand what this does and when you would want
+    /// to use it.  If you don't, you almost certainly don't need it.
+    pub fn molt_return_err(
+        msg: Value,
+        level: usize,
+        error_code: Option<Value>,
+        error_info: Option<Value>,
+    ) -> Self {
+        let error_code = error_code.unwrap_or_else(|| Value::from("NONE"));
+        let error_info = error_info.unwrap_or_else(Value::empty);
+
+        let data = ErrorData::rethrow(error_code, error_info.as_str());
+
+        Self {
+            code: if level == 0 {
+                ResultCode::Error
+            } else {
+                ResultCode::Return
+            },
+            value: msg,
+            level,
+            next_code: ResultCode::Error,
+            error_data: Some(data),
         }
     }
 
@@ -404,55 +606,6 @@ impl Exception {
         }
     }
 
-    /// Returns true if the exception is an error exception, and false otherwise.  In client
-    /// code, it almost always will be; and unless you're implementing an application-specific
-    /// control structure can be treated as an error in any event.
-    ///
-    /// TODO: Add example
-    pub fn is_error(&self) -> bool {
-        self.code == ResultCode::Error
-    }
-
-    /// Gets the exception's result code.
-    ///
-    /// TODO: Add example
-    pub fn code(&self) -> ResultCode {
-        self.code
-    }
-
-    /// Gets the exception's "next" code (when `code == ResultCode::Return` only).  The
-    /// "next" code is set by the `return` command's `-code` option.  See The Molt Book's
-    /// `return` page for the semantics.  Client code should rarely if ever need to refer
-    /// to this.
-    pub fn next_code(&self) -> ResultCode {
-        self.next_code
-    }
-
-    /// Gets the exception's level.  The "level" code is set by the `return` command's
-    /// `-level` option.  See The Molt Book's `return` page for the semantics.  Client code
-    /// should rarely if ever need to refer to this.
-    pub fn level(&self) -> usize {
-        self.level
-    }
-
-    /// Gets the exception's value, i.e., the explicit return value or the error message.  In
-    /// client code, this will almost always be an error message.
-    ///
-    /// TODO: Add example
-    pub fn value(&self) -> Value {
-        self.value.clone()
-    }
-
-    /// Gets the exception's [`ErrorData`], only when the code is `ResultCode::Error`.  The
-    /// error date contains the error's code and stack trace information.
-    ///
-    /// TODO: Add example.
-    ///
-    /// [`ErrorData`]: struct.ErrorData.html
-    pub fn error_data(&self) -> Option<&ErrorData> {
-        self.error_data.as_ref()
-    }
-
     /// This is used by the interpreter when accumulating stack trace information.
     /// See Interp::eval_script.
     pub(crate) fn is_new_error(&self) -> bool {
@@ -460,23 +613,6 @@ impl Exception {
             data.is_new()
         } else {
             false
-        }
-    }
-
-    /// Adds a line to the exception's error info, i.e., to its human readable stack trace.
-    /// This is for use by command definitions that execute a TCL script and wish to
-    /// add to the stack trace on error as an aid to debugging.
-    ///
-    /// TODO: Example
-    ///
-    /// # Panics
-    ///
-    /// Panics if the exception is not an error exception.
-    pub fn add_error_info(&mut self, line: &str) {
-        if let Some(data) = &mut self.error_data {
-            data.add_info(line);
-        } else {
-            panic!("add_error_info called for non-Error Exception");
         }
     }
 }
@@ -679,18 +815,32 @@ mod tests {
         assert_eq!(Value::from_other(ResultCode::Break).as_str(), "break");
         assert_eq!(Value::from_other(ResultCode::Continue).as_str(), "continue");
         assert_eq!(Value::from_other(ResultCode::Other(5)).as_str(), "5");
-
     }
 
     #[test]
     fn test_result_code_from_value() {
         // Tests FromStr for ResultCode, from_value
         assert_eq!(ResultCode::from_value(&"ok".into()), Ok(ResultCode::Okay));
-        assert_eq!(ResultCode::from_value(&"error".into()), Ok(ResultCode::Error));
-        assert_eq!(ResultCode::from_value(&"return".into()), Ok(ResultCode::Return));
-        assert_eq!(ResultCode::from_value(&"break".into()), Ok(ResultCode::Break));
-        assert_eq!(ResultCode::from_value(&"continue".into()), Ok(ResultCode::Continue));
-        assert_eq!(ResultCode::from_value(&"5".into()), Ok(ResultCode::Other(5)));
+        assert_eq!(
+            ResultCode::from_value(&"error".into()),
+            Ok(ResultCode::Error)
+        );
+        assert_eq!(
+            ResultCode::from_value(&"return".into()),
+            Ok(ResultCode::Return)
+        );
+        assert_eq!(
+            ResultCode::from_value(&"break".into()),
+            Ok(ResultCode::Break)
+        );
+        assert_eq!(
+            ResultCode::from_value(&"continue".into()),
+            Ok(ResultCode::Continue)
+        );
+        assert_eq!(
+            ResultCode::from_value(&"5".into()),
+            Ok(ResultCode::Other(5))
+        );
         assert!(ResultCode::from_value(&"nonesuch".into()).is_err());
     }
 
@@ -771,6 +921,50 @@ mod tests {
     }
 
     #[test]
+    fn test_exception_molt_return_err_level0() {
+        let exception = Exception::molt_return_err(
+            "error message".into(),
+            0,
+            Some("MYERR".into()),
+            Some("stack trace".into()),
+        );
+
+        assert_eq!(exception.code(), ResultCode::Error);
+        assert_eq!(exception.next_code(), ResultCode::Error);
+        assert_eq!(exception.level(), 0);
+        assert_eq!(exception.value(), "error message".into());
+        assert!(exception.is_error());
+        assert!(exception.error_data().is_some());
+
+        if let Some(data) = exception.error_data() {
+            assert_eq!(data.error_code(), "MYERR".into());
+            assert_eq!(data.error_info(), "stack trace".into());
+        }
+    }
+
+    #[test]
+    fn test_exception_molt_return_err_level2() {
+        let exception = Exception::molt_return_err(
+            "error message".into(),
+            2,
+            Some("MYERR".into()),
+            Some("stack trace".into()),
+        );
+
+        assert_eq!(exception.code(), ResultCode::Return);
+        assert_eq!(exception.next_code(), ResultCode::Error);
+        assert_eq!(exception.level(), 2);
+        assert_eq!(exception.value(), "error message".into());
+        assert!(!exception.is_error());
+        assert!(exception.error_data().is_some());
+
+        if let Some(data) = exception.error_data() {
+            assert_eq!(data.error_code(), "MYERR".into());
+            assert_eq!(data.error_info(), "stack trace".into());
+        }
+    }
+
+    #[test]
     #[should_panic]
     fn text_exception_add_error_info() {
         let mut exception = Exception::molt_break();
@@ -784,6 +978,20 @@ mod tests {
 
         assert_eq!(exception.code(), ResultCode::Return);
         assert_eq!(exception.value(), "result".into());
+        assert_eq!(exception.level(), 1);
+        assert_eq!(exception.next_code(), ResultCode::Okay);
+        assert!(!exception.is_error());
+        assert!(!exception.error_data().is_some());
+    }
+
+    #[test]
+    fn test_exception_molt_return_ext() {
+        let exception = Exception::molt_return_ext("result".into(), 2, ResultCode::Break);
+
+        assert_eq!(exception.code(), ResultCode::Return);
+        assert_eq!(exception.value(), "result".into());
+        assert_eq!(exception.level(), 2);
+        assert_eq!(exception.next_code(), ResultCode::Break);
         assert!(!exception.is_error());
         assert!(!exception.error_data().is_some());
     }

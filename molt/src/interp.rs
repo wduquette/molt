@@ -873,8 +873,10 @@ impl Interp {
                                 exception.add_error_info("    while executing");
                             } else if cmd.is_proc() {
                                 exception.add_error_info("    invoked from within");
-                                exception
-                                    .add_error_info(&format!("    (procedure \"{}\" line TODO)", name));
+                                exception.add_error_info(&format!(
+                                    "    (procedure \"{}\" line TODO)",
+                                    name
+                                ));
                             } else {
                                 return Err(exception);
                             }
@@ -2203,7 +2205,6 @@ impl Procedure {
         // NEXT, evaluate the proc's body, getting the result.
         let result = interp.eval_value(&self.body);
 
-
         // NEXT, pop the scope off of the stack; we're done with it.
         interp.pop_scope();
 
@@ -2221,7 +2222,7 @@ impl Procedure {
                 ResultCode::Continue => molt_err!("invoked \"continue\" outside of a loop"),
                 // TODO: Better error message
                 ResultCode::Other(_) => molt_err!("unexpected result code."),
-            }
+            };
         }
 
         // NEXT, return the computed result.
@@ -2418,8 +2419,10 @@ mod tests {
         assert!(dbg!(interp.eval("proc myproc {} { myproc }")).is_ok());
         assert!(ex_match(
             &interp.eval("myproc"),
-            Exception::molt_err(Value::from("too many nested calls to Interp::eval (infinite loop?)")))
-        );
+            Exception::molt_err(Value::from(
+                "too many nested calls to Interp::eval (infinite loop?)"
+            ))
+        ));
     }
 
     //-----------------------------------------------------------------------

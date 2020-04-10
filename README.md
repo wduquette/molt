@@ -9,62 +9,11 @@ Molt is a minimal implementation of the TCL language for embedding in Rust apps 
 scripting Rust libraries.  See [The Molt Book](https://wduquette.github.io/molt) for details
 and user documentation.
 
-## New in Molt 0.3.0
+## New in Molt 0.3.1
 
-The changes in Molt 0.3.0 break the existing API in two ways:
-
-* The syntax for `molt_shell::repl` has changed slightly.
-* The `MoltResult` type has changed significantly.
-
-Keep reading for the full details.
-
-### Molt Shell: User-Definable Prompts
-
-Thanks to Coleman McFarland, `molt_shell::repl` now supports programmable prompts via the
-`tcl_prompt1` variable.  See the rustdocs and the
-[`molt_shell`]((https://wduquette.github.io/molt/cmdline/molt_shell.md)
-discussion in the Molt Book for more information.
-
-### Error Stack Traces
-
-Molt now provides error stack traces in more-or-less the same form as standard TCL.  Stack
-traces are accessible to Rust clients, are printed by the Molt shell, and can be
-accessed in scripts via the
-[`catch`](https://wduquette.github.io/molt/ref/catch.md) command
-and the `errorInfo` variable in the usual TCL way.
-
-### Error Codes
-
-Molt scripts and Rust code can now throw errors with an explicit error code, as in Standard
-TCL; see the
-[`throw`](https://wduquette.github.io/molt/ref/throw.md) and
-[`catch`](https://wduquette.github.io/molt/ref/catch.md) commands.
-
-### Return Protocol
-
-Molt now supports the full
-[`return`](https://wduquette.github.io/molt/ref/return.md)/[`catch`](https://wduquette.github.io/molt/ref/catch.md) protocol for
-building application-specific control structures in script code.  The mechanism as implemented
-is slightly simpler than in Standard TCL, but should be sufficient for all practical
-purposes.  See the referenced commands for specifics.
-
-### `MoltResult` and the `Exception` Struct
-
-In order to support the above changes, the definition of the
-`MoltResult` type has changed.  Instead of
-
-```rust
-pub type MoltResult = Result<Value, ResultCode>;
-```
-
-it is now
-
-```rust
-pub type MoltResult = Result<Value, Exception>;
-```
-
-where `Exception` is a struct containing the `ResultCode` and other necessary data.  The
-`ResultCode` enum still exists, but has been simplified.  See the rust doc for details.
+Nothing yet!  See the
+[Annotated Change Log](https://wduquette.github.io/molt/changes.md) in the Molt Book for
+the complete list of new features by version.
 
 ## Coming Attractions
 

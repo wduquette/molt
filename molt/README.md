@@ -1,5 +1,13 @@
 # molt -- An Embeddable Tcl Interpreter for Rust
 
+## New in Molt 0.3.1
+
+See the
+[Annotated Change Log](https://wduquette.github.io/molt/changes.md) in the Molt Book for
+the complete list of new features by version.
+
+## Description
+
 Molt is an embeddable TCL interpreter for Rust.  Applications can define new TCL
 commands in Rust and execute TCL scripts and strings.  For example,
 

@@ -15,3 +15,11 @@ Molt commands.
 
 See [The Molt Book](https://wduquette.github.io/molt) for more details, and
 the [GitHub Repo](https://github.com/wduquette/molt) for issue tracking, etc.
+
+## New in Molt 0.3
+
+* Scripted REPL prompts
+
+See the
+[Annotated Change Log](https://wduquette.github.io/molt/changes.md) in the Molt Book for
+the complete list of new features by version.

@@ -27,6 +27,9 @@ macro_rules! molt_ok {
 /// If called with one argument, returns the argument as the error message.
 /// If called with two or more arguments, computes the error message using
 /// `format!()`; the first argument is naturally the format string.
+///
+/// This macro wraps the [`Exception::molt_err`](types/struct.Exception.html#method.molt_err)
+/// method.
 #[macro_export]
 macro_rules! molt_err {
     ($arg:expr) => (

@@ -32,7 +32,7 @@ fn main() {
     if args.len() > 1 {
         molt_shell::script(&mut interp, &args[1..]);
     } else {
-        molt_shell::repl(&mut interp, "% ");
+        molt_shell::repl(&mut interp);
     }
 }
 

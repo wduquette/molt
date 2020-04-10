@@ -193,6 +193,12 @@ administration.</li>
 <p>See the <a href="https://github.com/wduquette/molt-sample"><code>molt-sample</code> repo</a> for a sample Molt client
 skeleton.</p>
 <a class="header" href="#new-in-molt-030" id="new-in-molt-030"><h2>New in Molt 0.3.0</h2></a>
+<p>The changes in Molt 0.3.0 break the existing API in two ways:</p>
+<ul>
+<li>The syntax for <code>molt_shell::repl</code> has changed slightly.</li>
+<li>The <code>MoltResult</code> type has changed significantly.</li>
+</ul>
+<p>Keep reading for the full details.</p>
 <a class="header" href="#molt-shell-user-definable-prompts" id="molt-shell-user-definable-prompts"><h3>Molt Shell: User-Definable Prompts</h3></a>
 <p>Thanks to Coleman McFarland, <code>molt_shell::repl</code> now supports programmable prompts via the
 <code>tcl_prompt1</code> variable.  See the rustdocs and the <a href="cmdline/molt_shell.html"><code>molt_shell</code></a>

@@ -165,6 +165,8 @@ content and pass it to <code>molt::Interp::eval</code>).</p>
 result.  When executed at the top level, <code>ResultCode::Break</code>, <code>ResultCode::Continue</code>,
 and <code>ResultCode::Other</code> are converted to errors, just as they are in <code>proc</code> bodies. See
 <a href="./molt_result.html">The <code>MoltResult</code> Type</a> for details.)</p>
+<p>Thus, the following code will execute a script, returning its value and propagating
+any exceptions to the caller.</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
@@ -177,76 +179,42 @@ let mut interp = Interp::new();
 
 let value: Value = interp.eval(&quot;...some Molt code...&quot;)?;
 #}</code></pre></pre>
-<p>The explicit <code>Value</code> type declaration is included for clarity.</p>
 <p>The <code>molt::Interp::eval_value</code> method has identical semantics, but evaluates the string
 representation of a molt <code>Value</code>. In this case, the <code>Value</code> will cache the parsed internal
 form of the script to speed up subsequent evaluations.</p>
-<a class="header" href="#evaluating-control-structure-bodies-with-eval_value" id="evaluating-control-structure-bodies-with-eval_value"><h2>Evaluating Control Structure Bodies with <code>eval_value</code></h2></a>
-<p>The <code>molt::Interp::eval_value</code> method is used when implementing control structures.</p>
+<a class="header" href="#evaluating-control-structure-bodies" id="evaluating-control-structure-bodies"><h2>Evaluating Control Structure Bodies</h2></a>
+<p>The <code>molt::Interp::eval_value</code> method is used when implementing control structures.  For
+example, this is an annotated version of of Molt's <a href="./ref/while.html"><strong>while</strong></a> command.</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
-use molt::Interp;
-use molt::types::*;
+pub fn cmd_while(interp: &amp;mut Interp, _: ContextID, argv: &amp;[Value]) -&gt; MoltResult {
+    check_args(1, argv, 3, 3, &quot;test command&quot;)?;
 
-fn my_cmd(interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
-    // Get a Molt script to evaluate, e.g., a loop body:
-    let body = argv[1];
+    // Here we evaluate the test expression as a boolean.  Any errors are propagated.
+    while interp.expr_bool(&amp;argv[1])? {
+        // Here we evaluate the loop's body.
+        let result = interp.eval_value(&amp;argv[2]);
 
-    ...
+        if let Err(exception) = result {
+            match exception.code() {
+                // They want to break; so break out of the rust loop.
+                ResultCode::Break =&gt; break,
 
-    // Assume we're implementing some kind of loop.
-    loop {
-        ...
+                // They want to continue; so continue with the next iteration.
+                ResultCode::Continue =&gt; (),
 
-        // Evaluate the loop body
-        let result = interp.eval_value(body);
-
-        match result {
-            Ok(value) =&gt; {
-                // normal OK result.  What you do with it depends on the
-                // control structure. There's probably nothing special to do
-                // here; we'll just go on with the next iteration of the loop.
-                continue;
-            }
-            Err(ResultCode::Err(msg)) =&gt; {
-                // An error.  Control structures should usually let this
-                // propagate.
-                return result;
-            }
-            Err(ResultCode::Return(value)) =&gt; {
-                // The code called the `return` command.  Let this propagate to
-                // return from the enclosing `proc`.
-                return result;
-            }
-            Err(ResultCode::Break) =&gt; {
-                // The code called the `break` command.  If this function is
-                // implementing a loop, it should return `Ok` to break out of
-                // the loop; otherwise, let the `Break` propagate to break out
-                // of the enclosing loop. Since this is a loop,  
-                // break and return `Ok'
-                break;
-            }
-            Err(ResultCode::Continue) =&gt; {
-                // The code called the `continue` command.  If this function is
-                // implementing a loop, this should continue on to the next
-                // iteration of the loop after doing any necessary clean-up.  
-                // Otherwise, let it propagate to continue in the enclosing loop.
-                // Here, we're implementing a loop.
-                continue;
+                // It's some other exception; just propagate it.
+                _ =&gt; return Err(exception),
             }
         }
-
-        ...
     }
 
-    ...
-    // It's a loop, which normally returns an empty result.
+    // All is good, so return Ok!
     molt_ok!()
 }
 #}</code></pre></pre>
 <p>See <a href="./molt_result.html">The <code>MoltResult</code> Type</a> for more information.</p>
-<p>The explicit <code>Value</code> type declaration is included for clarity.</p>
 <a class="header" href="#evaluating-expressions-with-expr-and-expr_bool" id="evaluating-expressions-with-expr-and-expr_bool"><h2>Evaluating Expressions with <code>expr</code> and <code>expr_bool</code>.</h2></a>
 <p>Evaluating Molt expressions is similar.  To get any expression result (usually a
 numeric or boolean <code>Value</code>), use the <code>Interp::expr</code> method.</p>
@@ -283,8 +251,10 @@ let mut interp = Interp::new();
 // NOTE: commands can be added to the interpreter here.
 
 // NEXT, invoke the REPL.
-molt_shell::repl(&amp;mut interp, &quot;% &quot;);
+molt_shell::repl(&amp;mut interp);
 </code></pre>
+<p>The REPL's prompt can be set using the <code>tcl_prompt1</code> variable to a script; see the
+<a href="../cmdline/molt_shell.html"><strong>molt shell</strong></a> documentation for an example.</p>
 <a class="header" href="#evaluating-script-files" id="evaluating-script-files"><h2>Evaluating Script Files</h2></a>
 <p>To execute a user script file, one can load the file contents and use <code>Interp::eval</code> in
 the normal way, or use the <code>molt_shell::script</code> function.  A shell application might

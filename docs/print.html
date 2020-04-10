@@ -193,6 +193,12 @@ administration.</li>
 <p>See the <a href="https://github.com/wduquette/molt-sample"><code>molt-sample</code> repo</a> for a sample Molt client
 skeleton.</p>
 <a class="header" href="#new-in-molt-030" id="new-in-molt-030"><h2>New in Molt 0.3.0</h2></a>
+<p>The changes in Molt 0.3.0 break the existing API in two ways:</p>
+<ul>
+<li>The syntax for <code>molt_shell::repl</code> has changed slightly.</li>
+<li>The <code>MoltResult</code> type has changed significantly.</li>
+</ul>
+<p>Keep reading for the full details.</p>
 <a class="header" href="#molt-shell-user-definable-prompts" id="molt-shell-user-definable-prompts"><h3>Molt Shell: User-Definable Prompts</h3></a>
 <p>Thanks to Coleman McFarland, <code>molt_shell::repl</code> now supports programmable prompts via the
 <code>tcl_prompt1</code> variable.  See the rustdocs and the <a href="cmdline/molt_shell.html"><code>molt_shell</code></a>
@@ -349,8 +355,9 @@ have already been implemented.  The current set of features includes:</p>
 <li>Script execution</li>
 <li>Procedure definition</li>
 <li>Standard control structures (except the <code>switch</code> command)</li>
-<li>Local and global variables, including associate arrays</li>
+<li>Local and global variables, including associative arrays</li>
 <li>Boolean and numeric expressions</li>
+<li>Dictionaries</li>
 <li>Many standard TCL commands</li>
 <li>A modicum of introspection</li>
 </ul>
@@ -385,9 +392,7 @@ caches binary data representations for run-time efficiency.</li>
 <a class="header" href="#features-to-be-added-eventually" id="features-to-be-added-eventually"><h2>Features to be added eventually</h2></a>
 <ul>
 <li>Globs and Regexes</li>
-<li>Some way to create ensembles commands and simple objects</li>
-<li>Dictionaries</li>
-<li>Byte Compilation</li>
+<li>Some way to create ensemble commands and simple objects</li>
 </ul>
 <a class="header" href="#features-that-might-someday-be-added-depending-on-demand" id="features-that-might-someday-be-added-depending-on-demand"><h2>Features that might someday be added (depending on demand)</h2></a>
 <ul>
@@ -395,6 +400,7 @@ caches binary data representations for run-time efficiency.</li>
 <li>Slave interpreters</li>
 <li>File I/O</li>
 <li>Event loop</li>
+<li>Byte Compilation</li>
 <li>Communication between <code>Interps</code> in different threads</li>
 <li>Traces</li>
 <li>Some kind of TCL-level module architecture</li>
@@ -1696,42 +1702,85 @@ impl MyType {
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
-pub type MoltResult = Result&lt;Value, ResultCode&gt;;
+pub type MoltResult = Result&lt;Value, Exception&gt;;
 #}</code></pre></pre>
 <p>The <code>Value</code> type is described in the <a href="embed/./molt_value.html">previous section</a>; by default, many
 Molt methods and functions return <code>Value</code> on success.</p>
-<p>The <code>ResultCode</code> is more complicated, as it is used to pass not only errors but also
-to manage control flow.  It is defined as follows:</p>
+<p>The <code>Exception</code> struct is used for all exceptional returns, including not only errors but also
+procedure returns, loop breaks and continues, and application-specific result codes defined
+as part of application-specific control structures.</p>
+<p>The heart of the <code>Exception</code> struct is the <code>ResultCode</code>, which indicates the kind of
+exception return. It is defined as follows:</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
-#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ResultCode {
-    Error(Value),
-    Return(Value),
+    Okay,
+    Error,
+    Return,
     Break,
     Continue,
+    Other(MoltInt),
 }
 #}</code></pre></pre>
-<p>In addition to a normal <code>Ok</code> result, a Molt function, method, or command can return:</p>
 <ul>
 <li>
-<p><code>ResultCode::Error(msg)</code>, where <code>msg</code> is an error message; this indicates that
-something has thrown an error.</p>
+<p><code>ResultCode::Okay</code> is used internally.</p>
 </li>
 <li>
-<p><code>ResultCode::Return(value)</code>, which indicates that the Molt code has called the
+<p><code>ResultCode::Error</code> indicates that an error has been thrown; the exception's
+<code>value()</code> is the error message.  Use the exception's <code>error_data()</code> method to
+access the error code and stack trace.</p>
+</li>
+<li>
+<p><code>ResultCode::Return</code>, which indicates that the Molt code has called the
 <code>return</code> command; the <code>value</code> is the returned value.  Molt procedures, defined using
-the <code>proc</code> command, will catch this and return <code>value</code> as the value of the procedure.</p>
+the <code>proc</code> command, will catch this and return <code>value</code> as the value of the procedure call.
+See the documentation for the <a href="embed/../ref/return.html"><strong>return</strong></a> and
+<a href="embed/../ref/catch.html"><strong>catch</strong></a> commands for information on a variety of advanced things
+that can be done using this result code.</p>
 </li>
 <li>
 <p><code>ResultCode::Break</code> and <code>ResultCode::Continue</code> are returned by the <code>break</code> and
 <code>continue</code> commands and control loop execution in the usual way.</p>
 </li>
+<li>
+<p><code>ResultCode::Other</code> can be returned by the <a href="embed/../ref/return.html"><strong>return</strong></a> command, and is
+used when defining application-specific control structures in script code.</p>
+</li>
 </ul>
+<p>Of these, client Rust code will usually only deal with <code>ResultCode::Error</code> and
+<code>ResultCode::Return</code>.  For example,</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+# use molt::types::*;
+# use molt::Interp;
+
+let mut interp = Interp::new();
+
+let input = &quot;set a 1&quot;;
+
+match interp.eval(input) {
+   Ok(val) =&gt; {
+       // Computed a Value
+       println!(&quot;Value: {}&quot;, val);
+   }
+   Err(exception) =&gt; {
+       if exception.is_error() {
+           // Got an error; print it out.
+           println!(&quot;Error: {}&quot;, exception.value());
+       } else {
+           // It's a Return.
+           println!(&quot;Value: {}&quot;, exception.value());
+       }
+   }
+}
+#}</code></pre></pre>
 <a class="header" href="#molt_ok-and-molt_err" id="molt_ok-and-molt_err"><h2><code>molt_ok!</code> and <code>molt_err!</code></h2></a>
 <p>Application-specific Rust code will usually only use <code>Ok(value)</code> and
-<code>Err(ReturnCode::Error(value))</code>. Since these two cases pop up so often,
+<code>ResultCode::Error</code>. Since these two cases pop up so often,
 Molt provides a couple of macros to make them easier: <code>molt_ok!</code> and <code>molt_err!</code>.</p>
 <p><code>molt_ok!</code> takes one or more arguments and converts them into an <code>Ok(Value)</code>.</p>
 <pre><pre class="playpen"><code class="language-rust">
@@ -1749,7 +1798,7 @@ return molt_ok!(Value::from(5));
 // Returns a formatted string as a Value using a Rust `format!` string.
 return molt_ok!(&quot;The answer is {}.&quot;, x);
 #}</code></pre></pre>
-<p><code>molt_err!</code> works just the same way, but returns <code>Err(ReturnCode::Err(Value))</code>.</p>
+<p><code>molt_err!</code> works just the same way, but returns <code>Err(Exception)</code> with <code>ResultCode::Error</code>.</p>
 <pre><code>if x &gt; 5 {
     return molt_err!(&quot;value is out of range: {}&quot;, x);
 }
@@ -1911,8 +1960,10 @@ file can then do this:</p>
 let mut interp = Interp::new();
 
 match interp.eval(include_str!(&quot;commands.tcl&quot;)) {
-    Err(ResultCode::Error(msg)) =&gt; {
-        panic!(&quot;Couldn't load procs.tcl: {}&quot;, msg);
+    Err(exception) =&gt; {
+        if exception.is_error() {
+            panic!(&quot;Couldn't load procs.tcl: {}&quot;, msg.value());
+        }
     }
     _ =&gt; ()
 }
@@ -1942,6 +1993,8 @@ content and pass it to <code>molt::Interp::eval</code>).</p>
 result.  When executed at the top level, <code>ResultCode::Break</code>, <code>ResultCode::Continue</code>,
 and <code>ResultCode::Other</code> are converted to errors, just as they are in <code>proc</code> bodies. See
 <a href="embed/./molt_result.html">The <code>MoltResult</code> Type</a> for details.)</p>
+<p>Thus, the following code will execute a script, returning its value and propagating
+any exceptions to the caller.</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
@@ -1954,76 +2007,42 @@ let mut interp = Interp::new();
 
 let value: Value = interp.eval(&quot;...some Molt code...&quot;)?;
 #}</code></pre></pre>
-<p>The explicit <code>Value</code> type declaration is included for clarity.</p>
 <p>The <code>molt::Interp::eval_value</code> method has identical semantics, but evaluates the string
 representation of a molt <code>Value</code>. In this case, the <code>Value</code> will cache the parsed internal
 form of the script to speed up subsequent evaluations.</p>
-<a class="header" href="#evaluating-control-structure-bodies-with-eval_value" id="evaluating-control-structure-bodies-with-eval_value"><h2>Evaluating Control Structure Bodies with <code>eval_value</code></h2></a>
-<p>The <code>molt::Interp::eval_value</code> method is used when implementing control structures.</p>
+<a class="header" href="#evaluating-control-structure-bodies" id="evaluating-control-structure-bodies"><h2>Evaluating Control Structure Bodies</h2></a>
+<p>The <code>molt::Interp::eval_value</code> method is used when implementing control structures.  For
+example, this is an annotated version of of Molt's <a href="embed/./ref/while.html"><strong>while</strong></a> command.</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
-use molt::Interp;
-use molt::types::*;
+pub fn cmd_while(interp: &amp;mut Interp, _: ContextID, argv: &amp;[Value]) -&gt; MoltResult {
+    check_args(1, argv, 3, 3, &quot;test command&quot;)?;
 
-fn my_cmd(interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
-    // Get a Molt script to evaluate, e.g., a loop body:
-    let body = argv[1];
+    // Here we evaluate the test expression as a boolean.  Any errors are propagated.
+    while interp.expr_bool(&amp;argv[1])? {
+        // Here we evaluate the loop's body.
+        let result = interp.eval_value(&amp;argv[2]);
 
-    ...
+        if let Err(exception) = result {
+            match exception.code() {
+                // They want to break; so break out of the rust loop.
+                ResultCode::Break =&gt; break,
 
-    // Assume we're implementing some kind of loop.
-    loop {
-        ...
+                // They want to continue; so continue with the next iteration.
+                ResultCode::Continue =&gt; (),
 
-        // Evaluate the loop body
-        let result = interp.eval_value(body);
-
-        match result {
-            Ok(value) =&gt; {
-                // normal OK result.  What you do with it depends on the
-                // control structure. There's probably nothing special to do
-                // here; we'll just go on with the next iteration of the loop.
-                continue;
-            }
-            Err(ResultCode::Err(msg)) =&gt; {
-                // An error.  Control structures should usually let this
-                // propagate.
-                return result;
-            }
-            Err(ResultCode::Return(value)) =&gt; {
-                // The code called the `return` command.  Let this propagate to
-                // return from the enclosing `proc`.
-                return result;
-            }
-            Err(ResultCode::Break) =&gt; {
-                // The code called the `break` command.  If this function is
-                // implementing a loop, it should return `Ok` to break out of
-                // the loop; otherwise, let the `Break` propagate to break out
-                // of the enclosing loop. Since this is a loop,  
-                // break and return `Ok'
-                break;
-            }
-            Err(ResultCode::Continue) =&gt; {
-                // The code called the `continue` command.  If this function is
-                // implementing a loop, this should continue on to the next
-                // iteration of the loop after doing any necessary clean-up.  
-                // Otherwise, let it propagate to continue in the enclosing loop.
-                // Here, we're implementing a loop.
-                continue;
+                // It's some other exception; just propagate it.
+                _ =&gt; return Err(exception),
             }
         }
-
-        ...
     }
 
-    ...
-    // It's a loop, which normally returns an empty result.
+    // All is good, so return Ok!
     molt_ok!()
 }
 #}</code></pre></pre>
 <p>See <a href="embed/./molt_result.html">The <code>MoltResult</code> Type</a> for more information.</p>
-<p>The explicit <code>Value</code> type declaration is included for clarity.</p>
 <a class="header" href="#evaluating-expressions-with-expr-and-expr_bool" id="evaluating-expressions-with-expr-and-expr_bool"><h2>Evaluating Expressions with <code>expr</code> and <code>expr_bool</code>.</h2></a>
 <p>Evaluating Molt expressions is similar.  To get any expression result (usually a
 numeric or boolean <code>Value</code>), use the <code>Interp::expr</code> method.</p>
@@ -2060,8 +2079,10 @@ let mut interp = Interp::new();
 // NOTE: commands can be added to the interpreter here.
 
 // NEXT, invoke the REPL.
-molt_shell::repl(&amp;mut interp, &quot;% &quot;);
+molt_shell::repl(&amp;mut interp);
 </code></pre>
+<p>The REPL's prompt can be set using the <code>tcl_prompt1</code> variable to a script; see the
+<a href="embed/../cmdline/molt_shell.html"><strong>molt shell</strong></a> documentation for an example.</p>
 <a class="header" href="#evaluating-script-files" id="evaluating-script-files"><h2>Evaluating Script Files</h2></a>
 <p>To execute a user script file, one can load the file contents and use <code>Interp::eval</code> in
 the normal way, or use the <code>molt_shell::script</code> function.  A shell application might
@@ -2115,7 +2136,7 @@ example; here's a sketch:</p>
     if args.len() &gt; 1 {
         molt_shell::script(&amp;mut interp, &amp;args[1..]);
     } else {
-        molt_shell::repl(&amp;mut interp, &quot;% &quot;);
+        molt_shell::repl(&amp;mut interp);
     }
 }
 
@@ -2129,8 +2150,8 @@ pub fn cmd_hello(_interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult 
 </code></pre>
 <a class="header" href="#molt-library-crates" id="molt-library-crates"><h1>Molt Library Crates</h1></a>
 <p>A Molt library crate is simply a Rust crate that can install commands into a
-Molt interpreter using any of the methods described in this chapter.<br />
-For example, a crate might provide an <code>install</code> function:</p>
+Molt interpreter using any of the methods described in this chapter. For example,
+a crate might provide an <code>install</code> function:</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {

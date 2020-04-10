@@ -171,7 +171,7 @@ example; here's a sketch:</p>
     if args.len() &gt; 1 {
         molt_shell::script(&amp;mut interp, &amp;args[1..]);
     } else {
-        molt_shell::repl(&amp;mut interp, &quot;% &quot;);
+        molt_shell::repl(&amp;mut interp);
     }
 }
 

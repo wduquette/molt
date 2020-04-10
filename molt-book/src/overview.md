@@ -50,6 +50,13 @@ skeleton.
 
 ## New in Molt 0.3.0
 
+The changes in Molt 0.3.0 break the existing API in two ways:
+
+* The syntax for `molt_shell::repl` has changed slightly.
+* The `MoltResult` type has changed significantly.
+
+Keep reading for the full details.
+
 ### Molt Shell: User-Definable Prompts
 
 Thanks to Coleman McFarland, `molt_shell::repl` now supports programmable prompts via the

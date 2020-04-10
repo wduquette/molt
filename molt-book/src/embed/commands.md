@@ -150,7 +150,7 @@ fn main() {
 ```
 
 Then, in Molt code you can create an object called `fred`, use its methods, and then
-destroy it by renaming it to the empty string. 
+destroy it by renaming it to the empty string.
 
 ```tcl
 % make fred
@@ -172,8 +172,10 @@ file can then do this:
 let mut interp = Interp::new();
 
 match interp.eval(include_str!("commands.tcl")) {
-    Err(ResultCode::Error(msg)) => {
-        panic!("Couldn't load procs.tcl: {}", msg);
+    Err(exception) => {
+        if exception.is_error() {
+            panic!("Couldn't load procs.tcl: {}", msg.value());
+        }
     }
     _ => ()
 }

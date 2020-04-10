@@ -145,42 +145,85 @@
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
-pub type MoltResult = Result&lt;Value, ResultCode&gt;;
+pub type MoltResult = Result&lt;Value, Exception&gt;;
 #}</code></pre></pre>
 <p>The <code>Value</code> type is described in the <a href="./molt_value.html">previous section</a>; by default, many
 Molt methods and functions return <code>Value</code> on success.</p>
-<p>The <code>ResultCode</code> is more complicated, as it is used to pass not only errors but also
-to manage control flow.  It is defined as follows:</p>
+<p>The <code>Exception</code> struct is used for all exceptional returns, including not only errors but also
+procedure returns, loop breaks and continues, and application-specific result codes defined
+as part of application-specific control structures.</p>
+<p>The heart of the <code>Exception</code> struct is the <code>ResultCode</code>, which indicates the kind of
+exception return. It is defined as follows:</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
 #fn main() {
-#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ResultCode {
-    Error(Value),
-    Return(Value),
+    Okay,
+    Error,
+    Return,
     Break,
     Continue,
+    Other(MoltInt),
 }
 #}</code></pre></pre>
-<p>In addition to a normal <code>Ok</code> result, a Molt function, method, or command can return:</p>
 <ul>
 <li>
-<p><code>ResultCode::Error(msg)</code>, where <code>msg</code> is an error message; this indicates that
-something has thrown an error.</p>
+<p><code>ResultCode::Okay</code> is used internally.</p>
 </li>
 <li>
-<p><code>ResultCode::Return(value)</code>, which indicates that the Molt code has called the
+<p><code>ResultCode::Error</code> indicates that an error has been thrown; the exception's
+<code>value()</code> is the error message.  Use the exception's <code>error_data()</code> method to
+access the error code and stack trace.</p>
+</li>
+<li>
+<p><code>ResultCode::Return</code>, which indicates that the Molt code has called the
 <code>return</code> command; the <code>value</code> is the returned value.  Molt procedures, defined using
-the <code>proc</code> command, will catch this and return <code>value</code> as the value of the procedure.</p>
+the <code>proc</code> command, will catch this and return <code>value</code> as the value of the procedure call.
+See the documentation for the <a href="../ref/return.html"><strong>return</strong></a> and
+<a href="../ref/catch.html"><strong>catch</strong></a> commands for information on a variety of advanced things
+that can be done using this result code.</p>
 </li>
 <li>
 <p><code>ResultCode::Break</code> and <code>ResultCode::Continue</code> are returned by the <code>break</code> and
 <code>continue</code> commands and control loop execution in the usual way.</p>
 </li>
+<li>
+<p><code>ResultCode::Other</code> can be returned by the <a href="../ref/return.html"><strong>return</strong></a> command, and is
+used when defining application-specific control structures in script code.</p>
+</li>
 </ul>
+<p>Of these, client Rust code will usually only deal with <code>ResultCode::Error</code> and
+<code>ResultCode::Return</code>.  For example,</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+# use molt::types::*;
+# use molt::Interp;
+
+let mut interp = Interp::new();
+
+let input = &quot;set a 1&quot;;
+
+match interp.eval(input) {
+   Ok(val) =&gt; {
+       // Computed a Value
+       println!(&quot;Value: {}&quot;, val);
+   }
+   Err(exception) =&gt; {
+       if exception.is_error() {
+           // Got an error; print it out.
+           println!(&quot;Error: {}&quot;, exception.value());
+       } else {
+           // It's a Return.
+           println!(&quot;Value: {}&quot;, exception.value());
+       }
+   }
+}
+#}</code></pre></pre>
 <a class="header" href="#molt_ok-and-molt_err" id="molt_ok-and-molt_err"><h2><code>molt_ok!</code> and <code>molt_err!</code></h2></a>
 <p>Application-specific Rust code will usually only use <code>Ok(value)</code> and
-<code>Err(ReturnCode::Error(value))</code>. Since these two cases pop up so often,
+<code>ResultCode::Error</code>. Since these two cases pop up so often,
 Molt provides a couple of macros to make them easier: <code>molt_ok!</code> and <code>molt_err!</code>.</p>
 <p><code>molt_ok!</code> takes one or more arguments and converts them into an <code>Ok(Value)</code>.</p>
 <pre><pre class="playpen"><code class="language-rust">
@@ -198,7 +241,7 @@ return molt_ok!(Value::from(5));
 // Returns a formatted string as a Value using a Rust `format!` string.
 return molt_ok!(&quot;The answer is {}.&quot;, x);
 #}</code></pre></pre>
-<p><code>molt_err!</code> works just the same way, but returns <code>Err(ReturnCode::Err(Value))</code>.</p>
+<p><code>molt_err!</code> works just the same way, but returns <code>Err(Exception)</code> with <code>ResultCode::Error</code>.</p>
 <pre><code>if x &gt; 5 {
     return molt_err!(&quot;value is out of range: {}&quot;, x);
 }

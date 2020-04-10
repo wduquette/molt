@@ -297,8 +297,10 @@ file can then do this:</p>
 let mut interp = Interp::new();
 
 match interp.eval(include_str!(&quot;commands.tcl&quot;)) {
-    Err(ResultCode::Error(msg)) =&gt; {
-        panic!(&quot;Couldn't load procs.tcl: {}&quot;, msg);
+    Err(exception) =&gt; {
+        if exception.is_error() {
+            panic!(&quot;Couldn't load procs.tcl: {}&quot;, msg.value());
+        }
     }
     _ =&gt; ()
 }

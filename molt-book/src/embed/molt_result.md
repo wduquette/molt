@@ -3,41 +3,82 @@
 `MoltResult` is Molt's standard `Result<T,E>` type; it is defined as
 
 ```rust
-pub type MoltResult = Result<Value, ResultCode>;
+pub type MoltResult = Result<Value, Exception>;
 ```
 
 The `Value` type is described in the [previous section](./molt_value.md); by default, many
 Molt methods and functions return `Value` on success.
 
-The `ResultCode` is more complicated, as it is used to pass not only errors but also
-to manage control flow.  It is defined as follows:
+The `Exception` struct is used for all exceptional returns, including not only errors but also
+procedure returns, loop breaks and continues, and application-specific result codes defined
+as part of application-specific control structures.
+
+The heart of the `Exception` struct is the `ResultCode`, which indicates the kind of
+exception return. It is defined as follows:
 
 ```rust
-#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ResultCode {
-    Error(Value),
-    Return(Value),
+    Okay,
+    Error,
+    Return,
     Break,
     Continue,
+    Other(MoltInt),
 }
 ```
 
-In addition to a normal `Ok` result, a Molt function, method, or command can return:
+* `ResultCode::Okay` is used internally.
 
-* `ResultCode::Error(msg)`, where `msg` is an error message; this indicates that
-   something has thrown an error.
+* `ResultCode::Error` indicates that an error has been thrown; the exception's
+  `value()` is the error message.  Use the exception's `error_data()` method to
+  access the error code and stack trace.
 
-* `ResultCode::Return(value)`, which indicates that the Molt code has called the
+* `ResultCode::Return`, which indicates that the Molt code has called the
   `return` command; the `value` is the returned value.  Molt procedures, defined using
-  the `proc` command, will catch this and return `value` as the value of the procedure.
+  the `proc` command, will catch this and return `value` as the value of the procedure call.
+  See the documentation for the [**return**](../ref/return.md) and
+  [**catch**](../ref/catch.md) commands for information on a variety of advanced things
+  that can be done using this result code.
 
 * `ResultCode::Break` and `ResultCode::Continue` are returned by the `break` and
   `continue` commands and control loop execution in the usual way.
 
+* `ResultCode::Other` can be returned by the [**return**](../ref/return.md) command, and is
+  used when defining application-specific control structures in script code.
+
+Of these, client Rust code will usually only deal with `ResultCode::Error` and
+`ResultCode::Return`.  For example,
+
+```rust
+# use molt::types::*;
+# use molt::Interp;
+
+let mut interp = Interp::new();
+
+let input = "set a 1";
+
+match interp.eval(input) {
+   Ok(val) => {
+       // Computed a Value
+       println!("Value: {}", val);
+   }
+   Err(exception) => {
+       if exception.is_error() {
+           // Got an error; print it out.
+           println!("Error: {}", exception.value());
+       } else {
+           // It's a Return.
+           println!("Value: {}", exception.value());
+       }
+   }
+}
+```
+
 ## `molt_ok!` and `molt_err!`
 
 Application-specific Rust code will usually only use `Ok(value)` and
-`Err(ReturnCode::Error(value))`. Since these two cases pop up so often,
+`ResultCode::Error`. Since these two cases pop up so often,
 Molt provides a couple of macros to make them easier: `molt_ok!` and `molt_err!`.  
 
 `molt_ok!` takes one or more arguments and converts them into an `Ok(Value)`.
@@ -56,7 +97,7 @@ return molt_ok!(Value::from(5));
 return molt_ok!("The answer is {}.", x);
 ```
 
-`molt_err!` works just the same way, but returns `Err(ReturnCode::Err(Value))`.
+`molt_err!` works just the same way, but returns `Err(Exception)` with `ResultCode::Error`.
 
 ```
 if x > 5 {

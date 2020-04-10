@@ -12,6 +12,9 @@ use std::fs;
 /// application to terminate (but the `exit` command can be removed or redefined by the
 /// application).
 ///
+/// To change the prompt, set the `tcl_prompt1` TCL variable to a script that returns
+/// the desired prompt.
+///
 /// See [`molt::interp`](../molt/interp/index.html) for details on how to configure and
 /// add commands to a Molt interpreter.
 ///

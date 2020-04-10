@@ -141,7 +141,7 @@
                 <div id="content" class="content">
                     <main>
                         <a class="header" href="#molt-more-or-less-tcl" id="molt-more-or-less-tcl"><h1>Molt: More Or Less Tcl</h1></a>
-<p><strong>Molt 0.2.0</strong> is a minimal implementation of the TCL language for embedding in Rust apps
+<p><strong>Molt 0.3.0</strong> is a minimal implementation of the TCL language for embedding in Rust apps
 and for scripting Rust libraries.  Molt is intended to be:</p>
 <ul>
 <li>
@@ -192,7 +192,41 @@ administration.</li>
 </ul>
 <p>See the <a href="https://github.com/wduquette/molt-sample"><code>molt-sample</code> repo</a> for a sample Molt client
 skeleton.</p>
-<a class="header" href="#new-in-molt-022" id="new-in-molt-022"><h2>New in Molt 0.2.2</h2></a>
+<a class="header" href="#new-in-molt-030" id="new-in-molt-030"><h2>New in Molt 0.3.0</h2></a>
+<a class="header" href="#molt-shell-user-definable-prompts" id="molt-shell-user-definable-prompts"><h3>Molt Shell: User-Definable Prompts</h3></a>
+<p>Thanks to Coleman McFarland, <code>molt_shell::repl</code> now supports programmable prompts via the
+<code>tcl_prompt1</code> variable.  See the rustdocs and the <a href="cmdline/molt_shell.html"><code>molt_shell</code></a>
+discussion in this book for more information.</p>
+<a class="header" href="#error-stack-traces" id="error-stack-traces"><h3>Error Stack Traces</h3></a>
+<p>Molt now provides error stack traces in more-or-less the same form as standard TCL.  Stack
+traces are accessible to Rust clients, are printed by the Molt shell, and can be
+accessed in scripts via the <a href="ref/catch.html"><code>catch</code></a> command and the <code>errorInfo</code> variable
+in the usual TCL way.</p>
+<a class="header" href="#error-codes" id="error-codes"><h3>Error Codes</h3></a>
+<p>Molt scripts and Rust code can now throw errors with an explicit error code, as in Standard
+TCL; see the <a href="ref/throw.html"><code>throw</code></a> and <a href="ref/catch.html"><code>catch</code></a> commands.</p>
+<a class="header" href="#return-protocol" id="return-protocol"><h3>Return Protocol</h3></a>
+<p>Molt now supports the full <a href="ref/return.html"><code>return</code></a>/<a href="ref/catch.html"><code>catch</code></a> protocol for
+building application-specific control structures in script code.  The mechanism as implemented
+is slightly simpler than in Standard TCL, but should be sufficient for all practical
+purposes.  See the referenced commands for specifics.</p>
+<a class="header" href="#moltresult-and-the-exception-struct" id="moltresult-and-the-exception-struct"><h3><code>MoltResult</code> and the <code>Exception</code> Struct</h3></a>
+<p>In order to support the above changes, the definition of the
+<code>MoltResult</code> type has changed.  Instead of</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+pub type MoltResult = Result&lt;Value, ResultCode&gt;;
+#}</code></pre></pre>
+<p>it is now</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+pub type MoltResult = Result&lt;Value, Exception&gt;;
+#}</code></pre></pre>
+<p>where <code>Exception</code> is a struct containing the <code>ResultCode</code> and other necessary data.  The
+<code>ResultCode</code> enum still exists, but has been simplified.  See the rust doc for details.</p>
+<a class="header" href="#new-in-molt-02" id="new-in-molt-02"><h2>New in Molt 0.2</h2></a>
 <a class="header" href="#dictionaries-and-the-dict-command" id="dictionaries-and-the-dict-command"><h3>Dictionaries and the <code>dict</code> command</h3></a>
 <p>Molt now supports TCL dictionary values.  The <a href="ref/dict.html"><code>dict</code></a> command provides the
 following subcommands:</p>
@@ -208,7 +242,6 @@ following subcommands:</p>
 <li>dict values</li>
 </ul>
 <p>Other <code>dict</code> subcommands will be added over time.</p>
-<a class="header" href="#new-in-molt-02" id="new-in-molt-02"><h2>New in Molt 0.2</h2></a>
 <a class="header" href="#associative-arrays" id="associative-arrays"><h3>Associative Arrays</h3></a>
 <p>Molt now includes TCL's associative array variables:</p>
 <pre><code class="language-text">% set a(1) &quot;Howdy&quot;
@@ -273,9 +306,10 @@ automatically when the last such command is removed from the interpreter.</p>
 not yet completely stable.  Standard Rust <code>0.y.z</code> semantic versioning applies: &quot;.y&quot; changes
 can break the Rust-level API, &quot;.z&quot; changes will not.</p>
 <ul>
-<li>Feature: Regex and Glob pattern matching by Molt commands</li>
+<li>More TCL Commands</li>
 <li>Testing improvements</li>
 <li>Documentation improvements</li>
+<li>Feature: Regex and Glob pattern matching by Molt commands</li>
 </ul>
 <a class="header" href="#tcl-compatibility" id="tcl-compatibility"><h1>Tcl Compatibility</h1></a>
 <p>Molt is aiming at limited compatibility with TCL 8.x, the current stable version
@@ -411,7 +445,7 @@ experimental, and is primarily for use in optimizing molt itself.</p>
 <a class="header" href="#interactive-use" id="interactive-use"><h2>Interactive Use</h2></a>
 <p>When called without any arguments, the command invokes the interactive interpreter:</p>
 <pre><code class="language-tcl">$ molt shell
-Molt 0.2.0
+Molt 0.3.0
 %
 </code></pre>
 <p>Molt commands may be entered at the <code>%</code> prompt.  Enter <code>exit</code> to leave the interpreter.</p>
@@ -433,25 +467,47 @@ puts &quot;argv = $argv&quot;
 arg0 = args.tcl
 argv = a b c
 $
-
-## TCL Liens
-
-The Standard TCL shell, `tclsh`, provides a number of features that Molt currently does not.
-
-*   A `.tclshrc` file for initializing interactive shells.
-    *   This can be added if there is demand; however, Molt is not primarily intended
-        for general purpose scripting.
-
-*   An option to execute a script and then start the interactive shell.
-    *   This can be added if there is demand.
-
-*   Environment variables for locating the interpreter's library of TCL code, locally
-    installed TCL packages, etc.
-    *   Molt's library of TCL code is compiled into the interpreter, rather than being
-        loaded from disk at run-time.
-    *   At present, Molt has no support for externally-defined TCL packages
-        (other than the `source` command).
 </code></pre>
+<a class="header" href="#interactive-prompts" id="interactive-prompts"><h2>Interactive Prompts</h2></a>
+<p>The <code>molt shell</code> and its underlying method, <code>molt_shell::repl</code>, support interactive prompts
+via the <code>tcl_prompt1</code> variable.  If defined, <code>tcl_prompt1</code> should be a script; its value
+will be output as the prompt.</p>
+<pre><code class="language-tcl">$ molt shell
+% set count 0
+% set tcl_prompt1 {return &quot;[incr count]&gt; &quot;}
+return &quot;[incr count]&gt; &quot;
+1&gt; puts &quot;Howdy!&quot;
+Howdy!
+2&gt;
+</code></pre>
+<p>This is slightly different than in Standard TCL, where the <code>tcl_prompt1</code> script is intended
+to output the prompt rather than return it.</p>
+<a class="header" href="#tcl-liens" id="tcl-liens"><h2>TCL Liens</h2></a>
+<p>The Standard TCL shell, <code>tclsh</code>, provides a number of features that Molt currently does not.</p>
+<ul>
+<li>
+<p>A <code>.tclshrc</code> file for initializing interactive shells.</p>
+<ul>
+<li>A similar file will be added in the future.</li>
+</ul>
+</li>
+<li>
+<p>An option to execute a script and then start the interactive shell.</p>
+<ul>
+<li>This can be added if there is demand.</li>
+</ul>
+</li>
+<li>
+<p>Environment variables for locating the interpreter's library of TCL code, locally
+installed TCL packages, etc.</p>
+<ul>
+<li>Molt's library of TCL code is compiled into the interpreter, rather than being
+loaded from disk at run-time.</li>
+<li>At present, Molt has no support for externally-defined TCL packages
+(other than the <code>source</code> command).</li>
+</ul>
+</li>
+</ul>
 <a class="header" href="#molt-test-filename-args" id="molt-test-filename-args"><h1>molt test <em>filename</em> ?<em>args...</em>?</h1></a>
 <p>This command executes the test script called <em>filename</em> using the Molt
 test harness, which is similar to Standard TCL's <code>tcltest</code> framework (though
@@ -792,7 +848,7 @@ Foo
 <p>This REPL dialog shows that <code>break</code> yields result code 3 immediately, to be handled by the
 calling command (usually a loop), while <code>return</code> returns from the calling procedure (<code>-level 1</code>)
 and then yields an <code>ok</code> (i.e., normal) result to <em>its</em> caller.</p>
-<a class="header" href="#tcl-liens" id="tcl-liens"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-1" id="tcl-liens-1"><h2>TCL Liens</h2></a>
 <p>Molt's <code>catch</code> command differs from Standard TCL's in the following ways:</p>
 <ul>
 <li>
@@ -952,7 +1008,7 @@ be caught using the <a href="ref/./catch.html"><strong>catch</strong></a> comman
     ...
 }
 </code></pre>
-<a class="header" href="#tcl-liens-1" id="tcl-liens-1"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-2" id="tcl-liens-2"><h2>TCL Liens</h2></a>
 <p>In standard TCL, the <code>error</code> also has optional <code>errorInfo</code> and <code>errorCode</code> arguments.  These
 are used in older TCL code to rethrow errors without polluting the stack trace.  Modern TCL code
 uses the <a href="ref/./throw.html"><strong>throw</strong></a> command to throw an error with an error code and the
@@ -1021,7 +1077,7 @@ expression.</p>
 <p><strong>int(<em>x</em>)</strong> — Truncates floating-point value <em>x</em> and returns it as an integer.</p>
 <p><strong>round(<em>x</em>)</strong> — Rounds floating-point value <em>x</em> to the nearest integer and returns it as
 an integer.</p>
-<a class="header" href="#tcl-liens-2" id="tcl-liens-2"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-3" id="tcl-liens-3"><h2>TCL Liens</h2></a>
 <p><strong>Expr Command Syntax:</strong> In standard TCL <code>expr</code> takes any number of arguments, which it
 concatenates into a single expression for evaluation.  This means that variable and command
 interpolation is done twice, once by the TCL parser and once by <code>expr</code>, which hurts
@@ -1085,7 +1141,7 @@ is only value left, so <code>b</code> is assigned the empty string.</p>
 #  3,4
 #  5,
 </code></pre>
-<a class="header" href="#tcl-liens-3" id="tcl-liens-3"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-4" id="tcl-liens-4"><h2>TCL Liens</h2></a>
 <p>In standard TCL, <code>foreach</code> can iterate over multiple lists at the
 same time, e.g., the following script will output the pairs &quot;a,1&quot;,
 &quot;b,2&quot;, and &quot;c,3&quot;.  Molt doesn't currently support this extended syntax.</p>
@@ -1288,7 +1344,7 @@ lindex {a {b c d} e} 1 1    ;# &quot;c&quot;
 lindex {a {b c d} e} {}     ;# &quot;a {b c d} e&quot;
 lindex {a {b c d} e} {1 1}  ;# &quot;c&quot;
 </code></pre>
-<a class="header" href="#tcl-liens-4" id="tcl-liens-4"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-5" id="tcl-liens-5"><h2>TCL Liens</h2></a>
 <p>Indices in standard TCL may take several additional forms.  For example,
 <code>end</code> indexes the last entry in the list; <code>end-1</code> indexes the next to last
 entry, and so forth.  Molt doesn't yet support this.</p>
@@ -1313,11 +1369,11 @@ appear last.</p>
 <p>When called, the procedure returns the result of the last command in the
 body script, or the result of calling <a href="ref/./return.html"><code>return</code></a>, or an
 error.</p>
-<a class="header" href="#tcl-liens-5" id="tcl-liens-5"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-6" id="tcl-liens-6"><h2>TCL Liens</h2></a>
 <p>Molt does not support namespaces or namespace syntax in procedure names.</p>
 <a class="header" href="#puts-string" id="puts-string"><h1>puts <em>string</em></h1></a>
 <p>Outputs the <em>string</em> to standard output.</p>
-<a class="header" href="#tcl-liens-6" id="tcl-liens-6"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-7" id="tcl-liens-7"><h2>TCL Liens</h2></a>
 <ul>
 <li>Does not support <code>-nonewline</code></li>
 <li>Does not support <code>?channelId?</code></li>
@@ -1426,7 +1482,7 @@ if {$code == 1} {
     return {*}$opts $result
 }
 </code></pre>
-<a class="header" href="#tcl-liens-7" id="tcl-liens-7"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-8" id="tcl-liens-8"><h2>TCL Liens</h2></a>
 <p>The standard TCL <code>return</code> command is more complicated than shown here; however, the Molt
 implementation provides all of the useful patterns the author has ever seen in use.  Some of the
 specific differences are as follows:</p>
@@ -1456,7 +1512,7 @@ returns an error if there is no existing value.</p>
 <p>The <code>set</code> command operates in the current scope, e.g., in
 <a href="ref/./proc.html"><code>proc</code></a> bodies it operates on the set of local variables.</p>
 <p>See also: <a href="ref/./global.html"><code>global</code></a></p>
-<a class="header" href="#tcl-liens-8" id="tcl-liens-8"><h2>TCL Liens</h2></a>
+<a class="header" href="#tcl-liens-9" id="tcl-liens-9"><h2>TCL Liens</h2></a>
 <ul>
 <li>Molt does not support namespaces or namespace notation.</li>
 </ul>

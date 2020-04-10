@@ -145,7 +145,7 @@
 <a class="header" href="#interactive-use" id="interactive-use"><h2>Interactive Use</h2></a>
 <p>When called without any arguments, the command invokes the interactive interpreter:</p>
 <pre><code class="language-tcl">$ molt shell
-Molt 0.2.0
+Molt 0.3.0
 %
 </code></pre>
 <p>Molt commands may be entered at the <code>%</code> prompt.  Enter <code>exit</code> to leave the interpreter.</p>
@@ -167,25 +167,47 @@ puts &quot;argv = $argv&quot;
 arg0 = args.tcl
 argv = a b c
 $
-
-## TCL Liens
-
-The Standard TCL shell, `tclsh`, provides a number of features that Molt currently does not.
-
-*   A `.tclshrc` file for initializing interactive shells.
-    *   This can be added if there is demand; however, Molt is not primarily intended
-        for general purpose scripting.
-
-*   An option to execute a script and then start the interactive shell.
-    *   This can be added if there is demand.
-
-*   Environment variables for locating the interpreter's library of TCL code, locally
-    installed TCL packages, etc.
-    *   Molt's library of TCL code is compiled into the interpreter, rather than being
-        loaded from disk at run-time.
-    *   At present, Molt has no support for externally-defined TCL packages
-        (other than the `source` command).
 </code></pre>
+<a class="header" href="#interactive-prompts" id="interactive-prompts"><h2>Interactive Prompts</h2></a>
+<p>The <code>molt shell</code> and its underlying method, <code>molt_shell::repl</code>, support interactive prompts
+via the <code>tcl_prompt1</code> variable.  If defined, <code>tcl_prompt1</code> should be a script; its value
+will be output as the prompt.</p>
+<pre><code class="language-tcl">$ molt shell
+% set count 0
+% set tcl_prompt1 {return &quot;[incr count]&gt; &quot;}
+return &quot;[incr count]&gt; &quot;
+1&gt; puts &quot;Howdy!&quot;
+Howdy!
+2&gt;
+</code></pre>
+<p>This is slightly different than in Standard TCL, where the <code>tcl_prompt1</code> script is intended
+to output the prompt rather than return it.</p>
+<a class="header" href="#tcl-liens" id="tcl-liens"><h2>TCL Liens</h2></a>
+<p>The Standard TCL shell, <code>tclsh</code>, provides a number of features that Molt currently does not.</p>
+<ul>
+<li>
+<p>A <code>.tclshrc</code> file for initializing interactive shells.</p>
+<ul>
+<li>A similar file will be added in the future.</li>
+</ul>
+</li>
+<li>
+<p>An option to execute a script and then start the interactive shell.</p>
+<ul>
+<li>This can be added if there is demand.</li>
+</ul>
+</li>
+<li>
+<p>Environment variables for locating the interpreter's library of TCL code, locally
+installed TCL packages, etc.</p>
+<ul>
+<li>Molt's library of TCL code is compiled into the interpreter, rather than being
+loaded from disk at run-time.</li>
+<li>At present, Molt has no support for externally-defined TCL packages
+(other than the <code>source</code> command).</li>
+</ul>
+</li>
+</ul>
 
                     </main>
 

@@ -141,7 +141,7 @@
                 <div id="content" class="content">
                     <main>
                         <a class="header" href="#molt-more-or-less-tcl" id="molt-more-or-less-tcl"><h1>Molt: More Or Less Tcl</h1></a>
-<p><strong>Molt 0.2.0</strong> is a minimal implementation of the TCL language for embedding in Rust apps
+<p><strong>Molt 0.3.0</strong> is a minimal implementation of the TCL language for embedding in Rust apps
 and for scripting Rust libraries.  Molt is intended to be:</p>
 <ul>
 <li>
@@ -192,7 +192,41 @@ administration.</li>
 </ul>
 <p>See the <a href="https://github.com/wduquette/molt-sample"><code>molt-sample</code> repo</a> for a sample Molt client
 skeleton.</p>
-<a class="header" href="#new-in-molt-022" id="new-in-molt-022"><h2>New in Molt 0.2.2</h2></a>
+<a class="header" href="#new-in-molt-030" id="new-in-molt-030"><h2>New in Molt 0.3.0</h2></a>
+<a class="header" href="#molt-shell-user-definable-prompts" id="molt-shell-user-definable-prompts"><h3>Molt Shell: User-Definable Prompts</h3></a>
+<p>Thanks to Coleman McFarland, <code>molt_shell::repl</code> now supports programmable prompts via the
+<code>tcl_prompt1</code> variable.  See the rustdocs and the <a href="cmdline/molt_shell.html"><code>molt_shell</code></a>
+discussion in this book for more information.</p>
+<a class="header" href="#error-stack-traces" id="error-stack-traces"><h3>Error Stack Traces</h3></a>
+<p>Molt now provides error stack traces in more-or-less the same form as standard TCL.  Stack
+traces are accessible to Rust clients, are printed by the Molt shell, and can be
+accessed in scripts via the <a href="ref/catch.html"><code>catch</code></a> command and the <code>errorInfo</code> variable
+in the usual TCL way.</p>
+<a class="header" href="#error-codes" id="error-codes"><h3>Error Codes</h3></a>
+<p>Molt scripts and Rust code can now throw errors with an explicit error code, as in Standard
+TCL; see the <a href="ref/throw.html"><code>throw</code></a> and <a href="ref/catch.html"><code>catch</code></a> commands.</p>
+<a class="header" href="#return-protocol" id="return-protocol"><h3>Return Protocol</h3></a>
+<p>Molt now supports the full <a href="ref/return.html"><code>return</code></a>/<a href="ref/catch.html"><code>catch</code></a> protocol for
+building application-specific control structures in script code.  The mechanism as implemented
+is slightly simpler than in Standard TCL, but should be sufficient for all practical
+purposes.  See the referenced commands for specifics.</p>
+<a class="header" href="#moltresult-and-the-exception-struct" id="moltresult-and-the-exception-struct"><h3><code>MoltResult</code> and the <code>Exception</code> Struct</h3></a>
+<p>In order to support the above changes, the definition of the
+<code>MoltResult</code> type has changed.  Instead of</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+pub type MoltResult = Result&lt;Value, ResultCode&gt;;
+#}</code></pre></pre>
+<p>it is now</p>
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
+#fn main() {
+pub type MoltResult = Result&lt;Value, Exception&gt;;
+#}</code></pre></pre>
+<p>where <code>Exception</code> is a struct containing the <code>ResultCode</code> and other necessary data.  The
+<code>ResultCode</code> enum still exists, but has been simplified.  See the rust doc for details.</p>
+<a class="header" href="#new-in-molt-02" id="new-in-molt-02"><h2>New in Molt 0.2</h2></a>
 <a class="header" href="#dictionaries-and-the-dict-command" id="dictionaries-and-the-dict-command"><h3>Dictionaries and the <code>dict</code> command</h3></a>
 <p>Molt now supports TCL dictionary values.  The <a href="ref/dict.html"><code>dict</code></a> command provides the
 following subcommands:</p>
@@ -208,7 +242,6 @@ following subcommands:</p>
 <li>dict values</li>
 </ul>
 <p>Other <code>dict</code> subcommands will be added over time.</p>
-<a class="header" href="#new-in-molt-02" id="new-in-molt-02"><h2>New in Molt 0.2</h2></a>
 <a class="header" href="#associative-arrays" id="associative-arrays"><h3>Associative Arrays</h3></a>
 <p>Molt now includes TCL's associative array variables:</p>
 <pre><code class="language-text">% set a(1) &quot;Howdy&quot;
@@ -273,9 +306,10 @@ automatically when the last such command is removed from the interpreter.</p>
 not yet completely stable.  Standard Rust <code>0.y.z</code> semantic versioning applies: &quot;.y&quot; changes
 can break the Rust-level API, &quot;.z&quot; changes will not.</p>
 <ul>
-<li>Feature: Regex and Glob pattern matching by Molt commands</li>
+<li>More TCL Commands</li>
 <li>Testing improvements</li>
 <li>Documentation improvements</li>
+<li>Feature: Regex and Glob pattern matching by Molt commands</li>
 </ul>
 
                     </main>

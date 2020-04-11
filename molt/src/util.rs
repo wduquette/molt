@@ -3,6 +3,8 @@
 //! This module contains function for use by molt only.
 
 use crate::tokenizer::Tokenizer;
+use crate::types::*;
+use std::cmp::Ordering;
 
 pub fn is_varname_char(ch: char) -> bool {
     ch.is_alphanumeric() || ch == '_'
@@ -144,6 +146,82 @@ pub fn read_float(ptr: &mut Tokenizer) -> Option<String> {
         // Update the pointer.
         ptr.skip_over(result.len());
         Some(result)
+    }
+}
+
+/// Compare two strings, up to an optional length, returning -1, 0, or 1 as a
+/// molt result.
+pub(crate) fn compare_len(str1: &str, str2: &str, length: Option<MoltInt>) -> MoltResult {
+    let s1;
+    let s2;
+
+    if let Some(len) = length {
+        s1 = str1.substring(0, len as usize);
+        s2 = str2.substring(0, len as usize);
+    } else {
+        s1 = str1;
+        s2 = str2;
+    }
+
+    match s1.cmp(s2) {
+        Ordering::Less => molt_ok!(-1),
+        Ordering::Equal => molt_ok!(0),
+        Ordering::Greater => molt_ok!(1),
+    }
+}
+
+// From carlomilanesi, rust forums
+// https://users.rust-lang.org/t/how-to-get-a-substring-of-a-string/1351/11
+use std::ops::{Bound, RangeBounds};
+
+pub(crate) trait StringUtils {
+    fn substring(&self, start: usize, len: usize) -> &str;
+    fn slice(&self, range: impl RangeBounds<usize>) -> &str;
+}
+
+impl StringUtils for str {
+    fn substring(&self, start: usize, len: usize) -> &str {
+        let mut char_pos = 0;
+        let mut byte_start = 0;
+        let mut it = self.chars();
+        loop {
+            if char_pos == start {
+                break;
+            }
+            if let Some(c) = it.next() {
+                char_pos += 1;
+                byte_start += c.len_utf8();
+            } else {
+                break;
+            }
+        }
+        char_pos = 0;
+        let mut byte_end = byte_start;
+        loop {
+            if char_pos == len {
+                break;
+            }
+            if let Some(c) = it.next() {
+                char_pos += 1;
+                byte_end += c.len_utf8();
+            } else {
+                break;
+            }
+        }
+        &self[byte_start..byte_end]
+    }
+
+    fn slice(&self, range: impl RangeBounds<usize>) -> &str {
+        let start = match range.start_bound() {
+            Bound::Included(bound) | Bound::Excluded(bound) => *bound,
+            Bound::Unbounded => 0,
+        };
+        let len = match range.end_bound() {
+            Bound::Included(bound) => *bound + 1,
+            Bound::Excluded(bound) => *bound,
+            Bound::Unbounded => self.len(),
+        } - start;
+        self.substring(start, len)
     }
 }
 

@@ -329,7 +329,12 @@ partial names of commands and subcommands as a convenience.  Molt does not.
 <li>Added the <a href="embed/molt_result.html#result-macros"><strong>molt_throw!</strong></a> macro.</li>
 <li>Improved the API documentation for <code>molt_ok!</code> and <code>molt_err!</code>.</li>
 <li>Added <code>Exception::error_code</code> and <code>Exception::error_info</code>, to streamline using exceptions.</li>
-<li>Added the <a href="ref/string.html"><strong>string</strong></a> command</li>
+<li>Added the <a href="ref/string.html"><strong>string</strong></a> command
+<ul>
+<li><code>string cat</code></li>
+<li><code>string compare</code></li>
+</ul>
+</li>
 </ul>
 <a class="header" href="#new-in-molt-030" id="new-in-molt-030"><h2>New in Molt 0.3.0</h2></a>
 <p>The changes in Molt 0.3.0 break the existing API in two ways:</p>
@@ -1537,6 +1542,7 @@ returns an error if there is no existing value.</p>
 <p>This command manipulates string values.</p>
 <table><thead><tr><th> Subcommand                                  </th><th> Description                                    </th></tr></thead><tbody>
 <tr><td> <a href="#string-cat-arg">string cat</a>               </td><td> Concatenates zero or more strings  </td></tr>
+<tr><td> <a href="#string-compare-options-string1-string2">string compare</a> </td><td> Compares two strings lexicographically </td></tr>
 </tbody></table>
 <p><strong>TCL Liens</strong></p>
 <ul>
@@ -1546,6 +1552,19 @@ subset will increase over time.</li>
 </ul>
 <a class="header" href="#string-cat-arg-" id="string-cat-arg-"><h2>string cat ?<em>arg</em> ...?</h2></a>
 <p>Returns the concatenation of zero or more strings.</p>
+<a class="header" href="#string-compare-options-string1-string2" id="string-compare-options-string1-string2"><h2>string compare ?<em>options</em>? <em>string1</em> <em>string2</em></h2></a>
+<p>Compares the two strings lexicographically, returning <code>-1</code> if <em>string1</em> is less than <em>string2</em>,
+<code>0</code> if they are equal, and <code>1</code> if <em>string1</em> is greater than <em>string2</em>.</p>
+<p>The options are as follows:</p>
+<table><thead><tr><th> Option           </th><th> Description                                          </th></tr></thead><tbody>
+<tr><td> -nocase          </td><td> The comparison is case-insensitive.                  </td></tr>
+<tr><td> -length <em>length</em> </td><td> Only the first <em>length</em> characters will be compared. </td></tr>
+</tbody></table>
+<p>Notes:</p>
+<ul>
+<li>When <code>-nocase</code> is given, the strings are compared by converting them to lowercase using
+a naive method that may fail for more complex Unicode graphemes.</li>
+</ul>
 <a class="header" href="#throw-type-message" id="throw-type-message"><h1>throw <em>type</em> <em>message</em></h1></a>
 <p>Throws an error with error code <em>type</em> and the given error <em>message</em>.  The error may
 be caught using the <a href="ref/./catch.html"><strong>catch</strong></a> command.</p>

@@ -8,6 +8,7 @@ use crate::dict::dict_path_remove;
 use crate::dict::list_to_dict;
 use crate::interp::Interp;
 use crate::types::*;
+use crate::util::compare_len;
 use crate::*;
 use std::fs;
 use std::time::Instant;
@@ -999,9 +1000,9 @@ pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) ->
     interp.call_subcommand(context_id, argv, 1, &STRING_SUBCOMMANDS)
 }
 
-const STRING_SUBCOMMANDS: [Subcommand; 1] = [
+const STRING_SUBCOMMANDS: [Subcommand; 2] = [
     Subcommand("cat", cmd_string_cat),
-    // Subcommand("compare", cmd_string_todo),
+    Subcommand("compare", cmd_string_compare),
     // Subcommand("equal", cmd_string_todo),
     // Subcommand("first", cmd_string_todo),
     // Subcommand("index", cmd_string_todo),
@@ -1034,6 +1035,47 @@ pub fn cmd_string_cat(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mol
     }
 
     molt_ok!(buff)
+}
+
+/// string compare ?-nocase? ?-length length? string1 string2
+pub fn cmd_string_compare(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 4, 7, "?-nocase? ?-length length? string1 string2")?;
+
+    // FIRST, set the defaults.
+    let arglen = argv.len();
+    let mut nocase = false;
+    let mut length: Option<MoltInt> = None;
+
+    // NEXT, get options
+    let opt_args = &argv[2..arglen - 2];
+    let mut queue = opt_args.iter();
+
+    while let Some(opt) = queue.next() {
+        match opt.as_str() {
+            "-nocase" => nocase = true,
+            "-length" => {
+                if let Some(val) = queue.next() {
+                    length = Some(val.as_int()?);
+                } else {
+                    return molt_err!("wrong # args: should be \"string compare ?-nocase? ?-length length? string1 string2\"");
+                }
+            }
+            _ => return molt_err!("bad option \"{}\": must be -nocase or -length", opt),
+        }
+    }
+
+    if nocase {
+        let val1 = &argv[arglen - 2];
+        let val2 = &argv[arglen - 1];
+
+        // TODO: *Not* the best way to do this; consider using the unicase crate.
+        let val1 = Value::from(val1.as_str().to_lowercase());
+        let val2 = Value::from(val2.as_str().to_lowercase());
+
+        compare_len(val1.as_str(), val2.as_str(), length)
+    } else {
+        compare_len(argv[arglen - 2].as_str(), argv[arglen - 1].as_str(), length)
+    }
 }
 
 /// throw *type* *message*

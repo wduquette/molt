@@ -31,8 +31,8 @@ pub enum ResultCode {
 * `ResultCode::Okay` is used internally.
 
 * `ResultCode::Error` indicates that an error has been thrown; the exception's
-  `value()` is the error message.  Use the exception's `error_data()` method to
-  access the error code and stack trace.
+  `value()` is the error message.  Use the exception's `error_code()` and
+  `error_info()` methods to access the error code and stack trace.
 
 * `ResultCode::Return`, which indicates that the Molt code has called the
   `return` command; the `value` is the returned value.  Molt procedures, defined using
@@ -75,11 +75,12 @@ match interp.eval(input) {
 }
 ```
 
-## `molt_ok!` and `molt_err!`
+## Result Macros
 
 Application-specific Rust code will usually only use `Ok(value)` and
 `ResultCode::Error`. Since these two cases pop up so often,
-Molt provides a couple of macros to make them easier: `molt_ok!` and `molt_err!`.  
+Molt provides several macros to make them easier: `molt_ok!`, `molt_err!`,
+and `molt_throw!`.
 
 `molt_ok!` takes one or more arguments and converts them into an `Ok(Value)`.
 
@@ -100,7 +101,25 @@ return molt_ok!("The answer is {}.", x);
 `molt_err!` works just the same way, but returns `Err(Exception)` with `ResultCode::Error`.
 
 ```
+// Return a simple error message
+return molt_err!("error message");
+
+// Return a formatted error message
 if x > 5 {
     return molt_err!("value is out of range: {}", x);
+}
+```
+
+`molt_throw!` is like `molt_err!`, but allows the caller to set an explicit error code.  (By
+default, Molt errors have an error code of `NONE`.) Error codes can be retrieved from the
+`Exception` object in Rust code and via the [**catch**](../ref/catch.md) command in scripts.
+
+```
+// Throw a simple error
+return molt_throw!("MYCODE", "error message");
+
+// Throw a formatted error message
+if x > 5 {
+    return molt_throw!("MYCODE", "value is out of range: {}", x);
 }
 ```

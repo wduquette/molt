@@ -173,8 +173,8 @@ pub enum ResultCode {
 </li>
 <li>
 <p><code>ResultCode::Error</code> indicates that an error has been thrown; the exception's
-<code>value()</code> is the error message.  Use the exception's <code>error_data()</code> method to
-access the error code and stack trace.</p>
+<code>value()</code> is the error message.  Use the exception's <code>error_code()</code> and
+<code>error_info()</code> methods to access the error code and stack trace.</p>
 </li>
 <li>
 <p><code>ResultCode::Return</code>, which indicates that the Molt code has called the
@@ -221,10 +221,11 @@ match interp.eval(input) {
    }
 }
 #}</code></pre></pre>
-<a class="header" href="#molt_ok-and-molt_err" id="molt_ok-and-molt_err"><h2><code>molt_ok!</code> and <code>molt_err!</code></h2></a>
+<a class="header" href="#result-macros" id="result-macros"><h2>Result Macros</h2></a>
 <p>Application-specific Rust code will usually only use <code>Ok(value)</code> and
 <code>ResultCode::Error</code>. Since these two cases pop up so often,
-Molt provides a couple of macros to make them easier: <code>molt_ok!</code> and <code>molt_err!</code>.</p>
+Molt provides several macros to make them easier: <code>molt_ok!</code>, <code>molt_err!</code>,
+and <code>molt_throw!</code>.</p>
 <p><code>molt_ok!</code> takes one or more arguments and converts them into an <code>Ok(Value)</code>.</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
@@ -242,8 +243,23 @@ return molt_ok!(Value::from(5));
 return molt_ok!(&quot;The answer is {}.&quot;, x);
 #}</code></pre></pre>
 <p><code>molt_err!</code> works just the same way, but returns <code>Err(Exception)</code> with <code>ResultCode::Error</code>.</p>
-<pre><code>if x &gt; 5 {
+<pre><code>// Return a simple error message
+return molt_err!(&quot;error message&quot;);
+
+// Return a formatted error message
+if x &gt; 5 {
     return molt_err!(&quot;value is out of range: {}&quot;, x);
+}
+</code></pre>
+<p><code>molt_throw!</code> is like <code>molt_err!</code>, but allows the caller to set an explicit error code.  (By
+default, Molt errors have an error code of <code>NONE</code>.) Error codes can be retrieved from the
+<code>Exception</code> object in Rust code and via the <a href="../ref/catch.html"><strong>catch</strong></a> command in scripts.</p>
+<pre><code>// Throw a simple error
+return molt_throw!(&quot;MYCODE&quot;, &quot;error message&quot;);
+
+// Throw a formatted error message
+if x &gt; 5 {
+    return molt_throw!(&quot;MYCODE&quot;, &quot;value is out of range: {}&quot;, x);
 }
 </code></pre>
 

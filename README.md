@@ -11,7 +11,10 @@ and user documentation.
 
 ## New in Molt 0.3.1
 
-Nothing yet!  See the
+* `molt_throw!` macro
+* New `Exception` methods
+
+See the
 [Annotated Change Log](https://wduquette.github.io/molt/changes.md) in the Molt Book for
 the complete list of new features by version.
 

@@ -100,11 +100,12 @@ pub enum ResultCode {
     Okay,
 
     /// A Molt error.  The `Exception::value` is the error message for display to the
-    /// user.  The [`molt_err`] macro is usually used to produce errors in client
-    /// code; but the [`Exception`] struct has a number of methods that given finer
-    /// grained control.
+    /// user.  The [`molt_err!`] and [`molt_throw!`] macros are usually used to produce
+    /// errors in client code; but the [`Exception`] struct has a number of methods that
+    /// give finer grained control.
     ///
-    /// [`molt_err`]: ../macro.molt_err.html
+    /// [`molt_err!`]: ../macro.molt_err.html
+    /// [`molt_throw!`]: ../macro.molt_throw.html
     /// [`Exception`]: struct.Exception.html
     Error,
 
@@ -282,8 +283,33 @@ impl Exception {
         self.code == ResultCode::Error
     }
 
-    /// Gets the exception's [`ErrorData`], only when the `code()` is `ResultCode::Error`.  The
-    /// error data contains the error's error code and stack trace information.
+    /// Returns the exception's error code, only if `is_error()`.
+    /// exception.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the exception is not an error.
+    pub fn error_code(&self) -> Value {
+        self.error_data()
+            .expect("exception is not an error")
+            .error_code()
+    }
+
+    /// Returns the exception's error info, i.e., the human-readable error
+    /// stack trace, only if `is_error()`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the exception is not an error.
+    pub fn error_info(&self) -> Value {
+        self.error_data()
+            .expect("exception is not an error")
+            .error_info()
+    }
+
+    /// Gets the exception's [`ErrorData`], if any; the error data is available only when
+    /// the `code()` is `ResultCode::Error`.  The error data contains the error's error code
+    /// and stack trace information.
     ///
     /// # Example
     ///
@@ -339,8 +365,6 @@ impl Exception {
     ///    }
     /// }
     /// ```
-    ///
-    /// [`ErrorData`]: struct.ErrorData.html
     pub fn code(&self) -> ResultCode {
         self.code
     }
@@ -467,7 +491,7 @@ impl Exception {
     ///
     /// let ex = Exception::molt_err2("MYERR".into(), "error message".into());
     /// assert!(ex.is_error());
-    /// assert_eq!(ex.error_data().unwrap().error_code(), "MYERR".into());
+    /// assert_eq!(ex.error_code(), "MYERR".into());
     /// assert_eq!(ex.value(), "error message".into());
     /// ```
     ///

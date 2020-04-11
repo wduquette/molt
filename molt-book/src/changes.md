@@ -2,7 +2,9 @@
 
 ## New in Molt 0.3.1
 
-Nothing, yet!
+* Added the [**molt_throw!**](embed/molt_result.md#result-macros) macro.
+* Improved the API documentation for `molt_ok!` and `molt_err!`.
+* Added `Exception::error_code` and `Exception::error_info`, to streamline using exceptions.
 
 ## New in Molt 0.3.0
 

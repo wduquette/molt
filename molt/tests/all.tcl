@@ -28,6 +28,7 @@ source proc.tcl
 source rename.tcl
 source return.tcl
 source set.tcl
+source string.tcl
 source test.tcl
 source throw.tcl
 source unset.tcl

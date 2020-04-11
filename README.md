@@ -13,6 +13,7 @@ and user documentation.
 
 * `molt_throw!` macro
 * New `Exception` methods
+* Additional TCL commands
 
 See the
 [Annotated Change Log](https://wduquette.github.io/molt/changes.md) in the Molt Book for

@@ -38,6 +38,7 @@
   - [rename](./ref/rename.md)
   - [return](./ref/return.md)
   - [set](./ref/set.md)
+  - [string](./ref/string.md)
   - [throw](./ref/throw.md)
   - [time](./ref/time.md)
   - [unset](./ref/unset.md)

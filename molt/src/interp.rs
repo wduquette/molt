@@ -705,6 +705,7 @@ impl Interp {
         interp.add_command("rename", commands::cmd_rename);
         interp.add_command("return", commands::cmd_return);
         interp.add_command("set", commands::cmd_set);
+        interp.add_command("string", commands::cmd_string);
         interp.add_command("throw", commands::cmd_throw);
         interp.add_command("time", commands::cmd_time);
         interp.add_command("unset", commands::cmd_unset);

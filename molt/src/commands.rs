@@ -994,6 +994,48 @@ pub fn cmd_source(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
     }
 }
 
+/// # string *subcommand* ?*arg*...?
+pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+    interp.call_subcommand(context_id, argv, 1, &STRING_SUBCOMMANDS)
+}
+
+const STRING_SUBCOMMANDS: [Subcommand; 1] = [
+    Subcommand("cat", cmd_string_cat),
+    // Subcommand("compare", cmd_string_todo),
+    // Subcommand("equal", cmd_string_todo),
+    // Subcommand("first", cmd_string_todo),
+    // Subcommand("index", cmd_string_todo),
+    // Subcommand("last", cmd_string_todo),
+    // Subcommand("length", cmd_string_todo),
+    // Subcommand("map", cmd_string_todo),
+    // Subcommand("range", cmd_string_todo),
+    // Subcommand("replace", cmd_string_todo),
+    // Subcommand("repeat", cmd_string_todo),
+    // Subcommand("reverse", cmd_string_todo),
+    // Subcommand("tolower", cmd_string_todo),
+    // Subcommand("toupper", cmd_string_todo),
+    // Subcommand("trim", cmd_string_todo),
+    // Subcommand("trimleft", cmd_string_todo),
+    // Subcommand("trimright", cmd_string_todo),
+];
+
+/// Temporary: stub for string subcommands.
+#[allow(unused)]
+pub fn cmd_string_todo(_interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
+    molt_err!("TODO")
+}
+
+/// string cat ?*arg* ...?
+pub fn cmd_string_cat(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    let mut buff = String::new();
+
+    for arg in &argv[2..] {
+        buff.push_str(arg.as_str());
+    }
+
+    molt_ok!(buff)
+}
+
 /// throw *type* *message*
 ///
 /// Throws an error with the error code and message.

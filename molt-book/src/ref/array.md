@@ -2,13 +2,14 @@
 
 This command queries and manipulates array variables.
 
-| Subcommand                    | Description                                  |
-| ----------------------------- | -------------------------------------------- |
-| [array exists](#array-exists) | Is the string the name of an array variable? |
-| [array get](#array-get)       | A dictionary of the array's elements by name |
-| [array names](#array-names)   | A list of the array's indices                |
-| [array size](#array-size)     | The number of elements in the array          |
-| [array unset](#array-unset)   | Unsets an array variable                     |
+| Subcommand                                  | Description                                    |
+| ------------------------------------------- | ---------------------------------------------- |
+| [array exists](#array-exists-arrayname)     | Is the string the name of an array variable?   |
+| [array get](#array-get-arrayname)           | A dictionary of the array's elements by name   |
+| [array names](#array-names-arrayname)       | A list of the array's indices                  |
+| [array set](#array-set-arrayname-list)      | Merges a dictionary of elements into the array |
+| [array size](#array-size-arrayname)         | The number of elements in the array            |
+| [array unset](#array-unset-arrayname-index) | Unsets an array variable                       |
 
 **TCL Liens**
 

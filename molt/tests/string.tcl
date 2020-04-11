@@ -30,4 +30,4 @@ test string-3.3 {string compare: -nocase} {
     list \
         [string compare abc ABC] \
         [string compare -nocase abc ABC]
-} -ok {-1 0}
+} -ok {1 0}

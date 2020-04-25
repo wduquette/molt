@@ -26,12 +26,35 @@ test string-3.3 {string compare: -length} {
         [string compare -length 5 abcdef abcdeg]
 } -ok {-1 0}
 
-test string-3.3 {string compare: -nocase} {
+test string-3.4 {string compare: -nocase} {
     list \
         [string compare abc ABC] \
         [string compare -nocase abc ABC]
 } -ok {1 0}
 
+# string equal
+test string-4.1 {string equal: syntax} {
+    string equal
+} -error {wrong # args: should be "string equal ?-nocase? ?-length length? string1 string2"}
+
+test string-3.2 {string equal: basic} {
+    list \
+        [string equal a b] \
+        [string equal b b] \
+        [string equal b a]
+} -ok {0 1 0}
+
+test string-3.3 {string equal: -length} {
+    list \
+        [string equal -length 5 a b] \
+        [string equal -length 5 abcdef abcdeg]
+} -ok {0 1}
+
+test string-3.4 {string equal: -nocase} {
+    list \
+        [string equal abc ABC] \
+        [string equal -nocase abc ABC]
+} -ok {0 1}
 
 # string length
 test string-7.1 {string length: syntax} {

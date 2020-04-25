@@ -151,7 +151,7 @@ pub fn read_float(ptr: &mut Tokenizer) -> Option<String> {
 
 /// Compare two strings, up to an optional length, returning -1, 0, or 1 as a
 /// molt result.
-pub(crate) fn compare_len(str1: &str, str2: &str, length: Option<MoltInt>) -> MoltResult {
+pub(crate) fn compare_len(str1: &str, str2: &str, length: Option<MoltInt>) -> Result<MoltInt,Exception> {
     let s1;
     let s2;
 
@@ -164,9 +164,9 @@ pub(crate) fn compare_len(str1: &str, str2: &str, length: Option<MoltInt>) -> Mo
     }
 
     match s1.cmp(s2) {
-        Ordering::Less => molt_ok!(-1),
-        Ordering::Equal => molt_ok!(0),
-        Ordering::Greater => molt_ok!(1),
+        Ordering::Less => Ok(-1),
+        Ordering::Equal => Ok(0),
+        Ordering::Greater => Ok(1),
     }
 }
 

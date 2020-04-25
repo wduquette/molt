@@ -333,6 +333,7 @@ partial names of commands and subcommands as a convenience.  Molt does not.
 <ul>
 <li><code>string cat</code></li>
 <li><code>string compare</code></li>
+<li><code>string length</code></li>
 </ul>
 </li>
 </ul>
@@ -1538,7 +1539,7 @@ returns an error if there is no existing value.</p>
 <ul>
 <li>Molt does not support namespaces or namespace notation.</li>
 </ul>
-<a class="header" href="#command-string" id="command-string"><h1>Command: string</h1></a>
+<a class="header" href="#string----string-manipulation" id="string----string-manipulation"><h1>string -- String Manipulation</h1></a>
 <p><strong>Syntax: string <em>subcommand</em> ?<em>args</em>...?</strong></p>
 <p>This command manipulates Rust <code>String</code> values, considered as vectors of Rust <code>char</code> values.<br />
 A <code>char</code> is a Unicode code point, not a grapheme; graphemes that consist of multiple code
@@ -1546,6 +1547,7 @@ points will be treated as multiple characters.</p>
 <table><thead><tr><th> Subcommand                                  </th><th> Description                                    </th></tr></thead><tbody>
 <tr><td> <a href="#string-cat">string cat</a>                   </td><td> Concatenates zero or more strings              </td></tr>
 <tr><td> <a href="#string-compare">string compare</a>           </td><td> Compares two strings lexicographically         </td></tr>
+<tr><td> <a href="#string-equal">string equal</a>               </td><td> Compares two strings for equality              </td></tr>
 <tr><td> <a href="#string-length">string length</a>             </td><td> String length in characters                    </td></tr>
 </tbody></table>
 <p><strong>TCL Liens</strong></p>
@@ -1561,6 +1563,19 @@ subset will increase over time.</li>
 <p><strong>Syntax: string compare ?<em>options</em>? <em>string1</em> <em>string2</em></strong></p>
 <p>Compares the two strings lexicographically, returning <code>-1</code> if <em>string1</em> is less than <em>string2</em>,
 <code>0</code> if they are equal, and <code>1</code> if <em>string1</em> is greater than <em>string2</em>.</p>
+<p>The options are as follows:</p>
+<table><thead><tr><th> Option           </th><th> Description                                          </th></tr></thead><tbody>
+<tr><td> -nocase          </td><td> The comparison is case-insensitive.                  </td></tr>
+<tr><td> -length <em>length</em> </td><td> Only the first <em>length</em> characters will be compared. </td></tr>
+</tbody></table>
+<p>Notes:</p>
+<ul>
+<li>When <code>-nocase</code> is given, the strings are compared by converting them to lowercase using
+a naive method that may fail for more complex Unicode graphemes.</li>
+</ul>
+<a class="header" href="#string-equal" id="string-equal"><h2>string equal</h2></a>
+<p><strong>Syntax: string equal ?<em>options</em>? <em>string1</em> <em>string2</em></strong></p>
+<p>Compares the two strings, return <code>1</code> if they are equal, and <code>0</code> otherwise.</p>
 <p>The options are as follows:</p>
 <table><thead><tr><th> Option           </th><th> Description                                          </th></tr></thead><tbody>
 <tr><td> -nocase          </td><td> The comparison is case-insensitive.                  </td></tr>

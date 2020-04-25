@@ -140,11 +140,15 @@
 
                 <div id="content" class="content">
                     <main>
-                        <a class="header" href="#string-subcommand-arg-" id="string-subcommand-arg-"><h1>string <em>subcommand</em> ?<em>arg</em> ...?</h1></a>
-<p>This command manipulates string values.</p>
+                        <a class="header" href="#command-string" id="command-string"><h1>Command: string</h1></a>
+<p><strong>Syntax: string <em>subcommand</em> ?<em>args</em>...?</strong></p>
+<p>This command manipulates Rust <code>String</code> values, considered as vectors of Rust <code>char</code> values.<br />
+A <code>char</code> is a Unicode code point, not a grapheme; graphemes that consist of multiple code
+points will be treated as multiple characters.</p>
 <table><thead><tr><th> Subcommand                                  </th><th> Description                                    </th></tr></thead><tbody>
-<tr><td> <a href="#string-cat-arg">string cat</a>               </td><td> Concatenates zero or more strings  </td></tr>
-<tr><td> <a href="#string-compare-options-string1-string2">string compare</a> </td><td> Compares two strings lexicographically </td></tr>
+<tr><td> <a href="#string-cat">string cat</a>                   </td><td> Concatenates zero or more strings              </td></tr>
+<tr><td> <a href="#string-compare">string compare</a>           </td><td> Compares two strings lexicographically         </td></tr>
+<tr><td> <a href="#string-length">string length</a>             </td><td> String length in characters                    </td></tr>
 </tbody></table>
 <p><strong>TCL Liens</strong></p>
 <ul>
@@ -152,9 +156,11 @@
 subset will increase over time.</li>
 <li>Does not currently support index syntax, e.g., <code>end-1</code>.</li>
 </ul>
-<a class="header" href="#string-cat-arg-" id="string-cat-arg-"><h2>string cat ?<em>arg</em> ...?</h2></a>
+<a class="header" href="#string-cat" id="string-cat"><h2>string cat</h2></a>
+<p><strong>Syntax: string cat ?<em>args</em> ...?</strong></p>
 <p>Returns the concatenation of zero or more strings.</p>
-<a class="header" href="#string-compare-options-string1-string2" id="string-compare-options-string1-string2"><h2>string compare ?<em>options</em>? <em>string1</em> <em>string2</em></h2></a>
+<a class="header" href="#string-compare" id="string-compare"><h2>string compare</h2></a>
+<p><strong>Syntax: string compare ?<em>options</em>? <em>string1</em> <em>string2</em></strong></p>
 <p>Compares the two strings lexicographically, returning <code>-1</code> if <em>string1</em> is less than <em>string2</em>,
 <code>0</code> if they are equal, and <code>1</code> if <em>string1</em> is greater than <em>string2</em>.</p>
 <p>The options are as follows:</p>
@@ -167,6 +173,9 @@ subset will increase over time.</li>
 <li>When <code>-nocase</code> is given, the strings are compared by converting them to lowercase using
 a naive method that may fail for more complex Unicode graphemes.</li>
 </ul>
+<a class="header" href="#string-length" id="string-length"><h2>string length</h2></a>
+<p><strong>Syntax: string length <em>string</em></strong></p>
+<p>Returns the length of the string in Rust characters.</p>
 
                     </main>
 

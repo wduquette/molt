@@ -8,6 +8,7 @@
 * Added the [**string**](ref/string.md) command
   * `string cat`
   * `string compare`
+  * `string length`
 
 ## New in Molt 0.3.0
 

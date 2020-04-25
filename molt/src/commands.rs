@@ -1000,14 +1000,14 @@ pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) ->
     interp.call_subcommand(context_id, argv, 1, &STRING_SUBCOMMANDS)
 }
 
-const STRING_SUBCOMMANDS: [Subcommand; 2] = [
+const STRING_SUBCOMMANDS: [Subcommand; 3] = [
     Subcommand("cat", cmd_string_cat),
     Subcommand("compare", cmd_string_compare),
     // Subcommand("equal", cmd_string_todo),
     // Subcommand("first", cmd_string_todo),
     // Subcommand("index", cmd_string_todo),
     // Subcommand("last", cmd_string_todo),
-    // Subcommand("length", cmd_string_todo),
+    Subcommand("length", cmd_string_length),
     // Subcommand("map", cmd_string_todo),
     // Subcommand("range", cmd_string_todo),
     // Subcommand("replace", cmd_string_todo),
@@ -1076,6 +1076,14 @@ pub fn cmd_string_compare(_interp: &mut Interp, _: ContextID, argv: &[Value]) ->
     } else {
         compare_len(argv[arglen - 2].as_str(), argv[arglen - 1].as_str(), length)
     }
+}
+
+/// string length *string*
+pub fn cmd_string_length(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "string")?;
+
+    let len: MoltInt = argv[2].as_str().chars().count() as MoltInt;
+    molt_ok!(len)
 }
 
 /// throw *type* *message*

@@ -31,3 +31,17 @@ test string-3.3 {string compare: -nocase} {
         [string compare abc ABC] \
         [string compare -nocase abc ABC]
 } -ok {1 0}
+
+
+# string length
+test string-7.1 {string length: syntax} {
+    string length
+} -error {wrong # args: should be "string length string"}
+
+test string-7.2 {string lengths} {
+    list \
+        [string length {}] \
+        [string length a]  \
+        [string length ab] \
+        [string length abc]
+} -ok {0 1 2 3}

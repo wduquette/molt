@@ -1,4 +1,6 @@
-# proc *name* *args* *body*
+# proc -- Procedure definition
+
+**Syntax: proc *name* *args* *body***
 
 Defines a procedure with the given *name*, argument list *args*, and
 script *body*.  The procedure may be called like any built-in command.

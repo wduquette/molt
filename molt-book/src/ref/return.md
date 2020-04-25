@@ -1,4 +1,6 @@
-# return ?*options*? ?*value*?
+# return -- Return a value
+
+**Syntax: return ?*options*? ?*value*?**
 
 Returns from a TCL procedure or script, optionally including a value.  By default, the
 command simply returns the given *value*, or the empty string if *value* is omitted.  

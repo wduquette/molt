@@ -1,4 +1,6 @@
-# break
+# break -- Break loop execution
+
+**Syntax: break**
 
 Breaks execution of the inmost loop containing the `break` command,
 continuing execution after the loop.

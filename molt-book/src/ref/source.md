@@ -1,4 +1,6 @@
-# source *filename*
+# source -- Evaluate a script file
+
+**Syntax: source *filename***
 
 Executes the named file as a Molt script, returning the result of the final
 command executed in the script.

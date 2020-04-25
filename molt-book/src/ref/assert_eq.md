@@ -1,4 +1,6 @@
-# assert_eq *received* *expected*
+# assert_eq -- Equality assertion
+
+**Syntax: assert_eq *received* *expected***
 
 Asserts that the string *received* equals the string *expected*.  On success,
 returns the empty string; on failure, returns an error.

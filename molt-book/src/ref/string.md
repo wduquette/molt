@@ -1,4 +1,4 @@
-# string -- String Manipulation
+# string -- String manipulation
 
 **Syntax: string *subcommand* ?*args*...?**
 

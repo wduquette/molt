@@ -1,4 +1,6 @@
-# error *message*
+# error -- Throws an error
+
+**Syntax: error *message***
 
 Returns an error with the given *message* and an error code of `NONE`.  The error may
 be caught using the [**catch**](./catch.md) command.

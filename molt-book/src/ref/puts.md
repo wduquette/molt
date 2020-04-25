@@ -1,4 +1,6 @@
-# puts *string*
+# puts -- Print a string
+
+**Syntax: puts *string***
 
 Outputs the *string* to standard output.
 

@@ -1,4 +1,6 @@
-# unset ?-nocomplain? ?--? ?*name* *name* *name*...?
+# unset -- Clear a variable
+
+**Syntax: unset ?-nocomplain? ?--? ?*name* *name* *name*...?**
 
 Unsets one or more variables whose names are passed to the command.
 It does not matter whether the variables actually exist or not.

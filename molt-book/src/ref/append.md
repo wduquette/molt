@@ -1,4 +1,6 @@
-# append *varName* ?*value* ...?
+# append -- Appends values to a list
+
+**Syntax: append *varName* ?*value* ...?**
 
 Appends zero or more values to the value of variable *varName*.
 If *varName* didn't previously exist, it is set to the concatenation

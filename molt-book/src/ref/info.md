@@ -1,22 +1,26 @@
-# info *subcommand* ?*arg* ...?
+# info -- Interpreter introspection
+
+**Syntax: info *subcommand* ?*arg* ...?**
 
 Returns information about the state of the Molt interpreter.
 
-| Subcommand                              | Description                                       |
-| --------------------------------------- | ------------------------------------------------- |
-| [info args](#info-args-procname)        | Names of procedure's arguments                    |
-| [info body](#info-body-procname)        | Gets procedure body                               |
-| [info cmdtype](#info-cmdtype-command)   | Queries a command's type                          |
-| [info commands](#info-commands)         | Names of all defined commands                     |
-| [info complete](#info-complete-command) | Is this string a syntactically complete command?  |
-| [info default](#info-default-procname-arg-varname) | A procedure argument's default value   |
-| [info exists](#info-exists-varname)     | Is this a variable in the current scope?          |
-| [info globals](#info-globals)           | Names of all variables in the global scope        |
-| [info locals](#info-locals)             | Names of all local variables in the current scope |
-| [info procs](#info-procs)               | Names of all defined procedures                   |
-| [info vars](#info-vars)                 | Names of all variables in the current scope       |
+| Subcommand                      | Description                                       |
+| ------------------------------- | ------------------------------------------------- |
+| [info args](#info-args)         | Names of procedure's arguments                    |
+| [info body](#info-body)         | Gets procedure body                               |
+| [info cmdtype](#info-cmdtype)   | Queries a command's type                          |
+| [info commands](#info-commands) | Names of all defined commands                     |
+| [info complete](#info-complete) | Is this string a syntactically complete command?  |
+| [info default](#info-default)   | A procedure argument's default value   |
+| [info exists](#info-exists)     | Is this a variable in the current scope?          |
+| [info globals](#info-globals)   | Names of all variables in the global scope        |
+| [info locals](#info-locals)     | Names of all local variables in the current scope |
+| [info procs](#info-procs)       | Names of all defined procedures                   |
+| [info vars](#info-vars)         | Names of all variables in the current scope       |
 
-## info args *procname*
+## info args
+
+**Syntax: info args *procname***
 
 Retrieves a list of the names of the arguments of the named procedure.  Returns an error
 if the command is undefined or is a binary command.
@@ -30,7 +34,9 @@ a b c
 %
 ```
 
-## info body *procname*
+## info body
+
+**Syntax: info body *procname***
 
 Retrieves the body of the named procedure.  Returns an error if the command is undefined or
 is a binary command.
@@ -44,7 +50,9 @@ puts "Hello, $name"
 %
 ```
 
-## info cmdtype *command*
+## info cmdtype
+
+**Syntax: info cmdtype *command***
 
 Retrieves the named command's type, either `native` or `proc`.  The *command* is `native` if it's
 implemented in Rust and `proc` if it's implemented as a TCL procedure.
@@ -64,13 +72,17 @@ added to Molt.
 
 ## info commands
 
+**Syntax: info commands**
+
 Returns an unsorted list of the names of the commands defined in the interpreter,
 including both binary commands and procedures.
 
 **TCL Liens**: does not support filtering the list using a `glob`
 pattern.
 
-## info complete *command*
+## info complete
+
+**Syntax: info complete *command***
 
 Returns 1 if the command appears to be a complete Tcl command, i.e., it
 has no unmatched quotes, braces, or brackets, and 0 otherwise.  REPLs can
@@ -86,7 +98,9 @@ For example,
 %
 ```
 
-## info default *procname* *arg* *varname*
+## info default
+
+**Syntax: info default *procname* *arg* *varname***
 
 Retrieves the default value of procedure *procname*'s argument called *arg*.  If *arg* has
 a default value, `info default` returns 1 and assigns the default value to the variable
@@ -115,7 +129,9 @@ In the following example, `myproc` has two arguments, `a` and `b`.  `a` has no d
 %
 ```
 
-## info exists *varname*
+## info exists
+
+**Syntax: info exists *varname***
 
 Returns 1 if *varname* is the name of a variable or array element in the current scope, and
 0 otherwise.
@@ -139,12 +155,16 @@ Returns 1 if *varname* is the name of a variable or array element in the current
 
 ## info globals
 
+**Syntax: info globals**
+
 Returns an unsorted list of the names of all variables defined in the global scope.
 
 **TCL Liens**: does not support filtering the list using a `glob`
 pattern.
 
 ## info locals
+
+**Syntax: info locals**
 
 Returns an unsorted list of the names of all local variables defined in the current scope, e.g.,
 `proc` arguments and variables defined locally, but no variables brought in from other scopes
@@ -156,6 +176,8 @@ pattern.
 
 ## info procs
 
+**Syntax: info procs**
+
 Returns an unsorted list of the names of the procedures defined in the interpreter,
 omitting binary commands.
 
@@ -163,6 +185,8 @@ omitting binary commands.
 pattern.
 
 ## info vars
+
+**Syntax: info vars**
 
 Returns an unsorted list of the names of all variables that are visible
 in the current scope, whether global or local.

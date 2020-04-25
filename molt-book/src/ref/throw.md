@@ -1,4 +1,6 @@
-# throw *type* *message*
+# throw -- Throws an exception
+
+**Syntax: throw *type* *message***
 
 Throws an error with error code *type* and the given error *message*.  The error may
 be caught using the [**catch**](./catch.md) command.

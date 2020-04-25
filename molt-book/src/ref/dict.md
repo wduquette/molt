@@ -1,19 +1,21 @@
-# dict *subcommand* ?*arg* ...?
+# dict -- Dictionary manipulation
+
+**Syntax: dict *subcommand* ?*arg* ...?**
 
 This command manipulates TCL dictionaries.  A dictionary is a Molt value containing a hash map
 from keys to values.  Keys are maintained in order of initial insertion.
 
-| Subcommand                                       | Description                                  |
-| ------------------------------------------------ | -------------------------------------------- |
-| [dict create](#dict-create-key-value-)           | Creates a dictionary                         |
-| [dict exists](#dict-exists-dictionary-key-key-)  | Is there a value with these keys?            |
-| [dict get](#dict-get-dictionary-key-)            | Gets a value from the dictionary             |
-| [dict keys](#dict-keys-dictionary)               | Gets the keys from the dictionary            |
-| [dict remove](#dict-remove-dictionary-key-)      | Removes keys from the dictionary             |
-| [dict set](#dict-set-dictvarname-key-key--value) | Sets a value in a dictionary                 |
-| [dict unset](#dict-unset-dictvarname-key-)       | Unsets a value in a dictionary                |
-| [dict size](#dict-size-dictionary)               | The number of elements in the dictionary     |
-| [dict values](#dict-values-dictionary)           | Gets the values from the dictionary          |
+| Subcommand                  | Description                                  |
+| --------------------------- | -------------------------------------------- |
+| [dict create](#dict-create) | Creates a dictionary                         |
+| [dict exists](#dict-exists) | Is there a value with these keys?            |
+| [dict get](#dict-get)       | Gets a value from the dictionary             |
+| [dict keys](#dict-keys)     | Gets the keys from the dictionary            |
+| [dict remove](#dict-remove) | Removes keys from the dictionary             |
+| [dict set](#dict-set)       | Sets a value in a dictionary                 |
+| [dict unset](#dict-unset)   | Unsets a value in a dictionary               |
+| [dict size](#dict-size)     | The number of elements in the dictionary     |
+| [dict values](#dict-values) | Gets the values from the dictionary          |
 
 **TCL Liens**
 
@@ -23,7 +25,9 @@ from keys to values.  Keys are maintained in order of initial insertion.
 * `dict info` is not supported; it is intended for tuning the standard TCL hash table
   implementation.  Molt relies on `std::collections::HashMap`.
 
-## dict create ?*key* *value* ...?
+## dict create
+
+**Syntax: dict create ?*key* *value* ...?**
 
 Creates a dictionary given any number of key/value pairs.
 
@@ -34,7 +38,9 @@ a 1 b 2
 1
 ```
 
-## dict exists *dictionary* *key* ?*key* ...?
+## dict exists
+
+**Syntax: dict exists *dictionary* *key* ?*key* ...?**
 
 Returns 1 if the *key* (or the path of keys through nested dictionaries) is found in the
 given *dictionary* value, and 0 otherwise.  It returns 1 exactly when `dict get` will
@@ -56,7 +62,9 @@ through nested dictionaries.  If no keys are provided, the dictionary itself is 
 0
 ```
 
-## dict get *dictionary* ?*key* ...?
+## dict get
+
+**Syntax: dict get *dictionary* ?*key* ...?**
 
 Looks up the *key* in the *dictionary* and returns its value.  It's an error if the *key* is
 not present in the dictionary.  If multiple keys are provided, the command looks up values
@@ -69,7 +77,9 @@ through nested dictionaries.  If no keys are provided, the dictionary itself is 
 3
 ```
 
-## dict keys *dictionary*
+## dict keys
+
+**Syntax: dict keys *dictionary***
 
 Returns a list of the keys in the dictionary, in the order of initial insertion.
 
@@ -78,7 +88,9 @@ Returns a list of the keys in the dictionary, in the order of initial insertion.
 a b
 ```
 
-## dict remove *dictionary* ?*key* ...?
+## dict remove
+
+**Syntax: dict remove *dictionary* ?*key* ...?**
 
 Removes each of the keys from the dictionary, returning the modified dictionary.  The keys
 need not be present in the original dictionary value.  If no keys are given, returns the
@@ -89,7 +101,9 @@ dictionary unchanged.
 a 1 d 4
 ```
 
-## dict set *dictVarName* *key* ?*key* ...? *value*
+## dict set
+
+**Syntax: dict set *dictVarName* *key* ?*key* ...? *value***
 
 Given the name of a variable containing a dictionary, sets the *value* of the given *key* in
 the dictionary. If multiple keys are given, the command indexes down the path of keys and sets
@@ -110,7 +124,9 @@ a 1 b 2 c {x 3}
 a 1 b 2 c {x 3 y {z 4}}
 ```
 
-## dict size *dictionary*
+## dict size
+
+**Syntax: dict size *dictionary***
 
 Gets the number of entries in the *dictionary*.
 
@@ -121,7 +137,9 @@ a 1 b 2 c 3
 3
 ```
 
-## dict unset *dictVarName* ?*key* ...?
+## dict unset
+
+**Syntax: dict unset *dictVarName* ?*key* ...?**
 
 Given the name of a variable containing a dictionary, removes the *value* at the end of the path
 of keys through any number of nested dictionaries.  The last key need not exist in the inmost
@@ -145,7 +163,8 @@ a 1 b {x 2}
 key "c" is not known in dictionary
 ```
 
-## dict values *dictionary*
+## dict values
+**Syntax: dict values *dictionary***
 
 Returns a list of the values in the dictionary, in the order of initial insertion of
 their keys.

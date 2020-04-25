@@ -1,4 +1,6 @@
-# expr *expr*
+# expr -- Evaluate algebraic expressions
+
+**Syntax: expr *expr***
 
 Evaluates the expression, returning the result.
 

@@ -1,4 +1,6 @@
-# continue
+# continue -- Continue with next iteration
+
+**Syntax: continue**
 
 Continues execution with the next iteration of the inmost loop containing
 the `continue` command.

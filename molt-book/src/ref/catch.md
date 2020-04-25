@@ -1,4 +1,6 @@
-# catch *script* ?*resultVarName*? ?*optionsVarName*?
+# catch -- Catch exceptions
+
+**Syntax: catch *script* ?*resultVarName*? ?*optionsVarName*?**
 
 Executes the script, catching the script's result.  The `catch` command returns an integer
 result code, indicating why the script returned.  If *resultVarName* is given, the

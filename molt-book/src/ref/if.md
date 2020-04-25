@@ -1,4 +1,6 @@
-# if *expr1* ?then? *body1* elseif *expr2* ?then? *body2* elseif ... ?else? ?*bodyN*?
+# if -- If/then/else
+
+**Syntax: if *expr1* ?then? *body1* elseif *expr2* ?then? *body2* elseif ... ?else? ?*bodyN*?**
 
 Tests a chain of one or more expressions, and executes the matching *body*,
 which must be a script.  Returns the result of the last command executed in

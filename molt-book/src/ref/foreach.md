@@ -1,4 +1,6 @@
-# foreach *varList* *list* *body*
+# foreach -- "For each" loop
+
+**Syntax: foreach *varList* *list* *body***
 
 Loops over the elements in the *list*, assigning them to the variables
 in the *varList* and executing the *body* for each set of assignments.

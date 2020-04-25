@@ -1,4 +1,6 @@
-# exit ?*returnCode*?
+# exit -- Exit the application
+
+**Syntax: exit ?*returnCode*?**
 
 Terminates the application by calling
 [`std::process:exit()`](https://doc.rust-lang.org/std/process/fn.exit.html)

@@ -1,4 +1,6 @@
-# set *varName* ?*newValue*?
+# set -- Set a variable's value
+
+**Syntax: set *varName* ?*newValue*?**
 
 Sets variable *varName* to the *newValue*, returning the *newValue*.  If
 *newValue* is omitted, simply returns the variable's existing value, or

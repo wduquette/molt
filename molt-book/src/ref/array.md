@@ -1,15 +1,17 @@
-# array *subcommand* ?*arg* ...?
+# array -- Query and manipulate array variables
+
+**Syntax: array *subcommand* ?*arg* ...?**
 
 This command queries and manipulates array variables.
 
-| Subcommand                                  | Description                                    |
-| ------------------------------------------- | ---------------------------------------------- |
-| [array exists](#array-exists-arrayname)     | Is the string the name of an array variable?   |
-| [array get](#array-get-arrayname)           | A dictionary of the array's elements by name   |
-| [array names](#array-names-arrayname)       | A list of the array's indices                  |
-| [array set](#array-set-arrayname-list)      | Merges a dictionary of elements into the array |
-| [array size](#array-size-arrayname)         | The number of elements in the array            |
-| [array unset](#array-unset-arrayname-index) | Unsets an array variable                       |
+| Subcommand                    | Description                                    |
+| ----------------------------- | ---------------------------------------------- |
+| [array exists](#array-exists) | Is the string the name of an array variable?   |
+| [array get](#array-get)       | A dictionary of the array's elements by name   |
+| [array names](#array-names)   | A list of the array's indices                  |
+| [array set](#array-set)       | Merges a dictionary of elements into the array |
+| [array size](#array-size)     | The number of elements in the array            |
+| [array unset](#array-unset)   | Unsets an array variable                       |
 
 **TCL Liens**
 
@@ -21,36 +23,48 @@ This command queries and manipulates array variables.
 * Will never support `array statistics`, as Rust's `std::collections::HashMap` doesn't
   provide a way to gather them.
 
-## array exists *arrayName*
+## array exists
+
+**Syntax: array exists *arrayName***
 
 Returns 1 if *arrayName* names an array variable, and 0 otherwise.
 
-## array get *arrayName*
+## array get
+
+**Syntax: array get *arrayName***
 
 Returns a flat list of the keys and values in the named array.  The key/value pairs appear
 in unsorted order. If there is no array variable with the given name, returns the empty list.
 
 **TCL Liens**: does not support filtering the list using glob and regex matches.
 
-## array names *arrayName*
+## array names
+
+**Syntax: array names *arrayName***
 
 Returns an unsorted list of the indices of the named array variable.  If there is no array
 variable with the given name, returns the empty list.
 
 **TCL Liens**: does not support filtering the list using glob and regex matches.
 
-## array set *arrayName* *list*
+## array set
+
+**Syntax: array set *arrayName* *list***
 
 Merges a flat list of keys and values into the array, creating the array variable if necessary.
 The list must have an even number of elements.  It's an error if the variable exists but has
 a scalar value, or if *arrayName* names an array element.
 
-## array size *arrayName*
+## array size
+
+**Syntax: array size *arrayName***
 
 Returns the number of elements in the named array.  If there is no array
 variable with the given name, returns "0".
 
-## array unset *arrayName* ?*index*?
+## array unset
+
+**Syntax: array unset *arrayName* ?*index*?**
 
 Unsets the array element in *arrayName* with the given *index*.  If index is not given,
 unsets the entire array.

@@ -1,4 +1,6 @@
-# while *test* *command*
+# while -- "While" loop
+
+**Syntax: while *test* *command***
 
 The `while` command is a standard "while" loop, executing the *command* script just so
 long as the *test* expression evaluates to true.

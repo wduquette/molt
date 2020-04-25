@@ -1,4 +1,6 @@
-# incr *varName* ?*increment*?
+# incr -- Increment integer
+
+**Syntax: incr *varName* ?*increment*?**
 
 Increments integer-valued-variable *varName* by the given *increment*, which defaults to 1.
 If the variable is unset, it is set to the *increment*.  The command returns the incremented

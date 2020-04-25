@@ -1,4 +1,6 @@
-# for *start* *test* *next* *command*
+# for -- "For" loop
+
+**Syntax: for *start* *test* *next* *command***
 
 The `for` command provides a C-like "for" loop, where *start* is a script that initializes the
 loop counter, *test* is a conditional expression, *next* is a script that updates the loop

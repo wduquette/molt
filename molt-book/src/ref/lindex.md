@@ -1,4 +1,6 @@
-# lindex *list* ?*index* ...?
+# lindex -- Index into a list
+
+**Syntax: lindex *list* ?*index* ...?**
 
 Returns an element from the *list*, indexing into nested lists.  The indices
 may be represented as individual indices on the command line, or as a list
@@ -20,4 +22,4 @@ lindex {a {b c d} e} {1 1}  ;# "c"
 
 Indices in standard TCL may take several additional forms.  For example,
 `end` indexes the last entry in the list; `end-1` indexes the next to last
-entry, and so forth.  Molt doesn't yet support this. 
+entry, and so forth.  Molt doesn't yet support this.

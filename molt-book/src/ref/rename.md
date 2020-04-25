@@ -1,4 +1,6 @@
-# rename *oldName* *newName*
+# rename -- Rename a command
+
+**Syntax: rename *oldName* *newName***
 
 Renames the command called *oldName* to be *newName* instead.  
 

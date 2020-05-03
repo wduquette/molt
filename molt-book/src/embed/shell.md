@@ -36,7 +36,7 @@ fn main() {
     }
 }
 
-pub fn cmd_hello(_interp: &mut Interp, argv: &[Value]) -> MoltResult {
+pub fn cmd_hello(_interp: &mut Interp,  _: ContextID, argv: &[Value]) -> MoltResult {
     // Correct number of arguments?
     check_args(1, argv, 2, 2, "name")?;
 

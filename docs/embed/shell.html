@@ -175,7 +175,7 @@ example; here's a sketch:</p>
     }
 }
 
-pub fn cmd_hello(_interp: &amp;mut Interp, argv: &amp;[Value]) -&gt; MoltResult {
+pub fn cmd_hello(_interp: &amp;mut Interp,  _: ContextID, argv: &amp;[Value]) -&gt; MoltResult {
     // Correct number of arguments?
     check_args(1, argv, 2, 2, &quot;name&quot;)?;
 

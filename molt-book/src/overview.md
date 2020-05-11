@@ -1,6 +1,6 @@
 # Molt: More Or Less Tcl
 
-**Molt 0.3.0** is a minimal implementation of the TCL language for embedding in Rust apps
+**Molt 0.3.1** is a minimal implementation of the TCL language for embedding in Rust apps
 and for scripting Rust libraries.  Molt is intended to be:
 
 *   **Small in size.** Embedding Molt shouldn't greatly increase the size of the

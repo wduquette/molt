@@ -1,6 +1,6 @@
 [package]
 name = "molt-shell"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Will Duquette <will@wjduquette.com>"]
 edition = "2018"
 description = "Molt Application Frameworks"

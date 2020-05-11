@@ -1,5 +1,9 @@
 # Annotated Change Log
 
+## New in Molt 0.3.2
+
+Nothing yet!
+
 ## New in Molt 0.3.1
 
 * Added the [**molt_throw!**](embed/molt_result.md#result-macros) macro.

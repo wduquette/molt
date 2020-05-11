@@ -146,6 +146,12 @@
 <li>Added the <a href="embed/molt_result.html#result-macros"><strong>molt_throw!</strong></a> macro.</li>
 <li>Improved the API documentation for <code>molt_ok!</code> and <code>molt_err!</code>.</li>
 <li>Added <code>Exception::error_code</code> and <code>Exception::error_info</code>, to streamline using exceptions.</li>
+<li>Added the <code>env()</code> array, which contains the current environment variable settings.
+<ul>
+<li><strong>Note</strong>: as yet, changes to the <code>env()</code> array are not mirrored back to the process
+environment.</li>
+</ul>
+</li>
 <li>Added the <a href="ref/string.html"><strong>string</strong></a> command
 <ul>
 <li><code>string cat</code></li>

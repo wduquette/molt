@@ -5,6 +5,9 @@
 * Added the [**molt_throw!**](embed/molt_result.md#result-macros) macro.
 * Improved the API documentation for `molt_ok!` and `molt_err!`.
 * Added `Exception::error_code` and `Exception::error_info`, to streamline using exceptions.
+* Added the `env()` array, which contains the current environment variable settings.
+  * **Note**: as yet, changes to the `env()` array are not mirrored back to the process
+    environment.
 * Added the [**string**](ref/string.md) command
   * `string cat`
   * `string compare`

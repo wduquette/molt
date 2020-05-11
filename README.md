@@ -13,6 +13,7 @@ and user documentation.
 
 * `molt_throw!` macro
 * New `Exception` methods
+* Access to environment variables via the env() variable
 * Additional TCL commands
 
 See the

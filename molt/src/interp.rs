@@ -724,7 +724,24 @@ impl Interp {
         interp.add_command("pdump", commands::cmd_pdump);
         interp.add_command("pclear", commands::cmd_pclear);
 
+        // Populate the environment variable.
+        // TODO: Really should be a "linked" variable, where sets to it are tracked and
+        // written back to the environment.
+        interp.populate_env();
+
         interp
+    }
+
+    /// Populates the TCL `env()` array with the process's environment variables.
+    ///
+    /// # TCL Liens
+    ///
+    /// Changes to the variable are not mirrored back into the process's environment.
+    fn populate_env(&mut self) {
+        for (key, value) in std::env::vars() {
+            // Drop the result, as there's no good reason for this to ever throw an error.
+            let _ = self.set_element("env", &key, value.into());
+        }
     }
 
     //--------------------------------------------------------------------------------------------

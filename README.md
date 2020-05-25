@@ -18,8 +18,8 @@ experimentation.  Among other things, Mazegen includes:
 
 * A simple binding to (a small part of) the
   [**rand::thread_rng**](https://crates.io/crates/rand) crate
-* The smallest beginning of a binding to the [**image**](https://crates.io/image) crate
-  (more to come) 
+* The smallest beginning of a binding to the [**image**](https://crates.io/crates/image) crate
+  (more to come)
 
 ## New in Molt 0.3.1
 

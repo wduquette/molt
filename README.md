@@ -9,6 +9,18 @@ Molt is a minimal implementation of the TCL language for embedding in Rust apps 
 scripting Rust libraries.  See [The Molt Book](https://wduquette.github.io/molt) for details
 and user documentation.
 
+## Mazegen: An Example
+
+See [Mazegen](https://github.com/wduquette/mazegen) as an example of using Molt to provide
+a TCL interface for real Rust APIs.  Mazegen is a collection of maze generation code and
+related infrastructure, with a Molt interface as an aid for debugging and
+experimentation.  Among other things, Mazegen includes:
+
+* A simple binding to (a small part of) the
+  [**rand::thread_rng**](https://crates.io/crates/rand) crate
+* The smallest beginning of a binding to the [**image**](https://crates.io/image) crate
+  (more to come) 
+
 ## New in Molt 0.3.1
 
 * `molt_throw!` macro

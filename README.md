@@ -7,7 +7,7 @@
 
 Molt is a minimal implementation of the TCL language for embedding in Rust apps and for
 scripting Rust libraries.  See [The Molt Book](https://wduquette.github.io/molt) for details
-and user documentation.
+and user documentation, and [docs.rs/molt](https://docs.rs/molt) for the Rust API.
 
 ## Mazegen: An Example
 

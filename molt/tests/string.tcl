@@ -223,3 +223,80 @@ test string-13.9 {string last: lastIndex beyond string end} {
 test string-13.10 {string last: non-numerical lastIndex} {
     string last a abc NOT_A_NUMBER
 } -error {expected integer but got "NOT_A_NUMBER"}
+
+# string map
+test string-14.1 {string map} {
+    string map {FOO BAR} abcdFOOefgh
+} -ok abcdBARefgh
+
+test string-14.2 {string map: -nocase} {
+   string map -nocase {foo BAR EF __} abcdFOOefgh
+} -ok abcdBAR__gh
+
+test string-14.3 {string map} {
+    string map {a b} aaaaa
+} -ok bbbbb
+
+test string-14.4 {string map} {
+    string map {a b c d X {}} XabcbaX
+} -ok bbdbb
+
+test string-14.5 {string map: bad list} {
+    string map {a b c} abcba
+} -error {missing value to go with key}
+
+test string-14.6 {string map: no match} {
+    string map {foo bar} f
+} -ok f
+
+test string-14.7 {string map} {
+    string map {foo bar} fo
+} -ok fo
+
+test string-14.8 {string map} {
+    string map {a b eh ha e f} aehaeheee
+} -ok bhabhafff
+
+test string-14.9 {string map} {
+    string map {s longer} xsx
+} -ok xlongerx
+
+test string-14.10 {string map} {
+    string map {quite_long shorter} this_is_quite_long
+} -ok this_is_shorter
+
+test string-14.11 {string map: empty map} {
+    string map {{} {}} hello
+} -ok hello
+
+test string-14.12 {string map: empty map 2} {
+    string map {{} { }} hello
+} -ok hello
+
+test string-14.13 {string map: no multiple replacement} {
+    string map {foo bar bar baz} foo
+} -ok bar
+
+test string-14.14 {string map: no multiple replacement 2} {
+    string map {foo bar ba xx x z o 0} foo
+} -ok bar
+
+test string-14.15 {string map: no multiple replacement 3} {
+    string map {abc 1 ab 2 a 3 1 0} 1abcaababcabababc
+} -ok 01321221
+
+test string-14.16 {string map: shorter match masks longer} {
+    string map {1 0 ab 2 a 3 abc 1} 1abcaababcabababc
+} -ok 02c322c222c
+
+test string-14.17 {string map: Unicode 1} {
+    string map {カ ka タ ta ナ na} カタカナ
+} -ok katakana
+
+test string-14.18 {string map: Unicode 2} {
+    string map {а a б b в v} _аб_в_
+} -ok _ab_v_
+
+test string-14.19 {string map: deletion} {
+    string map {0 {} 3 {}} 22233322
+} -ok 22222

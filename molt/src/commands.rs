@@ -1000,7 +1000,7 @@ pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) ->
     interp.call_subcommand(context_id, argv, 1, &STRING_SUBCOMMANDS)
 }
 
-const STRING_SUBCOMMANDS: [Subcommand; 11] = [
+const STRING_SUBCOMMANDS: [Subcommand; 12] = [
     Subcommand("cat", cmd_string_cat),
     Subcommand("compare", cmd_string_compare),
     Subcommand("equal", cmd_string_equal),
@@ -1008,7 +1008,7 @@ const STRING_SUBCOMMANDS: [Subcommand; 11] = [
     // Subcommand("index", cmd_string_todo),
     Subcommand("last", cmd_string_last),
     Subcommand("length", cmd_string_length),
-    // Subcommand("map", cmd_string_todo),
+    Subcommand("map", cmd_string_map),
     // Subcommand("range", cmd_string_todo),
     // Subcommand("replace", cmd_string_todo),
     // Subcommand("repeat", cmd_string_todo),
@@ -1187,6 +1187,76 @@ pub fn cmd_string_length(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> 
 
     let len: MoltInt = argv[2].as_str().chars().count() as MoltInt;
     molt_ok!(len)
+}
+
+/// string map ?-nocase? *charMap* *string*
+pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 4, 5, "?-nocase? charMap string")?;
+
+    let mut nocase = false;
+
+    if argv.len() == 5 {
+        let opt = argv[2].as_str();
+
+        if opt == "-nocase" {
+            nocase = true;
+        } else {
+            return molt_err!("bad option \"{}\": must be -nocase", opt);
+        }
+    }
+
+    let char_map = argv[argv.len() - 2].as_dict()?;
+    let string = argv[argv.len() - 1].as_str();
+
+    let filtered_keys = char_map
+        .iter()
+        .map(|(k, v)| {
+            let new_k = if nocase {
+                Value::from(k.as_str().to_lowercase())
+            } else {
+                k.clone()
+            };
+
+            let count = new_k.as_str().chars().count();
+
+            (new_k, count, v.clone())
+        })
+        .filter(|(_, count, _)| *count > 0)
+        .collect::<Vec<_>>();
+    let matching_string = if nocase {
+        string.to_lowercase()
+    } else {
+        string.to_string()
+    };
+
+    let mut result = "".to_string();
+    let mut skip = 0;
+
+    for (i, c) in string.char_indices() {
+        if skip > 0 {
+            skip -= 1;
+            continue;
+        }
+
+        let mut matched = false;
+
+        for (from, from_char_count, to) in &filtered_keys {
+            if matching_string[i..].starts_with(&from.as_str()) {
+                matched = true;
+
+                result.push_str(to.as_str());
+                skip = from_char_count - 1;
+
+                break;
+            }
+        }
+
+        if !matched {
+            result.push(c);
+        }
+    }
+
+    molt_ok!(result)
 }
 
 /// string tolower *string*

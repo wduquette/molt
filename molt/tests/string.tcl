@@ -68,3 +68,29 @@ test string-7.2 {string lengths} {
         [string length ab] \
         [string length abc]
 } -ok {0 1 2 3}
+
+# string tolower
+test string-8.1 {string tolower: blank} {
+    string tolower {}
+} -ok {}
+
+test string-8.2 {string tolower: ASCII} {
+    string tolower {ASCII TEXT 0123456789}
+} -ok {ascii text 0123456789}
+
+test string-8.3 {string tolower: Unicode} {
+    string tolower МАРС
+} -ok марс
+
+# string toupper
+test string-8.1 {string toupper: blank} {
+    string toupper {}
+} -ok {}
+
+test string-8.2 {string toupper: ASCII} {
+    string toupper {ascii text 0123456789}
+} -ok {ASCII TEXT 0123456789}
+
+test string-8.3 {string toupper: Unicode} {
+    string toupper венера
+} -ok ВЕНЕРА

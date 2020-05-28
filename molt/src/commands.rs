@@ -1000,13 +1000,13 @@ pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) ->
     interp.call_subcommand(context_id, argv, 1, &STRING_SUBCOMMANDS)
 }
 
-const STRING_SUBCOMMANDS: [Subcommand; 10] = [
+const STRING_SUBCOMMANDS: [Subcommand; 11] = [
     Subcommand("cat", cmd_string_cat),
     Subcommand("compare", cmd_string_compare),
     Subcommand("equal", cmd_string_equal),
     Subcommand("first", cmd_string_first),
     // Subcommand("index", cmd_string_todo),
-    // Subcommand("last", cmd_string_todo),
+    Subcommand("last", cmd_string_last),
     Subcommand("length", cmd_string_length),
     // Subcommand("map", cmd_string_todo),
     // Subcommand("range", cmd_string_todo),
@@ -1145,6 +1145,39 @@ pub fn cmd_string_first(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
             .find(needle)
             .map(|x| x as MoltInt + start)
             .unwrap_or(-1)
+    };
+
+    molt_ok!(pos)
+}
+
+/// string last *needleString* *haystackString* ?*lastIndex*?
+pub fn cmd_string_last(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 4, 5, "needleString haystackString ?lastIndex?")?;
+
+    let needle = argv[2].as_str();
+    let haystack = argv[3].as_str();
+
+    let last: Option<usize> = if argv.len() == 5 {
+        let arg = argv[4].as_int()?;
+
+        if arg < 0 {
+            None
+        } else if arg as usize >= haystack.len() {
+            Some(haystack.len() - 1)
+        } else {
+            Some(arg as usize)
+        }
+    } else {
+        Some(haystack.len() - 1)
+    };
+
+    let pos = match last {
+        Some(offset) =>
+            haystack[..=offset]
+                .rfind(needle)
+                .map(|x| x as MoltInt)
+                .unwrap_or(-1),
+        None => -1,
     };
 
     molt_ok!(pos)

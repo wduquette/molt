@@ -177,3 +177,49 @@ test string-12.2 {string trimright: nothing to trim} {
 test string-12.3 {string trimright: whitespace to trim} {
     string trimright "    \n\t hello \n\tworld   \t\n   "
 } -ok "    \n\t hello \n\tworld"
+
+# string last
+test string-13.1 {string last} {
+    string last foo foobarbaz
+} -ok 0
+
+test string-13.2 {string last} {
+    string last a foobarbaz
+} -ok 7
+
+test string-13.3 {string last} {
+    string last zoom foobarbaz
+} -ok -1
+
+test string-13.4 {string last} {
+    string last bar foobarbaz
+} -ok 3
+
+test string-13.5 {string last} {
+    string last bazz foobarbaz
+} -ok -1
+
+test string-13.6 {string last: lastIndex} {
+    string last bar foobarbaz 3
+} -ok -1
+
+test string-13.7 {string last: lastIndex} {
+    string last bar foobarbaz 5
+} -ok 3
+
+test string-13.8 {string last: zeno and negative lastIndex} {
+    list \
+        [string last f foobarbaz 0] \
+        [string last f foobarbaz -99]
+} -ok {0 -1}
+
+test string-13.9 {string last: lastIndex beyond string end} {
+    list \
+        [string last z foobarbaz 7] \
+        [string last z foobarbaz 9] \
+        [string last z foobarbaz 99]
+} -ok {-1 8 8}
+
+test string-13.10 {string last: non-numerical lastIndex} {
+    string last a abc NOT_A_NUMBER
+} -error {expected integer but got "NOT_A_NUMBER"}

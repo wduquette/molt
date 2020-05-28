@@ -138,3 +138,42 @@ test string-9.9 {string first: startIndex beyond string end} {
 test string-9.10 {string first: non-numerical startIndex} {
     string first a abc NOT_A_NUMBER
 } -error {expected integer but got "NOT_A_NUMBER"}
+
+# string trim
+test string-10.1 {string trim: empty} {
+    string trim {}
+} -ok {}
+
+test string-10.2 {string trim: nothing to trim} {
+    string trim {hello world}
+} -ok {hello world}
+
+test string-10.3 {string trim: whitespace to trim} {
+    string trim "    \n\t hello \n\tworld   \t\n   "
+} -ok "hello \n\tworld"
+
+# string trimleft
+test string-11.1 {string trimleft: empty} {
+    string trimleft {}
+} -ok {}
+
+test string-11.2 {string trimleft: nothing to trim} {
+    string trimleft {hello world}
+} -ok {hello world}
+
+test string-11.3 {string trimleft: whitespace to trim} {
+    string trimleft "    \n\t hello \n\tworld   \t\n   "
+} -ok "hello \n\tworld   \t\n   "
+
+# string trimright
+test string-12.1 {string trimright: empty} {
+    string trimright {}
+} -ok {}
+
+test string-12.2 {string trimright: nothing to trim} {
+    string trimright {hello world}
+} -ok {hello world}
+
+test string-12.3 {string trimright: whitespace to trim} {
+    string trimright "    \n\t hello \n\tworld   \t\n   "
+} -ok "    \n\t hello \n\tworld"

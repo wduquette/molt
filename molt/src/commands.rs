@@ -1000,7 +1000,7 @@ pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) ->
     interp.call_subcommand(context_id, argv, 1, &STRING_SUBCOMMANDS)
 }
 
-const STRING_SUBCOMMANDS: [Subcommand; 7] = [
+const STRING_SUBCOMMANDS: [Subcommand; 10] = [
     Subcommand("cat", cmd_string_cat),
     Subcommand("compare", cmd_string_compare),
     Subcommand("equal", cmd_string_equal),
@@ -1015,9 +1015,9 @@ const STRING_SUBCOMMANDS: [Subcommand; 7] = [
     // Subcommand("reverse", cmd_string_todo),
     Subcommand("tolower", cmd_string_tolower),
     Subcommand("toupper", cmd_string_toupper),
-    // Subcommand("trim", cmd_string_todo),
-    // Subcommand("trimleft", cmd_string_todo),
-    // Subcommand("trimright", cmd_string_todo),
+    Subcommand("trim", cmd_string_trim),
+    Subcommand("trimleft", cmd_string_trim),
+    Subcommand("trimright", cmd_string_trim),
 ];
 
 /// Temporary: stub for string subcommands.
@@ -1168,6 +1168,20 @@ pub fn cmd_string_toupper(_interp: &mut Interp, _: ContextID, argv: &[Value]) ->
 
     let upper = argv[2].as_str().to_uppercase();
     molt_ok!(upper)
+}
+
+/// string (trim|trimleft|trimright) *string*
+pub fn cmd_string_trim(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "string")?;
+
+    let s = argv[2].as_str();
+    let trimmed = match argv[1].as_str() {
+        "trimleft" => s.trim_start(),
+        "trimright" => s.trim_end(),
+        _ => s.trim(),
+    };
+
+    molt_ok!(trimmed)
 }
 
 /// throw *type* *message*

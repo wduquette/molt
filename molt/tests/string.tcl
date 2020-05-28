@@ -94,3 +94,47 @@ test string-8.2 {string toupper: ASCII} {
 test string-8.3 {string toupper: Unicode} {
     string toupper венера
 } -ok ВЕНЕРА
+
+# string first
+test string-9.1 {string first} {
+    string first foo foobarbaz
+} -ok 0
+
+test string-9.2 {string first} {
+    string first a foobarbaz
+} -ok 4
+
+test string-9.3 {string first:} {
+    string first zoom foobarbaz
+} -ok -1
+
+test string-9.4 {string first} {
+    string first bar foobarbaz
+} -ok 3
+
+test string-9.5 {string first} {
+    string first bazz foobarbaz
+} -ok -1
+
+test string-9.6 {string first: startIndex} {
+    string first bar foobarbaz 3
+} -ok 3
+
+test string-9.7 {string first: startIndex} {
+    string first bar foobarbaz 5
+} -ok -1
+
+test string-9.8 {string first: negative startIndex} {
+    string first bar foobarbaz -99
+} -ok -1
+
+test string-9.9 {string first: startIndex beyond string end} {
+    list \
+        [string first z foobarbaz 9] \
+        [string first z foobarbaz 10] \
+        [string first z foobarbaz 99]
+} -ok {-1 -1 -1}
+
+test string-9.10 {string first: non-numerical startIndex} {
+    string first a abc NOT_A_NUMBER
+} -error {expected integer but got "NOT_A_NUMBER"}

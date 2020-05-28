@@ -1000,11 +1000,11 @@ pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) ->
     interp.call_subcommand(context_id, argv, 1, &STRING_SUBCOMMANDS)
 }
 
-const STRING_SUBCOMMANDS: [Subcommand; 6] = [
+const STRING_SUBCOMMANDS: [Subcommand; 7] = [
     Subcommand("cat", cmd_string_cat),
     Subcommand("compare", cmd_string_compare),
     Subcommand("equal", cmd_string_equal),
-    // Subcommand("first", cmd_string_todo),
+    Subcommand("first", cmd_string_first),
     // Subcommand("index", cmd_string_todo),
     // Subcommand("last", cmd_string_todo),
     Subcommand("length", cmd_string_length),
@@ -1119,6 +1119,31 @@ pub fn cmd_string_equal(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
         let flag = util::compare_len(argv[arglen - 2].as_str(), argv[arglen - 1].as_str(), length)? == 0;
         molt_ok!(flag)
     }
+}
+
+/// string first *needleString* *haystackString* ?*startIndex*?
+pub fn cmd_string_first(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 4, 5, "needleString haystackString ?startIndex?")?;
+
+    let needle = argv[2].as_str();
+    let haystack = argv[3].as_str();
+
+    let start = if argv.len() == 5 {
+        argv[4].as_int()?
+    } else {
+        0
+    };
+
+    let pos = if start < 0 || start as usize >= haystack.len() {
+        -1
+    } else {
+        haystack[start as usize..]
+            .find(needle)
+            .map(|x| x as MoltInt + start)
+            .unwrap_or(-1)
+    };
+
+    molt_ok!(pos)
 }
 
 /// string length *string*

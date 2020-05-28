@@ -104,7 +104,7 @@ test string-9.2 {string first} {
     string first a foobarbaz
 } -ok 4
 
-test string-9.3 {string first:} {
+test string-9.3 {string first} {
     string first zoom foobarbaz
 } -ok -1
 
@@ -126,7 +126,7 @@ test string-9.7 {string first: startIndex} {
 
 test string-9.8 {string first: negative startIndex} {
     string first bar foobarbaz -99
-} -ok -1
+} -ok 3
 
 test string-9.9 {string first: startIndex beyond string end} {
     list \

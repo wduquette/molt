@@ -1128,13 +1128,17 @@ pub fn cmd_string_first(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
     let needle = argv[2].as_str();
     let haystack = argv[3].as_str();
 
-    let start = if argv.len() == 5 {
+    let mut start = if argv.len() == 5 {
         argv[4].as_int()?
     } else {
         0
     };
 
-    let pos = if start < 0 || start as usize >= haystack.len() {
+    if start < 0 {
+        start = 0;
+    }
+
+    let pos = if start as usize >= haystack.len() {
         -1
     } else {
         haystack[start as usize..]

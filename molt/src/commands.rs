@@ -1223,10 +1223,11 @@ pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mol
         })
         .filter(|(_, count, _)| *count > 0)
         .collect::<Vec<_>>();
-    let matching_string = if nocase {
-        string.to_lowercase()
+
+    let string_lower: Option<String> = if nocase {
+        Some(string.to_lowercase())
     } else {
-        string.to_string()
+        None
     };
 
     let mut result = "".to_string();
@@ -1241,7 +1242,12 @@ pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mol
         let mut matched = false;
 
         for (from, from_char_count, to) in &filtered_keys {
-            if matching_string[i..].starts_with(&from.as_str()) {
+            let haystack: &str = match &string_lower {
+                Some(x) => &x[i..],
+                None => &string[i..],
+            };
+
+            if haystack.starts_with(&from.as_str()) {
                 matched = true;
 
                 result.push_str(to.as_str());

@@ -1000,7 +1000,7 @@ pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) ->
     interp.call_subcommand(context_id, argv, 1, &STRING_SUBCOMMANDS)
 }
 
-const STRING_SUBCOMMANDS: [Subcommand; 12] = [
+const STRING_SUBCOMMANDS: [Subcommand; 13] = [
     Subcommand("cat", cmd_string_cat),
     Subcommand("compare", cmd_string_compare),
     Subcommand("equal", cmd_string_equal),
@@ -1009,7 +1009,7 @@ const STRING_SUBCOMMANDS: [Subcommand; 12] = [
     Subcommand("last", cmd_string_last),
     Subcommand("length", cmd_string_length),
     Subcommand("map", cmd_string_map),
-    // Subcommand("range", cmd_string_todo),
+    Subcommand("range", cmd_string_range),
     // Subcommand("replace", cmd_string_todo),
     // Subcommand("repeat", cmd_string_todo),
     // Subcommand("reverse", cmd_string_todo),
@@ -1263,6 +1263,34 @@ pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mol
     }
 
     molt_ok!(result)
+}
+
+/// string range *string* *first* *last*
+pub fn cmd_string_range(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 5, 5, "string first last")?;
+
+    let string = argv[2].as_str();
+    let first = argv[3].as_int()?;
+    let last = argv[4].as_int()?;
+
+    if last < 0 {
+        return molt_ok!("");
+    }
+
+    let clamp = { |i: MoltInt| if i < 0 {
+            0
+        } else {
+            i
+        }
+    };
+
+    let substr = string
+        .chars()
+        .skip(clamp(first) as usize)
+        .take((clamp(last) - clamp(first) + 1) as usize)
+        .collect::<String>();
+
+    molt_ok!(substr)
 }
 
 /// string tolower *string*

@@ -300,3 +300,44 @@ test string-14.18 {string map: Unicode 2} {
 test string-14.19 {string map: deletion} {
     string map {0 {} 3 {}} 22233322
 } -ok 22222
+
+# string range
+test string-15.1 {string range: basic} {
+    string range 012345 1 3
+} -ok 123
+
+test string-15.2 {string range: first > last} {
+    string range 012345 1 0
+} -ok {}
+
+test string-15.4 {string range: negative} {
+    string range abcdefg -10 -5
+} -ok {}
+
+test string-15.5 {string range: negative first > last} {
+    string range abcdefg -5 -10
+} -ok {}
+
+test string-15.6 {string range: negative first} {
+    string range 012345 -2 1
+} -ok 01
+
+test string-15.7 {string range: last > len} {
+    string range 012345 0 99
+} -ok 012345
+
+test string-15.8 {string range: negative first, last > len} {
+    string range 012345 -99 99
+} -ok 012345
+
+test string-15.9 {string range: first > len, last > len} {
+    string range 012345 99 99
+} -ok {}
+
+test string-15.10 {string range: Unicode 1} {
+    string range _аб_в 1 2
+} -ok аб
+
+test string-15.11 {string range: Unicode 2} {
+    string range カタカナ 2 3
+} -ok カナ

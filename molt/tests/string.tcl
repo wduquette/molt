@@ -228,6 +228,18 @@ test string-13.10 {string last: non-numerical lastIndex} {
     string last a abc NOT_A_NUMBER
 } -error {expected integer but got "NOT_A_NUMBER"}
 
+test string-13.11 {string last: startIndex with Unicode 1} {
+    string last б абв 1
+} -ok 1
+
+test string-13.12 {string last: startIndex with Unicode 2} {
+    list \
+        [string last тест _____тест__ 7] \
+        [string last тест _____тест__ 8] \
+        [string last тест _____тест__ 9] \
+        [string last тест _____тест__ 99]
+} -ok {-1 5 5 5}
+
 # string map
 test string-14.1 {string map} {
     string map {FOO BAR} abcdFOOefgh

@@ -1160,30 +1160,43 @@ pub fn cmd_string_last(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mo
     let needle = argv[2].as_str();
     let haystack = argv[3].as_str();
 
+    let count = haystack.chars().count();
+
     let last: Option<usize> = if argv.len() == 5 {
         let arg = argv[4].as_int()?;
 
         if arg < 0 {
+            return molt_ok!(-1);
+        }
+
+        if arg as usize >= count {
             None
-        } else if arg as usize >= haystack.len() {
-            Some(haystack.len() - 1)
         } else {
             Some(arg as usize)
         }
     } else {
-        Some(haystack.len() - 1)
+        None
     };
 
-    let pos = match last {
-        Some(offset) =>
-            haystack[..=offset]
-                .rfind(needle)
-                .map(|x| x as MoltInt)
-                .unwrap_or(-1),
+    let slice = match last {
+        None => haystack,
+        Some(n) => match haystack.char_indices().nth(n + 1) {
+            None => haystack,
+            Some((byte, _)) => &haystack[..byte],
+        },
+    };
+
+    let pos_byte = slice.rfind(needle);
+
+    let pos_char: MoltInt = match pos_byte {
         None => -1,
+        Some(b) => haystack
+            .char_indices()
+            .take_while(|(i, _)| *i < b)
+            .count() as MoltInt
     };
 
-    molt_ok!(pos)
+    molt_ok!(pos_char)
 }
 
 /// string length *string*

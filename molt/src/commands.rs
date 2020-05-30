@@ -1128,7 +1128,7 @@ pub fn cmd_string_first(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
     let needle = argv[2].as_str();
     let haystack = argv[3].as_str();
 
-    let start: usize = if argv.len() == 5 {
+    let start_char: usize = if argv.len() == 5 {
         let arg = argv[4].as_int()?;
 
         if arg < 0 { 0 } else { arg as usize }
@@ -1136,16 +1136,21 @@ pub fn cmd_string_first(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
         0
     };
 
-    let pos = if start >= haystack.len() {
-        -1
-    } else {
-        haystack[start..]
-            .find(needle)
-            .map(|x| (x + start) as MoltInt)
-            .unwrap_or(-1)
+    let pos_byte: Option<usize> = haystack
+        .char_indices()
+        .nth(start_char)
+        .and_then(|(start_byte, _)| haystack[start_byte..].find(needle));
+
+    let pos_char: MoltInt = match pos_byte {
+        None => -1,
+        Some(b) => haystack[b..]
+            .char_indices()
+            .take_while(|(i, _)| *i < b)
+            .count() as MoltInt
+            + start_char as MoltInt
     };
 
-    molt_ok!(pos)
+    molt_ok!(pos_char)
 }
 
 /// string last *needleString* *haystackString* ?*lastIndex*?

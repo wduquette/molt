@@ -139,6 +139,10 @@ test string-9.10 {string first: non-numerical startIndex} {
     string first a abc NOT_A_NUMBER
 } -error {expected integer but got "NOT_A_NUMBER"}
 
+test string-9.11 {string first: startIndex with Unicode} {
+    string first б абв 1
+} -ok 1
+
 # string trim
 test string-10.1 {string trim: empty} {
     string trim {}

@@ -1230,7 +1230,7 @@ pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mol
         None
     };
 
-    let mut result = "".to_string();
+    let mut result = String::new();
     let mut skip = 0;
 
     for (i, c) in string.char_indices() {

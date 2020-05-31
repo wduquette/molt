@@ -1000,24 +1000,24 @@ pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) ->
     interp.call_subcommand(context_id, argv, 1, &STRING_SUBCOMMANDS)
 }
 
-const STRING_SUBCOMMANDS: [Subcommand; 4] = [
+const STRING_SUBCOMMANDS: [Subcommand; 13] = [
     Subcommand("cat", cmd_string_cat),
     Subcommand("compare", cmd_string_compare),
     Subcommand("equal", cmd_string_equal),
-    // Subcommand("first", cmd_string_todo),
+    Subcommand("first", cmd_string_first),
     // Subcommand("index", cmd_string_todo),
-    // Subcommand("last", cmd_string_todo),
+    Subcommand("last", cmd_string_last),
     Subcommand("length", cmd_string_length),
-    // Subcommand("map", cmd_string_todo),
-    // Subcommand("range", cmd_string_todo),
+    Subcommand("map", cmd_string_map),
+    Subcommand("range", cmd_string_range),
     // Subcommand("replace", cmd_string_todo),
     // Subcommand("repeat", cmd_string_todo),
     // Subcommand("reverse", cmd_string_todo),
-    // Subcommand("tolower", cmd_string_todo),
-    // Subcommand("toupper", cmd_string_todo),
-    // Subcommand("trim", cmd_string_todo),
-    // Subcommand("trimleft", cmd_string_todo),
-    // Subcommand("trimright", cmd_string_todo),
+    Subcommand("tolower", cmd_string_tolower),
+    Subcommand("toupper", cmd_string_toupper),
+    Subcommand("trim", cmd_string_trim),
+    Subcommand("trimleft", cmd_string_trim),
+    Subcommand("trimright", cmd_string_trim),
 ];
 
 /// Temporary: stub for string subcommands.
@@ -1121,12 +1121,224 @@ pub fn cmd_string_equal(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
     }
 }
 
+/// string first *needleString* *haystackString* ?*startIndex*?
+pub fn cmd_string_first(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 4, 5, "needleString haystackString ?startIndex?")?;
+
+    let needle = argv[2].as_str();
+    let haystack = argv[3].as_str();
+
+    let start_char: usize = if argv.len() == 5 {
+        let arg = argv[4].as_int()?;
+
+        if arg < 0 { 0 } else { arg as usize }
+    } else {
+        0
+    };
+
+    let pos_byte: Option<usize> = haystack
+        .char_indices()
+        .nth(start_char)
+        .and_then(|(start_byte, _)| haystack[start_byte..].find(needle));
+
+    let pos_char: MoltInt = match pos_byte {
+        None => -1,
+        Some(b) => haystack[b..]
+            .char_indices()
+            .take_while(|(i, _)| *i < b)
+            .count() as MoltInt
+            + start_char as MoltInt
+    };
+
+    molt_ok!(pos_char)
+}
+
+/// string last *needleString* *haystackString* ?*lastIndex*?
+pub fn cmd_string_last(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 4, 5, "needleString haystackString ?lastIndex?")?;
+
+    let needle = argv[2].as_str();
+    let haystack = argv[3].as_str();
+
+    let count = haystack.chars().count();
+
+    let last: Option<usize> = if argv.len() == 5 {
+        let arg = argv[4].as_int()?;
+
+        if arg < 0 {
+            return molt_ok!(-1);
+        }
+
+        if arg as usize >= count {
+            None
+        } else {
+            Some(arg as usize)
+        }
+    } else {
+        None
+    };
+
+    let slice = match last {
+        None => haystack,
+        Some(n) => match haystack.char_indices().nth(n + 1) {
+            None => haystack,
+            Some((byte, _)) => &haystack[..byte],
+        },
+    };
+
+    let pos_byte = slice.rfind(needle);
+
+    let pos_char: MoltInt = match pos_byte {
+        None => -1,
+        Some(b) => haystack
+            .char_indices()
+            .take_while(|(i, _)| *i < b)
+            .count() as MoltInt
+    };
+
+    molt_ok!(pos_char)
+}
+
 /// string length *string*
 pub fn cmd_string_length(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "string")?;
 
     let len: MoltInt = argv[2].as_str().chars().count() as MoltInt;
     molt_ok!(len)
+}
+
+/// string map ?-nocase? *charMap* *string*
+pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 4, 5, "?-nocase? charMap string")?;
+
+    let mut nocase = false;
+
+    if argv.len() == 5 {
+        let opt = argv[2].as_str();
+
+        if opt == "-nocase" {
+            nocase = true;
+        } else {
+            return molt_err!("bad option \"{}\": must be -nocase", opt);
+        }
+    }
+
+    let char_map = argv[argv.len() - 2].as_dict()?;
+    let string = argv[argv.len() - 1].as_str();
+
+    let filtered_keys = char_map
+        .iter()
+        .map(|(k, v)| {
+            let new_k = if nocase {
+                Value::from(k.as_str().to_lowercase())
+            } else {
+                k.clone()
+            };
+
+            let count = new_k.as_str().chars().count();
+
+            (new_k, count, v.clone())
+        })
+        .filter(|(_, count, _)| *count > 0)
+        .collect::<Vec<_>>();
+
+    let string_lower: Option<String> = if nocase {
+        Some(string.to_lowercase())
+    } else {
+        None
+    };
+
+    let mut result = String::new();
+    let mut skip = 0;
+
+    for (i, c) in string.char_indices() {
+        if skip > 0 {
+            skip -= 1;
+            continue;
+        }
+
+        let mut matched = false;
+
+        for (from, from_char_count, to) in &filtered_keys {
+            let haystack: &str = match &string_lower {
+                Some(x) => &x[i..],
+                None => &string[i..],
+            };
+
+            if haystack.starts_with(&from.as_str()) {
+                matched = true;
+
+                result.push_str(to.as_str());
+                skip = from_char_count - 1;
+
+                break;
+            }
+        }
+
+        if !matched {
+            result.push(c);
+        }
+    }
+
+    molt_ok!(result)
+}
+
+/// string range *string* *first* *last*
+pub fn cmd_string_range(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 5, 5, "string first last")?;
+
+    let string = argv[2].as_str();
+    let first = argv[3].as_int()?;
+    let last = argv[4].as_int()?;
+
+    if last < 0 {
+        return molt_ok!("");
+    }
+
+    let clamp = { |i: MoltInt| if i < 0 {
+            0
+        } else {
+            i
+        }
+    };
+
+    let substr = string
+        .chars()
+        .skip(clamp(first) as usize)
+        .take((clamp(last) - clamp(first) + 1) as usize)
+        .collect::<String>();
+
+    molt_ok!(substr)
+}
+
+/// string tolower *string*
+pub fn cmd_string_tolower(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "string")?;
+
+    let lower = argv[2].as_str().to_lowercase();
+    molt_ok!(lower)
+}
+
+/// string toupper *string*
+pub fn cmd_string_toupper(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "string")?;
+
+    let upper = argv[2].as_str().to_uppercase();
+    molt_ok!(upper)
+}
+
+/// string (trim|trimleft|trimright) *string*
+pub fn cmd_string_trim(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+    check_args(2, argv, 3, 3, "string")?;
+
+    let s = argv[2].as_str();
+    let trimmed = match argv[1].as_str() {
+        "trimleft" => s.trim_start(),
+        "trimright" => s.trim_end(),
+        _ => s.trim(),
+    };
+
+    molt_ok!(trimmed)
 }
 
 /// throw *type* *message*

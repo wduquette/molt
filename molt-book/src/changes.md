@@ -15,7 +15,16 @@ Nothing yet!
 * Added the [**string**](ref/string.md) command
   * `string cat`
   * `string compare`
+  * `string first`
+  * `string last`
   * `string length`
+  * `string map`
+  * `string range`
+  * `string tolower`
+  * `string toupper`
+  * `string trim`
+  * `string trimleft`
+  * `string trimright`
 
 ## New in Molt 0.3.0
 

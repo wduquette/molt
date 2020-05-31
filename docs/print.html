@@ -341,7 +341,16 @@ environment.</li>
 <ul>
 <li><code>string cat</code></li>
 <li><code>string compare</code></li>
+<li><code>string first</code></li>
+<li><code>string last</code></li>
 <li><code>string length</code></li>
+<li><code>string map</code></li>
+<li><code>string range</code></li>
+<li><code>string tolower</code></li>
+<li><code>string toupper</code></li>
+<li><code>string trim</code></li>
+<li><code>string trimleft</code></li>
+<li><code>string trimright</code></li>
 </ul>
 </li>
 </ul>
@@ -1651,25 +1660,41 @@ of the data.  Molt does not implement this behavior.</p>
 </ul>
 <a class="header" href="#string----string-manipulation" id="string----string-manipulation"><h1>string -- String manipulation</h1></a>
 <p><strong>Syntax: string <em>subcommand</em> ?<em>args</em>...?</strong></p>
-<p>This command manipulates Rust <code>String</code> values, considered as vectors of Rust <code>char</code> values.<br />
-A <code>char</code> is a Unicode code point, not a grapheme; graphemes that consist of multiple code
-points will be treated as multiple characters.</p>
-<table><thead><tr><th> Subcommand                                  </th><th> Description                                    </th></tr></thead><tbody>
-<tr><td> <a href="#string-cat">string cat</a>                   </td><td> Concatenates zero or more strings              </td></tr>
-<tr><td> <a href="#string-compare">string compare</a>           </td><td> Compares two strings lexicographically         </td></tr>
-<tr><td> <a href="#string-equal">string equal</a>               </td><td> Compares two strings for equality              </td></tr>
-<tr><td> <a href="#string-length">string length</a>             </td><td> String length in characters                    </td></tr>
+<table><thead><tr><th> Subcommand                            </th><th> Description                                    </th></tr></thead><tbody>
+<tr><td> <a href="#string-cat">string cat</a>             </td><td> Concatenates zero or more strings              </td></tr>
+<tr><td> <a href="#string-compare">string compare</a>     </td><td> Compares two strings lexicographically         </td></tr>
+<tr><td> <a href="#string-equal">string equal</a>         </td><td> Compares two strings for equality              </td></tr>
+<tr><td> <a href="#string-first">string first</a>         </td><td> Finds first occurrence of a string             </td></tr>
+<tr><td> <a href="#string-last">string last</a>           </td><td> Finds last occurrence of a string              </td></tr>
+<tr><td> <a href="#string-length">string length</a>       </td><td> String length in characters                    </td></tr>
+<tr><td> <a href="#string-map">string map</a>             </td><td> Maps keys to values in a string                </td></tr>
+<tr><td> <a href="#string-range">string range</a>         </td><td> Extracts a substring                           </td></tr>
+<tr><td> <a href="#string-tolower">string tolower</a>     </td><td> Converts a string to lower case                </td></tr>
+<tr><td> <a href="#string-toupper">string toupper</a>     </td><td> Converts a string to upper case                </td></tr>
+<tr><td> <a href="#string-trim">string trim</a>           </td><td> Trims leading and trailing whitespace          </td></tr>
+<tr><td> <a href="#string-trimleft">string trimleft</a>   </td><td> Trims leading whitespace                       </td></tr>
+<tr><td> <a href="#string-trimright">string trimright</a> </td><td> Trims trailing whitespace                      </td></tr>
 </tbody></table>
-<p><strong>TCL Liens</strong></p>
+<a class="header" href="#tcl-liens-10" id="tcl-liens-10"><h2>TCL Liens</h2></a>
 <ul>
 <li>Supports a subset of the subcommands provided by the standard TCL <code>string</code> command.  The
 subset will increase over time.</li>
-<li>Does not currently support index syntax, e.g., <code>end-1</code>.</li>
+<li>Does not currently support index syntax, e.g., <code>end-1</code>, for the <code>string first</code>,
+<code>string last</code>, and <code>string range</code> commands.  These commands accept simple numeric indices only.</li>
 </ul>
+<a class="header" href="#molt-strings-and-unicode" id="molt-strings-and-unicode"><h2>Molt Strings and Unicode</h2></a>
+<p>Molt strings are exactly and identically Rust <code>String</code> values, and are treated at the TCL
+level as vectors of Rust <code>char</code> values. A Rust <code>char</code> is a &quot;Unicode scalar value&quot;, and is
+also (in most cases) a Unicode code point.  It is not a not a grapheme; graphemes that
+consist of multiple code points will be treated as multiple characters.  This is more or
+less the same as Standard TCL, but Unicode being what it is there may be edge cases where
+behavior will differ slightly.</p>
 <a class="header" href="#string-cat" id="string-cat"><h2>string cat</h2></a>
+<hr />
 <p><strong>Syntax: string cat ?<em>args</em> ...?</strong></p>
 <p>Returns the concatenation of zero or more strings.</p>
 <a class="header" href="#string-compare" id="string-compare"><h2>string compare</h2></a>
+<hr />
 <p><strong>Syntax: string compare ?<em>options</em>? <em>string1</em> <em>string2</em></strong></p>
 <p>Compares the two strings lexicographically, returning <code>-1</code> if <em>string1</em> is less than <em>string2</em>,
 <code>0</code> if they are equal, and <code>1</code> if <em>string1</em> is greater than <em>string2</em>.</p>
@@ -1684,6 +1709,7 @@ subset will increase over time.</li>
 a naive method that may fail for more complex Unicode graphemes.</li>
 </ul>
 <a class="header" href="#string-equal" id="string-equal"><h2>string equal</h2></a>
+<hr />
 <p><strong>Syntax: string equal ?<em>options</em>? <em>string1</em> <em>string2</em></strong></p>
 <p>Compares the two strings, returning <code>1</code> if they are equal, and <code>0</code> otherwise.</p>
 <p>The options are as follows:</p>
@@ -1696,9 +1722,63 @@ a naive method that may fail for more complex Unicode graphemes.</li>
 <li>When <code>-nocase</code> is given, the strings are compared by converting them to lowercase using
 a naive method that may fail for more complex Unicode graphemes.</li>
 </ul>
+<a class="header" href="#string-first" id="string-first"><h2>string first</h2></a>
+<hr />
+<p><strong>Syntax: string first <em>needleString haystackString</em> ?<em>startIndex</em>?</strong></p>
+<p>Returns the index of the first occurrence of the <em>needleString</em> in the <em>haystackString</em>, or
+-1 if the <em>needleString</em> is not found.  If the <em>startIndex</em> is given, the search will begin
+at the <em>startIndex</em>.</p>
+<a class="header" href="#string-last" id="string-last"><h2>string last</h2></a>
+<hr />
+<p><strong>Syntax: string last <em>needleString haystackString</em> ?<em>startIndex</em>?</strong></p>
+<p>Returns the index of the last occurrence of the <em>needleString</em> in the <em>haystackString</em>, or
+-1 if the <em>needleString</em> is not found.  If the <em>startIndex</em> is given, the search will begin
+at the <em>startIndex</em>.</p>
 <a class="header" href="#string-length" id="string-length"><h2>string length</h2></a>
+<hr />
 <p><strong>Syntax: string length <em>string</em></strong></p>
 <p>Returns the length of the string in Rust characters.</p>
+<a class="header" href="#string-map" id="string-map"><h2>string map</h2></a>
+<hr />
+<p><strong>Syntax: string map ?-nocase? <em>mapping string</em></strong></p>
+<p>Replaces old substrings in <em>string</em> with new ones based on the key/value pairs in <em>mapping</em>,
+which is a dictionary or flat key/value list.  If <code>-nocase</code> is given, substring matches will
+be case-insensitive.  The command iterates through the string in a single pass, checking for
+each key in order, so that earlier key replacements have no effect on later key replacements.</p>
+<a class="header" href="#string-range" id="string-range"><h2>string range</h2></a>
+<hr />
+<p><strong>Syntax: string range <em>string</em> <em>first</em> <em>last</em></strong></p>
+<p>Returns the substring of <em>string</em> starting with the character whose index is <em>first</em> and
+ending with the character whose index is <em>last</em>.  Values of <em>first</em> that are less than 0 are
+treated as 0, and values of <em>last</em> that are greater than the index of the last character in the
+string are treated as that index.</p>
+<a class="header" href="#string-tolower" id="string-tolower"><h2>string tolower</h2></a>
+<hr />
+<p><strong>Syntax: string tolower <em>string</em></strong></p>
+<p>Converts the <em>string</em> to all lower case, using the standard Rust <code>String::to_lowercase</code> method.</p>
+<p><strong>TCL Liens</strong>: Tcl 8.6 provides for optional <em>first</em> and <em>last</em> indices; only the text in that
+range is affected.</p>
+<a class="header" href="#string-toupper" id="string-toupper"><h2>string toupper</h2></a>
+<hr />
+<p><strong>Syntax: string toupper <em>string</em></strong></p>
+<p>Converts the <em>string</em> to all upper case, using the standard Rust <code>String::to_uppercase</code> method.</p>
+<p><strong>TCL Liens</strong>: Tcl 8.6 provides for optional <em>first</em> and <em>last</em> indices; only the text in that
+range is affected.</p>
+<a class="header" href="#string-trim" id="string-trim"><h2>string trim</h2></a>
+<hr />
+<p><strong>Syntax: string trim <em>string</em></strong></p>
+<p>Returns <em>string</em> trimmed of leading and trailing whitespace by the standard Rust <code>String::trim</code>
+method.</p>
+<a class="header" href="#string-trimleft" id="string-trimleft"><h2>string trimleft</h2></a>
+<hr />
+<p><strong>Syntax: string trimleft <em>string</em></strong></p>
+<p>Returns <em>string</em> trimmed of leading whitespace by the standard Rust <code>String::trim_start</code>
+method.</p>
+<a class="header" href="#string-trimright" id="string-trimright"><h2>string trimright</h2></a>
+<hr />
+<p><strong>Syntax: string trimright <em>string</em></strong></p>
+<p>Returns <em>string</em> trimmed of trailing whitespace by the standard Rust <code>String::trim_end</code>
+method.</p>
 <a class="header" href="#throw----throws-an-exception" id="throw----throws-an-exception"><h1>throw -- Throws an exception</h1></a>
 <p><strong>Syntax: throw <em>type</em> <em>message</em></strong></p>
 <p>Throws an error with error code <em>type</em> and the given error <em>message</em>.  The error may

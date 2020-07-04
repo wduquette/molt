@@ -606,15 +606,40 @@ impl Ensemble {
         }
 
         // NEXT, there's an error.
+        if self.subcommands.is_empty() {
+            molt_err!("ensemble has no defined subcommands")
+        } else {
+            molt_err!(
+                "unknown subcommand \"{}\", must be one of: {}",
+                sub_name,
+                self.subcommand_list()
+            )
+        }
+    }
+
+    /// Create a standard TCL list of subcommands, for the error message.
+    fn subcommand_list(&self) -> String {
+        assert!(!self.subcommands.is_empty());
         let mut list: Vec<String> = self.subcommands.keys().cloned().collect();
         list.sort();
-        let names = list.join(", ");
 
-        molt_err!(
-            "unknown or ambiguous subcommand \"{}\", must be one of: {}",
-            sub_name,
-            &names
-        )
+        let mut names = String::new();
+        names.push_str(&list[0]);
+        let last = list.len() - 1;
+
+        if list.len() > 2 {
+            for i in 1..last {
+                names.push_str(", ");
+                names.push_str(&list[i]);
+            }
+        }
+
+        if list.len() > 1 {
+            names.push_str(", or ");
+            names.push_str(&list[last]);
+        }
+
+        names
     }
 }
 
@@ -741,7 +766,17 @@ impl Interp {
         // denial-of-service kinds of problems, e.g., for, while, proc, rename, and those
         // that can't.
         interp.add_command("append", commands::cmd_append);
-        interp.add_command("array", commands::cmd_array);
+
+        // interp.add_command("array", commands::cmd_array);
+        let mut array = Ensemble::new();
+        array.add_command("exists", commands::cmd_array_exists);
+        array.add_command("get", commands::cmd_array_get);
+        array.add_command("names", commands::cmd_array_names);
+        array.add_command("set", commands::cmd_array_set);
+        array.add_command("size", commands::cmd_array_size);
+        array.add_command("unset", commands::cmd_array_unset);
+        interp.add_ensemble("array", array);
+
         interp.add_command("assert_eq", commands::cmd_assert_eq);
         interp.add_command("break", commands::cmd_break);
         interp.add_command("catch", commands::cmd_catch);

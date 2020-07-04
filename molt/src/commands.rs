@@ -36,19 +36,20 @@ pub fn cmd_append(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
     interp.set_var_return(&argv[1], new_string.into())
 }
 
+// TODO: Remove, once the final implementation is determined.
 /// # array *subcommand* ?*arg*...?
-pub fn cmd_array(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
-    interp.call_subcommand(context_id, argv, 1, &ARRAY_SUBCOMMANDS)
-}
+// pub fn cmd_array(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+//     interp.call_subcommand(context_id, argv, 1, &ARRAY_SUBCOMMANDS)
+// }
 
-const ARRAY_SUBCOMMANDS: [Subcommand; 6] = [
-    Subcommand("exists", cmd_array_exists),
-    Subcommand("get", cmd_array_get),
-    Subcommand("names", cmd_array_names),
-    Subcommand("set", cmd_array_set),
-    Subcommand("size", cmd_array_size),
-    Subcommand("unset", cmd_array_unset),
-];
+// const ARRAY_SUBCOMMANDS: [Subcommand; 6] = [
+//     Subcommand("exists", cmd_array_exists),
+//     Subcommand("get", cmd_array_get),
+//     Subcommand("names", cmd_array_names),
+//     Subcommand("set", cmd_array_set),
+//     Subcommand("size", cmd_array_size),
+//     Subcommand("unset", cmd_array_unset),
+// ];
 
 /// # array exists arrayName
 pub fn cmd_array_exists(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {

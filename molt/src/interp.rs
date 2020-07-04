@@ -351,42 +351,9 @@
 //! # Ensemble Commands
 //!
 //! An _ensemble command_ is simply a command with subcommands, like the standard Molt `info`
-//! and `array` commands.  At the Rust level, it is simply a command that looks up its subcommand
-//! (e.g., `argv[1]`) in an array of `Subcommand` structs and executes it as a command.
+//! and `array` commands.
 //!
-//! The [`Interp::call_subcommand`](struct.Interp.html#method.call_subcommand) method is used
-//! to look up and call the relevant command function, handling all relevant errors in the
-//! TCL-standard way.
-//!
-//! For example, the `array` command is defined as follows.
-//!
-//! ```ignore
-//! const ARRAY_SUBCOMMANDS: [Subcommand; 6] = [
-//!     Subcommand("exists", cmd_array_exists),
-//!     Subcommand("get", cmd_array_get),
-//!     // ...
-//! ];
-//!
-//! pub fn cmd_array(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
-//!     interp.call_subcommand(context_id, argv, 1, &ARRAY_SUBCOMMANDS)
-//! }
-//!
-//! pub fn cmd_array_exists(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
-//!     check_args(2, argv, 3, 3, "arrayName")?;
-//!     molt_ok!(Value::from(interp.array_exists(argv[2].as_str())))
-//! }
-//!
-//! // ...
-//! ```
-//!
-//! The `cmd_array` and `cmd_array_exists` functions are just normal Molt `CommandFunc`
-//! functions.  The `array` command is added to the interpreter using `Interp::add_command`
-//! in the usual way. Note that the `context_id` is passed to the subcommand functions, though
-//! in this case it isn't needed.
-//!
-//! Also, notice that the call to `check_args` in `cmd_array_exists` has `2` as its first
-//! argument, rather than `1`.  That indicates that the first two arguments represent the
-//! command being called, e.g., `array exists`.
+//! TODO: The ensemble infrastructure is in flux.
 //!
 //! # Object Commands
 //!
@@ -2225,7 +2192,23 @@ impl Interp {
 /// TODO: Move this to just above Proc.
 #[allow(dead_code)] // Experimental
 pub struct Ensemble {
-    subcommands: HashMap<String,Command>,
+    subcommands: HashMap<String,Subcommand>,
+}
+
+/// A subcommand of an ensemble.
+enum Subcommand {
+    /// A binary subcommand implemented as a Rust CommandFunc.  It gets its context from
+    /// the ensemble.
+    Native(CommandFunc),
+}
+
+impl Subcommand {
+    /// Execute the subcommand according to its kind.
+    fn execute(&self, interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+        match self {
+            Subcommand::Native(func) => func(interp, context_id, argv),
+        }
+    }
 }
 
 impl Ensemble {
@@ -2240,7 +2223,7 @@ impl Ensemble {
     /// TODO: There is no option to add context; context should belong to the ensemble as
     /// a whole, not to the individual command.  Not yet implemented.
     pub fn add_command(&mut self, name: &str, func: CommandFunc) {
-        self.subcommands.insert(name.into(), Command::Native(func, NULL_CONTEXT));
+        self.subcommands.insert(name.into(), Subcommand::Native(func));
     }
 
     /// Executes the ensemble given the argument sin the context of the interpreter.
@@ -2252,8 +2235,8 @@ impl Ensemble {
 
         // NEXT, look up the command, and execute it if found.
         let sub_name = argv[1].as_str();
-        if let Some(cmd) = self.subcommands.get(sub_name) {
-            return cmd.execute(interp, argv);
+        if let Some(sub) = self.subcommands.get(sub_name) {
+            return sub.execute(interp, NULL_CONTEXT, argv);
         }
 
         // NEXT, there's an error.

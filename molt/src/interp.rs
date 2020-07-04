@@ -522,6 +522,9 @@ enum Command {
 
     /// A Molt procedure
     Proc(Procedure),
+
+    /// An Ensemble of Commands
+    Ensemble(Ensemble)
 }
 
 impl Command {
@@ -530,6 +533,7 @@ impl Command {
         match self {
             Command::Native(func, context_id) => func(interp, *context_id, argv),
             Command::Proc(proc) => proc.execute(interp, argv),
+            Command::Ensemble(ensemble) => ensemble.execute(interp, argv),
         }
     }
 
@@ -538,6 +542,7 @@ impl Command {
         match self {
             Command::Native(_, _) => Value::from("native"),
             Command::Proc(_) => Value::from("proc"),
+            Command::Ensemble(_) => Value::from("ensemble"),
         }
     }
 
@@ -558,6 +563,61 @@ impl Command {
         }
     }
 }
+
+/// An "ensemble command" is a Molt command whose first argument is a subcommand.  Executing
+/// the subcommand involves looking up the given subcommand in a map to find the subcommand
+/// implementation, and executing that; or throwing an error because the subcommand is
+/// unknown.
+///
+/// The Ensemble struct provides the infrastructure for ensemble commands, allowing them to be
+/// created, extended, modified, executed, and nested.  The subcommands can be any kind of
+/// Molt Command.
+#[allow(dead_code)] // Experimental
+pub struct Ensemble {
+    subcommands: HashMap<String,Command>,
+}
+
+impl Ensemble {
+    /// Creates a new, empty ensemble.
+    pub fn new() -> Self {
+        Self {
+            subcommands: HashMap::new(),
+        }
+    }
+
+    /// Adds a binary command to the ensemble.
+    /// TODO: There is no option to add context; context should belong to the ensemble as
+    /// a whole, not to the individual command.  Not yet implemented.
+    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
+        self.subcommands.insert(name.into(), Command::Native(func, NULL_CONTEXT));
+    }
+
+    /// Executes the ensemble given the argument sin the context of the interpreter.
+    /// TODO: This should probably be an Interp method, not an ensemble method; I expect
+    /// we will have borrowing issues otherwise.
+    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
+        // FIRST, do basic args checking, assuming no nesting.
+        check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
+
+        // NEXT, look up the command, and execute it if found.
+        let sub_name = argv[1].as_str();
+        if let Some(cmd) = self.subcommands.get(sub_name) {
+            return cmd.execute(interp, argv);
+        }
+
+        // NEXT, there's an error.
+        let mut list: Vec<String> = self.subcommands.keys().cloned().collect();
+        list.sort();
+        let names = list.join(", ");
+
+        molt_err!(
+            "unknown or ambiguous subcommand \"{}\", must be one of: {}",
+            sub_name,
+            &names
+        )
+    }
+}
+
 
 /// Sentinal value for command functions with no related context.
 ///
@@ -1742,6 +1802,14 @@ impl Interp {
 
         self.commands
             .insert(name.into(), Rc::new(Command::Native(func, context_id)));
+    }
+
+    /// Adds an ensemble command to the interpreter.
+    ///
+    /// This is the normal way to add a command with subcommands.
+    /// TODO: Experimental!
+    pub fn add_ensemble(&mut self, name: &str, ensemble: Ensemble) {
+        self.commands.insert(name.into(), Rc::new(Command::Ensemble(ensemble)));
     }
 
     /// Adds a procedure to the interpreter.

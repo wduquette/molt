@@ -724,66 +724,6 @@ pub struct ContextID(pub(crate) u64);
 /// [`ContextID`]: struct.ContextID.html
 pub type CommandFunc = fn(&mut Interp, ContextID, &[Value]) -> MoltResult;
 
-/// A Molt command that has subcommands is called an _ensemble_ command.  In Rust code,
-/// the ensemble is defined as an array of `Subcommand` structs, each one mapping from
-/// a subcommand name to the implementing [`CommandFunc`].  For more information,
-/// see the discussion of command definition in [The Molt Book] and the [`interp`] module.
-///
-/// The tuple fields are the subcommand's name and implementing [`CommandFunc`].
-///
-/// [The Molt Book]: https://wduquette.github.io/molt/
-/// [`interp`]: ../interp/index.html
-/// [`CommandFunc`]: type.CommandFunc.html
-pub struct Subcommand(pub &'static str, pub CommandFunc);
-
-impl Subcommand {
-    /// Looks up a subcommand of an ensemble command by name in a table,
-    /// returning the usual error if it can't be found.  It is up to the
-    /// ensemble command to call the returned subcommand with the
-    /// appropriate arguments.  See the implementation of the `info`
-    /// command for an example.
-    ///
-    /// # TCL Notes
-    ///
-    /// * In standard TCL, subcommand lookups accept any unambiguous prefix of the
-    ///   subcommand name, as a convenience for interactive use.  Molt does not, as it
-    ///   is confusing when used in scripts.
-    pub fn find<'a>(
-        ensemble: &'a [Subcommand],
-        sub_name: &str,
-    ) -> Result<&'a Subcommand, Exception> {
-        for subcmd in ensemble {
-            if subcmd.0 == sub_name {
-                return Ok(subcmd);
-            }
-        }
-
-        let mut names = String::new();
-        names.push_str(ensemble[0].0);
-        let last = ensemble.len() - 1;
-
-        if ensemble.len() > 1 {
-            names.push_str(", ");
-        }
-
-        if ensemble.len() > 2 {
-            let vec: Vec<&str> = ensemble[1..last].iter().map(|x| x.0).collect();
-            names.push_str(&vec.join(", "));
-        }
-
-        if ensemble.len() > 1 {
-            names.push_str(", or ");
-            names.push_str(ensemble[last].0);
-        }
-
-        molt_err!(
-            "unknown or ambiguous subcommand \"{}\": must be {}",
-            sub_name,
-            &names
-        )
-    }
-}
-
 /// In TCL, variable references have two forms.  A string like "_some_var_(_some_index_)" is
 /// the name of an array element; any other string is the name of a scalar variable.  This
 /// struct is used when parsing variable references.  The `name` is the variable name proper;

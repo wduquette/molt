@@ -572,6 +572,8 @@ impl Command {
 /// The Ensemble struct provides the infrastructure for ensemble commands, allowing them to be
 /// created, extended, modified, executed, and nested.  The subcommands can be any kind of
 /// Molt Command.
+///
+/// TODO: Move this to just above Proc.
 #[allow(dead_code)] // Experimental
 pub struct Ensemble {
     subcommands: HashMap<String,Command>,
@@ -610,7 +612,7 @@ impl Ensemble {
             molt_err!("ensemble has no defined subcommands")
         } else {
             molt_err!(
-                "unknown subcommand \"{}\", must be one of: {}",
+                "unknown subcommand \"{}\": must be {}",
                 sub_name,
                 self.subcommand_list()
             )
@@ -767,21 +769,32 @@ impl Interp {
         // that can't.
         interp.add_command("append", commands::cmd_append);
 
-        // interp.add_command("array", commands::cmd_array);
-        let mut array = Ensemble::new();
-        array.add_command("exists", commands::cmd_array_exists);
-        array.add_command("get", commands::cmd_array_get);
-        array.add_command("names", commands::cmd_array_names);
-        array.add_command("set", commands::cmd_array_set);
-        array.add_command("size", commands::cmd_array_size);
-        array.add_command("unset", commands::cmd_array_unset);
-        interp.add_ensemble("array", array);
+        let mut ensemble = Ensemble::new();
+        ensemble.add_command("exists", commands::cmd_array_exists);
+        ensemble.add_command("get", commands::cmd_array_get);
+        ensemble.add_command("names", commands::cmd_array_names);
+        ensemble.add_command("set", commands::cmd_array_set);
+        ensemble.add_command("size", commands::cmd_array_size);
+        ensemble.add_command("unset", commands::cmd_array_unset);
+        interp.add_ensemble("array", ensemble);
 
         interp.add_command("assert_eq", commands::cmd_assert_eq);
         interp.add_command("break", commands::cmd_break);
         interp.add_command("catch", commands::cmd_catch);
         interp.add_command("continue", commands::cmd_continue);
-        interp.add_command("dict", commands::cmd_dict);
+
+        let mut ensemble = Ensemble::new();
+        ensemble.add_command("create", commands::cmd_dict_new);
+        ensemble.add_command("exists", commands::cmd_dict_exists);
+        ensemble.add_command("get", commands::cmd_dict_get);
+        ensemble.add_command("keys", commands::cmd_dict_keys);
+        ensemble.add_command("remove", commands::cmd_dict_remove);
+        ensemble.add_command("set", commands::cmd_dict_set);
+        ensemble.add_command("size", commands::cmd_dict_size);
+        ensemble.add_command("unset", commands::cmd_dict_unset);
+        ensemble.add_command("values", commands::cmd_dict_values);
+        interp.add_ensemble("dict", ensemble);
+
         interp.add_command("error", commands::cmd_error);
         interp.add_command("expr", commands::cmd_expr);
         interp.add_command("for", commands::cmd_for);
@@ -789,7 +802,21 @@ impl Interp {
         interp.add_command("global", commands::cmd_global);
         interp.add_command("if", commands::cmd_if);
         interp.add_command("incr", commands::cmd_incr);
-        interp.add_command("info", commands::cmd_info);
+
+        let mut ensemble = Ensemble::new();
+        ensemble.add_command("args", commands::cmd_info_args);
+        ensemble.add_command("body", commands::cmd_info_body);
+        ensemble.add_command("cmdtype", commands::cmd_info_cmdtype);
+        ensemble.add_command("commands", commands::cmd_info_commands);
+        ensemble.add_command("complete", commands::cmd_info_complete);
+        ensemble.add_command("default", commands::cmd_info_default);
+        ensemble.add_command("exists", commands::cmd_info_exists);
+        ensemble.add_command("globals", commands::cmd_info_globals);
+        ensemble.add_command("locals", commands::cmd_info_locals);
+        ensemble.add_command("procs", commands::cmd_info_procs);
+        ensemble.add_command("vars", commands::cmd_info_vars);
+        interp.add_ensemble("info", ensemble);
+
         interp.add_command("join", commands::cmd_join);
         interp.add_command("lappend", commands::cmd_lappend);
         interp.add_command("lindex", commands::cmd_lindex);
@@ -800,7 +827,27 @@ impl Interp {
         interp.add_command("rename", commands::cmd_rename);
         interp.add_command("return", commands::cmd_return);
         interp.add_command("set", commands::cmd_set);
-        interp.add_command("string", commands::cmd_string);
+
+        let mut ensemble = Ensemble::new();
+        ensemble.add_command("cat", commands::cmd_string_cat);
+        ensemble.add_command("compare", commands::cmd_string_compare);
+        ensemble.add_command("equal", commands::cmd_string_equal);
+        ensemble.add_command("first", commands::cmd_string_first);
+        // ensemble.add_command("index", commands::cmd_string_todo);
+        ensemble.add_command("last", commands::cmd_string_last);
+        ensemble.add_command("length", commands::cmd_string_length);
+        ensemble.add_command("map", commands::cmd_string_map);
+        ensemble.add_command("range", commands::cmd_string_range);
+        // ensemble.add_command("replace", commands::cmd_string_todo);
+        // ensemble.add_command("repeat", commands::cmd_string_todo);
+        // ensemble.add_command("reverse", commands::cmd_string_todo);
+        ensemble.add_command("tolower", commands::cmd_string_tolower);
+        ensemble.add_command("toupper", commands::cmd_string_toupper);
+        ensemble.add_command("trim", commands::cmd_string_trim);
+        ensemble.add_command("trimleft", commands::cmd_string_trim);
+        ensemble.add_command("trimright", commands::cmd_string_trim);
+        interp.add_ensemble("string", ensemble);
+
         interp.add_command("throw", commands::cmd_throw);
         interp.add_command("time", commands::cmd_time);
         interp.add_command("unset", commands::cmd_unset);
@@ -2060,33 +2107,6 @@ impl Interp {
         }
 
         molt_err!("\"{}\" isn't a procedure", procname)
-    }
-
-    /// Calls a subcommand of the current command, looking up its name in an array of
-    /// `Subcommand` tuples.
-    ///
-    /// The subcommand, if found, is called with the same `context_id` and `argv` as its
-    /// parent ensemble.  `subc` is the index of the subcommand's name in the `argv` array;
-    /// in most cases it will be `1`, but it is possible to define subcommands with
-    /// subcommands of their own.  The `subcommands` argument is a borrow of an array of
-    /// `Subcommand` records, each defining a subcommand's name and `CommandFunc`.
-    ///
-    /// If the subcommand name is found in the array, the matching `CommandFunc` is called.
-    /// otherwise, the error message gives the ensemble syntax.  If an invalid subcommand
-    /// name was provided, the error message includes the valid options.
-    ///
-    /// See the implementation of the `array` command in `commands.rs` and the
-    /// [module level documentation](index.html) for examples.
-    pub fn call_subcommand(
-        &mut self,
-        context_id: ContextID,
-        argv: &[Value],
-        subc: usize,
-        subcommands: &[Subcommand],
-    ) -> MoltResult {
-        check_args(subc, argv, subc + 1, 0, "subcommand ?arg ...?")?;
-        let rec = Subcommand::find(subcommands, argv[subc].as_str())?;
-        (rec.1)(self, context_id, argv)
     }
 
     //--------------------------------------------------------------------------------------------

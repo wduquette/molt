@@ -7,7 +7,7 @@ test info-1.1 {info errors} {
 # TODO: Really need glob matching.
 test info-1.2 {info errors} {
     info nonesuch
-} -error {unknown or ambiguous subcommand "nonesuch": must be args, body, cmdtype, commands, complete, default, exists, globals, locals, procs, or vars}
+} -error {unknown subcommand "nonesuch": must be args, body, cmdtype, commands, complete, default, exists, globals, locals, procs, or vars}
 
 test info-2.1 {info complete errors} {
     info complete

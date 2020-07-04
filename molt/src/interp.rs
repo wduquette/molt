@@ -517,6 +517,7 @@ impl Command {
     fn context_id(&self) -> ContextID {
         match self {
             Command::Native(_, context_id) => *context_id,
+            Command::Ensemble(ensemble) => ensemble.context_id(),
             _ => NULL_CONTEXT,
         }
     }
@@ -1777,6 +1778,12 @@ impl Interp {
     /// This is the normal way to add a command with subcommands.
     /// TODO: Experimental!
     pub fn add_ensemble(&mut self, name: &str, ensemble: Ensemble) {
+        if ensemble.context_id() != NULL_CONTEXT {
+            self.context_map
+                .get_mut(&ensemble.context_id())
+                .expect("unknown context ID")
+                .increment();
+        }
         self.commands.insert(name.into(), Rc::new(Command::Ensemble(ensemble)));
     }
 
@@ -2188,11 +2195,10 @@ impl Interp {
 /// The Ensemble struct provides the infrastructure for ensemble commands, allowing them to be
 /// created, extended, modified, executed, and nested.  The subcommands can be any kind of
 /// Molt Command.
-///
-/// TODO: Move this to just above Proc.
 #[allow(dead_code)] // Experimental
 pub struct Ensemble {
     subcommands: HashMap<String,Subcommand>,
+    context_id: ContextID,
 }
 
 /// A subcommand of an ensemble.
@@ -2216,7 +2222,21 @@ impl Ensemble {
     pub fn new() -> Self {
         Self {
             subcommands: HashMap::new(),
+            context_id: NULL_CONTEXT,
         }
+    }
+
+    /// Creates a new, empty ensemble.
+    pub fn with_context(context_id: ContextID) -> Self {
+        Self {
+            subcommands: HashMap::new(),
+            context_id,
+        }
+    }
+
+    /// Gets the ensemble's context ID
+    pub fn context_id(&self) -> ContextID {
+        self.context_id
     }
 
     /// Adds a binary command to the ensemble.
@@ -2236,7 +2256,7 @@ impl Ensemble {
         // NEXT, look up the command, and execute it if found.
         let sub_name = argv[1].as_str();
         if let Some(sub) = self.subcommands.get(sub_name) {
-            return sub.execute(interp, NULL_CONTEXT, argv);
+            return sub.execute(interp, self.context_id, argv);
         }
 
         // NEXT, there's an error.

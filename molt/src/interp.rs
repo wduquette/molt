@@ -564,87 +564,6 @@ impl Command {
     }
 }
 
-/// An "ensemble command" is a Molt command whose first argument is a subcommand.  Executing
-/// the subcommand involves looking up the given subcommand in a map to find the subcommand
-/// implementation, and executing that; or throwing an error because the subcommand is
-/// unknown.
-///
-/// The Ensemble struct provides the infrastructure for ensemble commands, allowing them to be
-/// created, extended, modified, executed, and nested.  The subcommands can be any kind of
-/// Molt Command.
-///
-/// TODO: Move this to just above Proc.
-#[allow(dead_code)] // Experimental
-pub struct Ensemble {
-    subcommands: HashMap<String,Command>,
-}
-
-impl Ensemble {
-    /// Creates a new, empty ensemble.
-    pub fn new() -> Self {
-        Self {
-            subcommands: HashMap::new(),
-        }
-    }
-
-    /// Adds a binary command to the ensemble.
-    /// TODO: There is no option to add context; context should belong to the ensemble as
-    /// a whole, not to the individual command.  Not yet implemented.
-    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
-        self.subcommands.insert(name.into(), Command::Native(func, NULL_CONTEXT));
-    }
-
-    /// Executes the ensemble given the argument sin the context of the interpreter.
-    /// TODO: This should probably be an Interp method, not an ensemble method; I expect
-    /// we will have borrowing issues otherwise.
-    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
-        // FIRST, do basic args checking, assuming no nesting.
-        check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
-
-        // NEXT, look up the command, and execute it if found.
-        let sub_name = argv[1].as_str();
-        if let Some(cmd) = self.subcommands.get(sub_name) {
-            return cmd.execute(interp, argv);
-        }
-
-        // NEXT, there's an error.
-        if self.subcommands.is_empty() {
-            molt_err!("ensemble has no defined subcommands")
-        } else {
-            molt_err!(
-                "unknown subcommand \"{}\": must be {}",
-                sub_name,
-                self.subcommand_list()
-            )
-        }
-    }
-
-    /// Create a standard TCL list of subcommands, for the error message.
-    fn subcommand_list(&self) -> String {
-        assert!(!self.subcommands.is_empty());
-        let mut list: Vec<String> = self.subcommands.keys().cloned().collect();
-        list.sort();
-
-        let mut names = String::new();
-        names.push_str(&list[0]);
-        let last = list.len() - 1;
-
-        if list.len() > 2 {
-            for i in 1..last {
-                names.push_str(", ");
-                names.push_str(&list[i]);
-            }
-        }
-
-        if list.len() > 1 {
-            names.push_str(", or ");
-            names.push_str(&list[last]);
-        }
-
-        names
-    }
-}
-
 
 /// Sentinal value for command functions with no related context.
 ///
@@ -2290,6 +2209,94 @@ impl Interp {
         }
     }
 }
+
+//--------------------------------------------------------------------------------------------
+// Ensembles
+
+/// An "ensemble command" is a Molt command whose first argument is a subcommand.  Executing
+/// the subcommand involves looking up the given subcommand in a map to find the subcommand
+/// implementation, and executing that; or throwing an error because the subcommand is
+/// unknown.
+///
+/// The Ensemble struct provides the infrastructure for ensemble commands, allowing them to be
+/// created, extended, modified, executed, and nested.  The subcommands can be any kind of
+/// Molt Command.
+///
+/// TODO: Move this to just above Proc.
+#[allow(dead_code)] // Experimental
+pub struct Ensemble {
+    subcommands: HashMap<String,Command>,
+}
+
+impl Ensemble {
+    /// Creates a new, empty ensemble.
+    pub fn new() -> Self {
+        Self {
+            subcommands: HashMap::new(),
+        }
+    }
+
+    /// Adds a binary command to the ensemble.
+    /// TODO: There is no option to add context; context should belong to the ensemble as
+    /// a whole, not to the individual command.  Not yet implemented.
+    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
+        self.subcommands.insert(name.into(), Command::Native(func, NULL_CONTEXT));
+    }
+
+    /// Executes the ensemble given the argument sin the context of the interpreter.
+    /// TODO: This should probably be an Interp method, not an ensemble method; I expect
+    /// we will have borrowing issues otherwise.
+    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
+        // FIRST, do basic args checking, assuming no nesting.
+        check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
+
+        // NEXT, look up the command, and execute it if found.
+        let sub_name = argv[1].as_str();
+        if let Some(cmd) = self.subcommands.get(sub_name) {
+            return cmd.execute(interp, argv);
+        }
+
+        // NEXT, there's an error.
+        if self.subcommands.is_empty() {
+            molt_err!("ensemble has no defined subcommands")
+        } else {
+            molt_err!(
+                "unknown subcommand \"{}\": must be {}",
+                sub_name,
+                self.subcommand_list()
+            )
+        }
+    }
+
+    /// Create a standard TCL list of subcommands, for the error message.
+    fn subcommand_list(&self) -> String {
+        assert!(!self.subcommands.is_empty());
+        let mut list: Vec<String> = self.subcommands.keys().cloned().collect();
+        list.sort();
+
+        let mut names = String::new();
+        names.push_str(&list[0]);
+        let last = list.len() - 1;
+
+        if list.len() > 2 {
+            for i in 1..last {
+                names.push_str(", ");
+                names.push_str(&list[i]);
+            }
+        }
+
+        if list.len() > 1 {
+            names.push_str(", or ");
+            names.push_str(&list[last]);
+        }
+
+        names
+    }
+}
+
+
+//--------------------------------------------------------------------------------------------
+// Procedures
 
 /// How a procedure is defined: as an argument list and a body script.
 /// The argument list is a list of Values, and the body is a Value; each will

@@ -491,7 +491,7 @@ enum Command {
     Proc(Procedure),
 
     /// An Ensemble of Commands
-    Ensemble(Ensemble, ContextID)
+    Ensemble(Ensemble, ContextID),
 }
 
 impl Command {
@@ -509,7 +509,7 @@ impl Command {
         match self {
             Command::Native(_, _) => Value::from("native"),
             Command::Proc(_) => Value::from("proc"),
-            Command::Ensemble(_,_) => Value::from("ensemble"),
+            Command::Ensemble(_, _) => Value::from("ensemble"),
         }
     }
 
@@ -531,7 +531,6 @@ impl Command {
         }
     }
 }
-
 
 /// Sentinal value for command functions with no related context.
 ///
@@ -1792,7 +1791,10 @@ impl Interp {
                 .expect("unknown context ID")
                 .increment();
         }
-        self.commands.insert(name.into(), Rc::new(Command::Ensemble(ensemble, context_id)));
+        self.commands.insert(
+            name.into(),
+            Rc::new(Command::Ensemble(ensemble, context_id)),
+        );
     }
 
     /// Adds a procedure to the interpreter.
@@ -2206,7 +2208,7 @@ impl Interp {
 #[allow(dead_code)] // Experimental
 #[derive(Clone)]
 pub struct Ensemble {
-    subcommands: HashMap<String,Subcommand>,
+    subcommands: HashMap<String, Subcommand>,
 }
 
 /// A subcommand of an ensemble.
@@ -2236,7 +2238,8 @@ impl Ensemble {
 
     /// Adds a binary command to the ensemble.
     pub fn add_command(&mut self, name: &str, func: CommandFunc) {
-        self.subcommands.insert(name.into(), Subcommand::Native(func));
+        self.subcommands
+            .insert(name.into(), Subcommand::Native(func));
     }
 
     /// Executes the ensemble given the argument sin the context of the interpreter.
@@ -2289,7 +2292,6 @@ impl Ensemble {
         names
     }
 }
-
 
 //--------------------------------------------------------------------------------------------
 // Procedures

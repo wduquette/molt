@@ -993,7 +993,11 @@ pub fn cmd_string_compare(_interp: &mut Interp, _: ContextID, argv: &[Value]) ->
 
         molt_ok!(util::compare_len(val1.as_str(), val2.as_str(), length)?)
     } else {
-        molt_ok!(util::compare_len(argv[arglen - 2].as_str(), argv[arglen - 1].as_str(), length)?)
+        molt_ok!(util::compare_len(
+            argv[arglen - 2].as_str(),
+            argv[arglen - 1].as_str(),
+            length
+        )?)
     }
 }
 
@@ -1035,7 +1039,8 @@ pub fn cmd_string_equal(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
         let flag = util::compare_len(val1.as_str(), val2.as_str(), length)? == 0;
         molt_ok!(flag)
     } else {
-        let flag = util::compare_len(argv[arglen - 2].as_str(), argv[arglen - 1].as_str(), length)? == 0;
+        let flag =
+            util::compare_len(argv[arglen - 2].as_str(), argv[arglen - 1].as_str(), length)? == 0;
         molt_ok!(flag)
     }
 }
@@ -1050,7 +1055,11 @@ pub fn cmd_string_first(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
     let start_char: usize = if argv.len() == 5 {
         let arg = argv[4].as_int()?;
 
-        if arg < 0 { 0 } else { arg as usize }
+        if arg < 0 {
+            0
+        } else {
+            arg as usize
+        }
     } else {
         0
     };
@@ -1062,11 +1071,13 @@ pub fn cmd_string_first(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
 
     let pos_char: MoltInt = match pos_byte {
         None => -1,
-        Some(b) => haystack[b..]
-            .char_indices()
-            .take_while(|(i, _)| *i < b)
-            .count() as MoltInt
-            + start_char as MoltInt
+        Some(b) => {
+            haystack[b..]
+                .char_indices()
+                .take_while(|(i, _)| *i < b)
+                .count() as MoltInt
+                + start_char as MoltInt
+        }
     };
 
     molt_ok!(pos_char)
@@ -1109,10 +1120,7 @@ pub fn cmd_string_last(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mo
 
     let pos_char: MoltInt = match pos_byte {
         None => -1,
-        Some(b) => haystack
-            .char_indices()
-            .take_while(|(i, _)| *i < b)
-            .count() as MoltInt
+        Some(b) => haystack.char_indices().take_while(|(i, _)| *i < b).count() as MoltInt,
     };
 
     molt_ok!(pos_char)
@@ -1214,12 +1222,7 @@ pub fn cmd_string_range(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
         return molt_ok!("");
     }
 
-    let clamp = { |i: MoltInt| if i < 0 {
-            0
-        } else {
-            i
-        }
-    };
+    let clamp = { |i: MoltInt| if i < 0 { 0 } else { i } };
 
     let substr = string
         .chars()

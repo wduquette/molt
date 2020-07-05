@@ -656,12 +656,13 @@ impl Interp {
         interp.add_command("append", commands::cmd_append);
 
         let mut ensemble = Ensemble::new();
-        ensemble.add_command("exists", commands::cmd_array_exists);
-        ensemble.add_command("get", commands::cmd_array_get);
-        ensemble.add_command("names", commands::cmd_array_names);
-        ensemble.add_command("set", commands::cmd_array_set);
-        ensemble.add_command("size", commands::cmd_array_size);
-        ensemble.add_command("unset", commands::cmd_array_unset);
+        ensemble
+            .add_command("exists", commands::cmd_array_exists)
+            .add_command("get", commands::cmd_array_get)
+            .add_command("names", commands::cmd_array_names)
+            .add_command("set", commands::cmd_array_set)
+            .add_command("size", commands::cmd_array_size)
+            .add_command("unset", commands::cmd_array_unset);
         interp.add_ensemble("array", ensemble);
 
         interp.add_command("assert_eq", commands::cmd_assert_eq);
@@ -670,15 +671,16 @@ impl Interp {
         interp.add_command("continue", commands::cmd_continue);
 
         let mut ensemble = Ensemble::new();
-        ensemble.add_command("create", commands::cmd_dict_new);
-        ensemble.add_command("exists", commands::cmd_dict_exists);
-        ensemble.add_command("get", commands::cmd_dict_get);
-        ensemble.add_command("keys", commands::cmd_dict_keys);
-        ensemble.add_command("remove", commands::cmd_dict_remove);
-        ensemble.add_command("set", commands::cmd_dict_set);
-        ensemble.add_command("size", commands::cmd_dict_size);
-        ensemble.add_command("unset", commands::cmd_dict_unset);
-        ensemble.add_command("values", commands::cmd_dict_values);
+        ensemble
+            .add_command("create", commands::cmd_dict_new)
+            .add_command("exists", commands::cmd_dict_exists)
+            .add_command("get", commands::cmd_dict_get)
+            .add_command("keys", commands::cmd_dict_keys)
+            .add_command("remove", commands::cmd_dict_remove)
+            .add_command("set", commands::cmd_dict_set)
+            .add_command("size", commands::cmd_dict_size)
+            .add_command("unset", commands::cmd_dict_unset)
+            .add_command("values", commands::cmd_dict_values);
         interp.add_ensemble("dict", ensemble);
 
         interp.add_command("error", commands::cmd_error);
@@ -690,17 +692,18 @@ impl Interp {
         interp.add_command("incr", commands::cmd_incr);
 
         let mut ensemble = Ensemble::new();
-        ensemble.add_command("args", commands::cmd_info_args);
-        ensemble.add_command("body", commands::cmd_info_body);
-        ensemble.add_command("cmdtype", commands::cmd_info_cmdtype);
-        ensemble.add_command("commands", commands::cmd_info_commands);
-        ensemble.add_command("complete", commands::cmd_info_complete);
-        ensemble.add_command("default", commands::cmd_info_default);
-        ensemble.add_command("exists", commands::cmd_info_exists);
-        ensemble.add_command("globals", commands::cmd_info_globals);
-        ensemble.add_command("locals", commands::cmd_info_locals);
-        ensemble.add_command("procs", commands::cmd_info_procs);
-        ensemble.add_command("vars", commands::cmd_info_vars);
+        ensemble
+            .add_command("args", commands::cmd_info_args)
+            .add_command("body", commands::cmd_info_body)
+            .add_command("cmdtype", commands::cmd_info_cmdtype)
+            .add_command("commands", commands::cmd_info_commands)
+            .add_command("complete", commands::cmd_info_complete)
+            .add_command("default", commands::cmd_info_default)
+            .add_command("exists", commands::cmd_info_exists)
+            .add_command("globals", commands::cmd_info_globals)
+            .add_command("locals", commands::cmd_info_locals)
+            .add_command("procs", commands::cmd_info_procs)
+            .add_command("vars", commands::cmd_info_vars);
         interp.add_ensemble("info", ensemble);
 
         interp.add_command("join", commands::cmd_join);
@@ -715,23 +718,24 @@ impl Interp {
         interp.add_command("set", commands::cmd_set);
 
         let mut ensemble = Ensemble::new();
-        ensemble.add_command("cat", commands::cmd_string_cat);
-        ensemble.add_command("compare", commands::cmd_string_compare);
-        ensemble.add_command("equal", commands::cmd_string_equal);
-        ensemble.add_command("first", commands::cmd_string_first);
-        // ensemble.add_command("index", commands::cmd_string_todo);
-        ensemble.add_command("last", commands::cmd_string_last);
-        ensemble.add_command("length", commands::cmd_string_length);
-        ensemble.add_command("map", commands::cmd_string_map);
-        ensemble.add_command("range", commands::cmd_string_range);
-        // ensemble.add_command("replace", commands::cmd_string_todo);
-        // ensemble.add_command("repeat", commands::cmd_string_todo);
-        // ensemble.add_command("reverse", commands::cmd_string_todo);
-        ensemble.add_command("tolower", commands::cmd_string_tolower);
-        ensemble.add_command("toupper", commands::cmd_string_toupper);
-        ensemble.add_command("trim", commands::cmd_string_trim);
-        ensemble.add_command("trimleft", commands::cmd_string_trim);
-        ensemble.add_command("trimright", commands::cmd_string_trim);
+        ensemble
+            .add_command("cat", commands::cmd_string_cat)
+            .add_command("compare", commands::cmd_string_compare)
+            .add_command("equal", commands::cmd_string_equal)
+            .add_command("first", commands::cmd_string_first)
+            // .add_command("index", commands::cmd_string_todo)
+            .add_command("last", commands::cmd_string_last)
+            .add_command("length", commands::cmd_string_length)
+            .add_command("map", commands::cmd_string_map)
+            .add_command("range", commands::cmd_string_range)
+            // .add_command("replace", commands::cmd_string_todo)
+            // .add_command("repeat", commands::cmd_string_todo)
+            // .add_command("reverse", commands::cmd_string_todo)
+            .add_command("tolower", commands::cmd_string_tolower)
+            .add_command("toupper", commands::cmd_string_toupper)
+            .add_command("trim", commands::cmd_string_trim)
+            .add_command("trimleft", commands::cmd_string_trim)
+            .add_command("trimright", commands::cmd_string_trim);
         interp.add_ensemble("string", ensemble);
 
         interp.add_command("throw", commands::cmd_throw);
@@ -2237,9 +2241,10 @@ impl Ensemble {
     }
 
     /// Adds a binary command to the ensemble.
-    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
+    pub fn add_command(&mut self, name: &str, func: CommandFunc) -> &mut Self {
         self.subcommands
             .insert(name.into(), Subcommand::Native(func));
+        self
     }
 
     /// Executes the ensemble given the argument sin the context of the interpreter.

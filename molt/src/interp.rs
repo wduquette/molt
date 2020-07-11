@@ -491,7 +491,7 @@ enum Command {
     Proc(Procedure),
 
     /// An Ensemble of Commands
-    Ensemble(Ensemble, ContextID),
+    Ensemble(Ensemble),
 }
 
 impl Command {
@@ -500,7 +500,7 @@ impl Command {
         match self {
             Command::Native(func, context_id) => func(interp, *context_id, argv),
             Command::Proc(proc) => proc.execute(interp, argv),
-            Command::Ensemble(ensemble, context_id) => ensemble.execute(interp, *context_id, argv),
+            Command::Ensemble(ensemble) => ensemble.execute(interp, argv),
         }
     }
 
@@ -509,7 +509,7 @@ impl Command {
         match self {
             Command::Native(_, _) => Value::from("native"),
             Command::Proc(_) => Value::from("proc"),
-            Command::Ensemble(_, _) => Value::from("ensemble"),
+            Command::Ensemble(_) => Value::from("ensemble"),
         }
     }
 
@@ -517,8 +517,17 @@ impl Command {
     fn context_id(&self) -> ContextID {
         match self {
             Command::Native(_, context_id) => *context_id,
-            Command::Ensemble(_, context_id) => *context_id,
+            Command::Ensemble(ensemble) => ensemble.context_id(),
             _ => NULL_CONTEXT,
+        }
+    }
+
+    /// If the command is an ensemble, returns a clone of the ensemble definition.
+    fn ensemble(&self) -> Option<Ensemble> {
+        match self {
+            Command::Ensemble(ensemble) =>
+                Some(ensemble.clone()),
+            _ => None
         }
     }
 
@@ -1781,24 +1790,33 @@ impl Interp {
     /// This is the normal way to add a command with subcommands.
     /// TODO: Experimental!
     pub fn add_ensemble(&mut self, name: &str, ensemble: Ensemble) {
-        self.add_context_ensemble(name, NULL_CONTEXT, ensemble);
-    }
-
-    /// Adds an ensemble command to the interpreter, with its own context ID.
-    ///
-    /// This is the normal way to add a command with subcommands.
-    /// TODO: Experimental!
-    pub fn add_context_ensemble(&mut self, name: &str, context_id: ContextID, ensemble: Ensemble) {
-        if context_id != NULL_CONTEXT {
+        // FIRST, if the ensemble has context, increment its reference count.
+        if ensemble.context_id() != NULL_CONTEXT {
             self.context_map
-                .get_mut(&context_id)
+                .get_mut(&ensemble.context_id())
                 .expect("unknown context ID")
                 .increment();
         }
+
+        // NEXT, save the ensemble as a command
         self.commands.insert(
             name.into(),
-            Rc::new(Command::Ensemble(ensemble, context_id)),
+            Rc::new(Command::Ensemble(ensemble)),
         );
+    }
+
+    /// Retrieves a clone of an ensemble command's definition.  To update an ensemble,
+    /// retrieve the definition, update it, and replace the old command with the new one.
+    pub fn ensemble(&self, name: &str) -> Result<Ensemble,Exception> {
+        if let Some(cmd) = self.commands.get(name) {
+            if let Some(ensemble) = cmd.ensemble() {
+                Ok(ensemble)
+            } else {
+                molt_err!("Not an ensemble command: \"{}\"", name)
+            }
+        } else {
+            molt_err!("No such command: \"{}\"", name)
+        }
     }
 
     /// Adds a procedure to the interpreter.
@@ -2213,6 +2231,7 @@ impl Interp {
 #[derive(Clone)]
 pub struct Ensemble {
     subcommands: HashMap<String, Subcommand>,
+    context_id: ContextID,
 }
 
 /// A subcommand of an ensemble.
@@ -2237,7 +2256,21 @@ impl Ensemble {
     pub fn new() -> Self {
         Self {
             subcommands: HashMap::new(),
+            context_id: NULL_CONTEXT,
         }
+    }
+
+    /// Creates an ensemble with a context.
+    pub fn with_context(context_id: ContextID) -> Self {
+        Self {
+            subcommands: HashMap::new(),
+            context_id,
+        }
+    }
+
+    /// Returns the ensemble's context ID, which may be NULL_CONTEXT.
+    pub fn context_id(&self) -> ContextID {
+        self.context_id
     }
 
     /// Adds a binary command to the ensemble.
@@ -2248,16 +2281,14 @@ impl Ensemble {
     }
 
     /// Executes the ensemble given the argument sin the context of the interpreter.
-    /// TODO: This should possible be an Interp method, not an ensemble method; I expect
-    /// we may have borrowing issues otherwise.
-    fn execute(&self, interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         // FIRST, do basic args checking, assuming no nesting.
         check_args(1, argv, 2, 0, "subcommand ?arg ...?")?;
 
         // NEXT, look up the command, and execute it if found.
         let sub_name = argv[1].as_str();
         if let Some(sub) = self.subcommands.get(sub_name) {
-            return sub.execute(interp, context_id, argv);
+            return sub.execute(interp, self.context_id, argv);
         }
 
         // NEXT, there's an error.

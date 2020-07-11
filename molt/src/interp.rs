@@ -663,35 +663,12 @@ impl Interp {
         // denial-of-service kinds of problems, e.g., for, while, proc, rename, and those
         // that can't.
         interp.add_command("append", commands::cmd_append);
-
-        let mut ensemble = Ensemble::new();
-        ensemble
-            .add_command("exists", commands::cmd_array_exists)
-            .add_command("get", commands::cmd_array_get)
-            .add_command("names", commands::cmd_array_names)
-            .add_command("set", commands::cmd_array_set)
-            .add_command("size", commands::cmd_array_size)
-            .add_command("unset", commands::cmd_array_unset);
-        interp.add_ensemble("array", ensemble);
-
+        interp.add_ensemble("array", commands::array_ensemble());
         interp.add_command("assert_eq", commands::cmd_assert_eq);
         interp.add_command("break", commands::cmd_break);
         interp.add_command("catch", commands::cmd_catch);
         interp.add_command("continue", commands::cmd_continue);
-
-        let mut ensemble = Ensemble::new();
-        ensemble
-            .add_command("create", commands::cmd_dict_new)
-            .add_command("exists", commands::cmd_dict_exists)
-            .add_command("get", commands::cmd_dict_get)
-            .add_command("keys", commands::cmd_dict_keys)
-            .add_command("remove", commands::cmd_dict_remove)
-            .add_command("set", commands::cmd_dict_set)
-            .add_command("size", commands::cmd_dict_size)
-            .add_command("unset", commands::cmd_dict_unset)
-            .add_command("values", commands::cmd_dict_values);
-        interp.add_ensemble("dict", ensemble);
-
+        interp.add_ensemble("dict", commands::dict_ensemble());
         interp.add_command("error", commands::cmd_error);
         interp.add_command("expr", commands::cmd_expr);
         interp.add_command("for", commands::cmd_for);
@@ -699,22 +676,7 @@ impl Interp {
         interp.add_command("global", commands::cmd_global);
         interp.add_command("if", commands::cmd_if);
         interp.add_command("incr", commands::cmd_incr);
-
-        let mut ensemble = Ensemble::new();
-        ensemble
-            .add_command("args", commands::cmd_info_args)
-            .add_command("body", commands::cmd_info_body)
-            .add_command("cmdtype", commands::cmd_info_cmdtype)
-            .add_command("commands", commands::cmd_info_commands)
-            .add_command("complete", commands::cmd_info_complete)
-            .add_command("default", commands::cmd_info_default)
-            .add_command("exists", commands::cmd_info_exists)
-            .add_command("globals", commands::cmd_info_globals)
-            .add_command("locals", commands::cmd_info_locals)
-            .add_command("procs", commands::cmd_info_procs)
-            .add_command("vars", commands::cmd_info_vars);
-        interp.add_ensemble("info", ensemble);
-
+        interp.add_ensemble("info", commands::info_ensemble());
         interp.add_command("join", commands::cmd_join);
         interp.add_command("lappend", commands::cmd_lappend);
         interp.add_command("lindex", commands::cmd_lindex);
@@ -725,28 +687,7 @@ impl Interp {
         interp.add_command("rename", commands::cmd_rename);
         interp.add_command("return", commands::cmd_return);
         interp.add_command("set", commands::cmd_set);
-
-        let mut ensemble = Ensemble::new();
-        ensemble
-            .add_command("cat", commands::cmd_string_cat)
-            .add_command("compare", commands::cmd_string_compare)
-            .add_command("equal", commands::cmd_string_equal)
-            .add_command("first", commands::cmd_string_first)
-            // .add_command("index", commands::cmd_string_todo)
-            .add_command("last", commands::cmd_string_last)
-            .add_command("length", commands::cmd_string_length)
-            .add_command("map", commands::cmd_string_map)
-            .add_command("range", commands::cmd_string_range)
-            // .add_command("replace", commands::cmd_string_todo)
-            // .add_command("repeat", commands::cmd_string_todo)
-            // .add_command("reverse", commands::cmd_string_todo)
-            .add_command("tolower", commands::cmd_string_tolower)
-            .add_command("toupper", commands::cmd_string_toupper)
-            .add_command("trim", commands::cmd_string_trim)
-            .add_command("trimleft", commands::cmd_string_trim)
-            .add_command("trimright", commands::cmd_string_trim);
-        interp.add_ensemble("string", ensemble);
-
+        interp.add_ensemble("string", commands::string_ensemble());
         interp.add_command("throw", commands::cmd_throw);
         interp.add_command("time", commands::cmd_time);
         interp.add_command("unset", commands::cmd_unset);

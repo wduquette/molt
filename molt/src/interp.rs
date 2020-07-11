@@ -522,7 +522,7 @@ impl Command {
         }
     }
 
-    /// If the command is an ensemble, returns a clone of the ensemble definition.
+    /// If the command is an ensemble, returns the ensemble definition.
     fn ensemble(&self) -> Option<&Ensemble> {
         match self {
             Command::Ensemble(ensemble) =>
@@ -1746,8 +1746,9 @@ impl Interp {
         );
     }
 
-    /// Retrieves a clone of an ensemble command's definition.  To update an ensemble,
-    /// retrieve the definition, update it, and replace the old command with the new one.
+    /// Retrieves an ensemble command's definition, or an exception if there is no such
+    /// ensemble.  To update an ensemble, retrieve the definition, clone it, update it, and
+    /// replace the old command with the new one.
     pub fn ensemble(&self, name: &str) -> Result<&Ensemble,Exception> {
         if let Some(cmd) = self.commands.get(name) {
             if let Some(ensemble) = cmd.ensemble() {

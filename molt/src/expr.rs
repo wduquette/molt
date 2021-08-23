@@ -3,6 +3,8 @@
 //! * Ultimately, the command should probably move to commands.rs.
 //!   But this is convenient for now.
 
+use std::borrow::Cow;
+
 use crate::eval_ptr::EvalPtr;
 use crate::interp::Interp;
 use crate::list;
@@ -33,57 +35,42 @@ pub(crate) enum Type {
 /// I could have used a union to save space, but we don't keep large numbers of these
 /// around.
 #[derive(Debug, PartialEq)]
-pub(crate) struct Datum {
-    vtype: Type,
-    int: MoltInt,
-    flt: MoltFloat,
-    str: String,
+pub(crate) enum Datum {
+    Int(MoltInt),
+    Float(MoltFloat),
+    String(String),
 }
 
 impl Datum {
     fn none() -> Self {
-        Self {
-            vtype: Type::String,
-            int: 0,
-            flt: 0.0,
-            str: String::new(),
-        }
+        Datum::String("".to_owned())
     }
 
     pub(crate) fn int(int: MoltInt) -> Self {
-        Self {
-            vtype: Type::Int,
-            int,
-            flt: 0.0,
-            str: String::new(),
-        }
+        Datum::Int(int)
     }
 
     pub(crate) fn float(flt: MoltFloat) -> Self {
-        Self {
-            vtype: Type::Float,
-            int: 0,
-            flt,
-            str: String::new(),
-        }
+        Datum::Float(flt)
     }
 
     fn string(string: &str) -> Self {
-        Self {
-            vtype: Type::String,
-            int: 0,
-            flt: 0.0,
-            str: string.to_string(),
+        Datum::String(string.to_owned())
+    }
+
+    pub fn ty(&self) -> Type {
+        match self {
+            Datum::Int(..) => Type::Int,
+            Datum::Float(..) => Type::Float,
+            Datum::String(..) => Type::String,
         }
     }
 
     // Only for checking integers.
     fn is_true(&self) -> bool {
-        match self.vtype {
-            Type::Int => self.int != 0,
-            _ => {
-                panic!("Datum::is_true called for non-integer");
-            }
+        match *self {
+            Datum::Int(value) => (value != 0),
+            _ => panic!("Datum::is_true called for non-integer"),
         }
     }
 }
@@ -250,10 +237,10 @@ const OP_STRINGS: [&str; 36] = [
 pub fn expr(interp: &mut Interp, expr: &Value) -> MoltResult {
     let value = expr_top_level(interp, expr.as_str())?;
 
-    match value.vtype {
-        Type::Int => molt_ok!(Value::from(value.int)),
-        Type::Float => molt_ok!(Value::from(value.flt)),
-        Type::String => molt_ok!(Value::from(value.str)),
+    match value {
+        Datum::Int(v) => molt_ok!(Value::from(v)),
+        Datum::Float(v) => molt_ok!(Value::from(v)),
+        Datum::String(v) => molt_ok!(Value::from(v)),
     }
 }
 
@@ -272,7 +259,7 @@ fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> DatumResult {
                 return molt_err!("syntax error in expression \"{}\"", string);
             }
 
-            if value.vtype == Type::Float {
+            if let Datum::Float(..) = value {
                 // TODO: check for NaN, INF, and throw IEEE floating point error.
             }
 
@@ -326,58 +313,37 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             value = expr_get_value(interp, info, PREC_TABLE[info.token as usize])?;
 
             if info.no_eval == 0 {
-                match operator {
-                    UNARY_MINUS => match value.vtype {
-                        Type::Int => {
-                            value.int = -value.int;
-                        }
-                        Type::Float => {
-                            value.flt = -value.flt;
-                        }
-                        _ => {
-                            return illegal_type(value.vtype, operator);
-                        }
+                value = match operator {
+                    UNARY_MINUS => match value {
+                        Datum::Int(v) => Datum::Int(-v),
+                        Datum::Float(v) => Datum::Float(-v),
+                        _ => return illegal_type(value.ty(), operator),
                     },
-                    UNARY_PLUS => {
-                        if !value.is_numeric() {
-                            return illegal_type(value.vtype, operator);
-                        }
-                    }
+                    UNARY_PLUS => match value {
+                        Datum::Int(v) => Datum::Int(v),
+                        Datum::Float(v) => Datum::Float(v),
+                        _ => return illegal_type(value.ty(), operator),
+                    },
                     NOT => {
-                        match value.vtype {
-                            Type::Int => {
-                                // NOTE: Tcl uses !int here, but in Rust !int_value is a bitwise
-                                // operator, not a logical one.
-                                if value.int == 0 {
-                                    value.int = 1;
-                                } else {
-                                    value.int = 0;
-                                }
-                            }
-                            Type::Float => {
-                                if value.flt == 0.0 {
-                                    value = Datum::int(1);
-                                } else {
-                                    value = Datum::int(0);
-                                }
-                            }
-                            _ => {
-                                return illegal_type(value.vtype, operator);
-                            }
+                        match value {
+                            // NOTE: Tcl uses !int here, but in Rust !int_value is a bitwise
+                            // operator, not a logical one.
+                            Datum::Int(v) => Datum::Int((v == 0) as MoltInt),
+                            Datum::Float(v) => Datum::Int((v == 0.0) as MoltInt),
+                            _ => return illegal_type(value.ty(), operator),
                         }
                     }
                     BIT_NOT => {
-                        if let Type::Int = value.vtype {
+                        match value {
                             // Note: in Rust, unlike C, !int_value is a bitwise operator.
-                            value.int = !value.int;
-                        } else {
-                            return illegal_type(value.vtype, operator);
+                            Datum::Int(v) => Datum::Int(!v),
+                            _ => return illegal_type(value.ty(), operator),
                         }
                     }
                     _ => {
                         return molt_err!("unknown unary op: \"{}\"", operator);
                     }
-                }
+                };
             }
             got_op = true;
         } else if info.token != VALUE {
@@ -417,22 +383,22 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
         if operator == AND || operator == OR || operator == QUESTY {
             // For these operators, we need an integer value.  Convert or return
             // an error.
-            match value.vtype {
-                Type::Float => {
-                    if value.flt == 0.0 {
-                        value = Datum::int(0);
+            value = match value {
+                Datum::Int(_) => value,
+                Datum::Float(v) => {
+                    if v == 0.0 {
+                        Datum::Int(0)
                     } else {
-                        value = Datum::int(1);
+                        Datum::Int(1)
                     }
                 }
-                Type::String => {
+                Datum::String(_) => {
                     if info.no_eval == 0 {
-                        return illegal_type(value.vtype, operator);
+                        return illegal_type(value.ty(), operator);
                     }
-                    value = Datum::int(0);
+                    Datum::Int(0)
                 }
-                _ => {}
-            }
+            };
 
             if (operator == AND && !value.is_true()) || (operator == OR && value.is_true()) {
                 // Short-circuit; we don't care about the next operand, but it must be
@@ -451,26 +417,26 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 // Special note: ?: operators must associate right to left.  To make
                 // this happen, use a precedence one lower than QUESTY when calling
                 // expr_get_value recursively.
-                if value.int != 0 {
-                    value = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
+                if let Datum::Int(0) = value {
+                    info.no_eval += 1;
+                    value2 = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
+                    info.no_eval -= 1;
 
                     if info.token != COLON {
                         return syntax_error(info);
                     }
 
-                    info.no_eval += 1;
-                    value2 = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
-                    info.no_eval -= 1;
+                    value = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
                 } else {
-                    info.no_eval += 1;
-                    value2 = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
-                    info.no_eval -= 1;
+                    value = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
 
                     if info.token != COLON {
                         return syntax_error(info);
                     }
 
-                    value = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
+                    info.no_eval += 1;
+                    value2 = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
+                    info.no_eval -= 1;
                 }
             } else {
                 value2 = expr_get_value(interp, info, PREC_TABLE[operator as usize])?;
@@ -492,305 +458,194 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
             continue;
         }
 
-        // At this point we've got two values and an operator.  Check to make sure that the
-        // particular data types are appropriate for the particular operator, and perform
-        // type conversion if necessary.
-
-        match operator {
-            // For the operators below, no strings are allowed and ints get converted to
-            // floats if necessary.
-            MULT | DIVIDE | PLUS | MINUS => {
-                if value.vtype == Type::String || value2.vtype == Type::String {
-                    return illegal_type(Type::String, operator);
-                }
-
-                if value.vtype == Type::Float {
-                    if value2.vtype == Type::Int {
-                        value2.flt = value2.int as MoltFloat;
-                        value2.vtype = Type::Float;
-                    }
-                } else if value2.vtype == Type::Float {
-                    if value.vtype == Type::Int {
-                        value.flt = value.int as MoltFloat;
-                        value.vtype = Type::Float;
-                    }
-                }
-            }
-
-            // For the operators below, only integers are allowed.
-            MOD | LEFT_SHIFT | RIGHT_SHIFT | BIT_AND | BIT_XOR | BIT_OR => {
-                if value.vtype != Type::Int {
-                    return illegal_type(value.vtype, operator);
-                } else if value2.vtype != Type::Int {
-                    return illegal_type(value2.vtype, operator);
-                }
-            }
-
-            // For the operators below, any type is allowed, but the operators must have
-            // the same type.
-            LESS | GREATER | LEQ | GEQ | EQUAL | NEQ => {
-                if value.vtype == Type::String {
-                    if value2.vtype != Type::String {
-                        value2 = expr_as_str(value2);
-                    }
-                } else if value2.vtype == Type::String {
-                    if value.vtype != Type::String {
-                        value = expr_as_str(value);
-                    }
-                } else if value.vtype == Type::Float {
-                    if value2.vtype == Type::Int {
-                        value2 = Datum::float(value2.int as MoltFloat);
-                    }
-                } else if value2.vtype == Type::Float {
-                    if value.vtype == Type::Int {
-                        value = Datum::float(value.int as MoltFloat);
-                    }
-                }
-            }
-
-            // For the operators below, everything's treated as a string.
-            // For IN and NI, the second value is a list, but we'll parse it as a list
-            // as part of evaluation.
-            STRING_EQ | STRING_NE | IN | NI => {
-                if value.vtype != Type::String {
-                    value = expr_as_str(value);
-                }
-                if value2.vtype != Type::String {
-                    value2 = expr_as_str(value2);
-                }
-            }
-
-            // For the operators below, no strings are allowed, but no int->float conversions
-            // are performed.
-            AND | OR => {
-                if value.vtype == Type::String {
-                    return illegal_type(value.vtype, operator);
-                }
-                if value2.vtype == Type::String {
-                    return illegal_type(value2.vtype, operator);
-                }
-            }
-
-            // For the operators below, type and conversions are irrelevant: they're
-            // handled elsewhere.
-            QUESTY | COLON => {
-                // Nothing to do
-            }
-
-            _ => return molt_err!("unknown operator in expression"),
-        }
-
+        // At this point we've got two values and an operator.
         // Carry out the function of the specified operator.
         match operator {
             MULT => {
-                if value.vtype == Type::Int {
-                    // value.int *= value2.int
-                    if let Some(int) = value.int.checked_mul(value2.int) {
-                        value.int = int;
-                    } else {
-                        return molt_err!("integer overflow");
-                    }
-                } else {
-                    value.flt *= value2.flt;
-                }
+                value = match coerce_pair(operator, &value, &value2)? {
+                    DatumPair::Ints(v1, v2) => match i64::checked_mul(v1, v2) {
+                        Some(result) => Datum::Int(result),
+                        None => return molt_err!("integer overflow"),
+                    },
+                    DatumPair::Floats(v1, v2) => Datum::Float(v1 * v2),
+                    DatumPair::Strings(..) => return illegal_type(Type::String, operator),
+                };
             }
             DIVIDE => {
-                if value.vtype == Type::Int {
-                    if value2.int == 0 {
-                        return molt_err!("divide by zero");
+                value = match coerce_pair(operator, &value, &value2)? {
+                    DatumPair::Ints(v1, v2) => {
+                        if v2 == 0 {
+                            return molt_err!("divide by zero");
+                        }
+                        match i64::checked_div(v1, v2) {
+                            Some(result) => Datum::Int(result),
+                            None => return molt_err!("integer overflow"),
+                        }
                     }
-
-                    if let Some(int) = value.int.checked_div(value2.int) {
-                        value.int = int;
-                    } else {
-                        return molt_err!("integer overflow");
-                    }
-                } else {
-                    if value2.flt == 0.0 {
+                    DatumPair::Floats(v1, v2) => {
                         // TODO: return Inf or -Inf?  Waiting for response from KBK
-                        return molt_err!("divide by zero");
+                        if v2 == 0.0 {
+                            return molt_err!("divide by zero");
+                        }
+
+                        Datum::Float(v1 / v2)
                     }
-                    value.flt /= value2.flt;
-                }
+                    DatumPair::Strings(..) => return illegal_type(Type::String, operator),
+                };
             }
             MOD => {
-                assert!(value.vtype == Type::Int);
+                let v1 = assert_int(operator, &value)?;
+                let v2 = assert_int(operator, &value2)?;
 
-                if value2.int == 0 {
+                if v2 == 0 {
                     return molt_err!("divide by zero");
                 }
-
-                if let Some(int) = value.int.checked_rem(value2.int) {
-                    value.int = int;
-                } else {
-                    return molt_err!("integer overflow");
-                }
+                value = match i64::checked_rem(v1, v2) {
+                    Some(result) => Datum::Int(result),
+                    None => return molt_err!("integer overflow"),
+                };
             }
             PLUS => {
-                if value.vtype == Type::Int {
-                    // value.int += value2.int;
-                    if let Some(int) = value.int.checked_add(value2.int) {
-                        value.int = int;
-                    } else {
-                        return molt_err!("integer overflow");
-                    }
-                } else {
-                    value.flt += value2.flt;
-                }
+                value = match coerce_pair(operator, &value, &value2)? {
+                    DatumPair::Ints(v1, v2) => match i64::checked_add(v1, v2) {
+                        Some(result) => Datum::Int(result),
+                        None => return molt_err!("integer overflow"),
+                    },
+                    DatumPair::Floats(v1, v2) => Datum::Float(v1 + v2),
+                    DatumPair::Strings(..) => return illegal_type(Type::String, operator),
+                };
             }
             MINUS => {
-                if value.vtype == Type::Int {
-                    // value.int -= value2.int;
-                    if let Some(int) = value.int.checked_sub(value2.int) {
-                        value.int = int;
-                    } else {
-                        return molt_err!("integer overflow");
-                    }
-                } else {
-                    value.flt -= value2.flt;
-                }
+                value = match coerce_pair(operator, &value, &value2)? {
+                    DatumPair::Ints(v1, v2) => match i64::checked_sub(v1, v2) {
+                        Some(result) => Datum::Int(result),
+                        None => return molt_err!("integer overflow"),
+                    },
+                    DatumPair::Floats(v1, v2) => Datum::Float(v1 - v2),
+                    DatumPair::Strings(..) => return illegal_type(Type::String, operator),
+                };
             }
             LEFT_SHIFT => {
+                let v1 = assert_int(operator, &value)?;
+                let v2 = assert_int(operator, &value2)?;
+
                 // TODO: Use checked_shl
-                value.int <<= value2.int;
+                value = Datum::Int(v1 << v2);
             }
             RIGHT_SHIFT => {
+                let v1 = assert_int(operator, &value)?;
+                let v2 = assert_int(operator, &value2)?;
+
                 // The following code is a bit tricky:  it ensures that
                 // right shifts propagate the sign bit even on machines
                 // where ">>" won't do it by default.
                 // WHD: Not sure if this is an issue in Rust.
 
                 // TODO: Use checked_shr
-                if value.int < 0 {
-                    value.int = !((!value.int) >> value2.int)
+                value = if v1 < 0 {
+                    Datum::Int(!((!v1) >> v2))
                 } else {
-                    value.int >>= value2.int;
+                    Datum::Int(v1 >> v2)
                 }
             }
             LESS => {
-                let flag = match value.vtype {
-                    Type::Int => value.int < value2.int,
-                    Type::Float => value.flt < value2.flt,
-                    Type::String => value.str < value2.str,
+                value = match coerce_pair(operator, &value, &value2)? {
+                    DatumPair::Ints(v1, v2) => Datum::Int((v1 < v2) as MoltInt),
+                    DatumPair::Floats(v1, v2) => Datum::Int((v1 < v2) as MoltInt),
+                    DatumPair::Strings(v1, v2) => Datum::Int((v1 < v2) as MoltInt),
                 };
-
-                value = if flag { Datum::int(1) } else { Datum::int(0) };
             }
             GREATER => {
-                let flag = match value.vtype {
-                    Type::Int => value.int > value2.int,
-                    Type::Float => value.flt > value2.flt,
-                    Type::String => value.str > value2.str,
+                value = match coerce_pair(operator, &value, &value2)? {
+                    DatumPair::Ints(v1, v2) => Datum::Int((v1 > v2) as MoltInt),
+                    DatumPair::Floats(v1, v2) => Datum::Int((v1 > v2) as MoltInt),
+                    DatumPair::Strings(v1, v2) => Datum::Int((v1 > v2) as MoltInt),
                 };
-
-                value = if flag { Datum::int(1) } else { Datum::int(0) };
             }
             LEQ => {
-                let flag = match value.vtype {
-                    Type::Int => value.int <= value2.int,
-                    Type::Float => value.flt <= value2.flt,
-                    Type::String => value.str <= value2.str,
+                value = match coerce_pair(operator, &value, &value2)? {
+                    DatumPair::Ints(v1, v2) => Datum::Int((v1 <= v2) as MoltInt),
+                    DatumPair::Floats(v1, v2) => Datum::Int((v1 <= v2) as MoltInt),
+                    DatumPair::Strings(v1, v2) => Datum::Int((v1 <= v2) as MoltInt),
                 };
-
-                value = if flag { Datum::int(1) } else { Datum::int(0) };
             }
             GEQ => {
-                let flag = match value.vtype {
-                    Type::Int => value.int >= value2.int,
-                    Type::Float => value.flt >= value2.flt,
-                    Type::String => value.str >= value2.str,
+                value = match coerce_pair(operator, &value, &value2)? {
+                    DatumPair::Ints(v1, v2) => Datum::Int((v1 >= v2) as MoltInt),
+                    DatumPair::Floats(v1, v2) => Datum::Int((v1 >= v2) as MoltInt),
+                    DatumPair::Strings(v1, v2) => Datum::Int((v1 >= v2) as MoltInt),
                 };
-
-                value = if flag { Datum::int(1) } else { Datum::int(0) };
             }
             EQUAL => {
-                // NOTE: comparing floats using == is dangerous; but Tcl leaves that to the
-                // TCL programmer.
-                let flag = match value.vtype {
-                    Type::Int => value.int == value2.int,
-                    Type::Float => value.flt == value2.flt,
-                    Type::String => value.str == value2.str,
+                value = match coerce_pair(operator, &value, &value2)? {
+                    DatumPair::Ints(v1, v2) => Datum::Int((v1 == v2) as MoltInt),
+                    // NOTE: comparing floats using == is dangerous; but Tcl leaves that to the
+                    // TCL programmer.
+                    DatumPair::Floats(v1, v2) => Datum::Int((v1 == v2) as MoltInt),
+                    DatumPair::Strings(v1, v2) => Datum::Int((v1 == v2) as MoltInt),
                 };
-
-                value = if flag { Datum::int(1) } else { Datum::int(0) };
             }
             NEQ => {
-                // NOTE: comparing floats using == is dangerous; but Tcl leaves that to the
-                // TCL programmer.
-                let flag = match value.vtype {
-                    Type::Int => value.int != value2.int,
-                    Type::Float => value.flt != value2.flt,
-                    Type::String => value.str != value2.str,
+                value = match coerce_pair(operator, &value, &value2)? {
+                    DatumPair::Ints(v1, v2) => Datum::Int((v1 != v2) as MoltInt),
+                    // NOTE: comparing floats using != is dangerous; but Tcl leaves that to the
+                    // TCL programmer.
+                    DatumPair::Floats(v1, v2) => Datum::Int((v1 != v2) as MoltInt),
+                    DatumPair::Strings(v1, v2) => Datum::Int((v1 != v2) as MoltInt),
                 };
-
-                value = if flag { Datum::int(1) } else { Datum::int(0) };
             }
             STRING_EQ => {
-                value = if value.str == value2.str {
-                    Datum::int(1)
-                } else {
-                    Datum::int(0)
-                };
+                let v1 = coerce_to_string(&value);
+                let v2 = coerce_to_string(&value2);
+                value = Datum::Int((v1 == v2) as MoltInt);
             }
             STRING_NE => {
-                value = if value.str != value2.str {
-                    Datum::int(1)
-                } else {
-                    Datum::int(0)
-                };
+                let v1 = coerce_to_string(&value);
+                let v2 = coerce_to_string(&value2);
+                value = Datum::Int((v1 != v2) as MoltInt);
             }
             IN => {
-                let list = list::get_list(&value2.str)?;
+                let v1 = coerce_to_string(&value);
+                let v2 = coerce_to_string(&value2);
+
                 // TODO: Need a better MoltList contains() method.
-                value = if list.contains(&Value::from(&value.str)) {
-                    Datum::int(1)
-                } else {
-                    Datum::int(0)
-                };
+                let list = list::get_list(v2.as_ref())?;
+                let element = Value::from(v1.as_ref());
+                value = Datum::Int(list.contains(&element) as MoltInt);
             }
             NI => {
-                let list = list::get_list(&value2.str)?;
+                let v1 = coerce_to_string(&value);
+                let v2 = coerce_to_string(&value2);
+
                 // TODO: Need a better MoltList contains() method.
-                value = if list.contains(&Value::from(&value.str)) {
-                    Datum::int(0)
-                } else {
-                    Datum::int(1)
-                };
+                let list = list::get_list(v2.as_ref())?;
+                let element = Value::from(v1.as_ref());
+                value = Datum::Int(!list.contains(&element) as MoltInt);
             }
             BIT_AND => {
-                value.int &= value2.int;
+                let v1 = assert_int(operator, &value)?;
+                let v2 = assert_int(operator, &value2)?;
+                value = Datum::Int(v1 & v2);
             }
             BIT_XOR => {
-                value.int ^= value2.int;
+                let v1 = assert_int(operator, &value)?;
+                let v2 = assert_int(operator, &value2)?;
+                value = Datum::Int(v1 ^ v2);
             }
             BIT_OR => {
-                value.int |= value2.int;
+                let v1 = assert_int(operator, &value)?;
+                let v2 = assert_int(operator, &value2)?;
+                value = Datum::Int(v1 | v2);
             }
-
-            // For AND and OR, we know that the first value has already been converted to
-            // an integer.  Thus we need only consider the possibility of int vs. double
-            // for the second value.
             AND => {
-                if value2.vtype == Type::Float {
-                    value2.vtype = Type::Int;
-                    value2.int = if value2.flt != 0.0 { 1 } else { 0 };
-                }
-                value.int = if value.int != 0 && value2.int != 0 {
-                    1
-                } else {
-                    0
-                };
+                let v1 = coerce_to_bool(operator, &value)?;
+                let v2 = coerce_to_bool(operator, &value2)?;
+                value = Datum::Int((v1 && v2) as MoltInt);
             }
             OR => {
-                if value2.vtype == Type::Float {
-                    value2.vtype = Type::Int;
-                    value2.int = if value2.flt != 0.0 { 1 } else { 0 };
-                }
-                value.int = if value.int != 0 || value2.int != 0 {
-                    1
-                } else {
-                    0
-                };
+                let v1 = coerce_to_bool(operator, &value)?;
+                let v2 = coerce_to_bool(operator, &value2)?;
+                value = Datum::Int((v1 || v2) as MoltInt);
             }
 
             COLON => {
@@ -801,6 +656,58 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 // Nothing to do.
             }
         }
+    }
+}
+
+enum DatumPair<'s> {
+    Ints(MoltInt, MoltInt),
+    Floats(MoltFloat, MoltFloat),
+    Strings(&'s str, &'s str),
+}
+
+fn coerce_pair<'s>(
+    operator: i32,
+    value1: &'s Datum,
+    value2: &'s Datum,
+) -> Result<DatumPair<'s>, Exception> {
+    match (value1, value2) {
+        (Datum::Int(v1), Datum::Int(v2)) => Ok(DatumPair::Ints(*v1, *v2)),
+
+        (Datum::Int(v1), Datum::Float(v2)) => Ok(DatumPair::Floats(*v1 as MoltFloat, *v2)),
+
+        (Datum::Float(v1), Datum::Int(v2)) => Ok(DatumPair::Floats(*v1, *v2 as MoltFloat)),
+
+        (Datum::Float(v1), Datum::Float(v2)) => Ok(DatumPair::Floats(*v1, *v2)),
+
+        (Datum::String(ref v1), Datum::String(ref v2)) => {
+            Ok(DatumPair::Strings(v1.as_str(), v2.as_str()))
+        }
+
+        (Datum::String(..), _) | (_, Datum::String(..)) => illegal_type(Type::String, operator),
+    }
+}
+
+fn assert_int(operator: i32, value: &Datum) -> Result<i64, Exception> {
+    match *value {
+        Datum::Int(v) => Ok(v),
+        _ => illegal_type(value.ty(), operator),
+    }
+}
+
+fn coerce_to_string(value: &Datum) -> Cow<str> {
+    match value {
+        Datum::Int(v) => Cow::Owned(format!("{}", v)),
+        Datum::Float(v) => Cow::Owned(format!("{}", v)),
+        Datum::String(v) => Cow::Borrowed(v.as_str()),
+    }
+}
+
+fn coerce_to_bool(operator: i32, value: &Datum) -> Result<bool, Exception> {
+    match value {
+        Datum::String(..) => illegal_type(value.ty(), operator),
+        Datum::Int(0) => Ok(false),
+        Datum::Float(v) if *v == 0.0 => Ok(false),
+        _ => Ok(true),
     }
 }
 
@@ -1200,27 +1107,27 @@ fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> 
         for i in 0..bfunc.num_args {
             let arg = expr_get_value(interp, info, -1)?;
 
-            // At present we have no string functions.
-            if arg.vtype == Type::String {
-                return molt_err!("argument to math function didn't have numeric value");
-            }
-
-            // Copy the value to the argument record, converting it if necessary.
-            if arg.vtype == Type::Int {
-                if bfunc.arg_types[i] == ArgType::Float {
-                    args[i] = Datum::float(arg.int as MoltFloat);
-                } else {
-                    args[i] = arg;
+            args[i] = match arg {
+                // At present we have no string functions.
+                Datum::String(..) => {
+                    return molt_err!("argument to math function didn't have numeric value")
                 }
-            } else {
-                // Type::Float
-                if bfunc.arg_types[i] == ArgType::Int {
-                    // TODO: Need to handle overflow?
-                    args[i] = Datum::int(arg.flt as MoltInt);
-                } else {
-                    args[i] = arg;
+                Datum::Int(v) => {
+                    if bfunc.arg_types[i] == ArgType::Float {
+                        Datum::Float(v as MoltFloat)
+                    } else {
+                        Datum::Int(v)
+                    }
                 }
-            }
+                Datum::Float(v) => {
+                    if bfunc.arg_types[i] == ArgType::Int {
+                        // TODO: Need to handle overflow?
+                        Datum::Int(v as MoltInt)
+                    } else {
+                        Datum::Float(v)
+                    }
+                }
+            };
 
             // Check for a comma separator between arguments or a close-paren to end
             // the argument list.
@@ -1328,15 +1235,6 @@ fn expr_parse_string(string: &str) -> DatumResult {
     Ok(Datum::string(string))
 }
 
-// Converts values to strings for string comparisons.
-fn expr_as_str(value: Datum) -> Datum {
-    match value.vtype {
-        Type::Int => Datum::string(&format!("{}", value.int)),
-        Type::Float => Datum::string(&format!("{}", value.flt)),
-        _ => value,
-    }
-}
-
 // Distinguished between decimal integers and floating-point values
 fn expr_looks_like_int<'a>(ptr: &Tokenizer<'a>) -> bool {
     // FIRST, skip whitespace
@@ -1359,63 +1257,55 @@ fn expr_looks_like_int<'a>(ptr: &Tokenizer<'a>) -> bool {
     !p.is('.') && !p.is('e') && !p.is('E')
 }
 
-impl Datum {
-    fn is_numeric(&self) -> bool {
-        match self.vtype {
-            Type::Int => true,
-            Type::Float => true,
-            Type::String => false,
-        }
-    }
-}
-
-#[allow(clippy::collapsible_if)]
 fn expr_abs_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
-    let arg = &args[0];
-    if arg.vtype == Type::Float {
-        if arg.flt < 0.0 {
-            Ok(Datum::float(-arg.flt))
-        } else {
-            Ok(Datum::float(arg.flt))
+    match args[0] {
+        Datum::String(..) => molt_err!("argument to math function didn't have numeric value"),
+        Datum::Float(v) => {
+            if v < 0.0 {
+                Ok(Datum::Float(-v))
+            } else {
+                Ok(Datum::Float(v))
+            }
         }
-    } else {
-        // TODO: need to handle integer overflow here.
-        if arg.int < 0 {
-            Ok(Datum::int(-arg.int))
-        } else {
-            Ok(Datum::int(arg.int))
+        Datum::Int(v) => {
+            if v < 0 {
+                Ok(Datum::Int(-v))
+            } else {
+                Ok(Datum::Int(v))
+            }
         }
     }
 }
 
 fn expr_double_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
-    let arg = &args[0];
-    if arg.vtype == Type::Float {
-        Ok(Datum::float(arg.flt))
-    } else {
-        Ok(Datum::float(arg.int as MoltFloat))
+    match args[0] {
+        Datum::String(..) => molt_err!("argument to math function didn't have numeric value"),
+        Datum::Float(v) => Ok(Datum::Float(v)),
+        Datum::Int(v) => Ok(Datum::Float(v as MoltFloat)),
     }
 }
 
 fn expr_int_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
-    let arg = &args[0];
-    if arg.vtype == Type::Int {
-        Ok(Datum::int(arg.int))
-    } else {
+    match args[0] {
+        Datum::String(..) => molt_err!("argument to math function didn't have numeric value"),
         // TODO: need to handle integer overflow here.
-        Ok(Datum::int(arg.flt as MoltInt))
+        Datum::Float(v) => Ok(Datum::Int(v as MoltInt)),
+        Datum::Int(v) => Ok(Datum::Int(v)),
     }
 }
 
 fn expr_round_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
-    // TODO: need to handle integer overflow here.
-    let arg = &args[0];
-    if arg.vtype == Type::Int {
-        Ok(Datum::int(arg.int))
-    } else if arg.flt < 0.0 {
-        Ok(Datum::int((arg.flt - 0.5) as MoltInt))
-    } else {
-        Ok(Datum::int((arg.flt + 0.5) as MoltInt))
+    match args[0] {
+        Datum::String(..) => molt_err!("argument to math function didn't have numeric value"),
+        // TODO: need to handle integer overflow here.
+        Datum::Float(v) => {
+            if v < 0.0 {
+                Ok(Datum::Int((v - 0.5) as MoltInt))
+            } else {
+                Ok(Datum::Int((v + 0.5) as MoltInt))
+            }
+        }
+        Datum::Int(v) => Ok(Datum::Int(v)),
     }
 }
 
@@ -1425,7 +1315,7 @@ fn syntax_error(info: &mut ExprInfo) -> DatumResult {
 }
 
 // Return standard illegal type error
-fn illegal_type(bad_type: Type, op: i32) -> DatumResult {
+fn illegal_type<T>(bad_type: Type, op: i32) -> Result<T, Exception> {
     let type_str = if bad_type == Type::Float {
         "floating-point value"
     } else {
@@ -1454,14 +1344,11 @@ mod tests {
     // verifying that we got the number we expected, so this is probably OK.
     #[allow(clippy::float_cmp)]
     fn veq(val1: &Datum, val2: &Datum) -> bool {
-        if val1.vtype != val2.vtype {
-            return false;
-        }
-
-        match &val1.vtype {
-            Type::Int => val1.int == val2.int,
-            Type::Float => val1.flt == val2.flt,
-            Type::String => val1.str == val2.str,
+        match coerce_pair(0, val1, val2) {
+            Err(..) => false,
+            Ok(DatumPair::Ints(v1, v2)) => (v1 == v2),
+            Ok(DatumPair::Floats(v1, v2)) => (v1 == v2),
+            Ok(DatumPair::Strings(v1, v2)) => (v1 == v2),
         }
     }
 

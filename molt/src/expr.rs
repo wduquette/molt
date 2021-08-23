@@ -536,17 +536,8 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
                 let v1 = assert_int(operator, &value)?;
                 let v2 = assert_int(operator, &value2)?;
 
-                // The following code is a bit tricky:  it ensures that
-                // right shifts propagate the sign bit even on machines
-                // where ">>" won't do it by default.
-                // WHD: Not sure if this is an issue in Rust.
-
                 // TODO: Use checked_shr
-                value = if v1 < 0 {
-                    Datum::Int(!((!v1) >> v2))
-                } else {
-                    Datum::Int(v1 >> v2)
-                }
+                value = Datum::Int(v1 >> v2)
             }
             LESS => {
                 value = match coerce_pair(operator, &value, &value2)? {

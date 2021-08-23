@@ -1251,20 +1251,8 @@ fn expr_looks_like_int<'a>(ptr: &Tokenizer<'a>) -> bool {
 fn expr_abs_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
     match args[0] {
         Datum::String(..) => molt_err!("argument to math function didn't have numeric value"),
-        Datum::Float(v) => {
-            if v < 0.0 {
-                Ok(Datum::Float(-v))
-            } else {
-                Ok(Datum::Float(v))
-            }
-        }
-        Datum::Int(v) => {
-            if v < 0 {
-                Ok(Datum::Int(-v))
-            } else {
-                Ok(Datum::Int(v))
-            }
-        }
+        Datum::Float(v) => Ok(Datum::Float(v.abs())),
+        Datum::Int(v) => Ok(Datum::Int(v.abs())),
     }
 }
 

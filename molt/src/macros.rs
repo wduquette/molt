@@ -42,13 +42,13 @@
 #[macro_export]
 macro_rules! molt_ok {
     () => (
-        Ok(Value::empty())
+        Ok($crate::Value::empty())
     );
     ($arg:expr) => (
-        Ok(Value::from($arg))
+        Ok($crate::Value::from($arg))
     );
     ($($arg:tt)*) => (
-        Ok(Value::from(format!($($arg)*)))
+        Ok($crate::Value::from(format!($($arg)*)))
     )
 }
 
@@ -96,10 +96,10 @@ macro_rules! molt_ok {
 #[macro_export]
 macro_rules! molt_err {
     ($arg:expr) => (
-        Err(Exception::molt_err(Value::from($arg)))
+        Err($crate::Exception::molt_err($crate::Value::from($arg)))
     );
     ($($arg:tt)*) => (
-        Err(Exception::molt_err(Value::from(format!($($arg)*))))
+        Err($crate::Exception::molt_err($crate::Value::from(format!($($arg)*))))
     )
 }
 
@@ -151,10 +151,10 @@ macro_rules! molt_err {
 #[macro_export]
 macro_rules! molt_throw {
     ($code:expr, $msg:expr) => (
-        Err(Exception::molt_err2(Value::from($code), Value::from($msg)))
+        Err($crate::Exception::molt_err2($crate::Value::from($code), $crate::Value::from($msg)))
     );
     ($code:expr, $($arg:tt)*) => (
-        Err(Exception::molt_err2(Value::from($code), Value::from(format!($($arg)*))))
+        Err($crate::Exception::molt_err2($crate::Value::from($code), $crate::Value::from(format!($($arg)*))))
     )
 }
 
